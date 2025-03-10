@@ -70,7 +70,7 @@ export default function SkillDetailPage() {
           if (!res.ok) throw new Error("Failed to fetch users");
           return res.json();
         }),
-    enabled: !!user?.isAdmin,
+    enabled: !!user?.is_admin,
   });
   
   // Get the endorser information

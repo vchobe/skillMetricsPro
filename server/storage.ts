@@ -121,7 +121,7 @@ export class PostgresStorage implements IStorage {
          RETURNING *`,
         [
           insertUser.email, 
-          insertUser.isAdmin || false,
+          insertUser.is_admin || false,
           insertUser.username || insertUser.email.split('@')[0], // Use username if provided, otherwise derive from email
           insertUser.password || '' // Use empty string as default password
         ]

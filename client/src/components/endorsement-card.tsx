@@ -88,7 +88,7 @@ export default function EndorsementCard({
           <div className="text-xs text-muted-foreground">
             {formatDistanceToNow(new Date(endorsement.createdAt), { addSuffix: true })}
           </div>
-          {user?.isAdmin && (
+          {user?.is_admin && (
             <Button 
               variant="ghost" 
               size="icon" 
