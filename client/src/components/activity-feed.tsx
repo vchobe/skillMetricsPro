@@ -159,7 +159,15 @@ export default function ActivityFeed({ activities, skills, showAll }: ActivityFe
                     <div className="mt-1 text-xs text-gray-500 flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
                       <span>
-                        {activity.date ? formatDistanceToNow(new Date(activity.date), { addSuffix: true }) : 'recently'}
+                        {activity.date ? 
+                          (() => {
+                            try {
+                              return formatDistanceToNow(new Date(activity.date), { addSuffix: true });
+                            } catch (e) {
+                              return 'recently';
+                            }
+                          })() 
+                          : 'recently'}
                       </span>
                     </div>
                   </div>

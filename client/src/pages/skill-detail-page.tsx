@@ -22,9 +22,8 @@ import {
   ThumbsUp, 
   History 
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDate } from "@/lib/date-utils";
+import { formatDate, formatRelativeTime } from "@/lib/date-utils";
 
 export default function SkillDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -163,7 +162,15 @@ export default function SkillDetailPage() {
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">Last Updated</h3>
                       <p className="flex items-center">
                         <Clock className="mr-1 h-4 w-4 text-muted-foreground" />
-                        {skill.lastUpdated ? formatDistanceToNow(new Date(skill.lastUpdated), { addSuffix: true }) : "Not available"}
+                        {skill.lastUpdated ? 
+                          (() => {
+                            try {
+                              return formatDistanceToNow(new Date(skill.lastUpdated), { addSuffix: true });
+                            } catch (e) {
+                              return "Not available";
+                            }
+                          })() 
+                          : "Not available"}
                       </p>
                     </div>
                     <div>
@@ -267,7 +274,15 @@ export default function SkillDetailPage() {
                               <p className="text-sm text-muted-foreground mt-1">{entry.changeNote}</p>
                             )}
                             <p className="text-xs text-muted-foreground mt-2">
-                              {entry.createdAt ? formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true }) : "Not available"}
+                              {entry.createdAt ? 
+                                (() => {
+                                  try {
+                                    return formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true });
+                                  } catch (e) {
+                                    return "Not available";
+                                  }
+                                })() 
+                                : "Not available"}
                             </p>
                           </div>
                         </div>
