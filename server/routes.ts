@@ -395,10 +395,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user names for the chart
       const userSkillData = await Promise.all(
         Object.entries(userSkillsCount).map(async ([userId, count]) => {
-          const user = await storage.getUser(parseInt(userId));
+          // Ensure userId is a valid number
+          const id = parseInt(userId);
+          if (isNaN(id)) {
+            return {
+              userId: 0,
+              name: `Unknown User`,
+              skillCount: count
+            };
+          }
+          
+          const user = await storage.getUser(id);
           return {
-            userId: parseInt(userId),
-            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || user.email || `User ${userId}` : `User ${userId}`,
+            userId: id,
+            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || user.email || `User ${id}` : `User ${id}`,
             skillCount: count
           };
         })
