@@ -24,8 +24,13 @@ export const insertUserSchema = createInsertSchema(users)
   })
   .extend({
     isAdmin: z.boolean().default(false).optional(),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z.string().optional(), // Password is generated on server
   });
+
+// Registration schema only needs email
+export const registerSchema = z.object({
+  email: z.string().email("Valid email is required"),
+});
 
 export const loginUserSchema = z.object({
   email: z.string().email("Valid email is required"),

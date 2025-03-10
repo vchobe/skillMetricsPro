@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { insertUserSchema, loginUserSchema } from "@shared/schema";
+import { insertUserSchema, loginUserSchema, registerSchema } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,9 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 
 const loginSchema = loginUserSchema;
-
-// Since we're only using email for registration now
-const registerSchema = insertUserSchema;
+// Using the imported registerSchema
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -38,10 +36,8 @@ export default function AuthPage() {
     },
   });
   
-  const registerForm = useForm<{ email: string }>({
-    resolver: zodResolver(z.object({
-      email: z.string().email("Valid email is required"),
-    })),
+  const registerForm = useForm<z.infer<typeof registerSchema>>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
     },
@@ -58,9 +54,9 @@ export default function AuthPage() {
     loginMutation.mutate(values);
   };
 
-  const onRegisterSubmit = (values: { email: string }) => {
+  const onRegisterSubmit = (values: z.infer<typeof registerSchema>) => {
     // Just pass the email, the server will generate a password and send it to the email
-    registerMutation.mutate({ email: values.email });
+    registerMutation.mutate(values);
   };
   
   const onForgotPasswordSubmit = (values: { email: string }) => {
