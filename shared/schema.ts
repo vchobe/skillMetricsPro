@@ -52,6 +52,8 @@ export const skills = pgTable("skills", {
   credlyLink: text("credly_link"),
   notes: text("notes"),
   endorsementCount: integer("endorsement_count").default(0),
+  certificationDate: timestamp("certification_date"),
+  expirationDate: timestamp("expiration_date"),
 });
 
 export const insertSkillSchema = createInsertSchema(skills).pick({
@@ -62,6 +64,8 @@ export const insertSkillSchema = createInsertSchema(skills).pick({
   certification: true,
   credlyLink: true,
   notes: true,
+  certificationDate: true,
+  expirationDate: true,
 });
 
 // Skill history schema

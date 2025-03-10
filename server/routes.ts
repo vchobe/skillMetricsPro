@@ -65,7 +65,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const newValue = value?.toString() || '';
           
           // Add to update data
-          updateData[key as keyof typeof updateData] = value;
+          if (typeof value !== 'undefined') {
+            updateData[key as keyof typeof updateData] = value;
+          }
           
           // Create history entry
           await storage.createProfileHistory({
