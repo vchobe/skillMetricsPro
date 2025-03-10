@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/lib/protected-route";
 
 import HomePage from "@/pages/home-page";
 import SkillsPage from "@/pages/skills-page";
+import SkillDetailPage from "@/pages/skill-detail-page";
 import SkillHistoryPage from "@/pages/skill-history-page";
 import ProfilePage from "@/pages/profile-page";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -18,6 +19,7 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/skills" component={SkillsPage} />
+      <ProtectedRoute path="/skills/:id" component={SkillDetailPage} />
       <ProtectedRoute path="/history" component={SkillHistoryPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/admin" component={AdminDashboard} adminOnly={true} />

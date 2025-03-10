@@ -5,7 +5,9 @@ import { setupAuth } from "./auth";
 import {
   insertSkillSchema,
   insertSkillHistorySchema,
-  insertProfileHistorySchema
+  insertProfileHistorySchema,
+  insertEndorsementSchema,
+  insertNotificationSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -258,6 +260,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(skills);
     } catch (error) {
       res.status(500).json({ message: "Error fetching skills", error });
+    }
+  });
+
+  // Endorsement routes
+  app.post("/api/skills/:id/endorse", ensureAuth, async (req, res) => {
+    try {
+      const skillId = parseInt(req.params.id);
+      const skill = await storage.getSkill(skillId);
+      
+      if (!skill) {
+        return res.status(404).json({ message: "Skill not found" });
+      }
+      
+      // Users can't endorse their own skills
+      if (skill.userId === req.user!.id) {
+        return res.status(400).json({ message: "You cannot endorse your own skills" });
+      }
+      
+      const parsedData = insertEndorsementSchema.safeParse({
+        skillId,
+        endorserId: req.user!.id,
+        endorseeId: skill.userId,
+        comment: req.body.comment
+      });
+      
+      if (!parsedData.success) {
+        return res.status(400).json({ 
+          message: "Invalid endorsement data", 
+          errors: parsedData.error.format() 
+        });
+      }
+      
+      const endorsement = await storage.createEndorsement(parsedData.data);
+      
+      // Update the skill's endorsement count
+      await storage.updateSkill(skillId, { 
+        endorsementCount: (skill.endorsementCount || 0) + 1 
+      });
+      
+      // Create a notification for the skill owner
+      await storage.createNotification({
+        userId: skill.userId,
+        type: "endorsement",
+        content: `Your ${skill.name} skill was endorsed by a colleague`,
+        relatedSkillId: skillId,
+        relatedUserId: req.user!.id
+      });
+      
+      res.status(201).json(endorsement);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating endorsement", error });
+    }
+  });
+  
+  app.get("/api/skills/:id/endorsements", ensureAuth, async (req, res) => {
+    try {
+      const skillId = parseInt(req.params.id);
+      const skill = await storage.getSkill(skillId);
+      
+      if (!skill) {
+        return res.status(404).json({ message: "Skill not found" });
+      }
+      
+      const endorsements = await storage.getSkillEndorsements(skillId);
+      res.json(endorsements);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching endorsements", error });
+    }
+  });
+  
+  app.get("/api/user/endorsements", ensureAuth, async (req, res) => {
+    try {
+      const endorsements = await storage.getUserEndorsements(req.user!.id);
+      res.json(endorsements);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching endorsements", error });
+    }
+  });
+  
+  app.delete("/api/endorsements/:id", ensureAuth, async (req, res) => {
+    try {
+      const endorsementId = parseInt(req.params.id);
+      // Only admins can delete endorsements
+      if (!req.user!.isAdmin) {
+        return res.status(403).json({ message: "Only admins can delete endorsements" });
+      }
+      
+      await storage.deleteEndorsement(endorsementId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting endorsement", error });
+    }
+  });
+  
+  // Notification routes
+  app.get("/api/notifications", ensureAuth, async (req, res) => {
+    try {
+      const unreadOnly = req.query.unread === "true";
+      const notifications = await storage.getUserNotifications(req.user!.id, unreadOnly);
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching notifications", error });
+    }
+  });
+  
+  app.post("/api/notifications/:id/read", ensureAuth, async (req, res) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      await storage.markNotificationAsRead(notificationId);
+      res.status(200).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error marking notification as read", error });
+    }
+  });
+  
+  app.post("/api/notifications/read-all", ensureAuth, async (req, res) => {
+    try {
+      await storage.markAllNotificationsAsRead(req.user!.id);
+      res.status(200).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error marking notifications as read", error });
     }
   });
 
