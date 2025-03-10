@@ -243,7 +243,7 @@ async function generateUsers(count) {
       username,
       email,
       password: hashedPassword,
-      isAdmin: true,
+      is_admin: true,
       firstName,
       lastName,
       role: randomFromArray(['IT Manager', 'CTO', 'IT Director', 'VP of Engineering', 'Chief Security Officer']),
@@ -269,7 +269,7 @@ async function generateUsers(count) {
       username,
       email,
       password: hashedPassword,
-      isAdmin: false,
+      is_admin: false,
       firstName: Math.random() > 0.2 ? firstName : undefined, // Some users have incomplete profiles
       lastName: Math.random() > 0.2 ? lastName : undefined,
       role: Math.random() > 0.3 ? randomFromArray([
@@ -688,7 +688,7 @@ async function insertTestData() {
     console.log(`- ${generatedNotifications.length} notifications`);
     
     // Log admin user credentials for testing
-    const adminUsers = generatedUsers.filter(user => user.isAdmin);
+    const adminUsers = generatedUsers.filter(user => user.is_admin);
     console.log('\nAdmin user credentials for testing:');
     for (const admin of adminUsers) {
       console.log(`Email: ${admin.email}, Password: Admin@123`);
@@ -699,7 +699,7 @@ async function insertTestData() {
     console.log(`All regular users have password: User@123`);
     console.log(`Sample regular users:`);
     for (let i = 0; i < Math.min(5, generatedUsers.length - adminUsers.length); i++) {
-      const user = generatedUsers.find(u => !u.isAdmin && u.email.includes('@'));
+      const user = generatedUsers.find(u => !u.is_admin && u.email.includes('@'));
       if (user) {
         console.log(`Email: ${user.email}, Password: User@123`);
       }

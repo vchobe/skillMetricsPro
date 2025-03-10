@@ -50,7 +50,7 @@ async function createAdminUser() {
       firstName: "Admin",
       lastName: "User",
       role: "System Administrator",
-      isAdmin: true,
+      is_admin: true,
       password: hashedPassword,
     }).returning();
     

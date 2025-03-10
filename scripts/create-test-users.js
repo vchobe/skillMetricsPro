@@ -53,14 +53,14 @@ async function createTestUsers() {
       const password = await hashPassword('password123');
       const firstName = `Test`;
       const lastName = `User ${i}`;
-      const isAdmin = false;
+      const is_admin = false;
 
       // Insert user
       const userResult = await pool.query(
         `INSERT INTO users (username, email, password, "firstName", "lastName", is_admin) 
          VALUES ($1, $2, $3, $4, $5, $6) 
          RETURNING id`,
-        [username, email, password, firstName, lastName, isAdmin]
+        [username, email, password, firstName, lastName, is_admin]
       );
       
       const userId = userResult.rows[0].id;
