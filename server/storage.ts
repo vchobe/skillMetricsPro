@@ -93,7 +93,7 @@ export class PostgresStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      const result = await this.pool.query('SELECT * FROM users WHERE username = $1', [username]);
+      const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
       return result.rows[0] || undefined;
     } catch (error) {
       console.error("Error getting user by username:", error);
@@ -103,7 +103,7 @@ export class PostgresStorage implements IStorage {
   
   async getUserByEmail(email: string): Promise<User | undefined> {
     try {
-      const result = await this.pool.query('SELECT * FROM users WHERE email = $1', [email]);
+      const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
       return result.rows[0] || undefined;
     } catch (error) {
       console.error("Error getting user by email:", error);
@@ -114,7 +114,7 @@ export class PostgresStorage implements IStorage {
   async createUser(insertUser: InsertUser & { username?: string, password?: string }): Promise<User> {
     try {
       console.log("Creating user with data:", insertUser);
-      const result = await this.pool.query(
+      const result = await pool.query(
         `INSERT INTO users (email, is_admin, username, password) 
          VALUES ($1, $2, $3, $4) 
          RETURNING *`,
@@ -154,7 +154,7 @@ export class PostgresStorage implements IStorage {
       
       params.push(id); // Add id as the last parameter
       
-      const result = await this.pool.query(
+      const result = await pool.query(
         `UPDATE users SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
         params
       );
@@ -172,7 +172,7 @@ export class PostgresStorage implements IStorage {
   
   async updateUserPassword(id: number, hashedPassword: string): Promise<void> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         'UPDATE users SET password = $1 WHERE id = $2',
         [hashedPassword, id]
       );
@@ -188,7 +188,7 @@ export class PostgresStorage implements IStorage {
   
   async getAllUsers(): Promise<User[]> {
     try {
-      const result = await this.pool.query('SELECT * FROM users ORDER BY id');
+      const result = await pool.query('SELECT * FROM users ORDER BY id');
       return result.rows;
     } catch (error) {
       console.error("Error getting all users:", error);
@@ -199,7 +199,7 @@ export class PostgresStorage implements IStorage {
   // Skill operations
   async getUserSkills(userId: number): Promise<Skill[]> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         'SELECT * FROM skills WHERE user_id = $1 ORDER BY last_updated DESC',
         [userId]
       );
@@ -212,7 +212,7 @@ export class PostgresStorage implements IStorage {
   
   async getSkill(id: number): Promise<Skill | undefined> {
     try {
-      const result = await this.pool.query('SELECT * FROM skills WHERE id = $1', [id]);
+      const result = await pool.query('SELECT * FROM skills WHERE id = $1', [id]);
       return result.rows[0] || undefined;
     } catch (error) {
       console.error("Error getting skill:", error);
@@ -222,7 +222,7 @@ export class PostgresStorage implements IStorage {
   
   async createSkill(skill: InsertSkill): Promise<Skill> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         `INSERT INTO skills (user_id, name, category, level, certification, credly_link, notes) 
          VALUES ($1, $2, $3, $4, $5, $6, $7) 
          RETURNING *`,
@@ -265,7 +265,7 @@ export class PostgresStorage implements IStorage {
       
       params.push(id); // Add id as the last parameter
       
-      const result = await this.pool.query(
+      const result = await pool.query(
         `UPDATE skills SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
         params
       );
@@ -283,7 +283,7 @@ export class PostgresStorage implements IStorage {
   
   async deleteSkill(id: number): Promise<void> {
     try {
-      const result = await this.pool.query('DELETE FROM skills WHERE id = $1', [id]);
+      const result = await pool.query('DELETE FROM skills WHERE id = $1', [id]);
       
       if (result.rowCount === 0) {
         throw new Error("Skill not found");
@@ -296,7 +296,7 @@ export class PostgresStorage implements IStorage {
   
   async getAllSkills(): Promise<Skill[]> {
     try {
-      const result = await this.pool.query('SELECT * FROM skills ORDER BY last_updated DESC');
+      const result = await pool.query('SELECT * FROM skills ORDER BY last_updated DESC');
       return result.rows;
     } catch (error) {
       console.error("Error getting all skills:", error);
@@ -308,7 +308,7 @@ export class PostgresStorage implements IStorage {
     try {
       // Search for skills by name, category, level, certification
       const searchQuery = `%${query.toLowerCase()}%`;
-      const result = await this.pool.query(
+      const result = await pool.query(
         `SELECT * FROM skills 
          WHERE LOWER(name) LIKE $1 
          OR LOWER(category) LIKE $1 
@@ -328,7 +328,7 @@ export class PostgresStorage implements IStorage {
   // Skill history operations
   async getSkillHistory(skillId: number): Promise<SkillHistory[]> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         'SELECT * FROM skill_histories WHERE skill_id = $1 ORDER BY created_at DESC',
         [skillId]
       );
@@ -341,7 +341,7 @@ export class PostgresStorage implements IStorage {
   
   async getUserSkillHistory(userId: number): Promise<SkillHistory[]> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         'SELECT * FROM skill_histories WHERE user_id = $1 ORDER BY created_at DESC',
         [userId]
       );
@@ -354,7 +354,7 @@ export class PostgresStorage implements IStorage {
   
   async createSkillHistory(history: InsertSkillHistory): Promise<SkillHistory> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         `INSERT INTO skill_histories (skill_id, user_id, previous_level, new_level, change_note) 
          VALUES ($1, $2, $3, $4, $5) 
          RETURNING *`,
@@ -376,7 +376,7 @@ export class PostgresStorage implements IStorage {
   // Profile history operations
   async getUserProfileHistory(userId: number): Promise<ProfileHistory[]> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         'SELECT * FROM profile_histories WHERE user_id = $1 ORDER BY created_at DESC',
         [userId]
       );
@@ -389,7 +389,7 @@ export class PostgresStorage implements IStorage {
   
   async createProfileHistory(history: InsertProfileHistory): Promise<ProfileHistory> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         `INSERT INTO profile_histories (user_id, field, old_value, new_value) 
          VALUES ($1, $2, $3, $4) 
          RETURNING *`,
@@ -410,7 +410,7 @@ export class PostgresStorage implements IStorage {
   // Endorsement operations
   async getSkillEndorsements(skillId: number): Promise<Endorsement[]> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         'SELECT e.*, u.email as endorser_email FROM endorsements e JOIN users u ON e.endorser_id = u.id WHERE skill_id = $1 ORDER BY created_at DESC',
         [skillId]
       );
@@ -423,7 +423,7 @@ export class PostgresStorage implements IStorage {
   
   async getUserEndorsements(userId: number): Promise<Endorsement[]> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         'SELECT e.*, s.name as skill_name, u.email as endorser_email FROM endorsements e JOIN skills s ON e.skill_id = s.id JOIN users u ON e.endorser_id = u.id WHERE e.endorsee_id = $1 ORDER BY e.created_at DESC',
         [userId]
       );
@@ -437,14 +437,14 @@ export class PostgresStorage implements IStorage {
   async createEndorsement(endorsement: InsertEndorsement): Promise<Endorsement> {
     try {
       // First check if the endorsement already exists
-      const existingEndorsement = await this.pool.query(
+      const existingEndorsement = await pool.query(
         'SELECT * FROM endorsements WHERE skill_id = $1 AND endorser_id = $2',
         [endorsement.skillId, endorsement.endorserId]
       );
       
       if (existingEndorsement.rows.length > 0) {
         // Update existing endorsement with new comment
-        const result = await this.pool.query(
+        const result = await pool.query(
           `UPDATE endorsements SET comment = $1, created_at = CURRENT_TIMESTAMP 
            WHERE skill_id = $2 AND endorser_id = $3 
            RETURNING *`,
@@ -452,7 +452,7 @@ export class PostgresStorage implements IStorage {
         );
         
         // Also increment the endorsement count if we're updating
-        await this.pool.query(
+        await pool.query(
           'UPDATE skills SET endorsement_count = endorsement_count + 1 WHERE id = $1',
           [endorsement.skillId]
         );
@@ -461,7 +461,7 @@ export class PostgresStorage implements IStorage {
       }
       
       // Create new endorsement
-      const result = await this.pool.query(
+      const result = await pool.query(
         `INSERT INTO endorsements (skill_id, endorser_id, endorsee_id, comment) 
          VALUES ($1, $2, $3, $4) 
          RETURNING *`,
@@ -474,7 +474,7 @@ export class PostgresStorage implements IStorage {
       );
       
       // Increment the endorsement count
-      await this.pool.query(
+      await pool.query(
         'UPDATE skills SET endorsement_count = endorsement_count + 1 WHERE id = $1',
         [endorsement.skillId]
       );
@@ -489,7 +489,7 @@ export class PostgresStorage implements IStorage {
   async deleteEndorsement(endorsementId: number): Promise<void> {
     try {
       // First get the endorsement to know which skill to update
-      const endorsement = await this.pool.query(
+      const endorsement = await pool.query(
         'SELECT skill_id FROM endorsements WHERE id = $1',
         [endorsementId]
       );
@@ -501,10 +501,10 @@ export class PostgresStorage implements IStorage {
       const skillId = endorsement.rows[0].skill_id;
       
       // Delete the endorsement
-      await this.pool.query('DELETE FROM endorsements WHERE id = $1', [endorsementId]);
+      await pool.query('DELETE FROM endorsements WHERE id = $1', [endorsementId]);
       
       // Decrement the endorsement count
-      await this.pool.query(
+      await pool.query(
         'UPDATE skills SET endorsement_count = GREATEST(endorsement_count - 1, 0) WHERE id = $1',
         [skillId]
       );
@@ -526,7 +526,7 @@ export class PostgresStorage implements IStorage {
       
       query += ' ORDER BY created_at DESC';
       
-      const result = await this.pool.query(query, params);
+      const result = await pool.query(query, params);
       return result.rows;
     } catch (error) {
       console.error("Error getting user notifications:", error);
@@ -536,7 +536,7 @@ export class PostgresStorage implements IStorage {
   
   async createNotification(notification: InsertNotification): Promise<Notification> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         `INSERT INTO notifications (user_id, type, content, related_skill_id, related_user_id) 
          VALUES ($1, $2, $3, $4, $5) 
          RETURNING *`,
@@ -557,7 +557,7 @@ export class PostgresStorage implements IStorage {
   
   async markNotificationAsRead(notificationId: number): Promise<void> {
     try {
-      const result = await this.pool.query(
+      const result = await pool.query(
         'UPDATE notifications SET is_read = true WHERE id = $1',
         [notificationId]
       );
@@ -573,7 +573,7 @@ export class PostgresStorage implements IStorage {
   
   async markAllNotificationsAsRead(userId: number): Promise<void> {
     try {
-      await this.pool.query(
+      await pool.query(
         'UPDATE notifications SET is_read = true WHERE user_id = $1 AND is_read = false',
         [userId]
       );
