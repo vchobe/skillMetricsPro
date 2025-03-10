@@ -244,10 +244,10 @@ export default function AdminDashboard() {
             return 'Invalid date';
           }
         })(),
-        cert.expiration ? 
+        cert.expirationDate ? 
           (() => {
             try {
-              return new Date(cert.expiration).toISOString().split('T')[0];
+              return new Date(cert.expirationDate).toISOString().split('T')[0];
             } catch (e) {
               return 'Invalid date';
             }
@@ -871,13 +871,14 @@ export default function AdminDashboard() {
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acquired</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expires</th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {isLoadingCertifications ? (
                           <tr>
-                            <td colSpan={6} className="px-6 py-4">
+                            <td colSpan={7} className="px-6 py-4">
                               <div className="flex justify-center py-4">
                                 <div className="animate-spin h-6 w-6 border-4 border-indigo-500 rounded-full border-t-transparent"></div>
                               </div>
@@ -922,7 +923,27 @@ export default function AdminDashboard() {
                                     }
                                   })()}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {(() => {
+                                    try {
+                                      if (!cert.expirationDate) return "No expiration";
+                                      
+                                      const expiryDate = new Date(cert.expirationDate);
+                                      const now = new Date();
+                                      const isExpired = cert.isExpired || expiryDate < now;
+                                      
+                                      return (
+                                        <span className={isExpired ? "text-red-500 font-medium" : ""}>
+                                          {format(expiryDate, "MMM dd, yyyy")}
+                                          {isExpired && " (Expired)"}
+                                        </span>
+                                      );
+                                    } catch (e) {
+                                      return "Invalid date";
+                                    }
+                                  })()}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                   <Button size="sm" variant="outline">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
@@ -935,7 +956,7 @@ export default function AdminDashboard() {
                           )
                         ) : (
                           <tr>
-                            <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                            <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
                               No certifications found
                             </td>
                           </tr>
