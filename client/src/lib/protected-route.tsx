@@ -31,7 +31,7 @@ export function ProtectedRoute({
     );
   }
   
-  if (adminOnly && !user.isAdmin) {
+  if (adminOnly && !user.is_admin) {
     return (
       <Route path={path}>
         <Redirect to="/" />

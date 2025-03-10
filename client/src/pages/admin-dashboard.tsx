@@ -96,7 +96,7 @@ export default function AdminDashboard() {
   const csvExportRef = useRef<HTMLAnchorElement>(null);
   
   useEffect(() => {
-    if (user && !user.isAdmin) {
+    if (user && !user.is_admin) {
       setLocation("/");
     }
   }, [user, setLocation]);
