@@ -237,8 +237,21 @@ export default function AdminDashboard() {
         cert.name,
         cert.category || 'N/A',
         cert.level || 'N/A',
-        new Date(cert.acquired).toISOString().split('T')[0],
-        cert.expiration ? new Date(cert.expiration).toISOString().split('T')[0] : 'N/A'
+        (() => {
+          try {
+            return new Date(cert.acquired).toISOString().split('T')[0];
+          } catch (e) {
+            return 'Invalid date';
+          }
+        })(),
+        cert.expiration ? 
+          (() => {
+            try {
+              return new Date(cert.expiration).toISOString().split('T')[0];
+            } catch (e) {
+              return 'Invalid date';
+            }
+          })() : 'N/A'
       ])
     );
     
@@ -687,7 +700,13 @@ export default function AdminDashboard() {
                           <LineChart
                             data={skillHistories.slice(0, 50).map(history => ({
                               id: history.id,
-                              date: new Date(history.updatedAt).getTime(),
+                              date: (() => {
+                                try {
+                                  return new Date(history.updatedAt).getTime();
+                                } catch (e) {
+                                  return Date.now(); // Fallback to current time if invalid
+                                }
+                              })(),
                               formattedDate: (() => {
                                 try {
                                   return format(new Date(history.updatedAt), "MMM dd");
@@ -1029,7 +1048,35 @@ export default function AdminDashboard() {
                                   <div className="text-sm text-gray-900">{userSkillCount}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                  <Button variant="ghost" size="sm" className="text-indigo-600 hover:text-indigo-900">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-indigo-600 hover:text-indigo-900"
+                                    onClick={() => {
+                                      // Get the user's skills
+                                      const userSkills = skills?.filter(s => s.userId === user.id) || [];
+                                      
+                                      // Show skills in a dialog or modal
+                                      toast({
+                                        title: `${user.firstName || user.username || user.email}'s Skills`,
+                                        description: (
+                                          <div className="mt-2 space-y-2">
+                                            {userSkills.length > 0 ? (
+                                              userSkills.map(skill => (
+                                                <div key={skill.id} className="flex items-center justify-between">
+                                                  <span>{skill.name}</span>
+                                                  <SkillLevelBadge level={skill.level} size="sm" />
+                                                </div>
+                                              ))
+                                            ) : (
+                                              <p>No skills found for this user.</p>
+                                            )}
+                                          </div>
+                                        ),
+                                        duration: 5000,
+                                      });
+                                    }}
+                                  >
                                     View Skills
                                   </Button>
                                 </td>
