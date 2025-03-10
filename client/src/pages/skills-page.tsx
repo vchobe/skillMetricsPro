@@ -86,7 +86,10 @@ export default function SkillsPage() {
     const matchesSearch = searchTerm === "" || 
       skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       skill.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (skill.certification && skill.certification.toLowerCase().includes(searchTerm.toLowerCase()));
+      (skill.certification && 
+       skill.certification !== 'true' && 
+       skill.certification !== 'false' && 
+       skill.certification.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesLevel = levelFilter === "all" || skill.level === levelFilter;
     const matchesCategory = categoryFilter === "all" || skill.category === categoryFilter;

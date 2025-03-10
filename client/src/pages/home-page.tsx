@@ -67,7 +67,11 @@ export default function HomePage() {
     expertSkills: skills?.filter(skill => skill.level === "expert").length || 0,
     intermediateSkills: skills?.filter(skill => skill.level === "intermediate").length || 0,
     beginnerSkills: skills?.filter(skill => skill.level === "beginner").length || 0,
-    certifications: skills?.filter(skill => skill.certification).length || 0
+    certifications: skills?.filter(skill => 
+      skill.certification && 
+      skill.certification !== 'true' && 
+      skill.certification !== 'false'
+    ).length || 0
   };
   
   // Skill level percentages for chart

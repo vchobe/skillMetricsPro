@@ -45,7 +45,10 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
     return (
       skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       skill.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (skill.certification && skill.certification.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (skill.certification && 
+       skill.certification !== 'true' && 
+       skill.certification !== 'false' && 
+       skill.certification.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (skill.notes && skill.notes.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }).slice(0, 5);
