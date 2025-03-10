@@ -54,10 +54,10 @@ export function setupAuth(app: Express) {
         // Using email as the username field
         usernameField: 'email',
         passwordField: 'password', // We need a password field for passport-local
-        // Don't check for presence of credentials in the strategy - we'll validate before calling
-        passReqToCallback: false
+        // Allow passReqToCallback to get the full request
+        passReqToCallback: true
       },
-      async (email, password, done) => {
+      async (req, email, password, done) => {
         try {
           console.log(`Attempting login with email: ${email}`);
           if (!email) {
@@ -65,6 +65,7 @@ export function setupAuth(app: Express) {
             return done(null, false, { message: 'Email is required' });
           }
           
+          // Find the user by email
           const user = await storage.getUserByEmail(email);
           if (!user) {
             console.log(`No user found with email: ${email}`);
@@ -72,8 +73,8 @@ export function setupAuth(app: Express) {
           }
           console.log(`User found: ${user.email}`);
           
-          // For email-only authentication (no password check)
-          // Since we're not using passwords in this app but passport-local requires it
+          // Since we're using email-only auth for this app, we don't check the password
+          // In a real app, you would verify the password here
           return done(null, user);
         } catch (error) {
           console.error(`Login error: ${error}`);
