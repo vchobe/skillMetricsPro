@@ -13,9 +13,9 @@ export const users = pgTable("users", {
   password: text("password").default(''),
   firstName: text("first_name").default(''),
   lastName: text("last_name").default(''),
-  project: text("project").default(null),
-  role: text("role").default(null),
-  location: text("location").default(null),
+  project: text("project").default(''),
+  role: text("role").default(''),
+  location: text("location").default(''),
 });
 
 export const insertUserSchema = createInsertSchema(users)
@@ -45,6 +45,7 @@ export const skills = pgTable("skills", {
   certification: text("certification"),
   credlyLink: text("credly_link"),
   notes: text("notes"),
+  endorsementCount: integer("endorsement_count").default(0),
 });
 
 export const insertSkillSchema = createInsertSchema(skills).pick({
@@ -93,6 +94,46 @@ export const insertProfileHistorySchema = createInsertSchema(profileHistories).p
   newValue: true,
 });
 
+// Notification type enum
+export const notificationTypeEnum = pgEnum("notification_type", ["endorsement", "level_up", "achievement"]);
+
+// Notifications schema
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  type: notificationTypeEnum("type").notNull(),
+  content: text("content").notNull(),
+  isRead: boolean("is_read").default(false),
+  relatedSkillId: integer("related_skill_id"),
+  relatedUserId: integer("related_user_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).pick({
+  userId: true,
+  type: true,
+  content: true,
+  relatedSkillId: true,
+  relatedUserId: true,
+});
+
+// Endorsements schema
+export const endorsements = pgTable("endorsements", {
+  id: serial("id").primaryKey(),
+  skillId: integer("skill_id").notNull(),
+  endorserId: integer("endorser_id").notNull(),
+  endorseeId: integer("endorsee_id").notNull(), 
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertEndorsementSchema = createInsertSchema(endorsements).pick({
+  skillId: true,
+  endorserId: true,
+  endorseeId: true,
+  comment: true,
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -106,3 +147,9 @@ export type InsertSkillHistory = z.infer<typeof insertSkillHistorySchema>;
 
 export type ProfileHistory = typeof profileHistories.$inferSelect;
 export type InsertProfileHistory = z.infer<typeof insertProfileHistorySchema>;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type Endorsement = typeof endorsements.$inferSelect;
+export type InsertEndorsement = z.infer<typeof insertEndorsementSchema>;

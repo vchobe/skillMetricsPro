@@ -130,8 +130,8 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
   // Update form values when editing a skill
   // Form reset logic that ensures we never have undefined or null values
   useEffect(() => {
-    // Set a stable default value
-    const defaultValues = {
+    // Set a stable default value with proper typing
+    const defaultValues: SkillFormValues = {
       userId: user?.id,
       name: "",
       category: "",
@@ -144,11 +144,16 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
 
     if (skill && skillId) {
       // When editing an existing skill, overwrite defaults with skill values
+      // Ensure we always have a valid level value
+      const skillLevel = ["beginner", "intermediate", "expert"].includes(skill.level) 
+        ? skill.level as "beginner" | "intermediate" | "expert"
+        : "beginner";
+        
       form.reset({
         ...defaultValues,
         name: skill.name || "", // Ensure string values are never null/undefined
         category: skill.category || "",
-        level: skill.level as "beginner" | "intermediate" | "expert", // Type assertion for clarity
+        level: skillLevel,
         certification: skill.certification || "",
         credlyLink: skill.credlyLink || "",
         notes: skill.notes || "",
