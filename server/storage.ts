@@ -8,10 +8,8 @@ import {
 import session from "express-session";
 import { Store } from "express-session";
 import createMemoryStore from "memorystore";
-import pg from "pg";
 import connectPg from "connect-pg-simple";
-
-const { Pool } = pg;
+import { pool } from "./db"; // Import the pool from db.ts
 
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
@@ -63,27 +61,29 @@ export interface IStorage {
 
 // PostgreSQL implementation
 export class PostgresStorage implements IStorage {
-  private pool: ReturnType<typeof pg.Pool>;
   sessionStore: Store;
 
   constructor() {
-    this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: 20, // Maximum number of clients in the pool
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
-    });
-    
+    // Use the shared pool from db.ts
     this.sessionStore = new PostgresSessionStore({
-      pool: this.pool,
-      createTableIfMissing: true
+      pool: pool,
+      createTableIfMissing: true,
+      tableName: 'session', // Explicitly name the session table
+      createTableSql: `
+        CREATE TABLE IF NOT EXISTS "session" (
+          "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY,
+          "sess" json NOT NULL,
+          "expire" timestamp(6) NOT NULL
+        )
+        WITH (OIDS=FALSE)
+      `
     });
   }
 
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     try {
-      const result = await this.pool.query('SELECT * FROM users WHERE id = $1', [id]);
+      const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
       return result.rows[0] || undefined;
     } catch (error) {
       console.error("Error getting user:", error);
