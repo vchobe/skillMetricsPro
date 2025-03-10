@@ -92,6 +92,9 @@ export default function AdminDashboard() {
   const [departmentFilter, setDepartmentFilter] = useState("all");
   
   // Redirect if not admin
+  const { toast } = useToast();
+  const csvExportRef = useRef<HTMLAnchorElement>(null);
+  
   useEffect(() => {
     if (user && !user.isAdmin) {
       setLocation("/");
@@ -205,6 +208,57 @@ export default function AdminDashboard() {
   // Get user by ID
   const getUserById = (userId: number) => {
     return users?.find(u => u.id === userId);
+  };
+  
+  // CSV Export function for certifications
+  const exportCertificationsCSV = () => {
+    if (!certificationReport || certificationReport.length === 0) {
+      toast({
+        title: "Export failed",
+        description: "No certification data available to export",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create CSV content
+    const headers = ["Employee Name", "Employee Email", "Certification Name", "Category", "Level", "Acquisition Date", "Expiration Date"];
+    const rows = certificationReport.flatMap(report => 
+      report.certifications.map(cert => [
+        `${report.user.firstName || ''} ${report.user.lastName || ''}`.trim(),
+        report.user.email,
+        cert.name,
+        cert.category || 'N/A',
+        cert.level || 'N/A',
+        new Date(cert.acquired).toISOString().split('T')[0],
+        cert.expiration ? new Date(cert.expiration).toISOString().split('T')[0] : 'N/A'
+      ])
+    );
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    
+    // Create a Blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    // Set up hidden link for download
+    if (csvExportRef.current) {
+      csvExportRef.current.href = url;
+      csvExportRef.current.download = `employee_certifications_${new Date().toISOString().split('T')[0]}.csv`;
+      csvExportRef.current.click();
+    }
+    
+    // Clean up
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    toast({
+      title: "Export successful",
+      description: "Certification data has been exported to CSV",
+      variant: "default"
+    });
   };
   
   // Chart colors
@@ -747,10 +801,21 @@ export default function AdminDashboard() {
                     <CardTitle>Certification Report</CardTitle>
                     <CardDescription>Overview of certified skills across the organization</CardDescription>
                   </div>
-                  <Button className="mt-4 md:mt-0">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export PDF
-                  </Button>
+                  <div className="mt-4 md:mt-0 flex gap-2">
+                    <Button 
+                      variant="outline"
+                      onClick={exportCertificationsCSV}
+                      className="flex items-center gap-2"
+                    >
+                      <DownloadCloud className="h-4 w-4" />
+                      <span>Export CSV</span>
+                    </Button>
+                    <Button className="flex items-center gap-2">
+                      <Download className="h-4 w-4" />
+                      <span>Export PDF</span>
+                    </Button>
+                    <a ref={csvExportRef} className="hidden"></a>
+                  </div>
                 </CardHeader>
                 <CardContent className="px-0">
                   <div className="overflow-x-auto">
