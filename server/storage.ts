@@ -69,18 +69,21 @@ export class MemStorage implements IStorage {
       checkPeriod: 86400000 // 24 hours
     });
     
-    // Add a default admin user
-    this.createUser({
-      username: "admin",
-      password: "$2b$10$dJfQfG0N1WWGW.mXN8PjdOi1dLf9GFqP96jLD3.YBGu9WZQTZHRVm", // admin123
+    // Add a default admin user - this is only for the email-only authentication implementation
+    this.users.set(1, {
+      id: 1,
       email: "admin@example.com",
-      firstName: "Admin",
-      lastName: "User",
-      project: "All Projects",
-      role: "Administrator",
-      location: "Headquarters",
-      isAdmin: true
+      username: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      project: null,
+      role: null,
+      location: null,
+      isAdmin: true,
+      createdAt: new Date()
     });
+    this.userId = 2; // Increment the ID counter
   }
 
   // User operations
@@ -103,12 +106,23 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
     const now = new Date();
+    
+    // Create user with email-only and apply default values for other fields
     const user: User = { 
-      ...insertUser, 
-      id, 
+      id,
+      email: insertUser.email,
       isAdmin: insertUser.isAdmin || false,
-      createdAt: now
+      createdAt: now,
+      // Default values for required fields
+      username: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      project: null,
+      role: null,
+      location: null
     };
+    
     this.users.set(id, user);
     return user;
   }
@@ -152,7 +166,15 @@ export class MemStorage implements IStorage {
   async createSkill(skill: InsertSkill): Promise<Skill> {
     const id = this.skillId++;
     const now = new Date();
-    const newSkill: Skill = { ...skill, id, lastUpdated: now };
+    // Ensure null values for optional fields
+    const newSkill: Skill = { 
+      ...skill, 
+      id, 
+      lastUpdated: now,
+      certification: skill.certification || null,
+      credlyLink: skill.credlyLink || null,
+      notes: skill.notes || null
+    };
     this.skills.set(id, newSkill);
     return newSkill;
   }
@@ -197,7 +219,13 @@ export class MemStorage implements IStorage {
   async createSkillHistory(history: InsertSkillHistory): Promise<SkillHistory> {
     const id = this.skillHistoryId++;
     const now = new Date();
-    const newHistory: SkillHistory = { ...history, id, updatedAt: now };
+    const newHistory: SkillHistory = { 
+      ...history, 
+      id, 
+      updatedAt: now,
+      previousLevel: history.previousLevel || null,
+      changeNote: history.changeNote || null
+    };
     this.skillHistories.set(id, newHistory);
     return newHistory;
   }
@@ -212,7 +240,12 @@ export class MemStorage implements IStorage {
   async createProfileHistory(history: InsertProfileHistory): Promise<ProfileHistory> {
     const id = this.profileHistoryId++;
     const now = new Date();
-    const newHistory: ProfileHistory = { ...history, id, updatedAt: now };
+    const newHistory: ProfileHistory = { 
+      ...history, 
+      id, 
+      updatedAt: now,
+      oldValue: history.oldValue || null
+    };
     this.profileHistories.set(id, newHistory);
     return newHistory;
   }

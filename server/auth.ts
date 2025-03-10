@@ -49,18 +49,25 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
-          return done(null, false);
-        } else {
-          return done(null, user);
+    new LocalStrategy(
+      {
+        // Using email as the username field
+        usernameField: 'email',
+        passwordField: 'email' // Not used but required by passport-local
+      },
+      async (email, _, done) => {
+        try {
+          const user = await storage.getUserByEmail(email);
+          if (!user) {
+            return done(null, false);
+          } else {
+            return done(null, user);
+          }
+        } catch (error) {
+          return done(error);
         }
-      } catch (error) {
-        return done(error);
       }
-    }),
+    ),
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
@@ -81,19 +88,14 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Invalid user data", errors: parsedData.error.format() });
       }
 
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
+      // For email-only registration, we only check if the email exists
       const existingEmail = await storage.getUserByEmail(req.body.email);
       if (existingEmail) {
         return res.status(400).json({ message: "Email already exists" });
       }
 
-      const hashedPassword = await hashPassword(req.body.password);
-      const userWithHashedPwd = { ...req.body, password: hashedPassword };
-      const user = await storage.createUser(userWithHashedPwd);
+      // Create user with just email, default values are used for other fields
+      const user = await storage.createUser(req.body);
 
       req.login(user, (err) => {
         if (err) return next(err);
@@ -117,7 +119,7 @@ export function setupAuth(app: Express) {
 
       passport.authenticate("local", (err, user, info) => {
         if (err) return next(err);
-        if (!user) return res.status(401).json({ message: "Invalid username or password" });
+        if (!user) return res.status(401).json({ message: "Invalid email address" });
 
         req.login(user, (err) => {
           if (err) return next(err);
