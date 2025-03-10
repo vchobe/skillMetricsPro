@@ -291,6 +291,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         skill.certification !== 'false'
       );
       
+      console.log("Certification report - Total skills:", skills.length);
+      console.log("Certification report - Certified skills:", certifiedSkills.length);
+      console.log("Certification report - First 3 certified skills:", certifiedSkills.slice(0, 3));
+      
       // Group by user
       const userMap = new Map();
       
