@@ -53,17 +53,22 @@ export function setupAuth(app: Express) {
       {
         // Using email as the username field
         usernameField: 'email',
-        passwordField: 'email' // Not used but required by passport-local
+        passwordField: 'password' // We need a password field for passport-local
       },
-      async (email, _, done) => {
+      async (email, password, done) => {
         try {
+          console.log(`Attempting login with email: ${email}`);
           const user = await storage.getUserByEmail(email);
           if (!user) {
+            console.log(`No user found with email: ${email}`);
             return done(null, false);
           } else {
+            console.log(`User found: ${JSON.stringify(user)}`);
+            // For email-only authentication, we're not checking passwords
             return done(null, user);
           }
         } catch (error) {
+          console.error(`Login error: ${error}`);
           return done(error);
         }
       }

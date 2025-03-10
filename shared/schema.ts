@@ -28,6 +28,7 @@ export const insertUserSchema = createInsertSchema(users)
 
 export const loginUserSchema = z.object({
   email: z.string().email("Valid email is required"),
+  password: z.string().optional().default(''), // Dummy password field for Passport LocalStrategy
 });
 
 // Skill level enum

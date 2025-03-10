@@ -51,7 +51,11 @@ export default function AuthPage() {
   });
 
   const onLoginSubmit = (values: z.infer<typeof loginSchema>) => {
-    loginMutation.mutate(values);
+    // Add dummy password field for Passport LocalStrategy
+    loginMutation.mutate({
+      ...values,
+      password: '' // Dummy password (not used by our auth logic)
+    });
   };
 
   const onRegisterSubmit = (values: z.infer<typeof registerSchema>) => {
