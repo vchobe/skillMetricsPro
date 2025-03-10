@@ -303,13 +303,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const skill of certifiedSkills) {
         try {
           if (!userMap.has(skill.userId)) {
-            const user = await storage.getUser(skill.userId);
-            if (user) {
-              const { password, ...userWithoutPassword } = user;
-              userMap.set(skill.userId, {
-                user: userWithoutPassword,
-                certifications: []
-              });
+            try {
+              const user = await storage.getUser(skill.userId);
+              if (user) {
+                const { password, ...userWithoutPassword } = user;
+                userMap.set(skill.userId, {
+                  user: userWithoutPassword,
+                  certifications: []
+                });
+              } else {
+                console.log(`User not found for userId: ${skill.userId}`);
+              }
+            } catch (error) {
+              console.error(`Error fetching user with ID ${skill.userId}:`, error);
             }
           }
           
