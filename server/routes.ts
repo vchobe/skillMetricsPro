@@ -309,7 +309,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             level: skill.level,
             certification: skill.certification,
             credlyLink: skill.credlyLink,
-            acquired: skill.lastUpdated
+            acquired: skill.certificationDate || skill.lastUpdated,
+            expirationDate: skill.expirationDate,
+            isExpired: skill.expirationDate ? new Date(skill.expirationDate) < new Date() : false
           });
         }
       }
