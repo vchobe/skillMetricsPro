@@ -61,12 +61,13 @@ export function setupAuth(app: Express) {
           const user = await storage.getUserByEmail(email);
           if (!user) {
             console.log(`No user found with email: ${email}`);
-            return done(null, false);
-          } else {
-            console.log(`User found: ${JSON.stringify(user)}`);
-            // For email-only authentication, we're not checking passwords
-            return done(null, user);
+            return done(null, false, { message: 'Invalid email address' });
           }
+          console.log(`User found: ${user.email}`);
+          
+          // For email-only authentication (no password check)
+          // Since we're not using passwords in this app but passport-local requires it
+          return done(null, user);
         } catch (error) {
           console.error(`Login error: ${error}`);
           return done(error);
