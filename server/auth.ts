@@ -106,8 +106,15 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already exists" });
       }
 
-      // Create user with just email, default values are used for other fields
-      const user = await storage.createUser(req.body);
+      // Create user with email and a username derived from email
+      const userData = {
+        ...req.body,
+        username: req.body.email.split('@')[0], // Use the part before @ as username
+        password: "" // Empty password for passwordless auth
+      };
+      
+      console.log("Creating user with data:", userData);
+      const user = await storage.createUser(userData);
       console.log("POST /api/register - User created:", user);
 
       req.login(user, (err) => {
