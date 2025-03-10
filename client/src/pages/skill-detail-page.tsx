@@ -267,7 +267,7 @@ export default function SkillDetailPage() {
                               <p className="text-sm text-muted-foreground mt-1">{entry.changeNote}</p>
                             )}
                             <p className="text-xs text-muted-foreground mt-2">
-                              {entry.updatedAt ? formatDistanceToNow(new Date(entry.updatedAt), { addSuffix: true }) : "Not available"}
+                              {entry.createdAt ? formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true }) : "Not available"}
                             </p>
                           </div>
                         </div>

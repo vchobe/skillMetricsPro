@@ -75,7 +75,7 @@ export const skillHistories = pgTable("skill_histories", {
   userId: integer("user_id").notNull(),
   previousLevel: skillLevelEnum("previous_level"),
   newLevel: skillLevelEnum("new_level").notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   changeNote: text("change_note"),
 });
 
