@@ -151,34 +151,18 @@ async function createTestUsers() {
     const email = faker.internet.email({ firstName, lastName }).toLowerCase();
     const password = await hash('password123'); // Use a common password for testing
     
-    // Assign a project and role
-    const project = faker.helpers.arrayElement([
-      'Customer Portal', 'Data Analytics Platform', 'Mobile App', 
-      'Infrastructure Migration', 'E-commerce Website', 'HR System',
-      'CRM Implementation', 'Internal Tools', 'Reporting Dashboard'
-    ]);
-    
-    const role = faker.helpers.arrayElement([
-      'Software Developer', 'Project Manager', 'Designer',
-      'QA Engineer', 'DevOps Engineer', 'Data Scientist',
-      'Product Manager', 'Scrum Master', 'Business Analyst',
-      'Marketing Specialist', 'Team Lead'
-    ]);
-    
     // Insert user into database
     const result = await pool.query(
-      `INSERT INTO users (email, username, password, is_admin, role, project, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-      [email, username, password, false, role, project, new Date(), new Date()]
+      `INSERT INTO users (email, username, password, is_admin, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [email, username, password, false, new Date(), new Date()]
     );
     
     const userId = result.rows[0].id;
     users.push({ 
       id: userId, 
       email, 
-      username, 
-      role, 
-      project 
+      username
     });
   }
   
@@ -313,16 +297,16 @@ async function createSkillHistories(skills, users) {
       previousLevel = levels[currentLevelIndex - 1];
     }
     
-    const updatedAt = randomDate(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), new Date());
+    const createdAt = randomDate(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), new Date());
     const changeNote = previousLevel 
       ? `Upgraded from ${previousLevel} to ${skill.level}` 
       : `Added new skill at ${skill.level} level`;
     
     const result = await pool.query(
       `INSERT INTO skill_histories (
-        skill_id, user_id, previous_level, new_level, updated_at, change_note
+        skill_id, user_id, previous_level, new_level, created_at, change_note
       ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [skill.id, skill.userId, previousLevel, skill.level, updatedAt, changeNote]
+      [skill.id, skill.userId, previousLevel, skill.level, createdAt, changeNote]
     );
     
     histories.push({
@@ -331,7 +315,7 @@ async function createSkillHistories(skills, users) {
       userId: skill.userId,
       previousLevel,
       newLevel: skill.level,
-      updatedAt,
+      createdAt,
       changeNote
     });
   }
@@ -423,7 +407,7 @@ async function createLevelUpNotifications(skills, skillHistories) {
     if (!skill) continue;
     
     const content = `Your ${skill.name} skill has been upgraded to ${history.newLevel}`;
-    const createdAt = history.updatedAt;
+    const createdAt = history.createdAt;
     
     await pool.query(
       `INSERT INTO notifications (
