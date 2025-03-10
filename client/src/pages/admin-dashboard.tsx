@@ -919,33 +919,20 @@ export default function AdminDashboard() {
                                   <SkillLevelBadge level={cert.level} size="sm" />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {(() => {
-                                    try {
-                                      return format(new Date(cert.acquired), "MMM dd, yyyy");
-                                    } catch (e) {
-                                      return "Invalid date";
-                                    }
-                                  })()}
+                                  {cert.acquiredFormatted ? 
+                                    format(new Date(cert.acquiredFormatted), "MMM dd, yyyy") : 
+                                    "Not specified"
+                                  }
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {(() => {
-                                    try {
-                                      if (!cert.expirationDate) return "No expiration";
-                                      
-                                      const expiryDate = new Date(cert.expirationDate);
-                                      const now = new Date();
-                                      const isExpired = cert.isExpired || expiryDate < now;
-                                      
-                                      return (
-                                        <span className={isExpired ? "text-red-500 font-medium" : ""}>
-                                          {format(expiryDate, "MMM dd, yyyy")}
-                                          {isExpired && " (Expired)"}
-                                        </span>
-                                      );
-                                    } catch (e) {
-                                      return "Invalid date";
-                                    }
-                                  })()}
+                                  {!cert.expirationFormatted ? (
+                                    "No expiration"
+                                  ) : (
+                                    <span className={cert.isExpired ? "text-red-500 font-medium" : ""}>
+                                      {format(new Date(cert.expirationFormatted), "MMM dd, yyyy")}
+                                      {cert.isExpired && " (Expired)"}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                   <Button size="sm" variant="outline">

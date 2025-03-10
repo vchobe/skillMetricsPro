@@ -314,6 +314,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           if (userMap.has(skill.userId)) {
+            // Format the dates consistently for the frontend
+            const certificationDate = skill.certificationDate ? new Date(skill.certificationDate) : null;
+            const expirationDate = skill.expirationDate ? new Date(skill.expirationDate) : null;
+            
             userMap.get(skill.userId).certifications.push({
               skillId: skill.id,
               name: skill.name,
@@ -321,9 +325,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               level: skill.level,
               certification: skill.certification,
               credlyLink: skill.credlyLink,
-              acquired: skill.certificationDate || skill.lastUpdated,
-              expirationDate: skill.expirationDate,
-              isExpired: skill.expirationDate ? new Date(skill.expirationDate) < new Date() : false
+              acquired: certificationDate,
+              acquiredFormatted: certificationDate ? certificationDate.toISOString().split('T')[0] : null,
+              expirationDate: expirationDate,
+              expirationFormatted: expirationDate ? expirationDate.toISOString().split('T')[0] : null,
+              isExpired: expirationDate ? expirationDate < new Date() : false
             });
           }
         } catch (err) {
