@@ -88,47 +88,72 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      console.log("POST /api/register - Body:", req.body);
+      
       // Validate request body
       const parsedData = insertUserSchema.safeParse(req.body);
       if (!parsedData.success) {
+        console.log("POST /api/register - Validation failed:", parsedData.error.format());
         return res.status(400).json({ message: "Invalid user data", errors: parsedData.error.format() });
       }
 
+      console.log("POST /api/register - Validation succeeded. Parsed data:", parsedData.data);
+      
       // For email-only registration, we only check if the email exists
       const existingEmail = await storage.getUserByEmail(req.body.email);
       if (existingEmail) {
+        console.log("POST /api/register - Email already exists:", req.body.email);
         return res.status(400).json({ message: "Email already exists" });
       }
 
       // Create user with just email, default values are used for other fields
       const user = await storage.createUser(req.body);
+      console.log("POST /api/register - User created:", user);
 
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.log("POST /api/register - Login error:", err);
+          return next(err);
+        }
+        
+        console.log("POST /api/register - User logged in successfully");
         
         // Remove password from response
         const { password, ...userWithoutPassword } = user;
         res.status(201).json(userWithoutPassword);
       });
     } catch (error) {
+      console.log("POST /api/register - Exception:", error);
       next(error);
     }
   });
 
   app.post("/api/login", (req, res, next) => {
     try {
+      console.log("POST /api/login - Body:", req.body);
+      
       // Validate login data
       const parsedData = loginUserSchema.safeParse(req.body);
       if (!parsedData.success) {
+        console.log("POST /api/login - Validation failed:", parsedData.error.format());
         return res.status(400).json({ message: "Invalid login data", errors: parsedData.error.format() });
       }
 
+      console.log("POST /api/login - Validation succeeded. Parsed data:", parsedData.data);
+      
       passport.authenticate("local", (err, user, info) => {
+        console.log("POST /api/login - Passport auth result:", { err, user: user?.email, info });
+        
         if (err) return next(err);
         if (!user) return res.status(401).json({ message: "Invalid email address" });
 
         req.login(user, (err) => {
-          if (err) return next(err);
+          if (err) {
+            console.log("POST /api/login - Login error:", err);
+            return next(err);
+          }
+          
+          console.log("POST /api/login - Login successful for user:", user.email);
           
           // Remove password from response
           const { password, ...userWithoutPassword } = user;
@@ -136,6 +161,7 @@ export function setupAuth(app: Express) {
         });
       })(req, res, next);
     } catch (error) {
+      console.log("POST /api/login - Exception:", error);
       next(error);
     }
   });
@@ -148,6 +174,10 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
+    console.log("GET /api/user - Authentication status:", req.isAuthenticated());
+    console.log("GET /api/user - Session:", req.session);
+    console.log("GET /api/user - User:", req.user);
+    
     if (!req.isAuthenticated()) {
       return res.sendStatus(401);
     }
