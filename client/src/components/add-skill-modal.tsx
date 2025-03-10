@@ -89,8 +89,8 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
   // Populate suggestions based on existing skills
   useEffect(() => {
     if (skills && skills.length > 0) {
-      const names = [...new Set(skills.map(s => s.name))];
-      const categories = [...new Set(skills.map(s => s.category))];
+      const names = Array.from(new Set(skills.map(s => s.name)));
+      const categories = Array.from(new Set(skills.map(s => s.category)));
       const certifications = skills
         .filter(s => s.certification)
         .map(s => s.certification as string);
@@ -333,9 +333,8 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                     <FormItem>
                       <FormLabel>Proficiency Level</FormLabel>
                       <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                        value={field.value}
+                        onValueChange={field.onChange}
+                        value={field.value || "beginner"} // Ensure there's always a non-empty value
                       >
                         <FormControl>
                           <SelectTrigger>
