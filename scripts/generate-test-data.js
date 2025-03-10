@@ -719,5 +719,12 @@ insertTestData().catch(err => {
   process.exit(1);
 });
 
-// Add explicit export for ES modules
-export { generateUsers, generateSkills, generateSkillHistories, generateEndorsements, generateNotifications, generateProfileHistories };
+export { 
+  generateUsers, 
+  generateSkills,
+  generateSkillHistories,
+  generateEndorsements,
+  generateNotifications,
+  generateProfileHistories,
+  insertTestData
+};

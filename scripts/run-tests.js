@@ -19,8 +19,12 @@
  *   --help           Show this help message
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -172,3 +176,5 @@ runTests().catch(error => {
   console.error(`Unhandled error: ${error.message}`);
   process.exit(1);
 });
+
+export { runTests, runProcess };
