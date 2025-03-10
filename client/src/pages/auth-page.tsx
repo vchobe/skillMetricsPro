@@ -34,11 +34,14 @@ export default function AuthPage() {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
+      password: "",
     },
   });
   
-  const registerForm = useForm<z.infer<typeof registerSchema>>({
-    resolver: zodResolver(registerSchema),
+  const registerForm = useForm<{ email: string }>({
+    resolver: zodResolver(z.object({
+      email: z.string().email("Valid email is required"),
+    })),
     defaultValues: {
       email: "",
     },
@@ -51,15 +54,13 @@ export default function AuthPage() {
   });
 
   const onLoginSubmit = (values: z.infer<typeof loginSchema>) => {
-    // Add dummy password field for Passport LocalStrategy
-    loginMutation.mutate({
-      ...values,
-      password: '' // Dummy password (not used by our auth logic)
-    });
+    // No need to modify values - we're using the actual password now
+    loginMutation.mutate(values);
   };
 
-  const onRegisterSubmit = (values: z.infer<typeof registerSchema>) => {
-    registerMutation.mutate(values);
+  const onRegisterSubmit = (values: { email: string }) => {
+    // Just pass the email, the server will generate a password and send it to the email
+    registerMutation.mutate({ email: values.email });
   };
   
   const onForgotPasswordSubmit = (values: { email: string }) => {
@@ -112,6 +113,20 @@ export default function AuthPage() {
                         )}
                       />
                       
+                      <FormField
+                        control={loginForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Enter your password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
                       <div className="flex justify-end">
                         <Button
                           type="button"
@@ -153,6 +168,10 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
+                      
+                      <div className="text-sm text-gray-600 mb-2">
+                        A password will be generated and sent to your email address.
+                      </div>
                       
                       <Button 
                         type="submit" 

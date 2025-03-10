@@ -24,11 +24,12 @@ export const insertUserSchema = createInsertSchema(users)
   })
   .extend({
     isAdmin: z.boolean().default(false).optional(),
+    password: z.string().min(6, "Password must be at least 6 characters"),
   });
 
 export const loginUserSchema = z.object({
   email: z.string().email("Valid email is required"),
-  password: z.string().optional().default(''), // Dummy password field for Passport LocalStrategy
+  password: z.string().min(1, "Password is required"),
 });
 
 // Skill level enum

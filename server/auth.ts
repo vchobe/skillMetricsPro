@@ -98,32 +98,63 @@ export function setupAuth(app: Express) {
     try {
       console.log("POST /api/register - Body:", req.body);
       
-      // Validate request body
-      const parsedData = insertUserSchema.safeParse(req.body);
-      if (!parsedData.success) {
-        console.log("POST /api/register - Validation failed:", parsedData.error.format());
-        return res.status(400).json({ message: "Invalid user data", errors: parsedData.error.format() });
+      // For email-only registration, we only need an email
+      if (!req.body.email) {
+        return res.status(400).json({ message: "Email is required" });
       }
 
-      console.log("POST /api/register - Validation succeeded. Parsed data:", parsedData.data);
+      // Validate that it's a valid email
+      if (!req.body.email.includes('@')) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
       
-      // For email-only registration, we only check if the email exists
+      // Check if the email already exists
       const existingEmail = await storage.getUserByEmail(req.body.email);
       if (existingEmail) {
         console.log("POST /api/register - Email already exists:", req.body.email);
         return res.status(400).json({ message: "Email already exists" });
       }
 
+      // Generate a random password
+      const generatedPassword = randomBytes(6).toString("hex");
+      console.log(`Generated password for ${req.body.email}: ${generatedPassword}`);
+      
+      // Hash the generated password
+      const hashedPassword = await hashPassword(generatedPassword);
+
       // Create user with email and a username derived from email
       const userData = {
-        ...req.body,
+        email: req.body.email,
         username: req.body.email.split('@')[0], // Use the part before @ as username
-        password: "" // Empty password for passwordless auth
+        password: hashedPassword,
+        isAdmin: req.body.isAdmin || false,
       };
       
-      console.log("Creating user with data:", userData);
+      console.log("Creating user with data:", { ...userData, password: "[REDACTED]" });
       const user = await storage.createUser(userData);
-      console.log("POST /api/register - User created:", user);
+      console.log("POST /api/register - User created:", { ...user, password: "[REDACTED]" });
+
+      // In a real app, you would send an email with the password
+      // For demo purposes, we'll just log it to the console
+      console.log(`
+      ========== REGISTRATION CONFIRMATION ==========
+      To: ${user.email}
+      Subject: Your Employee Skill Metrics Account
+
+      Hello ${user.username},
+
+      Your account has been created successfully. 
+      Please use the following credentials to log in:
+
+      Email: ${user.email}
+      Password: ${generatedPassword}
+
+      Please change your password after logging in.
+
+      Best regards,
+      The Employee Skill Metrics Team
+      ============================================
+      `);
 
       req.login(user, (err) => {
         if (err) {
