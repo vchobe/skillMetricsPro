@@ -129,15 +129,15 @@ export default function SkillCard({ skill, onEdit, onDelete, icon }: SkillCardPr
       
       <CardFooter className="px-6 py-3 bg-gray-50 flex justify-between items-center">
         <Link href={`/history?skillId=${skill.id}`}>
-          <a className="text-sm text-indigo-600 hover:text-indigo-900 flex items-center">
+          <Button variant="link" className="p-0 h-auto text-sm text-indigo-600 hover:text-indigo-900 flex items-center">
             <ClockIcon className="h-3 w-3 mr-1" /> History
-          </a>
+          </Button>
         </Link>
         
-        <Link href={`/skills?edit=${skill.id}`}>
-          <a className="text-sm text-indigo-600 hover:text-indigo-900 flex items-center">
+        <Link href={`/skills/${skill.id}`}>
+          <Button variant="link" className="p-0 h-auto text-sm text-indigo-600 hover:text-indigo-900 flex items-center">
             Details <ExternalLinkIcon className="h-3 w-3 ml-1" />
-          </a>
+          </Button>
         </Link>
       </CardFooter>
     </Card>

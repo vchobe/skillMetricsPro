@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { 
   MenuIcon, 
   Search, 
-  Bell, 
   X,
   FileSearch,
   Brain
 } from "lucide-react";
+import NotificationDropdown from "./notification-dropdown";
 import { 
   Dialog,
   DialogContent,
@@ -86,8 +86,8 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
                   <ul className="py-1 max-h-60 overflow-auto">
                     {searchResults.map(skill => (
                       <li key={skill.id} className="px-4 py-2 hover:bg-gray-100">
-                        <Link href={`/skills?edit=${skill.id}`}>
-                          <a className="block">
+                        <Link href={`/skills/${skill.id}`}>
+                          <div className="block">
                             <div className="flex justify-between items-center">
                               <div>
                                 <p className="font-medium text-gray-900">{skill.name}</p>
@@ -95,16 +95,16 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
                               </div>
                               <SkillLevelBadge level={skill.level} />
                             </div>
-                          </a>
+                          </div>
                         </Link>
                       </li>
                     ))}
                     <li className="px-4 py-2 border-t border-gray-100">
                       <Link href={`/skills?search=${searchTerm}`}>
-                        <a className="text-indigo-600 text-sm hover:text-indigo-800 flex items-center">
+                        <div className="text-indigo-600 text-sm hover:text-indigo-800 flex items-center cursor-pointer">
                           <FileSearch className="h-4 w-4 mr-1" />
                           See all results
-                        </a>
+                        </div>
                       </Link>
                     </li>
                   </ul>
@@ -127,10 +127,8 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
             <Search className="h-5 w-5" />
           </Button>
           
-          {/* Notifications button (for UI only) */}
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
+          {/* Notifications dropdown */}
+          <NotificationDropdown />
         </div>
       </div>
       
@@ -173,8 +171,8 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
                   <ul className="space-y-2">
                     {searchResults.map(skill => (
                       <li key={skill.id} className="p-2 hover:bg-gray-100 rounded-md">
-                        <Link href={`/skills?edit=${skill.id}`}>
-                          <a className="block" onClick={() => setShowSearch(false)}>
+                        <Link href={`/skills/${skill.id}`}>
+                          <div className="block cursor-pointer" onClick={() => setShowSearch(false)}>
                             <div className="flex items-start">
                               <div className="h-8 w-8 flex items-center justify-center rounded-md bg-indigo-100 text-indigo-600 mr-3">
                                 <Brain className="h-4 w-4" />
@@ -187,7 +185,7 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
                                 </div>
                               </div>
                             </div>
-                          </a>
+                          </div>
                         </Link>
                       </li>
                     ))}
@@ -213,13 +211,15 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
               Close
             </Button>
             <Link href={`/skills?search=${searchTerm}`}>
-              <Button 
-                type="button" 
-                disabled={!searchTerm}
-                onClick={() => setShowSearch(false)}
-              >
-                View All Results
-              </Button>
+              <div>
+                <Button 
+                  type="button" 
+                  disabled={!searchTerm}
+                  onClick={() => setShowSearch(false)}
+                >
+                  View All Results
+                </Button>
+              </div>
             </Link>
           </DialogFooter>
         </DialogContent>
