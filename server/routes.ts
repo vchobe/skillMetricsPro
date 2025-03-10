@@ -295,13 +295,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Certification report - Total skills:", skills.length);
       console.log("Certification report - Certified skills:", certifiedSkills.length);
-      console.log("Certification report - First 3 certified skills:", certifiedSkills.slice(0, 3));
+      
+      if (certifiedSkills.length > 0) {
+        console.log("Certification report - Sample skill:", JSON.stringify(certifiedSkills[0], null, 2));
+      }
       
       // Group by user
       const userMap = new Map();
       
       for (const skill of certifiedSkills) {
         try {
+          // Make sure userId is defined
+          if (!skill.userId) {
+            console.log(`Skill ${skill.id} has undefined userId:`, skill);
+            continue;
+          }
+          
           if (!userMap.has(skill.userId)) {
             try {
               const user = await storage.getUser(skill.userId);
