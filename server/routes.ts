@@ -151,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !req.user!.isAdmin) {
+      if (skill.userId !== req.user!.id && !req.user!.is_admin) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
@@ -171,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !req.user!.isAdmin) {
+      if (skill.userId !== req.user!.id && !req.user!.is_admin) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
@@ -203,7 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !req.user!.isAdmin) {
+      if (skill.userId !== req.user!.id && !req.user!.is_admin) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
@@ -224,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !req.user!.isAdmin) {
+      if (skill.userId !== req.user!.id && !req.user!.is_admin) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
@@ -522,7 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const endorsementId = parseInt(req.params.id);
       // Only admins can delete endorsements
-      if (!req.user!.isAdmin) {
+      if (!req.user!.is_admin) {
         return res.status(403).json({ message: "Only admins can delete endorsements" });
       }
       

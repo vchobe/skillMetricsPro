@@ -6,7 +6,7 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
-  isAdmin: boolean("is_admin").default(false).notNull(),
+  is_admin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   // Optional fields with defaults
   username: text("username").default(''),
@@ -23,7 +23,7 @@ export const insertUserSchema = createInsertSchema(users)
     email: true,
   })
   .extend({
-    isAdmin: z.boolean().default(false).optional(),
+    is_admin: z.boolean().default(false).optional(),
     password: z.string().optional(), // Password is generated on server
   });
 

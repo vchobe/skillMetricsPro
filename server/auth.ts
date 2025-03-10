@@ -127,7 +127,7 @@ export function setupAuth(app: Express) {
         email: req.body.email,
         username: req.body.email.split('@')[0], // Use the part before @ as username
         password: hashedPassword,
-        isAdmin: req.body.isAdmin || false,
+        is_admin: req.body.is_admin || false,
       };
       
       console.log("Creating user with data:", { ...userData, password: "[REDACTED]" });
