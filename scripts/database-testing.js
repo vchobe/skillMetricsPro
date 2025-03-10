@@ -303,7 +303,7 @@ async function runDatabaseTests() {
           username: `test_user_${Date.now()}`,
           email: `test${Date.now()}@example.com`,
           password: 'test_password_hash',
-          isAdmin: false
+          is_admin: false
         };
         
         const [insertedUser] = await tx.insert(users).values(testUser).returning();
