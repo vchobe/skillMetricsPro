@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDate } from "@/lib/date-utils";
 
 export default function SkillDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -51,7 +52,7 @@ export default function SkillDetailPage() {
     enabled: !!id,
   });
   
-  const { data: skillHistory, isLoading: isLoadingHistory } = useQuery({
+  const { data: skillHistory, isLoading: isLoadingHistory } = useQuery<any[]>({
     queryKey: ["/api/skills", parseInt(id), "history"],
     queryFn: ({ signal }) => 
       fetch(`/api/skills/${id}/history`, { signal })
@@ -162,7 +163,7 @@ export default function SkillDetailPage() {
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">Last Updated</h3>
                       <p className="flex items-center">
                         <Clock className="mr-1 h-4 w-4 text-muted-foreground" />
-                        {formatDistanceToNow(new Date(skill.lastUpdated), { addSuffix: true })}
+                        {skill.lastUpdated ? formatDistanceToNow(new Date(skill.lastUpdated), { addSuffix: true }) : "Not available"}
                       </p>
                     </div>
                     <div>
@@ -266,7 +267,7 @@ export default function SkillDetailPage() {
                               <p className="text-sm text-muted-foreground mt-1">{entry.changeNote}</p>
                             )}
                             <p className="text-xs text-muted-foreground mt-2">
-                              {formatDistanceToNow(new Date(entry.updatedAt), { addSuffix: true })}
+                              {entry.updatedAt ? formatDistanceToNow(new Date(entry.updatedAt), { addSuffix: true }) : "Not available"}
                             </p>
                           </div>
                         </div>
