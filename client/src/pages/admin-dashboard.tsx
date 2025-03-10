@@ -895,7 +895,13 @@ export default function AdminDashboard() {
                                   <SkillLevelBadge level={cert.level} size="sm" />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {format(new Date(cert.acquired), "MMM dd, yyyy")}
+                                  {(() => {
+                                    try {
+                                      return format(new Date(cert.acquired), "MMM dd, yyyy");
+                                    } catch (e) {
+                                      return "Invalid date";
+                                    }
+                                  })()}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                   <Button size="sm" variant="outline">
