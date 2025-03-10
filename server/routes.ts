@@ -287,20 +287,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Running certification report for user:", req.user);
       
       // Direct database query to get all certified skills with their related data
-      const result = await pool.query(`
+      const queryText = `
         SELECT s.*, u.email, u.username
         FROM skills s
         JOIN users u ON s.user_id = u.id
         WHERE s.certification IS NOT NULL 
           AND s.certification != 'true' 
           AND s.certification != 'false'
-      `);
+      `;
+      console.log("Running SQL query:", queryText);
+      
+      const result = await pool.query(queryText);
       
       const rawSkills = result.rows;
       console.log("Certification report - Total skills in DB:", rawSkills.length);
       
       if (rawSkills.length > 0) {
         console.log("Certification report - Sample skill from DB:", JSON.stringify(rawSkills[0], null, 2));
+      } else {
+        console.log("No certified skills found in the database!");
       }
       
       // Group by user
