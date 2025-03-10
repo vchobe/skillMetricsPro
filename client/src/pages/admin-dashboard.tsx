@@ -80,8 +80,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab === "users") {
-      setActiveTab("users");
+    if (tab === "users" || tab === "skill-history" || tab === "certifications") {
+      setActiveTab(tab);
     }
   }, [location]);
   
@@ -586,8 +586,8 @@ export default function AdminDashboard() {
                           <LineChart
                             data={skillHistories.slice(0, 50).map(history => ({
                               id: history.id,
-                              date: new Date(history.createdAt).getTime(),
-                              formattedDate: format(new Date(history.createdAt), "MMM dd"),
+                              date: new Date(history.updatedAt).getTime(),
+                              formattedDate: format(new Date(history.updatedAt), "MMM dd"),
                               skill: history.skill_name,
                               user: history.user_email,
                               level: history.newLevel === 'beginner' ? 1 : history.newLevel === 'intermediate' ? 2 : 3,
@@ -685,7 +685,7 @@ export default function AdminDashboard() {
                                 <SkillLevelBadge level={history.newLevel} size="sm" />
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {format(new Date(history.createdAt), "MMM dd, yyyy")}
+                                {format(new Date(history.updatedAt), "MMM dd, yyyy")}
                               </td>
                               <td className="px-6 py-4 text-sm text-gray-500">
                                 {history.changeNote}
@@ -877,11 +877,11 @@ export default function AdminDashboard() {
                                   <div className="flex items-center">
                                     <Avatar className="h-10 w-10">
                                       <AvatarFallback className="bg-indigo-600 text-white">
-                                        {user.firstName[0]}{user.lastName[0]}
+                                        {user.firstName?.[0] || ""}{user.lastName?.[0] || ""}
                                       </AvatarFallback>
                                     </Avatar>
                                     <div className="ml-4">
-                                      <div className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</div>
+                                      <div className="text-sm font-medium text-gray-900">{user.firstName || ""} {user.lastName || ""}</div>
                                       <div className="text-xs text-gray-500">@{user.username}</div>
                                     </div>
                                   </div>
