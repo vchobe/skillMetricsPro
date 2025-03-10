@@ -88,7 +88,7 @@ export default function HomePage() {
     skillId: entry.skillId,
     previousLevel: entry.previousLevel,
     newLevel: entry.newLevel,
-    date: entry.updatedAt
+    date: entry.createdAt
   }));
   
   // Top skills (highest level first, then most recently updated)

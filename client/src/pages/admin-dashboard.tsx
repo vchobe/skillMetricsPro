@@ -706,14 +706,14 @@ export default function AdminDashboard() {
                               id: history.id,
                               date: (() => {
                                 try {
-                                  return new Date(history.updatedAt).getTime();
+                                  return new Date(history.createdAt).getTime();
                                 } catch (e) {
                                   return Date.now(); // Fallback to current time if invalid
                                 }
                               })(),
                               formattedDate: (() => {
                                 try {
-                                  return format(new Date(history.updatedAt), "MMM dd");
+                                  return format(new Date(history.createdAt), "MMM dd");
                                 } catch (e) {
                                   return "Invalid date";
                                 }
@@ -817,7 +817,7 @@ export default function AdminDashboard() {
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {(() => {
                                   try {
-                                    return format(new Date(history.updatedAt), "MMM dd, yyyy");
+                                    return format(new Date(history.createdAt), "MMM dd, yyyy");
                                   } catch (e) {
                                     return "Invalid date";
                                   }
