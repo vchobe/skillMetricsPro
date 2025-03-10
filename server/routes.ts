@@ -267,6 +267,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching skills", error });
     }
   });
+  
+  // Get all skill histories across all users for admin
+  app.get("/api/admin/skill-history", ensureAdmin, async (req, res) => {
+    try {
+      const histories = await storage.getAllSkillHistories();
+      res.json(histories);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching skill histories", error });
+    }
+  });
+  
+  // Get certification report
+  app.get("/api/admin/certification-report", ensureAdmin, async (req, res) => {
+    try {
+      const skills = await storage.getAllSkills();
+      const certifiedSkills = skills.filter(skill => skill.certification);
+      
+      // Group by user
+      const userMap = new Map();
+      
+      for (const skill of certifiedSkills) {
+        if (!userMap.has(skill.userId)) {
+          const user = await storage.getUser(skill.userId);
+          if (user) {
+            const { password, ...userWithoutPassword } = user;
+            userMap.set(skill.userId, {
+              user: userWithoutPassword,
+              certifications: []
+            });
+          }
+        }
+        
+        if (userMap.has(skill.userId)) {
+          userMap.get(skill.userId).certifications.push({
+            skillId: skill.id,
+            name: skill.name,
+            category: skill.category,
+            level: skill.level,
+            certification: skill.certification,
+            acquired: skill.lastUpdated
+          });
+        }
+      }
+      
+      const report = Array.from(userMap.values());
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ message: "Error generating certification report", error });
+    }
+  });
 
   // Endorsement routes
   app.post("/api/skills/:id/endorse", ensureAuth, async (req, res) => {

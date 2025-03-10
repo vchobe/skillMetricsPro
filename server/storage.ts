@@ -37,6 +37,7 @@ export interface IStorage {
   // Skill history operations
   getSkillHistory(skillId: number): Promise<SkillHistory[]>;
   getUserSkillHistory(userId: number): Promise<SkillHistory[]>;
+  getAllSkillHistories(): Promise<SkillHistory[]>;
   createSkillHistory(history: InsertSkillHistory): Promise<SkillHistory>;
   
   // Profile history operations
@@ -348,6 +349,22 @@ export class PostgresStorage implements IStorage {
       return result.rows;
     } catch (error) {
       console.error("Error getting user skill history:", error);
+      throw error;
+    }
+  }
+
+  async getAllSkillHistories(): Promise<SkillHistory[]> {
+    try {
+      const result = await pool.query(
+        'SELECT sh.*, s.name as skill_name, u.email as user_email ' +
+        'FROM skill_histories sh ' +
+        'JOIN skills s ON sh.skill_id = s.id ' +
+        'JOIN users u ON sh.user_id = u.id ' +
+        'ORDER BY sh.created_at DESC'
+      );
+      return result.rows;
+    } catch (error) {
+      console.error("Error getting all skill histories:", error);
       throw error;
     }
   }
