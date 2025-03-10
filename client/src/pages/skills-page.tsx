@@ -26,8 +26,8 @@ export default function SkillsPage() {
   
   // Search and filters
   const [searchTerm, setSearchTerm] = useState("");
-  const [levelFilter, setLevelFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [levelFilter, setLevelFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   
   // Background gradient based on skills
   const [backgroundStyle, setBackgroundStyle] = useState<string>("from-blue-500 via-indigo-500 to-purple-600");
@@ -88,8 +88,8 @@ export default function SkillsPage() {
       skill.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (skill.certification && skill.certification.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesLevel = levelFilter === "" || skill.level === levelFilter;
-    const matchesCategory = categoryFilter === "" || skill.category === categoryFilter;
+    const matchesLevel = levelFilter === "all" || skill.level === levelFilter;
+    const matchesCategory = categoryFilter === "all" || skill.category === categoryFilter;
     
     return matchesSearch && matchesLevel && matchesCategory;
   });
@@ -190,7 +190,7 @@ export default function SkillsPage() {
                     <SelectValue placeholder="All Levels" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Levels</SelectItem>
+                    <SelectItem value="all">All Levels</SelectItem>
                     <SelectItem value="beginner">Beginner</SelectItem>
                     <SelectItem value="intermediate">Intermediate</SelectItem>
                     <SelectItem value="expert">Expert</SelectItem>
@@ -202,7 +202,7 @@ export default function SkillsPage() {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {categories.map(category => (
                       <SelectItem key={category} value={category}>
                         {category}
@@ -239,16 +239,16 @@ export default function SkillsPage() {
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <Brain className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm || levelFilter || categoryFilter 
+                {searchTerm || levelFilter !== "all" || categoryFilter !== "all" 
                   ? "No skills found matching your filters" 
                   : "No skills added yet"}
               </h3>
               <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
-                {searchTerm || levelFilter || categoryFilter 
+                {searchTerm || levelFilter !== "all" || categoryFilter !== "all" 
                   ? "Try adjusting your search criteria or clear the filters" 
                   : "Start building your skill profile by adding skills you've acquired"}
               </p>
-              {!(searchTerm || levelFilter || categoryFilter) && (
+              {!(searchTerm || levelFilter !== "all" || categoryFilter !== "all") && (
                 <Button onClick={() => setIsAddModalOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Your First Skill
@@ -259,8 +259,8 @@ export default function SkillsPage() {
                   variant="outline" 
                   onClick={() => {
                     setSearchTerm("");
-                    setLevelFilter("");
-                    setCategoryFilter("");
+                    setLevelFilter("all");
+                    setCategoryFilter("all");
                   }}
                 >
                   Clear Filters
