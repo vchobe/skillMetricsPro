@@ -94,7 +94,9 @@ export default function SkillCard({ skill, onEdit, onDelete, icon }: SkillCardPr
               Last updated:
             </span>
             <span className="text-xs text-gray-700">
-              {format(new Date(skill.lastUpdated), "MMM dd, yyyy")}
+              {skill.lastUpdated && !isNaN(new Date(skill.lastUpdated).getTime())
+                ? format(new Date(skill.lastUpdated), "MMM dd, yyyy") 
+                : "Not available"}
             </span>
           </div>
           
