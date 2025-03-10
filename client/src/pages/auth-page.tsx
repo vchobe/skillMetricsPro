@@ -21,12 +21,8 @@ import { Loader2 } from "lucide-react";
 
 const loginSchema = loginUserSchema;
 
-const registerSchema = insertUserSchema.extend({
-  confirmPassword: z.string().min(1, "Confirm password is required"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+// Since we're only using email for registration now
+const registerSchema = insertUserSchema;
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -37,23 +33,14 @@ export default function AuthPage() {
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
-      password: "",
+      email: "",
     },
   });
   
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      username: "",
-      password: "",
-      confirmPassword: "",
       email: "",
-      firstName: "",
-      lastName: "",
-      project: "",
-      role: "",
-      location: "",
     },
   });
   
@@ -68,8 +55,7 @@ export default function AuthPage() {
   };
 
   const onRegisterSubmit = (values: z.infer<typeof registerSchema>) => {
-    const { confirmPassword, ...userData } = values;
-    registerMutation.mutate(userData);
+    registerMutation.mutate(values);
   };
   
   const onForgotPasswordSubmit = (values: { email: string }) => {
@@ -109,26 +95,12 @@ export default function AuthPage() {
                     <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                       <FormField
                         control={loginForm.control}
-                        name="username"
+                        name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username</FormLabel>
+                            <FormLabel>Email</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter your username" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={loginForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Enter your password" {...field} />
+                              <Input type="email" placeholder="Enter your email" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -163,36 +135,6 @@ export default function AuthPage() {
                 <TabsContent value="register">
                   <Form {...registerForm}>
                     <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={registerForm.control}
-                          name="firstName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>First Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="John" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={registerForm.control}
-                          name="lastName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Last Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Doe" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
                       <FormField
                         control={registerForm.control}
                         name="email"
@@ -206,94 +148,6 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      
-                      <FormField
-                        control={registerForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl>
-                              <Input placeholder="johndoe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={registerForm.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Password</FormLabel>
-                              <FormControl>
-                                <Input type="password" placeholder="********" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={registerForm.control}
-                          name="confirmPassword"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Confirm Password</FormLabel>
-                              <FormControl>
-                                <Input type="password" placeholder="********" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField
-                          control={registerForm.control}
-                          name="project"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Project</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Project name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={registerForm.control}
-                          name="role"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Role</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Developer" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={registerForm.control}
-                          name="location"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Location</FormLabel>
-                              <FormControl>
-                                <Input placeholder="New York" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
                       
                       <Button 
                         type="submit" 

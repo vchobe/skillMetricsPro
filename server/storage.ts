@@ -4,6 +4,7 @@ import {
   ProfileHistory, InsertProfileHistory 
 } from "@shared/schema";
 import session from "express-session";
+import { Store } from "express-session";
 import createMemoryStore from "memorystore";
 
 const MemoryStore = createMemoryStore(session);
@@ -37,7 +38,7 @@ export interface IStorage {
   createProfileHistory(history: InsertProfileHistory): Promise<ProfileHistory>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: Store;
 }
 
 export class MemStorage implements IStorage {
@@ -51,7 +52,7 @@ export class MemStorage implements IStorage {
   skillHistoryId: number;
   profileHistoryId: number;
   
-  sessionStore: session.SessionStore;
+  sessionStore: Store;
 
   constructor() {
     this.users = new Map();

@@ -5,32 +5,29 @@ import { z } from "zod";
 // Users schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
   email: text("email").notNull().unique(),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  project: text("project"),
-  role: text("role"),
-  location: text("location"),
   isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Optional fields with defaults
+  username: text("username").default(''),
+  password: text("password").default(''),
+  firstName: text("first_name").default(''),
+  lastName: text("last_name").default(''),
+  project: text("project").default(null),
+  role: text("role").default(null),
+  location: text("location").default(null),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  email: true,
-  firstName: true,
-  lastName: true,
-  project: true,
-  role: true,
-  location: true,
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    email: true,
+  })
+  .extend({
+    isAdmin: z.boolean().default(false).optional(),
+  });
 
 export const loginUserSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email("Valid email is required"),
 });
 
 // Skill level enum
