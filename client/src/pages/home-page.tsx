@@ -96,8 +96,16 @@ export default function HomePage() {
       
       if (levelDiff !== 0) return levelDiff;
       
-      // Then sort by last updated
-      return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+      // Then sort by last updated, handling null or invalid dates
+      if (!a.lastUpdated && !b.lastUpdated) return 0;
+      if (!a.lastUpdated) return 1; // b comes first
+      if (!b.lastUpdated) return -1; // a comes first
+      
+      try {
+        return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+      } catch (e) {
+        return 0; // If date parsing fails, consider them equal
+      }
     }).slice(0, 3) : [];
   
   const isLoading = isLoadingSkills || isLoadingHistory;
@@ -303,7 +311,7 @@ export default function HomePage() {
                               <SkillLevelBadge level={skill.level} />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {formatDistanceToNow(new Date(skill.lastUpdated), { addSuffix: true })}
+                              {skill.lastUpdated ? formatDistanceToNow(new Date(skill.lastUpdated), { addSuffix: true }) : 'recently'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {skill.certification ? (
