@@ -306,17 +306,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const user = await storage.getUser(skill.userId);
             if (user) {
               const { password, ...userWithoutPassword } = user;
-              
-              // Create firstName and lastName from username if they don't exist
-              const firstName = userWithoutPassword.username ? userWithoutPassword.username.split(' ')[0] : '';
-              const lastName = userWithoutPassword.username ? userWithoutPassword.username.split(' ').slice(1).join(' ') : '';
-              
               userMap.set(skill.userId, {
-                user: {
-                  ...userWithoutPassword,
-                  firstName: firstName,
-                  lastName: lastName
-                },
+                user: userWithoutPassword,
                 certifications: []
               });
             }
@@ -344,6 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Certification report ready. Report length:", report.length);
       res.json(report);
     } catch (error) {
+      console.error("Error generating certification report:", error);
       res.status(500).json({ message: "Error generating certification report", error });
     }
   });

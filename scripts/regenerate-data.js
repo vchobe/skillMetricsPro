@@ -6,9 +6,20 @@
  * - Creates endorsements and notifications
  */
 
-const { Pool } = require('pg');
-const { faker } = require('@faker-js/faker');
-const { hash } = require('../server/auth');
+import pg from 'pg';
+import { faker } from '@faker-js/faker';
+import crypto from 'crypto';
+import util from 'util';
+
+const { Pool } = pg;
+const scryptAsync = util.promisify(crypto.scrypt);
+
+// Recreate the hash function from auth.ts
+async function hash(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64));
+  return `${buf.toString("hex")}.${salt}`;
+}
 
 // Connect to the database
 const pool = new Pool({
@@ -210,8 +221,8 @@ async function createSkills(users) {
         level = 'expert';
       }
       
-      // 30% of skills will have certifications
-      const hasCertification = Math.random() < 0.3;
+      // Ensure at least 2 skills per user have certifications (skills 0 and 1)
+      const hasCertification = i < 2 ? true : Math.random() < 0.2;
       
       let certification = null;
       let credlyLink = null;
@@ -526,4 +537,8 @@ async function regenerateData() {
 }
 
 // Execute the main function
-regenerateData();
+regenerateData()
+  .catch(err => {
+    console.error('Unhandled error:', err);
+    process.exit(1);
+  });

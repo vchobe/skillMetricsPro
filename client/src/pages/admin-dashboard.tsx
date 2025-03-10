@@ -236,7 +236,7 @@ export default function AdminDashboard() {
     const headers = ["Employee Name", "Employee Email", "Certification Name", "Category", "Level", "Acquisition Date", "Expiration Date"];
     const rows = certificationReport.flatMap(report => 
       report.certifications.map(cert => [
-        `${report.user.firstName || ''} ${report.user.lastName || ''}`.trim(),
+        report.user.username || report.user.email?.split('@')[0] || `User ${report.user.id}`,
         report.user.email,
         cert.name,
         cert.category || 'N/A',
