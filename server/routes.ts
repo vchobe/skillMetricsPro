@@ -392,19 +392,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {} as Record<number, number>);
       
-      // Get user names for the chart
+      // Parse all valid user IDs and filter out invalid ones
+      const validSkillUserEntries = Object.entries(userSkillsCount)
+        .map(([userIdStr, count]) => {
+          const id = parseInt(userIdStr);
+          return isNaN(id) ? null : { id, count };
+        })
+        .filter(entry => entry !== null) as { id: number, count: number }[];
+      
+      // Process only valid user IDs
       const userSkillData = await Promise.all(
-        Object.entries(userSkillsCount).map(async ([userId, count]) => {
-          // Ensure userId is a valid number
-          const id = parseInt(userId);
-          if (isNaN(id)) {
-            return {
-              userId: 0,
-              name: `Unknown User`,
-              skillCount: count
-            };
-          }
-          
+        validSkillUserEntries.map(async ({ id, count }) => {
           const user = await storage.getUser(id);
           return {
             userId: id,
@@ -424,12 +422,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return acc;
         }, {} as Record<number, number>);
       
+      // Parse all valid user IDs and filter out invalid ones
+      const validUserEntries = Object.entries(certSkillsByUser)
+        .map(([userIdStr, count]) => {
+          const id = parseInt(userIdStr);
+          return isNaN(id) ? null : { id, count };
+        })
+        .filter(entry => entry !== null) as { id: number, count: number }[];
+      
+      // Process only valid user IDs
       const certifiedUsers = await Promise.all(
-        Object.entries(certSkillsByUser).map(async ([userId, count]) => {
-          const user = await storage.getUser(parseInt(userId));
+        validUserEntries.map(async ({ id, count }) => {
+          const user = await storage.getUser(id);
           return {
-            userId: parseInt(userId),
-            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || user.email || `User ${userId}` : `User ${userId}`,
+            userId: id,
+            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || user.email || `User ${id}` : `User ${id}`,
             certCount: count
           };
         })

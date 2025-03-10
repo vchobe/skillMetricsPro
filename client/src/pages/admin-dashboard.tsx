@@ -194,7 +194,14 @@ export default function AdminDashboard() {
   // Recent activity (mock)
   const recentActivity = skills ? 
     skills
-      .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+      .filter(skill => skill.lastUpdated && typeof skill.lastUpdated === 'string')
+      .sort((a, b) => {
+        try {
+          return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+        } catch (e) {
+          return 0;
+        }
+      })
       .slice(0, 5)
       .map(skill => ({
         skillId: skill.id,
@@ -500,7 +507,13 @@ export default function AdminDashboard() {
                                   <SkillLevelBadge level={activity.level} />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {format(new Date(activity.date), "MMM dd, yyyy")}
+                                  {activity.date ? (() => {
+                                    try {
+                                      return format(new Date(activity.date), "MMM dd, yyyy");
+                                    } catch (e) {
+                                      return "Invalid date";
+                                    }
+                                  })() : "N/A"}
                                 </td>
                               </tr>
                             );
@@ -675,7 +688,13 @@ export default function AdminDashboard() {
                             data={skillHistories.slice(0, 50).map(history => ({
                               id: history.id,
                               date: new Date(history.updatedAt).getTime(),
-                              formattedDate: format(new Date(history.updatedAt), "MMM dd"),
+                              formattedDate: (() => {
+                                try {
+                                  return format(new Date(history.updatedAt), "MMM dd");
+                                } catch (e) {
+                                  return "Invalid date";
+                                }
+                              })(),
                               skill: history.skill_name,
                               user: history.user_email,
                               level: history.newLevel === 'beginner' ? 1 : history.newLevel === 'intermediate' ? 2 : 3,
@@ -773,7 +792,13 @@ export default function AdminDashboard() {
                                 <SkillLevelBadge level={history.newLevel} size="sm" />
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {format(new Date(history.updatedAt), "MMM dd, yyyy")}
+                                {(() => {
+                                  try {
+                                    return format(new Date(history.updatedAt), "MMM dd, yyyy");
+                                  } catch (e) {
+                                    return "Invalid date";
+                                  }
+                                })()}
                               </td>
                               <td className="px-6 py-4 text-sm text-gray-500">
                                 {history.changeNote}
