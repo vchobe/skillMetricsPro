@@ -1,617 +1,719 @@
-// Test data generator for Employee Skills Management
-const { pool } = require('../server/db');
-const crypto = require('crypto');
+// Test Data Generation Script for Employee Skills Management
+const { faker } = require('@faker-js/faker');
+const { pool, db } = require('../server/db');
+const { scrypt, randomBytes } = require('crypto');
+const { promisify } = require('util');
+const {
+  users,
+  skills,
+  skillHistories,
+  profileHistories,
+  endorsements,
+  notifications,
+  insertUserSchema,
+  skillLevelEnum
+} = require('../shared/schema');
+const { eq } = require('drizzle-orm');
 
-// Skill categories
-const skillCategories = [
-  'Programming Languages',
-  'Frameworks & Libraries',
-  'Databases',
-  'Cloud Services',
-  'DevOps',
-  'Design',
-  'Project Management',
-  'Soft Skills',
-  'Quality Assurance',
-  'Security'
-];
+const scryptAsync = promisify(scrypt);
 
-// Common skills by category
-const skillsByCategory = {
-  'Programming Languages': ['JavaScript', 'TypeScript', 'Python', 'Java', 'C#', 'Ruby', 'PHP', 'Go', 'Swift', 'Kotlin'],
-  'Frameworks & Libraries': ['React', 'Angular', 'Vue', 'Express', 'Django', 'Spring Boot', 'Laravel', 'Ruby on Rails', 'ASP.NET', 'Flutter'],
-  'Databases': ['PostgreSQL', 'MySQL', 'MongoDB', 'SQL Server', 'Oracle', 'Redis', 'Cassandra', 'DynamoDB', 'Firebase', 'Elasticsearch'],
-  'Cloud Services': ['AWS', 'Azure', 'Google Cloud', 'Heroku', 'Digital Ocean', 'Firebase', 'Netlify', 'Vercel', 'OVH', 'IBM Cloud'],
-  'DevOps': ['Docker', 'Kubernetes', 'Jenkins', 'GitLab CI', 'GitHub Actions', 'Terraform', 'Ansible', 'Chef', 'Puppet', 'CircleCI'],
-  'Design': ['UI/UX', 'Figma', 'Adobe XD', 'Sketch', 'Photoshop', 'Illustrator', 'InVision', 'Zeplin', 'After Effects', 'Wireframing'],
-  'Project Management': ['Agile', 'Scrum', 'Kanban', 'JIRA', 'Confluence', 'Trello', 'Asana', 'Monday', 'ClickUp', 'Microsoft Project'],
-  'Soft Skills': ['Communication', 'Leadership', 'Teamwork', 'Problem-solving', 'Critical thinking', 'Adaptability', 'Time management', 'Creativity', 'Emotional intelligence', 'Conflict resolution'],
-  'Quality Assurance': ['Selenium', 'Cypress', 'Jest', 'Mocha', 'Jasmine', 'Postman', 'JUnit', 'TestNG', 'Robot Framework', 'Manual Testing'],
-  'Security': ['OWASP', 'Penetration Testing', 'Security Auditing', 'Network Security', 'Encryption', 'Authentication', 'Authorization', 'Vulnerability Assessment', 'Identity Management', 'Security Compliance']
+// Configuration for data generation
+const CONFIG = {
+  USERS: {
+    COUNT: 100,
+    ADMINS: 5
+  },
+  SKILLS: {
+    MIN_PER_USER: 5,
+    MAX_PER_USER: 15,
+    CATEGORIES: [
+      'Programming Languages',
+      'Frameworks',
+      'Databases',
+      'Cloud Technologies',
+      'DevOps',
+      'Mobile Development',
+      'Web Development',
+      'UI/UX Design',
+      'Data Science',
+      'Machine Learning',
+      'Artificial Intelligence',
+      'Network Security',
+      'Blockchain',
+      'IoT',
+      'Project Management',
+      'Agile Methodologies',
+      'Quality Assurance',
+      'Technical Writing',
+      'System Administration',
+      'Business Analysis',
+      'Soft Skills',
+      'Leadership',
+      'Communication',
+      'Problem Solving'
+    ],
+    NAMES: {
+      'Programming Languages': [
+        'JavaScript', 'TypeScript', 'Python', 'Java', 'C#', 'C++', 'Go', 'Rust', 
+        'PHP', 'Ruby', 'Swift', 'Kotlin', 'Scala', 'Dart', 'Perl', 'Haskell'
+      ],
+      'Frameworks': [
+        'React', 'Angular', 'Vue.js', 'Node.js', 'Express', 'Django', 'Flask',
+        'Spring Boot', 'ASP.NET Core', 'Laravel', 'Ruby on Rails', 'Next.js',
+        'NestJS', 'Svelte', 'FastAPI', 'TensorFlow', 'PyTorch'
+      ],
+      'Databases': [
+        'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'SQLite', 'Cassandra',
+        'DynamoDB', 'Elasticsearch', 'Oracle', 'SQL Server', 'Firebase',
+        'Neo4j', 'CouchDB', 'MariaDB'
+      ],
+      'Cloud Technologies': [
+        'AWS', 'Azure', 'Google Cloud', 'Heroku', 'DigitalOcean', 'Linode',
+        'IBM Cloud', 'Alibaba Cloud', 'Oracle Cloud', 'Cloudflare', 'Vercel',
+        'Netlify', 'AWS Lambda', 'Azure Functions', 'GCP Cloud Functions'
+      ],
+      'DevOps': [
+        'Docker', 'Kubernetes', 'Jenkins', 'GitHub Actions', 'CircleCI',
+        'Travis CI', 'Ansible', 'Terraform', 'Puppet', 'Chef', 'Prometheus',
+        'Grafana', 'ELK Stack', 'ArgoCD', 'Flux'
+      ],
+      'Mobile Development': [
+        'React Native', 'Flutter', 'iOS Development', 'Android Development',
+        'Xamarin', 'Ionic', 'Cordova', 'Swift UI', 'Jetpack Compose',
+        'Unity Mobile', 'PWA', 'Capacitor'
+      ],
+      'Web Development': [
+        'HTML', 'CSS', 'SASS/SCSS', 'Bootstrap', 'Tailwind CSS', 'Material UI',
+        'Webpack', 'Vite', 'Rollup', 'Parcel', 'GraphQL', 'REST API',
+        'WebSockets', 'Service Workers', 'Web Components'
+      ],
+      'UI/UX Design': [
+        'Figma', 'Sketch', 'Adobe XD', 'InVision', 'Prototyping', 
+        'User Research', 'Wireframing', 'Accessibility', 'Color Theory',
+        'Typography', 'Usability Testing', 'Information Architecture'
+      ],
+      'Data Science': [
+        'Pandas', 'NumPy', 'Matplotlib', 'Seaborn', 'Jupyter', 'R',
+        'Data Visualization', 'ETL', 'Data Mining', 'Statistical Analysis',
+        'Data Modeling', 'Big Data', 'Apache Spark', 'Hadoop', 'Tableau', 'Power BI'
+      ],
+      'Machine Learning': [
+        'Scikit-learn', 'Neural Networks', 'Deep Learning', 'NLP',
+        'Computer Vision', 'Reinforcement Learning', 'MLOps', 'Model Deployment',
+        'Feature Engineering', 'Hyperparameter Tuning', 'GANs', 'Transfer Learning'
+      ],
+      'Artificial Intelligence': [
+        'Machine Learning', 'Computer Vision', 'NLP', 'Chatbots',
+        'Recommendation Systems', 'Expert Systems', 'Knowledge Graphs',
+        'Genetic Algorithms', 'Decision Trees', 'Robotics', 'Autonomous Systems'
+      ],
+      'Network Security': [
+        'Penetration Testing', 'Ethical Hacking', 'Cryptography',
+        'Security Auditing', 'Threat Modeling', 'SIEM', 'Firewall Configuration',
+        'Identity Management', 'OAuth', 'JWT', 'SSL/TLS', 'VPN', 'Zero Trust'
+      ],
+      'Blockchain': [
+        'Ethereum', 'Smart Contracts', 'Solidity', 'Web3.js', 'Hyperledger',
+        'Cryptocurrency', 'DeFi', 'NFTs', 'Blockchain Architecture',
+        'Consensus Algorithms', 'dApps', 'Tokens'
+      ],
+      'IoT': [
+        'Arduino', 'Raspberry Pi', 'Embedded Systems', 'MQTT',
+        'Sensor Networks', 'Edge Computing', 'IoT Security',
+        'Home Automation', 'Industrial IoT', 'IoT Protocols', 'Smart Devices'
+      ],
+      'Project Management': [
+        'Scrum', 'Kanban', 'Agile', 'Waterfall', 'JIRA', 'Trello',
+        'Asana', 'Microsoft Project', 'Risk Management', 'Stakeholder Management',
+        'Resource Planning', 'Gantt Charts', 'Critical Path Method'
+      ],
+      'Agile Methodologies': [
+        'Scrum', 'Kanban', 'Lean', 'XP', 'SAFe', 'Agile Ceremonies',
+        'User Stories', 'Sprint Planning', 'Retrospectives', 'Stand-ups',
+        'Story Points', 'Velocity Tracking', 'Product Backlog'
+      ],
+      'Quality Assurance': [
+        'Manual Testing', 'Automated Testing', 'Test Planning',
+        'Test Cases', 'Selenium', 'Cypress', 'Jest', 'Mocha', 'Chai',
+        'JUnit', 'TestNG', 'Cucumber', 'BDD', 'TDD', 'Load Testing', 'Stress Testing'
+      ],
+      'Technical Writing': [
+        'API Documentation', 'User Manuals', 'Release Notes',
+        'Knowledge Bases', 'Style Guides', 'Markdown', 'Docusaurus',
+        'MkDocs', 'Swagger', 'OpenAPI', 'Technical Blogging'
+      ],
+      'System Administration': [
+        'Linux', 'Windows Server', 'Bash Scripting', 'PowerShell',
+        'Active Directory', 'Network Configuration', 'Server Monitoring',
+        'Backup & Recovery', 'Patch Management', 'System Hardening'
+      ],
+      'Business Analysis': [
+        'Requirements Gathering', 'Process Modeling', 'Use Cases',
+        'User Stories', 'UML', 'BPMN', 'Data Analysis', 'Stakeholder Management',
+        'Gap Analysis', 'SWOT Analysis', 'Cost-Benefit Analysis'
+      ],
+      'Soft Skills': [
+        'Communication', 'Teamwork', 'Problem Solving', 'Critical Thinking',
+        'Time Management', 'Adaptability', 'Creativity', 'Emotional Intelligence',
+        'Conflict Resolution', 'Active Listening', 'Negotiation'
+      ],
+      'Leadership': [
+        'Team Management', 'Mentoring', 'Coaching', 'Strategic Planning',
+        'Decision Making', 'Delegation', 'Performance Reviews',
+        'Motivation', 'Change Management', 'Vision Setting'
+      ],
+      'Communication': [
+        'Technical Presentations', 'Public Speaking', 'Technical Writing',
+        'Client Communication', 'Cross-team Collaboration', 'Active Listening',
+        'Nonverbal Communication', 'Email Etiquette', 'Meeting Facilitation'
+      ],
+      'Problem Solving': [
+        'Analytical Thinking', 'Root Cause Analysis', 'Troubleshooting',
+        'Debugging', 'Systems Thinking', 'Design Thinking',
+        'Creative Problem Solving', 'Decision Analysis'
+      ]
+    }
+  },
+  ENDORSEMENTS: {
+    TOTAL: 200,
+    MAX_PER_SKILL: 5
+  },
+  SKILL_HISTORIES: {
+    AVG_PER_SKILL: 2
+  },
+  PROFILE_HISTORIES: {
+    AVG_PER_USER: 3
+  },
+  NOTIFICATIONS: {
+    MIN_PER_USER: 0,
+    MAX_PER_USER: 20,
+    UNREAD_PERCENTAGE: 0.3
+  }
 };
 
-// Skill levels
-const skillLevels = ['beginner', 'intermediate', 'expert'];
-
-// Certification examples
-const certifications = [
-  'AWS Certified Solutions Architect',
-  'Microsoft Certified: Azure Developer Associate', 
-  'Google Professional Cloud Architect',
-  'Certified Kubernetes Administrator',
-  'Certified Scrum Master',
-  'PMI Project Management Professional',
-  'Certified Information Systems Security Professional',
-  'Oracle Certified Professional',
-  'Cisco Certified Network Associate',
-  'CompTIA Security+',
-  'Certified Ethical Hacker',
-  'Salesforce Certified Administrator',
-  'Certified Data Professional',
-  'Adobe Certified Expert',
-  ''  // Empty for no certification
-];
-
-// Projects for users
-const projects = [
-  'Frontend Team',
-  'Backend Development',
-  'Mobile App Division',
-  'Data Science Group',
-  'Cloud Infrastructure',
-  'DevOps Team',
-  'Security Team',
-  'UX Research',
-  'Project Management Office',
-  'Quality Assurance',
-  'AI Research',
-  'Customer Success',
-  'Product Management',
-  'Technical Support',
-  'Internal Tools'
-];
-
-// Roles
-const roles = [
-  'Software Engineer',
-  'Senior Developer',
-  'Technical Lead',
-  'Product Manager',
-  'UX Designer',
-  'QA Engineer',
-  'DevOps Engineer',
-  'Database Administrator',
-  'Systems Architect',
-  'Data Scientist',
-  'Scrum Master',
-  'Technical Writer',
-  'UI Designer',
-  'Security Analyst',
-  'Cloud Engineer'
-];
-
-// Locations
-const locations = [
-  'San Francisco',
-  'New York',
-  'London',
-  'Berlin',
-  'Singapore',
-  'Tokyo',
-  'Paris',
-  'Sydney',
-  'Toronto',
-  'Bangalore',
-  'Amsterdam',
-  'Remote',
-  'Hybrid (SF)',
-  'Hybrid (NY)',
-  'Hybrid (London)'
-];
-
-// Common domains for email generation
-const emailDomains = [
-  'example.com',
-  'company.org',
-  'techfirm.io',
-  'devteam.net',
-  'enterprise.co'
-];
-
-// Endorsement comments
-const endorsementComments = [
-  'Great skills in this technology!',
-  'Highly proficient and knowledgeable.',
-  'Has helped me learn this skill effectively.',
-  'Excellent problem-solver using this skill.',
-  'Demonstrated exceptional expertise in this area.',
-  'Always delivers quality results with this skill.',
-  'Consistently shows deep understanding.',
-  'Impressed by the mastery of this skill.',
-  'Has mentored team members on this technology.',
-  'Reliable expert in this field.'
-];
-
-// Change notes for skill history
-const changeNotes = [
-  'Completed advanced training course',
-  'Finished a major project using this skill',
-  'Received certification',
-  'Implemented a complex feature',
-  'Mentored junior team members',
-  'Led a technical workshop',
-  'Contributed to open source project',
-  'Resolved critical bugs using this skill',
-  'Optimized performance significantly',
-  'Mastered new aspects of this technology',
-  ''  // Empty for no note
-];
-
-// Generate random string for username
+// Helper function to generate a username from first and last name
 function generateUsername(firstName, lastName) {
-  return `${firstName.toLowerCase()}${Math.floor(Math.random() * 100)}.${lastName.toLowerCase()}`;
+  const randomNum = Math.floor(Math.random() * 10);
+  return (firstName.toLowerCase() + '.' + lastName.toLowerCase() + (randomNum > 0 ? randomNum : '')).replace(/[^a-z0-9.]/g, '');
 }
 
-// Generate a random date within the past 2 years
+// Helper function to get a random date within the last year
 function getRandomDate() {
   const now = new Date();
-  const twoYearsAgo = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate());
-  return new Date(twoYearsAgo.getTime() + Math.random() * (now.getTime() - twoYearsAgo.getTime()));
+  const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+  return new Date(oneYearAgo.getTime() + Math.random() * (now.getTime() - oneYearAgo.getTime()));
 }
 
-// Generate random hash for password simulation
-function generateHash() {
-  return crypto.randomBytes(32).toString('hex');
+// Helper function to generate a hashed password
+async function generateHash(password) {
+  const salt = randomBytes(16).toString('hex');
+  const buf = await scryptAsync(password, salt, 64);
+  return `${buf.toString('hex')}.${salt}`;
 }
 
-// Random selection from array
+// Helper function to get a random item from an array
 function randomFromArray(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Generate random email
-function generateEmail(firstName, lastName, domain) {
-  return `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${domain}`;
+// Helper function to generate a random email
+function generateEmail(firstName, lastName, domain = null) {
+  const domains = domain ? [domain] : ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'example.com', 'company.com'];
+  const randomDomain = domains[Math.floor(Math.random() * domains.length)];
+  return `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${randomDomain}`.replace(/[^a-z0-9.@]/g, '');
 }
 
-// First names and last names for generating user data
-const firstNames = [
-  'John', 'Emma', 'Michael', 'Sophia', 'William', 'Olivia', 'James', 'Ava', 'Alexander', 'Isabella',
-  'Daniel', 'Mia', 'Matthew', 'Charlotte', 'David', 'Amelia', 'Joseph', 'Harper', 'Andrew', 'Evelyn',
-  'Samuel', 'Abigail', 'Benjamin', 'Emily', 'Christopher', 'Elizabeth', 'Jacob', 'Sofia', 'Ryan', 'Avery',
-  'Ethan', 'Ella', 'Tyler', 'Madison', 'Aiden', 'Scarlett', 'Nathan', 'Victoria', 'Jackson', 'Aria',
-  'Thomas', 'Grace', 'Caleb', 'Chloe', 'Mason', 'Camila', 'Logan', 'Penelope', 'Nicholas', 'Riley'
-];
-
-const lastNames = [
-  'Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor',
-  'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez', 'Robinson',
-  'Clark', 'Rodriguez', 'Lewis', 'Lee', 'Walker', 'Hall', 'Allen', 'Young', 'Hernandez', 'King',
-  'Wright', 'Lopez', 'Hill', 'Scott', 'Green', 'Adams', 'Baker', 'Gonzalez', 'Nelson', 'Carter',
-  'Mitchell', 'Perez', 'Roberts', 'Turner', 'Phillips', 'Campbell', 'Parker', 'Evans', 'Edwards', 'Collins'
-];
-
-// Generate users data
+// Generate user data
 async function generateUsers(count) {
-  console.log(`Generating ${count} test users...`);
+  console.log(`Generating ${count} users...`);
+  const userData = [];
   
-  const users = [];
-  const adminIndex = Math.floor(Math.random() * count); // One random admin
-  
-  for (let i = 0; i < count; i++) {
-    const firstName = randomFromArray(firstNames);
-    const lastName = randomFromArray(lastNames);
+  // Generate admin users first
+  for (let i = 0; i < CONFIG.USERS.ADMINS; i++) {
+    const firstName = faker.person.firstName();
+    const lastName = faker.person.lastName();
     const username = generateUsername(firstName, lastName);
-    const email = generateEmail(firstName, lastName, randomFromArray(emailDomains));
-    const isAdmin = i === adminIndex;
-    const password = `${generateHash()}.${generateHash()}`;
-    const project = randomFromArray(projects);
-    const role = randomFromArray(roles);
-    const location = randomFromArray(locations);
+    const email = generateEmail(firstName, lastName, 'company.com');
     
-    users.push({
+    // Generate a deterministic password for testing
+    const password = 'Admin@123';
+    const hashedPassword = await generateHash(password);
+    
+    userData.push({
       username,
       email,
-      password,
-      isAdmin,
+      password: hashedPassword,
+      isAdmin: true,
       firstName,
       lastName,
-      project,
-      role,
-      location
+      role: randomFromArray(['IT Manager', 'CTO', 'IT Director', 'VP of Engineering', 'Chief Security Officer']),
+      department: randomFromArray(['IT', 'Engineering', 'Security', 'Operations', 'R&D']),
+      location: randomFromArray(['Headquarters', 'Remote', 'Branch Office', 'Regional Office'])
     });
+    
+    console.log(`Created admin user: ${email} with password: ${password}`);
   }
   
-  return users;
+  // Generate regular users
+  for (let i = CONFIG.USERS.ADMINS; i < count; i++) {
+    const firstName = faker.person.firstName();
+    const lastName = faker.person.lastName();
+    const username = generateUsername(firstName, lastName);
+    const email = generateEmail(firstName, lastName);
+    
+    // Generate a simple password for testing
+    const password = 'User@123';
+    const hashedPassword = await generateHash(password);
+    
+    userData.push({
+      username,
+      email,
+      password: hashedPassword,
+      isAdmin: false,
+      firstName: Math.random() > 0.2 ? firstName : undefined, // Some users have incomplete profiles
+      lastName: Math.random() > 0.2 ? lastName : undefined,
+      role: Math.random() > 0.3 ? randomFromArray([
+        'Software Engineer', 'Frontend Developer', 'Backend Developer', 
+        'Full Stack Developer', 'DevOps Engineer', 'QA Engineer', 
+        'Data Scientist', 'Product Manager', 'UI/UX Designer',
+        'System Administrator', 'Database Administrator', 'Mobile Developer',
+        'Project Manager', 'Scrum Master', 'Business Analyst'
+      ]) : undefined,
+      department: Math.random() > 0.4 ? randomFromArray([
+        'Engineering', 'Product', 'Design', 'QA', 'DevOps', 
+        'Data Science', 'Research', 'IT Support', 'Infrastructure',
+        'Security', 'Operations', 'Mobile', 'Web Development'
+      ]) : undefined,
+      location: Math.random() > 0.5 ? randomFromArray([
+        'Remote', 'Headquarters', 'East Office', 'West Office', 
+        'North Office', 'South Office', 'Overseas', 'Client Site'
+      ]) : undefined
+    });
+    
+    if (i % 10 === 0) {
+      console.log(`Created ${i} of ${count} users...`);
+    }
+  }
+  
+  // Insert users into database
+  const insertedUsers = [];
+  for (const user of userData) {
+    try {
+      const [insertedUser] = await db.insert(users).values(user).returning();
+      insertedUsers.push(insertedUser);
+    } catch (error) {
+      console.error(`Error inserting user ${user.email}:`, error.message);
+    }
+  }
+  
+  console.log(`Successfully inserted ${insertedUsers.length} users.`);
+  return insertedUsers;
 }
 
 // Generate skills for users
 async function generateSkills(users) {
   console.log(`Generating skills for ${users.length} users...`);
-  
-  const skills = [];
+  const skillsData = [];
   
   for (const user of users) {
-    // Random number of skills (2-8) per user
-    const skillCount = 2 + Math.floor(Math.random() * 7);
-    const userSkillCategories = [];
+    const numSkills = Math.floor(Math.random() * 
+      (CONFIG.SKILLS.MAX_PER_USER - CONFIG.SKILLS.MIN_PER_USER + 1)) + 
+      CONFIG.SKILLS.MIN_PER_USER;
     
-    // Select random categories for user
-    while (userSkillCategories.length < skillCount && userSkillCategories.length < skillCategories.length) {
-      const category = randomFromArray(skillCategories);
-      if (!userSkillCategories.includes(category)) {
-        userSkillCategories.push(category);
+    const userCategories = [];
+    // Select random categories for this user
+    while (userCategories.length < Math.min(numSkills, CONFIG.SKILLS.CATEGORIES.length)) {
+      const category = randomFromArray(CONFIG.SKILLS.CATEGORIES);
+      if (!userCategories.includes(category)) {
+        userCategories.push(category);
       }
     }
     
-    // Create skills for each category
-    for (const category of userSkillCategories) {
-      const skillName = randomFromArray(skillsByCategory[category]);
-      const level = randomFromArray(skillLevels);
-      const certification = Math.random() > 0.7 ? randomFromArray(certifications) : null;
-      const credlyLink = certification ? `https://credly.com/badge/${Math.random().toString(36).substring(2, 15)}` : null;
-      const notes = Math.random() > 0.6 ? `Notes for ${skillName} skill` : null;
+    // Generate skills for each category
+    for (const category of userCategories) {
+      const skillsInCategory = CONFIG.SKILLS.NAMES[category];
+      const numSkillsInCategory = Math.min(
+        Math.floor(Math.random() * 3) + 1, 
+        skillsInCategory.length
+      );
       
-      skills.push({
-        userId: user.id,
-        name: skillName,
-        category,
-        level,
-        certification,
-        credlyLink,
-        notes
-      });
+      // Select random skills from this category
+      const selectedSkills = [];
+      while (selectedSkills.length < numSkillsInCategory) {
+        const skill = randomFromArray(skillsInCategory);
+        if (!selectedSkills.includes(skill)) {
+          selectedSkills.push(skill);
+        }
+      }
+      
+      // Create skill entries
+      for (const skillName of selectedSkills) {
+        const level = randomFromArray(['beginner', 'intermediate', 'expert']);
+        
+        skillsData.push({
+          userId: user.id,
+          name: skillName,
+          category,
+          level,
+          certification: Math.random() > 0.7 ? `${skillName} Certification` : undefined,
+          credlyLink: Math.random() > 0.8 ? `https://credly.com/badges/${skillName.toLowerCase().replace(/\s/g, '-')}` : undefined,
+          notes: Math.random() > 0.6 ? faker.lorem.paragraph() : undefined,
+          yearsOfExperience: Math.random() > 0.5 ? Math.floor(Math.random() * 10) + 1 : undefined
+        });
+      }
     }
   }
   
-  return skills;
+  // Insert skills into database
+  const insertedSkills = [];
+  for (const skill of skillsData) {
+    try {
+      const [insertedSkill] = await db.insert(skills).values(skill).returning();
+      insertedSkills.push(insertedSkill);
+    } catch (error) {
+      console.error(`Error inserting skill ${skill.name} for user ${skill.userId}:`, error.message);
+    }
+  }
+  
+  console.log(`Successfully inserted ${insertedSkills.length} skills.`);
+  return insertedSkills;
 }
 
-// Generate skill history
+// Generate skill histories
 async function generateSkillHistories(skills) {
-  console.log(`Generating skill histories...`);
-  
-  const histories = [];
+  console.log(`Generating skill histories for ${skills.length} skills...`);
+  const historiesData = [];
   
   for (const skill of skills) {
-    // 70% chance of having skill history
-    if (Math.random() > 0.3) {
-      // 1-3 history entries per skill
-      const historyCount = 1 + Math.floor(Math.random() * 3);
-      let currentLevel = skill.level;
+    // Determine how many history entries to create
+    const numHistories = Math.floor(Math.random() * 3) + 1; // 1-3 entries
+    
+    // Create a progression of levels
+    const levels = ['beginner', 'intermediate', 'expert'];
+    const currentLevelIndex = levels.indexOf(skill.level);
+    
+    // Generate history entries
+    for (let i = 0; i < numHistories; i++) {
+      // For the first entry, make sure it's for a previous level
+      let previousLevelIndex = currentLevelIndex;
+      let newLevelIndex = currentLevelIndex;
       
-      for (let i = 0; i < historyCount; i++) {
-        // Find previous level (different from current)
-        let previousLevel;
-        do {
-          previousLevel = randomFromArray(skillLevels);
-        } while (previousLevel === currentLevel);
+      if (i === 0 && currentLevelIndex > 0) {
+        // First entry should be improvement from a previous level
+        previousLevelIndex = Math.max(0, currentLevelIndex - 1);
+        newLevelIndex = currentLevelIndex;
+      } else if (i > 0) {
+        // Subsequent entries can be any progression
+        previousLevelIndex = Math.floor(Math.random() * 3);
+        newLevelIndex = Math.min(2, previousLevelIndex + 1);
+      }
+      
+      const previousLevel = levels[previousLevelIndex];
+      const newLevel = levels[newLevelIndex];
+      
+      // Only add history if there's a level change
+      if (previousLevel !== newLevel) {
+        const updateDate = new Date(
+          skill.updatedAt.getTime() - (numHistories - i) * 30 * 24 * 60 * 60 * 1000
+        ); // Go back in time by months
         
-        const date = getRandomDate();
-        const changeNote = randomFromArray(changeNotes);
-        
-        histories.push({
+        historiesData.push({
           skillId: skill.id,
           userId: skill.userId,
           previousLevel,
-          newLevel: currentLevel,
-          updatedAt: date,
-          changeNote
+          newLevel,
+          changeNote: faker.lorem.sentence(),
+          updatedAt: updateDate
         });
-        
-        // For next iteration
-        currentLevel = previousLevel;
       }
     }
   }
   
-  return histories;
+  // Insert histories into database
+  const insertedHistories = [];
+  for (const history of historiesData) {
+    try {
+      const [insertedHistory] = await db.insert(skillHistories).values(history).returning();
+      insertedHistories.push(insertedHistory);
+    } catch (error) {
+      console.error(`Error inserting skill history for skill ${history.skillId}:`, error.message);
+    }
+  }
+  
+  console.log(`Successfully inserted ${insertedHistories.length} skill histories.`);
+  return insertedHistories;
 }
 
 // Generate endorsements
 async function generateEndorsements(users, skills) {
-  console.log(`Generating endorsements...`);
+  console.log(`Generating endorsements for ${skills.length} skills...`);
+  const endorsementsData = [];
   
-  const endorsements = [];
+  // Determine how many endorsements to create in total
+  const totalEndorsements = Math.min(CONFIG.ENDORSEMENTS.TOTAL, skills.length * CONFIG.ENDORSEMENTS.MAX_PER_SKILL);
   
-  // 40% of skills will have endorsements
-  const endorsableSkills = skills.filter(() => Math.random() > 0.6);
+  // Create a set to track which user-skill pairs have been used
+  const endorsementPairs = new Set();
   
-  for (const skill of endorsableSkills) {
-    // 1-3 endorsements per endorsable skill
-    const endorsementCount = 1 + Math.floor(Math.random() * 3);
+  // Generate random endorsements
+  while (endorsementsData.length < totalEndorsements) {
+    const endorser = randomFromArray(users);
+    const skill = randomFromArray(skills);
     
-    // Get potential endorsers (not the skill owner)
-    const potentialEndorsers = users.filter(user => user.id !== skill.userId);
-    
-    // If we have potential endorsers
-    if (potentialEndorsers.length > 0) {
-      // Select random endorsers
-      const endorsers = [];
-      while (endorsers.length < endorsementCount && endorsers.length < potentialEndorsers.length) {
-        const endorser = randomFromArray(potentialEndorsers);
-        if (!endorsers.find(e => e.id === endorser.id)) {
-          endorsers.push(endorser);
-        }
-      }
+    // Make sure users don't endorse their own skills and don't endorse the same skill twice
+    if (endorser.id !== skill.userId) {
+      const pairKey = `${endorser.id}-${skill.id}`;
       
-      // Create endorsements
-      for (const endorser of endorsers) {
-        const comment = randomFromArray(endorsementComments);
-        const date = getRandomDate();
+      if (!endorsementPairs.has(pairKey)) {
+        endorsementPairs.add(pairKey);
         
-        endorsements.push({
+        endorsementsData.push({
           skillId: skill.id,
           endorserId: endorser.id,
           endorseeId: skill.userId,
-          comment,
-          createdAt: date
+          comment: faker.lorem.sentences(Math.floor(Math.random() * 3) + 1),
+          createdAt: getRandomDate()
         });
       }
     }
   }
   
-  return endorsements;
+  // Insert endorsements into database
+  const insertedEndorsements = [];
+  for (const endorsement of endorsementsData) {
+    try {
+      const [insertedEndorsement] = await db.insert(endorsements).values(endorsement).returning();
+      insertedEndorsements.push(insertedEndorsement);
+    } catch (error) {
+      console.error(`Error inserting endorsement from ${endorsement.endorserId} for skill ${endorsement.skillId}:`, error.message);
+    }
+  }
+  
+  console.log(`Successfully inserted ${insertedEndorsements.length} endorsements.`);
+  return insertedEndorsements;
 }
 
 // Generate notifications
 async function generateNotifications(users, skills, endorsements, skillHistories) {
-  console.log(`Generating notifications...`);
-  
-  const notifications = [];
+  console.log(`Generating notifications for ${users.length} users...`);
+  const notificationsData = [];
   
   // Endorsement notifications
   for (const endorsement of endorsements) {
-    const endorser = users.find(u => u.id === endorsement.endorserId);
-    const skill = skills.find(s => s.id === endorsement.skillId);
-    
-    if (endorser && skill) {
-      const content = `${endorser.firstName} ${endorser.lastName} endorsed your "${skill.name}" skill`;
-      const isRead = Math.random() > 0.5;
-      
-      notifications.push({
-        userId: endorsement.endorseeId,
-        type: 'endorsement',
-        content,
-        isRead,
-        relatedSkillId: skill.id,
-        relatedUserId: endorser.id,
-        createdAt: endorsement.createdAt
+    notificationsData.push({
+      userId: endorsement.endorseeId,
+      type: 'endorsement',
+      content: `Someone endorsed your skill`,
+      relatedId: endorsement.id,
+      isRead: Math.random() > CONFIG.NOTIFICATIONS.UNREAD_PERCENTAGE,
+      createdAt: endorsement.createdAt
+    });
+  }
+  
+  // Level up notifications
+  for (const history of skillHistories) {
+    if (history.previousLevel !== history.newLevel) {
+      notificationsData.push({
+        userId: history.userId,
+        type: 'level_up',
+        content: `You leveled up in a skill`,
+        relatedId: history.id,
+        isRead: Math.random() > CONFIG.NOTIFICATIONS.UNREAD_PERCENTAGE,
+        createdAt: history.updatedAt
       });
     }
   }
   
-  // Skill level up notifications
-  for (const history of skillHistories) {
-    if (history.previousLevel && history.newLevel) {
-      const skill = skills.find(s => s.id === history.skillId);
-      
-      if (skill) {
-        // Only create notification if level went up
-        const levelValues = { beginner: 1, intermediate: 2, expert: 3 };
-        if (levelValues[history.newLevel] > levelValues[history.previousLevel]) {
-          const content = `Your "${skill.name}" skill level upgraded from ${history.previousLevel} to ${history.newLevel}`;
-          const isRead = Math.random() > 0.5;
-          
-          notifications.push({
-            userId: history.userId,
-            type: 'level_up',
-            content,
-            isRead,
-            relatedSkillId: skill.id,
-            createdAt: history.updatedAt
-          });
-        }
-      }
-    }
-  }
-  
-  // Achievement notifications (for experts)
-  const expertSkills = skills.filter(s => s.level === 'expert');
-  for (const skill of expertSkills) {
-    if (Math.random() > 0.7) { // 30% of expert skills get achievement
-      const content = `Congratulations! You achieved expert status in "${skill.name}"`;
-      const isRead = Math.random() > 0.5;
-      
-      notifications.push({
-        userId: skill.userId,
+  // Achievement notifications
+  for (const user of users) {
+    const userSkills = skills.filter(skill => skill.userId === user.id);
+    
+    if (userSkills.length >= 5) {
+      notificationsData.push({
+        userId: user.id,
         type: 'achievement',
-        content,
-        isRead,
-        relatedSkillId: skill.id,
+        content: `Achievement unlocked: Skill Collector`,
+        relatedId: null,
+        isRead: Math.random() > CONFIG.NOTIFICATIONS.UNREAD_PERCENTAGE,
+        createdAt: getRandomDate()
+      });
+    }
+    
+    const expertSkills = userSkills.filter(skill => skill.level === 'expert');
+    if (expertSkills.length >= 3) {
+      notificationsData.push({
+        userId: user.id,
+        type: 'achievement',
+        content: `Achievement unlocked: Expert Status`,
+        relatedId: null,
+        isRead: Math.random() > CONFIG.NOTIFICATIONS.UNREAD_PERCENTAGE,
         createdAt: getRandomDate()
       });
     }
   }
   
-  return notifications;
+  // Insert notifications into database
+  const insertedNotifications = [];
+  for (const notification of notificationsData) {
+    try {
+      const [insertedNotification] = await db.insert(notifications).values(notification).returning();
+      insertedNotifications.push(insertedNotification);
+    } catch (error) {
+      console.error(`Error inserting notification for user ${notification.userId}:`, error.message);
+    }
+  }
+  
+  console.log(`Successfully inserted ${insertedNotifications.length} notifications.`);
+  return insertedNotifications;
 }
 
 // Generate profile histories
 async function generateProfileHistories(users) {
-  console.log(`Generating profile histories...`);
-  
-  const histories = [];
+  console.log(`Generating profile histories for ${users.length} users...`);
+  const profileHistoriesData = [];
   
   for (const user of users) {
-    // 50% chance of having profile history
-    if (Math.random() > 0.5) {
-      // 1-3 profile updates
-      const updateCount = 1 + Math.floor(Math.random() * 3);
+    // Skip users with incomplete profiles
+    if (!user.firstName || !user.lastName) continue;
+    
+    const numHistories = Math.floor(Math.random() * 3) + 1; // 1-3 history entries
+    
+    for (let i = 0; i < numHistories; i++) {
+      const fieldNames = ['firstName', 'lastName', 'role', 'department', 'location'];
+      const changedField = randomFromArray(fieldNames);
       
-      // Fields that can be updated
-      const fields = ['role', 'project', 'firstName', 'lastName', 'location'];
+      // Generate previous and new values
+      let previousValue, newValue;
       
-      for (let i = 0; i < updateCount; i++) {
-        const field = randomFromArray(fields);
-        const oldValue = field === 'firstName' ? 'Previous' : 
-                          field === 'lastName' ? 'Name' : 
-                          randomFromArray(field === 'role' ? roles : 
-                                          field === 'project' ? projects : 
-                                          field === 'location' ? locations : ['Old Value']);
-        const newValue = user[field] || 'New Value';
-        
-        if (oldValue !== newValue) {
-          histories.push({
-            userId: user.id,
-            field,
-            oldValue,
-            newValue,
-            updatedAt: getRandomDate()
-          });
-        }
+      switch (changedField) {
+        case 'firstName':
+        case 'lastName':
+          previousValue = faker.person.firstName();
+          newValue = user[changedField];
+          break;
+        case 'role':
+          previousValue = randomFromArray([
+            'Junior Developer', 'Intern', 'Associate Engineer',
+            'Support Specialist', 'Technical Associate'
+          ]);
+          newValue = user.role;
+          break;
+        case 'department':
+          previousValue = randomFromArray([
+            'Support', 'Training', 'Internship Program',
+            'Customer Success', 'Sales Engineering'
+          ]);
+          newValue = user.department;
+          break;
+        case 'location':
+          previousValue = randomFromArray([
+            'Training Center', 'Satellite Office', 'Co-working Space',
+            'University Program', 'Incubator'
+          ]);
+          newValue = user.location;
+          break;
       }
+      
+      profileHistoriesData.push({
+        userId: user.id,
+        fieldName: changedField,
+        previousValue,
+        newValue,
+        updatedAt: getRandomDate()
+      });
     }
   }
   
-  return histories;
+  // Insert profile histories into database
+  const insertedProfileHistories = [];
+  for (const history of profileHistoriesData) {
+    try {
+      const [insertedHistory] = await db.insert(profileHistories).values(history).returning();
+      insertedProfileHistories.push(insertedHistory);
+    } catch (error) {
+      console.error(`Error inserting profile history for user ${history.userId}:`, error.message);
+    }
+  }
+  
+  console.log(`Successfully inserted ${insertedProfileHistories.length} profile histories.`);
+  return insertedProfileHistories;
 }
 
-// Insert data into database
+// Main function to insert test data
 async function insertTestData() {
-  // Connect to database
-  
   try {
     console.log('Starting test data generation...');
     
-    // Generate users
-    const users = await generateUsers(100);
-    console.log(`Generated ${users.length} users.`);
-    
-    // Insert users and save the inserted records
-    const usersInserted = [];
-    for (const user of users) {
-      try {
-        const result = await pool.query(
-          `INSERT INTO users (username, email, password, is_admin, first_name, last_name, project, role, location) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-          [user.username, user.email, user.password, user.isAdmin, user.firstName, user.lastName, user.project, user.role, user.location]
-        );
-        usersInserted.push(result.rows[0]);
-      } catch (err) {
-        console.error(`Error inserting user ${user.email}:`, err.message);
+    // Check if users already exist
+    const existingUsers = await db.select().from(users);
+    if (existingUsers.length > 0) {
+      console.log(`Database already contains ${existingUsers.length} users.`);
+      const response = 'Y'; // Auto confirm for scripting
+      
+      if (response.toUpperCase() === 'Y') {
+        // delete all existing data in reverse order of dependencies
+        await db.delete(notifications);
+        await db.delete(endorsements);
+        await db.delete(profileHistories);
+        await db.delete(skillHistories);
+        await db.delete(skills);
+        await db.delete(users);
+        console.log('Existing data cleared.');
+      } else {
+        console.log('Aborting data generation.');
+        return;
       }
     }
-    console.log(`Inserted ${usersInserted.length} users.`);
     
-    // Generate skills for users
-    const skills = await generateSkills(usersInserted);
-    console.log(`Generated ${skills.length} skills.`);
+    // Generate data in correct order to maintain relationships
+    const generatedUsers = await generateUsers(CONFIG.USERS.COUNT);
+    const generatedSkills = await generateSkills(generatedUsers);
+    const generatedSkillHistories = await generateSkillHistories(generatedSkills);
+    const generatedEndorsements = await generateEndorsements(generatedUsers, generatedSkills);
+    const generatedProfileHistories = await generateProfileHistories(generatedUsers);
+    const generatedNotifications = await generateNotifications(
+      generatedUsers, 
+      generatedSkills, 
+      generatedEndorsements, 
+      generatedSkillHistories
+    );
     
-    // Insert skills and save the inserted records
-    const skillsInserted = [];
-    for (const skill of skills) {
-      try {
-        const result = await pool.query(
-          `INSERT INTO skills (user_id, name, category, level, certification, credly_link, notes) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-          [skill.userId, skill.name, skill.category, skill.level, skill.certification, skill.credlyLink, skill.notes]
-        );
-        skillsInserted.push(result.rows[0]);
-      } catch (err) {
-        console.error(`Error inserting skill ${skill.name}:`, err.message);
+    console.log('\nTest data generation complete!');
+    console.log(`Generated:`);
+    console.log(`- ${generatedUsers.length} users`);
+    console.log(`- ${generatedSkills.length} skills`);
+    console.log(`- ${generatedSkillHistories.length} skill histories`);
+    console.log(`- ${generatedEndorsements.length} endorsements`);
+    console.log(`- ${generatedProfileHistories.length} profile histories`);
+    console.log(`- ${generatedNotifications.length} notifications`);
+    
+    // Log admin user credentials for testing
+    const adminUsers = generatedUsers.filter(user => user.isAdmin);
+    console.log('\nAdmin user credentials for testing:');
+    for (const admin of adminUsers) {
+      console.log(`Email: ${admin.email}, Password: Admin@123`);
+    }
+    
+    // Log regular user credentials for testing
+    console.log('\nRegular user credentials for testing:');
+    console.log(`All regular users have password: User@123`);
+    console.log(`Sample regular users:`);
+    for (let i = 0; i < Math.min(5, generatedUsers.length - adminUsers.length); i++) {
+      const user = generatedUsers.find(u => !u.isAdmin && u.email.includes('@'));
+      if (user) {
+        console.log(`Email: ${user.email}, Password: User@123`);
       }
     }
-    console.log(`Inserted ${skillsInserted.length} skills.`);
     
-    // Generate skill histories
-    const skillHistories = await generateSkillHistories(skillsInserted);
-    console.log(`Generated ${skillHistories.length} skill histories.`);
-    
-    // Insert skill histories
-    let skillHistoriesInserted = 0;
-    for (const history of skillHistories) {
-      try {
-        await pool.query(
-          `INSERT INTO skill_histories (skill_id, user_id, previous_level, new_level, updated_at, change_note) 
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [history.skillId, history.userId, history.previousLevel, history.newLevel, history.updatedAt, history.changeNote]
-        );
-        skillHistoriesInserted++;
-      } catch (err) {
-        console.error(`Error inserting skill history:`, err.message);
-      }
-    }
-    console.log(`Inserted ${skillHistoriesInserted} skill histories.`);
-    
-    // Generate endorsements
-    const endorsements = await generateEndorsements(usersInserted, skillsInserted);
-    console.log(`Generated ${endorsements.length} endorsements.`);
-    
-    // Insert endorsements
-    let endorsementsInserted = 0;
-    for (const endorsement of endorsements) {
-      try {
-        await pool.query(
-          `INSERT INTO endorsements (skill_id, endorser_id, endorsee_id, comment, created_at) 
-           VALUES ($1, $2, $3, $4, $5)`,
-          [endorsement.skillId, endorsement.endorserId, endorsement.endorseeId, endorsement.comment, endorsement.createdAt]
-        );
-        endorsementsInserted++;
-        
-        // Update endorsement count in skills table
-        await pool.query(
-          `UPDATE skills SET endorsement_count = endorsement_count + 1 WHERE id = $1`,
-          [endorsement.skillId]
-        );
-      } catch (err) {
-        console.error(`Error inserting endorsement:`, err.message);
-      }
-    }
-    console.log(`Inserted ${endorsementsInserted} endorsements.`);
-    
-    // Generate profile histories
-    const profileHistories = await generateProfileHistories(usersInserted);
-    console.log(`Generated ${profileHistories.length} profile histories.`);
-    
-    // Insert profile histories
-    let profileHistoriesInserted = 0;
-    for (const history of profileHistories) {
-      try {
-        await pool.query(
-          `INSERT INTO profile_histories (user_id, field, old_value, new_value, updated_at) 
-           VALUES ($1, $2, $3, $4, $5)`,
-          [history.userId, history.field, history.oldValue, history.newValue, history.updatedAt]
-        );
-        profileHistoriesInserted++;
-      } catch (err) {
-        console.error(`Error inserting profile history:`, err.message);
-      }
-    }
-    console.log(`Inserted ${profileHistoriesInserted} profile histories.`);
-    
-    // Generate notifications
-    const notifications = await generateNotifications(usersInserted, skillsInserted, endorsements, skillHistories);
-    console.log(`Generated ${notifications.length} notifications.`);
-    
-    // Insert notifications
-    let notificationsInserted = 0;
-    for (const notification of notifications) {
-      try {
-        await pool.query(
-          `INSERT INTO notifications (user_id, type, content, is_read, related_skill_id, related_user_id, created_at) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [notification.userId, notification.type, notification.content, 
-           notification.isRead, notification.relatedSkillId, notification.relatedUserId, 
-           notification.createdAt]
-        );
-        notificationsInserted++;
-      } catch (err) {
-        console.error(`Error inserting notification:`, err.message);
-      }
-    }
-    console.log(`Inserted ${notificationsInserted} notifications.`);
-    
-    console.log('Test data generation completed successfully.');
-    
-  } catch (err) {
-    console.error('Error generating test data:', err);
+  } catch (error) {
+    console.error('Error during test data generation:', error);
   } finally {
-    pool.end();
+    // Close database connection
+    await pool.end();
   }
 }
 
-// Run the data generation
+// Run the data insertion
 insertTestData().catch(err => {
   console.error('Fatal error during test data generation:', err);
   process.exit(1);

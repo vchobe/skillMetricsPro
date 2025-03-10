@@ -13,6 +13,11 @@ import {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+  
+  // Health check endpoint for testing
+  app.get("/api/health", (req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
 
   // Middleware to ensure user is authenticated
   const ensureAuth = (req: Request, res: Response, next: Function) => {

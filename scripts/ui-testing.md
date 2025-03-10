@@ -1,278 +1,454 @@
-# UI Testing Plan for Employee Skills Management
+# UI Testing Guide for Employee Skills Management
 
-## 1. Authentication Flow Testing
+## Prerequisites
+- Test environment is set up
+- Database is initialized
+- Server is running on http://localhost:5000
+- Test data for 100 users is generated
+- Testing accounts have been set up with different roles (admin, regular user)
 
-### Registration Testing
-- **Normal Registration**
-  - Navigate to `/auth` page
-  - Select "Register" tab
-  - Enter a valid email: `test.user@example.com`
-  - Submit the form
-  - Verify success notification
-  - Check server logs for generated password
-  - Verify user is redirected to home page when logged in
+## 1. Authentication Testing
 
-- **Error Cases**
-  - Test with empty email (form validation should prevent submission)
-  - Test with invalid email format (form validation should show error)
-  - Test with existing email (server should return error)
+### 1.1 Registration Flow
+- [ ] **TC-REG-01**: Register with valid email
+  - Navigate to /auth
+  - Enter valid email address
+  - Submit form
+  - Verify success message indicating password was generated
+  - Check email (server logs) for generated password
+  - Verify user is redirected to login form after registration
 
-### Login Testing
-- **Normal Login**
-  - Navigate to `/auth` page 
-  - Select "Login" tab
-  - Enter valid credentials from registration
-  - Verify successful login and redirection to home page
-  - Verify user data appears in navigation/dashboard
+- [ ] **TC-REG-02**: Register with invalid email format
+  - Navigate to /auth
+  - Enter invalid email format (e.g., "test", "test@", "test@domain")
+  - Submit form
+  - Verify validation error is displayed
+  - Form should not submit
 
-- **Error Cases**
-  - Test with empty fields (form validation should prevent submission)
-  - Test with invalid credentials (server should return error)
-  - Test with nonexistent user (server should return error)
+- [ ] **TC-REG-03**: Register with already existing email
+  - Navigate to /auth
+  - Enter email address that already exists in the system
+  - Submit form
+  - Verify error message indicating email already exists
+  - Form should not submit
 
-### Password Reset Testing
-- **Normal Flow**
-  - Navigate to `/auth` page
-  - Click "Forgot your password?"
-  - Enter a valid email
-  - Submit the form
-  - Verify success notification
+- [ ] **TC-REG-04**: Registration with empty email
+  - Navigate to /auth
+  - Leave email field empty
+  - Submit form
+  - Verify validation error is displayed
+  - Form should not submit
+
+### 1.2 Login Flow
+- [ ] **TC-LOGIN-01**: Login with valid credentials
+  - Navigate to /auth
+  - Enter valid email and password
+  - Submit form
+  - Verify successful login
+  - Verify redirect to dashboard/home page
+
+- [ ] **TC-LOGIN-02**: Login with invalid password
+  - Navigate to /auth
+  - Enter valid email but invalid password
+  - Submit form
+  - Verify error message is displayed
+  - User remains on login page
+
+- [ ] **TC-LOGIN-03**: Login with non-existent email
+  - Navigate to /auth
+  - Enter non-existent email and any password
+  - Submit form
+  - Verify error message is displayed
+  - User remains on login page
+
+- [ ] **TC-LOGIN-04**: Login with empty fields
+  - Navigate to /auth
+  - Leave email and/or password fields empty
+  - Submit form
+  - Verify validation errors are displayed
+  - Form should not submit
+
+### 1.3 Password Reset Flow
+- [ ] **TC-PWD-01**: Request password reset with valid email
+  - Navigate to password reset form
+  - Enter valid email
+  - Submit form
+  - Verify success message
   - Check server logs for password reset email
 
-- **Error Cases**
-  - Test with empty email field
-  - Test with invalid email format
+- [ ] **TC-PWD-02**: Request password reset with invalid email
+  - Navigate to password reset form
+  - Enter invalid or non-existent email
+  - Submit form
+  - Verify appropriate error message
+  - No password reset email should be generated
 
-### Logout Testing
-- Click logout button in navigation
-- Verify redirect to login page
-- Try accessing protected routes (should redirect back to login)
+### 1.4 Logout Flow
+- [ ] **TC-LOGOUT-01**: Logout from any page
+  - Login with valid credentials
+  - Click on logout button/link
+  - Verify user is logged out
+  - Verify redirect to login page
+  - Verify protected routes are inaccessible after logout
 
 ## 2. Navigation and Layout Testing
 
-### Responsive Design
-- Test at multiple viewport sizes:
-  - Desktop (1920×1080, 1366×768)
-  - Tablet (768×1024)
-  - Mobile (375×667, 414×896)
-- Verify that navigation, forms, tables, and charts adapt appropriately
-- Verify that touch targets are appropriate size on mobile
+### 2.1 Responsive Layout
+- [ ] **TC-LAYOUT-01**: Desktop layout (1920x1080)
+  - Test all pages on desktop resolution
+  - Verify all elements are properly sized and positioned
+  - Verify no horizontal scrolling is needed
+  - Check for any overflow issues
 
-### Navigation Elements
-- Test each navigation link in sidebar
-- Verify active state for current page
-- Test mobile menu toggle
-- Verify dropdowns and nested navigation
-- Test notification icon/badge functionality
+- [ ] **TC-LAYOUT-02**: Tablet layout (768x1024)
+  - Test all pages on tablet resolution
+  - Verify responsive design adapts correctly
+  - Verify all elements are usable and properly displayed
+  - Test orientation changes (if applicable)
 
-### Core Layout
-- Verify header displays correctly with user info
-- Test sidebar collapse/expand functionality
-- Verify main content area displays correctly
-- Check footer links and information
+- [ ] **TC-LAYOUT-03**: Mobile layout (375x667)
+  - Test all pages on mobile resolution
+  - Verify responsive design adapts correctly
+  - Verify all elements are usable and properly displayed
+  - Verify touch targets are large enough
+  - Test hamburger menu functionality
+
+### 2.2 Navigation
+- [ ] **TC-NAV-01**: Sidebar navigation
+  - Verify all sidebar links
+  - Test collapsible sidebar (if implemented)
+  - Verify active link highlighting
+  - Test navigation to all main sections
+
+- [ ] **TC-NAV-02**: Mobile navigation
+  - Test hamburger menu toggle
+  - Verify all mobile menu links
+  - Test closing mobile menu
+  - Verify navigation behavior after route change
+
+- [ ] **TC-NAV-03**: Breadcrumb navigation (if implemented)
+  - Verify breadcrumb accuracy
+  - Test breadcrumb links
+  - Verify breadcrumb behavior on page changes
 
 ## 3. Skills Management Testing
 
-### Skills List Page
-- Navigate to skills page
-- Verify skills are displayed correctly in grid/list
-- Test sorting functionality (by name, category, level)
-- Test filtering by category and level
-- Test search functionality
+### 3.1 Skills List
+- [ ] **TC-SKILL-01**: Skills list display
+  - Navigate to skills page
+  - Verify all skills are displayed correctly
+  - Verify skill cards show proper information
+  - Test pagination (if implemented)
 
-### Add New Skill
-- Click "Add Skill" button
-- Fill out form with:
-  - Name: "JavaScript"
-  - Category: "Programming Languages"
-  - Level: "Intermediate"
-  - Optional certification: "JavaScript Developer Certification"
-  - Optional notes: "Working with ES6+ features"
-- Submit form
-- Verify new skill appears in list
-- Verify validation works for required fields
+- [ ] **TC-SKILL-02**: Skill sorting
+  - Test sorting by name (A-Z, Z-A)
+  - Test sorting by level (beginner to expert, expert to beginner)
+  - Test sorting by category
+  - Test sorting by last updated
 
-### Edit Skill
-- Select existing skill
-- Click edit button
-- Modify fields (change level to "Expert")
-- Submit form
-- Verify changes appear in list view and detail view
+- [ ] **TC-SKILL-03**: Skill filtering
+  - Test filtering by level
+  - Test filtering by category
+  - Test combining multiple filters
+  - Verify clearing all filters works
 
-### Delete Skill
-- Select existing skill
-- Click delete button
-- Confirm deletion
-- Verify skill is removed from list
+- [ ] **TC-SKILL-04**: Skill search
+  - Test searching by skill name
+  - Test searching by partial name
+  - Test search with no results
+  - Verify search resets properly
 
-### Skill Detail View
-- Click on a skill to view details
-- Verify all information is displayed correctly
-- Test tab navigation between:
-  - Overview
-  - History
-  - Endorsements
+### 3.2 Skill CRUD Operations
+- [ ] **TC-SKILL-05**: Add new skill
+  - Click "Add Skill" button
+  - Fill in all required fields
+  - Submit form
+  - Verify new skill appears in the skills list
+  - Verify skill history is created
+
+- [ ] **TC-SKILL-06**: Add skill with validation errors
+  - Click "Add Skill" button
+  - Leave required fields empty or provide invalid data
+  - Submit form
+  - Verify validation errors are displayed
+  - Form should not submit
+
+- [ ] **TC-SKILL-07**: Edit skill
+  - Find existing skill and click edit button
+  - Modify skill information
+  - Submit form
+  - Verify changes are reflected in the skills list
+  - Verify skill history is updated
+
+- [ ] **TC-SKILL-08**: Delete skill
+  - Find existing skill and click delete button
+  - Confirm deletion
+  - Verify skill is removed from the list
+  - Verify skill history is maintained
+
+### 3.3 Skill Details
+- [ ] **TC-SKILL-09**: View skill details
+  - Click on a skill to view details
+  - Verify all skill information is displayed correctly
+  - Test all tabs/sections on the detail page
+  - Verify endorsements are displayed
 
 ## 4. Profile Management Testing
 
-### View Profile
-- Navigate to profile page
-- Verify personal information is displayed correctly
-- Verify skills summary appears
+### 4.1 Profile View
+- [ ] **TC-PROFILE-01**: View profile information
+  - Navigate to profile page
+  - Verify all user information is displayed correctly
+  - Test all tabs/sections on the profile page
 
-### Edit Profile
-- Click edit profile button
-- Modify fields:
-  - First name
-  - Last name
-  - Role
-  - Location
-  - Project
-- Submit changes
-- Verify updated information appears
+### 4.2 Profile Editing
+- [ ] **TC-PROFILE-02**: Edit profile
+  - Navigate to profile page
+  - Click edit button
+  - Update profile information
+  - Submit form
+  - Verify changes are reflected
+  - Verify profile history is updated
 
-### Change Password
-- Navigate to security settings
-- Enter current password
-- Enter new password and confirmation
-- Submit form
-- Test login with new password
+- [ ] **TC-PROFILE-03**: Edit profile with validation errors
+  - Navigate to profile page
+  - Click edit button
+  - Provide invalid data or leave required fields empty
+  - Submit form
+  - Verify validation errors are displayed
+  - Form should not submit
+
+### 4.3 Password Change
+- [ ] **TC-PROFILE-04**: Change password
+  - Navigate to password change form
+  - Enter current password
+  - Enter new password and confirmation
+  - Submit form
+  - Verify success message
+  - Test login with new password
+
+- [ ] **TC-PROFILE-05**: Change password with validation errors
+  - Navigate to password change form
+  - Test various validation scenarios:
+    - Incorrect current password
+    - New password too short
+    - Passwords don't match
+  - Verify appropriate error messages
+  - Form should not submit for invalid cases
 
 ## 5. Endorsements Testing
 
-### Add Endorsement
-- Navigate to another user's skill
-- Click endorse button
-- Add endorsement comment
-- Submit form
-- Verify endorsement appears in the list
-- Verify endorsement count increases
+### 5.1 Endorsement Actions
+- [ ] **TC-END-01**: Add endorsement
+  - Navigate to a skill detail page (another user's skill)
+  - Add an endorsement with comment
+  - Submit form
+  - Verify endorsement appears in the list
+  - Verify notification is created for the skill owner
 
-### View Endorsements
-- Navigate to endorsed skill
-- Check that endorsement appears with correct:
-  - Endorser name
-  - Date
-  - Comment
+- [ ] **TC-END-02**: Add endorsement with validation errors
+  - Navigate to a skill detail page
+  - Try to submit an empty endorsement
+  - Verify validation error is displayed
+  - Form should not submit
 
-### Remove Endorsement
-- Find your endorsement for another user
-- Click remove button (if implemented)
-- Confirm removal
-- Verify endorsement is removed and count decreases
+- [ ] **TC-END-03**: View received endorsements
+  - Navigate to profile or skills page
+  - View received endorsements
+  - Verify all endorsement information is displayed correctly
+
+- [ ] **TC-END-04**: Remove endorsement (if implemented)
+  - Find an endorsement you created
+  - Click remove button
+  - Confirm removal
+  - Verify endorsement is removed from the list
 
 ## 6. Notifications Testing
 
-### Notification Display
-- Verify notification counter shows correct number
-- Click notification icon
-- Verify notifications list displays correctly
+### 6.1 Notification Actions
+- [ ] **TC-NOTIF-01**: View notifications
+  - Navigate to notifications panel/page
+  - Verify all notifications are displayed correctly
+  - Verify unread notifications are highlighted
 
-### Notification Read Status
-- Click on unread notification
-- Verify it marks as read
-- Test "Mark all as read" functionality if available
+- [ ] **TC-NOTIF-02**: Mark notification as read
+  - Click on an unread notification
+  - Verify it becomes marked as read
+  - Verify unread count decreases
 
-### Notification Navigation
-- Click on notification
-- Verify it navigates to the relevant page (skill, endorsement, etc.)
+- [ ] **TC-NOTIF-03**: Mark all notifications as read (if implemented)
+  - Click "mark all as read" button
+  - Verify all notifications become marked as read
+  - Verify unread count becomes zero
 
-## 7. History and Timeline Testing
+- [ ] **TC-NOTIF-04**: Notification navigation
+  - Click on a notification
+  - Verify navigation to the relevant page/content
 
-### Skill History
-- Navigate to a skill with history
-- Verify history timeline displays correctly with:
-  - Previous level
-  - New level
-  - Date of change
-  - Change notes (if any)
+## 7. Skill History and Timeline Testing
 
-### Profile History
-- Navigate to profile history section
-- Verify changes to profile are recorded with:
-  - Changed field
-  - Old value
-  - New value
-  - Date of change
+### 7.1 History Views
+- [ ] **TC-HIST-01**: View skill history
+  - Navigate to skill history page
+  - Verify timeline is displayed correctly
+  - Verify all history entries show correct information
 
-## 8. Admin Features Testing (if applicable)
+- [ ] **TC-HIST-02**: View profile history
+  - Navigate to profile history page
+  - Verify timeline is displayed correctly
+  - Verify all history entries show correct information
 
-### User Management
-- Login as admin
-- Navigate to admin dashboard
-- Verify list of users is displayed
-- Test user search and filtering
+### 7.2 Timeline Filtering (if implemented)
+- [ ] **TC-HIST-03**: Filter timeline by date
+  - Test date range filtering
+  - Verify timeline updates correctly
 
-### Edit User
-- Select a user from admin panel
-- Edit their details or permissions
-- Submit changes
-- Verify changes are saved
+- [ ] **TC-HIST-04**: Filter timeline by action type
+  - Test filtering by different action types
+  - Verify timeline updates correctly
 
-### System Stats
-- Check overall statistics on admin dashboard
-- Verify skill counts by category
-- Verify user counts by role or department
+## 8. Admin Features Testing (for admin users)
 
-## 9. Performance Testing
+### 8.1 User Management
+- [ ] **TC-ADMIN-01**: View all users
+  - Login as admin
+  - Navigate to user management page
+  - Verify all users are listed
+  - Test pagination (if implemented)
 
-### Page Load Times
-- Measure initial page load time
-- Test navigation between pages
-- Measure time to load data-heavy pages (dashboards, reports)
+- [ ] **TC-ADMIN-02**: Search/filter users
+  - Test user search functionality
+  - Test filtering by role, status, etc.
+  - Verify results are accurate
 
-### Handling Large Data Sets
-- Test with 100+ skills
-- Test with 50+ users
-- Verify pagination works correctly
-- Check that filtering and sorting remain performant
+- [ ] **TC-ADMIN-03**: Edit user
+  - Select a user to edit
+  - Modify user information
+  - Submit form
+  - Verify changes are reflected
 
-## 10. Error Handling Testing
+- [ ] **TC-ADMIN-04**: Disable/enable user
+  - Select a user
+  - Toggle user status
+  - Verify status change is reflected
+  - Verify disabled user cannot log in
 
-### Network Errors
-- Simulate offline state
-- Verify appropriate error messages
-- Test retry functionality
+### 8.2 Analytics Dashboard
+- [ ] **TC-ADMIN-05**: View statistics
+  - Navigate to analytics dashboard
+  - Verify all charts and statistics are displayed correctly
+  - Test different time periods (if implemented)
 
-### Server Errors
-- Trigger 500 errors (via invalid requests if possible)
-- Verify error messages are user-friendly
-- Check that error state doesn't break navigation
+- [ ] **TC-ADMIN-06**: Export data (if implemented)
+  - Test export functionality
+  - Verify exported data is correct
 
-### Validation Errors
-- Submit forms with invalid data
-- Verify error messages appear in the correct location
-- Verify form maintains state after error
+## 9. Error Handling Testing
+
+### 9.1 Form Errors
+- [ ] **TC-ERR-01**: Test all form validation error messages
+  - Test required field validation
+  - Test format validation (email, passwords, etc.)
+  - Test business rule validation
+  - Verify error messages are clear and helpful
+
+### 9.2 API Errors
+- [ ] **TC-ERR-02**: Network error handling
+  - Simulate network disconnection
+  - Verify appropriate error messaging
+  - Test retry functionality (if implemented)
+
+- [ ] **TC-ERR-03**: Server error handling
+  - Simulate server errors (500 responses)
+  - Verify appropriate error messaging
+  - Test recovery mechanisms
+
+### 9.3 Empty States
+- [ ] **TC-ERR-04**: Empty list states
+  - Test UI for empty skills list
+  - Test UI for empty notifications list
+  - Test UI for empty search results
+  - Verify helpful messaging
+
+## 10. Performance Testing
+
+### 10.1 Load Testing
+- [ ] **TC-PERF-01**: Test with large data sets
+  - Load profile with many skills (50+)
+  - Test navigation with 100+ users
+  - Verify UI remains responsive
+
+### 10.2 Responsiveness
+- [ ] **TC-PERF-02**: Measure page load times
+  - Test initial load time
+  - Test navigation between pages
+  - Verify transitions are smooth
 
 ## 11. Cross-Browser Testing
 
-Test the application in:
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
-- Mobile browsers (iOS Safari, Chrome for Android)
+### 11.1 Desktop Browsers
+- [ ] **TC-BROWSER-01**: Chrome (latest)
+- [ ] **TC-BROWSER-02**: Firefox (latest)
+- [ ] **TC-BROWSER-03**: Safari (latest)
+- [ ] **TC-BROWSER-04**: Edge (latest)
 
-## Testing Results Documentation
+### 11.2 Mobile Browsers
+- [ ] **TC-BROWSER-05**: Chrome Mobile
+- [ ] **TC-BROWSER-06**: Safari Mobile
 
-For each test case:
-1. Record expected behavior
-2. Record actual behavior
-3. Note any discrepancies
-4. Provide screenshots if relevant
-5. Assign priority to any defects found
+## Test Data Requirements
 
-## Regression Testing
+For comprehensive testing, the following test data should be generated:
 
-Perform regression testing after:
-- New feature implementation
-- Bug fixes
-- UI changes
-- Backend changes that might affect the frontend
+1. 100 user accounts with the following distribution:
+   - 5 admin users
+   - 95 regular users
+   - Various profile completeness levels
 
-## Automated Test Suggestions
+2. Skills variety:
+   - At least 20 different skill categories
+   - Skills with all three levels (beginner, intermediate, expert)
+   - 5-15 skills per user (randomly distributed)
 
-Consider implementing:
-- End-to-end tests with Cypress or Playwright
-- Component tests with React Testing Library
-- API tests with Jest and Supertest
+3. Skill histories:
+   - Multiple history entries for selected skills
+   - Various progression paths (beginner→intermediate→expert)
+
+4. Endorsements:
+   - Minimum 200 endorsements distributed across users
+   - Some skills with multiple endorsements
+   - Some users with many endorsements (for pagination testing)
+
+5. Notifications:
+   - Mix of read and unread notifications
+   - All notification types represented
+   - Some users with many notifications (for pagination testing)
+
+## Test Execution Checklist
+
+- [ ] Preparation: Test environment setup
+- [ ] Preparation: Test data generation
+- [ ] Preparation: Test accounts setup
+- [ ] Execution: Authentication tests
+- [ ] Execution: Navigation and layout tests
+- [ ] Execution: Skills management tests
+- [ ] Execution: Profile management tests
+- [ ] Execution: Endorsements tests
+- [ ] Execution: Notifications tests
+- [ ] Execution: History and timeline tests
+- [ ] Execution: Admin features tests
+- [ ] Execution: Error handling tests
+- [ ] Execution: Performance tests
+- [ ] Execution: Cross-browser tests
+- [ ] Reporting: Document all issues found
+- [ ] Reporting: Complete test report
+
+## Test Reporting
+
+Use the test-report-template.md file to document all test results, including:
+1. Test execution date and environment details
+2. Pass/fail status for each test case
+3. Details for any failed tests
+4. Screenshots of critical bugs
+5. Performance measurements
+6. Recommendations for improvements
