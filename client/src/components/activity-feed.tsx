@@ -125,10 +125,9 @@ export default function ActivityFeed({ activities, skills, showAll }: ActivityFe
                     <p className="text-sm text-gray-500">
                       {activity.type === "update" ? (
                         <>
-                          You updated <Link href={`/skills?edit=${activity.skillId}`}>
-                            <a className="font-medium text-gray-900">
-                              {skill ? skill.name : `Skill #${activity.skillId}`}
-                            </a>
+                          You updated {" "}
+                          <Link href={`/skills?edit=${activity.skillId}`} className="font-medium text-gray-900">
+                            {skill ? skill.name : `Skill #${activity.skillId}`}
                           </Link> from{" "}
                           <SkillLevelBadge 
                             level={activity.previousLevel || "unknown"} 
@@ -142,10 +141,8 @@ export default function ActivityFeed({ activities, skills, showAll }: ActivityFe
                       ) : (
                         <>
                           You added a new skill{" "}
-                          <Link href={`/skills?edit=${activity.skillId}`}>
-                            <a className="font-medium text-gray-900">
-                              {skill ? skill.name : `Skill #${activity.skillId}`}
-                            </a>
+                          <Link href={`/skills?edit=${activity.skillId}`} className="font-medium text-gray-900">
+                            {skill ? skill.name : `Skill #${activity.skillId}`}
                           </Link>{" "}
                           with level{" "}
                           <SkillLevelBadge level={activity.newLevel} className="ml-1" />
