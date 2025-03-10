@@ -29,7 +29,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Middleware to ensure user is admin
   const ensureAdmin = (req: Request, res: Response, next: Function) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+    if (!req.isAuthenticated() || !req.user?.is_admin) {
       return res.status(403).json({ message: "Forbidden" });
     }
     next();
