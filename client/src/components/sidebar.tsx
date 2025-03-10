@@ -99,56 +99,48 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
         
         <div className="flex flex-col flex-grow p-4 overflow-auto">
           <div className="space-y-2">
-            <Link href="/">
-              <a className={`flex items-center px-4 py-3 rounded-md ${
-                currentPath === "/" 
-                  ? "bg-gray-900 text-white" 
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}>
-                <LayoutDashboard className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Dashboard</span>
-                )}
-              </a>
+            <Link href="/" className={`flex items-center px-4 py-3 rounded-md ${
+              currentPath === "/" 
+                ? "bg-gray-900 text-white" 
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`}>
+              <LayoutDashboard className="h-5 w-5" />
+              {(isOpen || !isMobile) && (
+                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Dashboard</span>
+              )}
             </Link>
             
-            <Link href="/skills">
-              <a className={`flex items-center px-4 py-3 rounded-md ${
-                currentPath === "/skills" 
-                  ? "bg-gray-900 text-white" 
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}>
-                <Brain className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>My Skills</span>
-                )}
-              </a>
+            <Link href="/skills" className={`flex items-center px-4 py-3 rounded-md ${
+              currentPath === "/skills" 
+                ? "bg-gray-900 text-white" 
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`}>
+              <Brain className="h-5 w-5" />
+              {(isOpen || !isMobile) && (
+                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>My Skills</span>
+              )}
             </Link>
             
-            <Link href="/history">
-              <a className={`flex items-center px-4 py-3 rounded-md ${
-                currentPath === "/history" 
-                  ? "bg-gray-900 text-white" 
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}>
-                <Clock className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill History</span>
-                )}
-              </a>
+            <Link href="/history" className={`flex items-center px-4 py-3 rounded-md ${
+              currentPath === "/history" 
+                ? "bg-gray-900 text-white" 
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`}>
+              <Clock className="h-5 w-5" />
+              {(isOpen || !isMobile) && (
+                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill History</span>
+              )}
             </Link>
             
-            <Link href="/profile">
-              <a className={`flex items-center px-4 py-3 rounded-md ${
-                currentPath === "/profile" 
-                  ? "bg-gray-900 text-white" 
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}>
-                <UserCircle className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Profile</span>
-                )}
-              </a>
+            <Link href="/profile" className={`flex items-center px-4 py-3 rounded-md ${
+              currentPath === "/profile" 
+                ? "bg-gray-900 text-white" 
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`}>
+              <UserCircle className="h-5 w-5" />
+              {(isOpen || !isMobile) && (
+                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Profile</span>
+              )}
             </Link>
           </div>
 
@@ -161,29 +153,25 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 </h3>
               )}
               <div className="mt-2 space-y-2">
-                <Link href="/admin">
-                  <a className={`flex items-center px-4 py-3 rounded-md ${
-                    currentPath === "/admin" 
-                      ? "bg-gray-900 text-white" 
-                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}>
-                    <BarChart4 className="h-5 w-5" />
-                    {(isOpen || !isMobile) && (
-                      <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Analytics</span>
-                    )}
-                  </a>
+                <Link href="/admin" className={`flex items-center px-4 py-3 rounded-md ${
+                  currentPath === "/admin" 
+                    ? "bg-gray-900 text-white" 
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                }`}>
+                  <BarChart4 className="h-5 w-5" />
+                  {(isOpen || !isMobile) && (
+                    <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Analytics</span>
+                  )}
                 </Link>
-                <Link href="/admin?tab=users">
-                  <a className={`flex items-center px-4 py-3 rounded-md ${
-                    currentPath === "/admin?tab=users" 
-                      ? "bg-gray-900 text-white" 
-                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}>
-                    <UsersRound className="h-5 w-5" />
-                    {(isOpen || !isMobile) && (
-                      <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>User Management</span>
-                    )}
-                  </a>
+                <Link href="/admin?tab=users" className={`flex items-center px-4 py-3 rounded-md ${
+                  currentPath === "/admin?tab=users" 
+                    ? "bg-gray-900 text-white" 
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                }`}>
+                  <UsersRound className="h-5 w-5" />
+                  {(isOpen || !isMobile) && (
+                    <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>User Management</span>
+                  )}
                 </Link>
               </div>
             </div>

@@ -364,6 +364,7 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                         <Input
                           placeholder="e.g. AWS Certified Developer"
                           {...field}
+                          value={field.value || ""}
                           onFocus={() => setShowCertificationSuggestions(true)}
                           onBlur={() => setTimeout(() => setShowCertificationSuggestions(false), 200)}
                         />
@@ -398,7 +399,11 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                   <FormItem>
                     <FormLabel>Credly Link (optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://www.credly.com/badges/..." {...field} />
+                      <Input 
+                        placeholder="https://www.credly.com/badges/..." 
+                        {...field}
+                        value={field.value || ""} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -416,6 +421,7 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                         placeholder="Additional details about your skill level, experience, etc."
                         className="resize-none"
                         {...field}
+                        value={field.value || ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -434,6 +440,7 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                         <Input
                           placeholder="Reason for updating this skill"
                           {...field}
+                          value={field.value || ""}
                         />
                       </FormControl>
                       <FormMessage />
