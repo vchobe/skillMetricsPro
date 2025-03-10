@@ -36,7 +36,13 @@ import { Loader2 } from "lucide-react";
 
 // Skill schema with validation
 const skillSchema = insertSkillSchema.extend({
-  changeNote: z.string().optional(),
+  changeNote: z.string().optional().default(""),
+  // Ensure these fields are properly handled for empty values
+  certification: z.string().optional().default(""),
+  credlyLink: z.string().optional().default(""),
+  notes: z.string().optional().default(""),
+  // Ensure level always has a valid value and never empty string
+  level: z.enum(["beginner", "intermediate", "expert"]).default("beginner"),
 });
 
 type SkillFormValues = z.infer<typeof skillSchema>;
@@ -121,31 +127,34 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
   });
   
   // Update form values when editing a skill
+  // Form reset logic that ensures we never have undefined or null values
   useEffect(() => {
     if (skill && skillId) {
+      // When editing an existing skill
       form.reset({
         userId: user?.id,
-        name: skill.name,
-        category: skill.category,
-        level: skill.level,
+        name: skill.name || "", // Ensure string values are never null/undefined
+        category: skill.category || "",
+        level: skill.level || "beginner", // Always default to a valid skill level
         certification: skill.certification || "",
         credlyLink: skill.credlyLink || "",
         notes: skill.notes || "",
         changeNote: "",
       });
-    } else if (!skillId) {
+    } else {
+      // When adding a new skill
       form.reset({
         userId: user?.id,
         name: "",
         category: "",
-        level: "beginner",
+        level: "beginner", // Default value for new skills
         certification: "",
         credlyLink: "",
         notes: "",
         changeNote: "",
       });
     }
-  }, [skill, skillId, isOpen, user]);
+  }, [skill, skillId, isOpen, user, form]);
   
   // Add skill mutation
   const addSkillMutation = useMutation({
