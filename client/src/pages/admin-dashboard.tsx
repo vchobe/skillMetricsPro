@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { Skill, User } from "@shared/schema";
+import { Skill, User, SkillHistory } from "@shared/schema";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import { 
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardDescription 
 } from "@/components/ui/card";
 import { 
   Tabs, 
@@ -37,6 +38,10 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
+  ComposedChart,
+  Area
 } from "recharts";
 import {
   BarChart4,
@@ -48,7 +53,10 @@ import {
   PieChart as PieChartIcon,
   Filter,
   ChevronRight,
-  UserCircle
+  UserCircle,
+  Award,
+  History,
+  Activity
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
@@ -85,6 +93,16 @@ export default function AdminDashboard() {
   // Get all skills
   const { data: skills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
     queryKey: ["/api/admin/skills"],
+  });
+
+  // Get all skill histories for admin
+  const { data: skillHistories, isLoading: isLoadingHistories } = useQuery<(SkillHistory & { skill_name: string, user_email: string })[]>({
+    queryKey: ["/api/admin/skill-history"],
+  });
+  
+  // Get certification report
+  const { data: certificationReport, isLoading: isLoadingCertifications } = useQuery<{ user: User, certifications: any[] }[]>({
+    queryKey: ["/api/admin/certification-report"],
   });
   
   // Calculate stats
@@ -176,10 +194,18 @@ export default function AdminDashboard() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <BarChart4 className="h-4 w-4" />
                 <span>Dashboard</span>
+              </TabsTrigger>
+              <TabsTrigger value="skill-history" className="flex items-center gap-2">
+                <History className="h-4 w-4" />
+                <span>Skill History</span>
+              </TabsTrigger>
+              <TabsTrigger value="certifications" className="flex items-center gap-2">
+                <Award className="h-4 w-4" />
+                <span>Certifications</span>
               </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -531,6 +557,283 @@ export default function AdminDashboard() {
                         </tr>
                       </tbody>
                     </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="skill-history">
+              <Card className="mb-6">
+                <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
+                  <div>
+                    <CardTitle>Skill History Timeline</CardTitle>
+                    <CardDescription>Track changes in skill levels across the organization</CardDescription>
+                  </div>
+                  <Button className="mt-4 md:mt-0">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export History
+                  </Button>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {isLoadingHistories ? (
+                    <div className="flex justify-center items-center h-64">
+                      <div className="animate-spin h-8 w-8 border-4 border-indigo-500 rounded-full border-t-transparent"></div>
+                    </div>
+                  ) : skillHistories && skillHistories.length > 0 ? (
+                    <div className="p-6">
+                      <div className="h-96">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart
+                            data={skillHistories.slice(0, 50).map(history => ({
+                              id: history.id,
+                              date: new Date(history.createdAt).getTime(),
+                              formattedDate: format(new Date(history.createdAt), "MMM dd"),
+                              skill: history.skill_name,
+                              user: history.user_email,
+                              level: history.newLevel === 'beginner' ? 1 : history.newLevel === 'intermediate' ? 2 : 3,
+                              change: history.changeNote
+                            }))}
+                            margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis 
+                              dataKey="formattedDate" 
+                              type="category"
+                              padding={{ left: 30, right: 30 }}
+                            />
+                            <YAxis
+                              label={{ value: 'Skill Level', angle: -90, position: 'insideLeft' }}
+                              ticks={[1, 2, 3]}
+                              tickFormatter={(tick) => tick === 1 ? 'Beginner' : tick === 2 ? 'Intermediate' : 'Expert'}
+                            />
+                            <Tooltip 
+                              labelFormatter={(value) => 'Date: ' + value}
+                              formatter={(value, name, props) => {
+                                if (name === 'level') {
+                                  return [value === 1 ? 'Beginner' : value === 2 ? 'Intermediate' : 'Expert', 'Level'];
+                                }
+                                return [value, name];
+                              }}
+                              contentStyle={{ backgroundColor: '#fff', borderRadius: '0.5rem', border: '1px solid #e2e8f0', padding: '0.75rem' }}
+                            />
+                            <Legend />
+                            <Line
+                              type="monotone"
+                              dataKey="level"
+                              stroke="#8884d8"
+                              strokeWidth={2}
+                              activeDot={{ r: 8 }}
+                              name="Skill Level"
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center text-gray-500">
+                      <History className="mx-auto h-12 w-12 text-gray-400" />
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">No skill history</h3>
+                      <p className="mt-1 text-sm text-gray-500">There are no skill updates recorded yet.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Skill History Log</CardTitle>
+                </CardHeader>
+                <CardContent className="px-0">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skill</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {isLoadingHistories ? (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-4">
+                              <div className="flex justify-center py-4">
+                                <div className="animate-spin h-6 w-6 border-4 border-indigo-500 rounded-full border-t-transparent"></div>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : skillHistories && skillHistories.length > 0 ? (
+                          skillHistories.slice(0, 10).map((history, index) => (
+                            <tr key={index}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">{history.user_email}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">{history.skill_name}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {history.previousLevel ? (
+                                  <SkillLevelBadge level={history.previousLevel} size="sm" />
+                                ) : (
+                                  <span className="text-xs text-gray-500">New</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <SkillLevelBadge level={history.newLevel} size="sm" />
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {format(new Date(history.createdAt), "MMM dd, yyyy")}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-500">
+                                {history.changeNote}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                              No skill history records found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="certifications">
+              <Card className="mb-6">
+                <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
+                  <div>
+                    <CardTitle>Certification Report</CardTitle>
+                    <CardDescription>Overview of certified skills across the organization</CardDescription>
+                  </div>
+                  <Button className="mt-4 md:mt-0">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export PDF
+                  </Button>
+                </CardHeader>
+                <CardContent className="px-0">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certifications</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acquired</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {isLoadingCertifications ? (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-4">
+                              <div className="flex justify-center py-4">
+                                <div className="animate-spin h-6 w-6 border-4 border-indigo-500 rounded-full border-t-transparent"></div>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : certificationReport && certificationReport.length > 0 ? (
+                          certificationReport.flatMap(report => 
+                            report.certifications.map((cert, certIndex) => (
+                              <tr key={`${report.user.id}-${cert.skillId}`}>
+                                {certIndex === 0 && (
+                                  <td className="px-6 py-4 whitespace-nowrap" rowSpan={report.certifications.length}>
+                                    <div className="flex items-center">
+                                      <Avatar className="h-8 w-8">
+                                        <AvatarFallback className="bg-indigo-600 text-white">
+                                          {report.user.firstName?.[0] || ""}{report.user.lastName?.[0] || ""}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div className="ml-4">
+                                        <div className="text-sm font-medium text-gray-900">
+                                          {report.user.firstName} {report.user.lastName}
+                                        </div>
+                                        <div className="text-sm text-gray-500">{report.user.email}</div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                )}
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm font-medium text-gray-900">{cert.name}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-500">{cert.category}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <SkillLevelBadge level={cert.level} size="sm" />
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {format(new Date(cert.acquired), "MMM dd, yyyy")}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                  <Button size="sm" variant="outline">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                    </svg>
+                                    Verify
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))
+                          )
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                              No certifications found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Certification Statistics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="p-6 bg-gray-50 rounded-lg">
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Total Certifications</h3>
+                      <div className="flex items-center">
+                        <div className="text-3xl font-bold text-indigo-600">{stats.totalCertifications}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-6 bg-gray-50 rounded-lg">
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Certified Employees</h3>
+                      <div className="flex items-center">
+                        <div className="text-3xl font-bold text-indigo-600">
+                          {certificationReport ? certificationReport.length : 0}
+                        </div>
+                        <div className="ml-2 text-sm text-gray-500">
+                          {certificationReport && users ? 
+                            `(${Math.round((certificationReport.length / users.length) * 100)}% of workforce)` : 
+                            ''
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-6 bg-gray-50 rounded-lg">
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Avg. Certifications per Employee</h3>
+                      <div className="text-3xl font-bold text-indigo-600">
+                        {certificationReport && certificationReport.length > 0 ? 
+                          (certificationReport.reduce((sum, report) => sum + report.certifications.length, 0) / certificationReport.length).toFixed(1) : 
+                          '0'
+                        }
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
