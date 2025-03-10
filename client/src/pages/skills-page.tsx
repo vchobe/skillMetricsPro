@@ -99,7 +99,7 @@ export default function SkillsPage() {
   
   // Get unique categories for filter
   const categories = skills 
-    ? [...new Set(skills.map(skill => skill.category || ''))].filter(category => !!category)
+    ? Array.from(new Set(skills.map(skill => skill.category || ''))).filter(category => !!category)
     : [];
   
   // Update background style based on selected category

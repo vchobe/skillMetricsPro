@@ -383,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Format: YYYY-MM
       const monthlyUpdates = histories.reduce((acc, history) => {
-        const date = new Date(history.updatedAt);
+        const date = new Date(history.createdAt);
         if (date >= sixMonthsAgo) {
           const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
           acc[key] = (acc[key] || 0) + 1;
@@ -398,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Skill growth by level over time
       const skillsByLevel = histories.reduce((acc, history) => {
-        const date = new Date(history.updatedAt);
+        const date = new Date(history.createdAt);
         if (date >= sixMonthsAgo) {
           const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
           
