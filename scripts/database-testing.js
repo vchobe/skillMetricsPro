@@ -1,14 +1,14 @@
 // Database Testing Script for Employee Skills Management
-const { pool, db } = require('../server/db');
-const { eq, and, like, desc } = require('drizzle-orm');
-const {
+import { pool, db } from '../server/db.js';
+import { eq, and, like, desc } from 'drizzle-orm';
+import {
   users,
   skills,
   skillHistories,
   profileHistories,
   endorsements,
   notifications
-} = require('../shared/schema');
+} from '../shared/schema.js';
 
 // Helper function to log test results
 function logResult(testName, result, details = null) {
@@ -363,3 +363,5 @@ runDatabaseTests().catch(err => {
   console.error('Unhandled error in database tests:', err);
   process.exit(1);
 });
+
+export { logResult, runDatabaseTests };

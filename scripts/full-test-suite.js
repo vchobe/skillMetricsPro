@@ -20,9 +20,13 @@
  *   --help              Show this help message
  */
 
-const { spawn, execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { spawn, execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -182,7 +186,8 @@ function generateTestReport(results) {
   }
   
   // Update test environment details
-  const packageJson = require('../package.json');
+  const packageJsonPath = path.join(__dirname, '..', 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   const nodeVersion = process.version;
   const expressVersion = packageJson.dependencies.express || 'unknown';
   const reactVersion = packageJson.dependencies.react || 'unknown';
@@ -379,3 +384,5 @@ runTests().catch(error => {
   console.error(`Unhandled error: ${error.message}`);
   process.exit(1);
 });
+
+export { runTests, generateTestReport };

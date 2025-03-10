@@ -1,6 +1,6 @@
 // API Testing Script for Employee Skills Management
-const axios = require('axios');
-const assert = require('assert');
+import axios from 'axios';
+import assert from 'assert';
 
 // Base URL for API requests
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -340,3 +340,5 @@ async function runTests() {
 runTests().catch(error => {
   console.error('Fatal error during testing:', error);
 });
+
+export { apiRequest, runTests };

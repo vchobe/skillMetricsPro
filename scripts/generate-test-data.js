@@ -1,9 +1,9 @@
 // Test Data Generation Script for Employee Skills Management
-const { faker } = require('@faker-js/faker');
-const { pool, db } = require('../server/db');
-const { scrypt, randomBytes } = require('crypto');
-const { promisify } = require('util');
-const {
+import { faker } from '@faker-js/faker';
+import { pool, db } from '../server/db.js';
+import { scrypt, randomBytes } from 'crypto';
+import { promisify } from 'util';
+import {
   users,
   skills,
   skillHistories,
@@ -12,8 +12,8 @@ const {
   notifications,
   insertUserSchema,
   skillLevelEnum
-} = require('../shared/schema');
-const { eq } = require('drizzle-orm');
+} from '../shared/schema.js';
+import { eq } from 'drizzle-orm';
 
 const scryptAsync = promisify(scrypt);
 
@@ -718,3 +718,6 @@ insertTestData().catch(err => {
   console.error('Fatal error during test data generation:', err);
   process.exit(1);
 });
+
+// Add explicit export for ES modules
+export { generateUsers, generateSkills, generateSkillHistories, generateEndorsements, generateNotifications, generateProfileHistories };
