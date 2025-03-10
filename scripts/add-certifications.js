@@ -1,7 +1,8 @@
 // Script to add certification data to existing skills
-const { Pool } = require('pg');
-const dotenv = require('dotenv');
+import pg from 'pg';
+import dotenv from 'dotenv';
 
+const { Pool } = pg;
 dotenv.config();
 
 const pool = new Pool({
@@ -85,7 +86,7 @@ async function addCertificationsToSkills() {
           
           // Update the skill with certification data
           await client.query(
-            'UPDATE skills SET certification = $1, credlyLink = $2, certification_date = $3, expiration_date = $4 WHERE id = $5',
+            'UPDATE skills SET certification = $1, credly_link = $2, certification_date = $3, expiration_date = $4 WHERE id = $5',
             [certificationName, credlyLink, acquiredDate, expirationDate, skill.id]
           );
           
