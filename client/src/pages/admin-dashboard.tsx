@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Skill, User, SkillHistory } from "@shared/schema";
+import { formatDate, DATE_FORMATS } from "@/lib/date-utils";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import { 
@@ -524,13 +525,7 @@ export default function AdminDashboard() {
                                   <SkillLevelBadge level={activity.level} />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {activity.date ? (() => {
-                                    try {
-                                      return format(new Date(activity.date), "MMM dd, yyyy");
-                                    } catch (e) {
-                                      return "Invalid date";
-                                    }
-                                  })() : "N/A"}
+                                  {formatDate(activity.date, DATE_FORMATS.DISPLAY, "N/A")}
                                 </td>
                               </tr>
                             );
