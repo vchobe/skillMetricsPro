@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -10,7 +10,8 @@ import {
   CardContent, 
   CardHeader, 
   CardTitle,
-  CardDescription 
+  CardDescription,
+  CardFooter 
 } from "@/components/ui/card";
 import { 
   Tabs, 
@@ -41,7 +42,16 @@ import {
   LineChart,
   Line,
   ComposedChart,
-  Area
+  Area,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Scatter,
+  ScatterChart,
+  ZAxis,
+  Treemap
 } from "recharts";
 import {
   BarChart4,
@@ -56,11 +66,23 @@ import {
   UserCircle,
   Award,
   History,
-  Activity
+  Activity,
+  FileDown,
+  AreaChart,
+  LineChart as LineChartIcon,
+  LayoutDashboard,
+  TrendingUp,
+  BrainCircuit,
+  Hexagon,
+  RadarIcon,
+  DownloadCloud,
+  Calendar,
+  SquareStack
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -103,6 +125,18 @@ export default function AdminDashboard() {
   // Get certification report
   const { data: certificationReport, isLoading: isLoadingCertifications } = useQuery<{ user: User, certifications: any[] }[]>({
     queryKey: ["/api/admin/certification-report"],
+  });
+  
+  // Get advanced analytics data
+  const { data: advancedAnalytics, isLoading: isLoadingAnalytics } = useQuery<{
+    monthlyData: { month: string; count: number }[];
+    skillLevelTrends: { month: string; beginner: number; intermediate: number; expert: number }[];
+    categoryData: { name: string; value: number }[];
+    departmentData: { name: string; value: number }[];
+    userSkillData: { userId: number; name: string; skillCount: number }[];
+    certifiedUsers: { userId: number; name: string; certCount: number }[];
+  }>({
+    queryKey: ["/api/admin/advanced-analytics"],
   });
   
   // Calculate stats

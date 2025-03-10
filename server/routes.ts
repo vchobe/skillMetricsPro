@@ -306,6 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             category: skill.category,
             level: skill.level,
             certification: skill.certification,
+            credlyLink: skill.credlyLink,
             acquired: skill.lastUpdated
           });
         }
@@ -315,6 +316,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(report);
     } catch (error) {
       res.status(500).json({ message: "Error generating certification report", error });
+    }
+  });
+  
+  // Get advanced analytics data
+  app.get("/api/admin/advanced-analytics", ensureAdmin, async (req, res) => {
+    try {
+      const skills = await storage.getAllSkills();
+      const users = await storage.getAllUsers();
+      const histories = await storage.getAllSkillHistories();
+      
+      // Monthly progress trends - group skill updates by month
+      const now = new Date();
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(now.getMonth() - 6);
+      
+      // Format: YYYY-MM
+      const monthlyUpdates = histories.reduce((acc, history) => {
+        const date = new Date(history.updatedAt);
+        if (date >= sixMonthsAgo) {
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          acc[key] = (acc[key] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+      
+      // Convert to array sorted by date
+      const monthlyData = Object.entries(monthlyUpdates)
+        .map(([month, count]) => ({ month, count }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+      
+      // Skill growth by level over time
+      const skillsByLevel = histories.reduce((acc, history) => {
+        const date = new Date(history.updatedAt);
+        if (date >= sixMonthsAgo) {
+          const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          
+          if (!acc[month]) {
+            acc[month] = { beginner: 0, intermediate: 0, expert: 0 };
+          }
+          
+          if (history.newLevel) {
+            acc[month][history.newLevel] = (acc[month][history.newLevel] || 0) + 1;
+          }
+        }
+        return acc;
+      }, {} as Record<string, Record<string, number>>);
+      
+      // Convert to array for chart data
+      const skillLevelTrends = Object.entries(skillsByLevel).map(([month, levels]) => ({
+        month,
+        beginner: levels.beginner || 0,
+        intermediate: levels.intermediate || 0,
+        expert: levels.expert || 0
+      })).sort((a, b) => a.month.localeCompare(b.month));
+      
+      // Top skills by category
+      const skillsByCategory = skills.reduce((acc, skill) => {
+        const category = skill.category || 'Other';
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      // Convert to array for charts
+      const categoryData = Object.entries(skillsByCategory)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
+      
+      // Department distribution (using categories as proxy for departments)
+      const departmentData = categoryData.slice();
+      
+      // User growth - number of skills per user
+      const userSkillsCount = skills.reduce((acc, skill) => {
+        acc[skill.userId] = (acc[skill.userId] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>);
+      
+      // Get user names for the chart
+      const userSkillData = await Promise.all(
+        Object.entries(userSkillsCount).map(async ([userId, count]) => {
+          const user = await storage.getUser(parseInt(userId));
+          return {
+            userId: parseInt(userId),
+            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || user.email || `User ${userId}` : `User ${userId}`,
+            skillCount: count
+          };
+        })
+      );
+      
+      // Top certified users
+      const certificationUsers = await storage.getAllUsers();
+      const certSkills = await storage.getAllSkills();
+      const certSkillsByUser = certSkills
+        .filter(skill => skill.certification)
+        .reduce((acc, skill) => {
+          acc[skill.userId] = (acc[skill.userId] || 0) + 1;
+          return acc;
+        }, {} as Record<number, number>);
+      
+      const certifiedUsers = await Promise.all(
+        Object.entries(certSkillsByUser).map(async ([userId, count]) => {
+          const user = await storage.getUser(parseInt(userId));
+          return {
+            userId: parseInt(userId),
+            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || user.email || `User ${userId}` : `User ${userId}`,
+            certCount: count
+          };
+        })
+      );
+      
+      const topCertifiedUsers = certifiedUsers
+        .sort((a, b) => b.certCount - a.certCount)
+        .slice(0, 10);
+      
+      res.json({
+        monthlyData,
+        skillLevelTrends,
+        categoryData,
+        departmentData,
+        userSkillData,
+        certifiedUsers: topCertifiedUsers
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error generating advanced analytics", error });
     }
   });
 
