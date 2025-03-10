@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import { pool } from "./db";
 import {
   insertSkillSchema,
   insertSkillHistorySchema,
@@ -285,61 +286,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Running certification report for user:", req.user);
       
-      const skills = await storage.getAllSkills();
-      // Filter out skills where certification is 'true'/'false' or null/undefined
-      const certifiedSkills = skills.filter(skill => 
-        skill.certification && 
-        skill.certification !== 'true' && 
-        skill.certification !== 'false'
-      );
+      // Direct database query to get all certified skills with their related data
+      const result = await pool.query(`
+        SELECT s.*, u.email, u.username
+        FROM skills s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.certification IS NOT NULL 
+          AND s.certification != 'true' 
+          AND s.certification != 'false'
+      `);
       
-      console.log("Certification report - Total skills:", skills.length);
-      console.log("Certification report - Certified skills:", certifiedSkills.length);
+      const rawSkills = result.rows;
+      console.log("Certification report - Total skills in DB:", rawSkills.length);
       
-      if (certifiedSkills.length > 0) {
-        console.log("Certification report - Sample skill:", JSON.stringify(certifiedSkills[0], null, 2));
+      if (rawSkills.length > 0) {
+        console.log("Certification report - Sample skill from DB:", JSON.stringify(rawSkills[0], null, 2));
       }
       
       // Group by user
       const userMap = new Map();
       
-      for (const skill of certifiedSkills) {
+      // When using raw SQL queries, the result has snake_case field names
+      // and TypeScript doesn't know the shape, so we need to use "any" type
+      for (const skill of rawSkills as any[]) {
         try {
-          // Make sure userId is defined
-          if (!skill.userId) {
-            console.log(`Skill ${skill.id} has undefined userId:`, skill);
+          const userId = skill.user_id;
+          
+          if (!userId) {
+            console.log(`Skill ${skill.id} has undefined user_id:`, skill);
             continue;
           }
           
-          if (!userMap.has(skill.userId)) {
-            try {
-              const user = await storage.getUser(skill.userId);
-              if (user) {
-                const { password, ...userWithoutPassword } = user;
-                userMap.set(skill.userId, {
-                  user: userWithoutPassword,
-                  certifications: []
-                });
-              } else {
-                console.log(`User not found for userId: ${skill.userId}`);
-              }
-            } catch (error) {
-              console.error(`Error fetching user with ID ${skill.userId}:`, error);
-            }
+          if (!userMap.has(userId)) {
+            // Create user object from the joined query data
+            const userObj = {
+              id: userId,
+              email: skill.email,
+              username: skill.username
+            };
+            
+            userMap.set(userId, {
+              user: userObj,
+              certifications: []
+            });
           }
           
-          if (userMap.has(skill.userId)) {
-            // Format the dates consistently for the frontend
-            const certificationDate = skill.certificationDate ? new Date(skill.certificationDate) : null;
-            const expirationDate = skill.expirationDate ? new Date(skill.expirationDate) : null;
+          if (userMap.has(userId)) {
+            // Parse dates from the database fields
+            const certificationDate = skill.certification_date ? new Date(skill.certification_date) : null;
+            const expirationDate = skill.expiration_date ? new Date(skill.expiration_date) : null;
             
-            userMap.get(skill.userId).certifications.push({
+            userMap.get(userId).certifications.push({
               skillId: skill.id,
               name: skill.name,
               category: skill.category,
               level: skill.level,
               certification: skill.certification,
-              credlyLink: skill.credlyLink,
+              credlyLink: skill.credly_link,
               acquired: certificationDate,
               acquiredFormatted: certificationDate ? certificationDate.toISOString().split('T')[0] : null,
               expirationDate: expirationDate,
@@ -348,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
         } catch (err) {
-          console.error(`Error processing skill ${skill.id} for user ${skill.userId}:`, err);
+          console.error(`Error processing skill ${skill.id} for user ${skill.user_id}:`, err);
         }
       }
       
