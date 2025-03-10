@@ -242,21 +242,8 @@ export default function AdminDashboard() {
         cert.name,
         cert.category || 'N/A',
         cert.level || 'N/A',
-        (() => {
-          try {
-            return new Date(cert.acquired).toISOString().split('T')[0];
-          } catch (e) {
-            return 'Invalid date';
-          }
-        })(),
-        cert.expirationDate ? 
-          (() => {
-            try {
-              return new Date(cert.expirationDate).toISOString().split('T')[0];
-            } catch (e) {
-              return 'Invalid date';
-            }
-          })() : 'N/A'
+        cert.acquired ? format(new Date(cert.acquired), "yyyy-MM-dd") : 'N/A',
+        cert.expirationDate ? format(new Date(cert.expirationDate), "yyyy-MM-dd") : 'N/A'
       ])
     );
     
@@ -525,7 +512,7 @@ export default function AdminDashboard() {
                                   <SkillLevelBadge level={activity.level} />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {formatDate(activity.date, DATE_FORMATS.DISPLAY, "N/A")}
+                                  {activity.date ? format(new Date(activity.date), "MMM dd, yyyy") : "N/A"}
                                 </td>
                               </tr>
                             );
