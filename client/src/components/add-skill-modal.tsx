@@ -118,41 +118,44 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
       userId: user?.id,
       name: "",
       category: "",
-      level: "beginner",
+      level: "beginner", // Always set a default value
       certification: "",
       credlyLink: "",
       notes: "",
       changeNote: "",
-    }
+    },
+    mode: "onChange" // Validate on change for better UX
   });
   
   // Update form values when editing a skill
   // Form reset logic that ensures we never have undefined or null values
   useEffect(() => {
+    // Set a stable default value
+    const defaultValues = {
+      userId: user?.id,
+      name: "",
+      category: "",
+      level: "beginner", // Default value for new skills
+      certification: "",
+      credlyLink: "",
+      notes: "",
+      changeNote: "",
+    };
+
     if (skill && skillId) {
-      // When editing an existing skill
+      // When editing an existing skill, overwrite defaults with skill values
       form.reset({
-        userId: user?.id,
+        ...defaultValues,
         name: skill.name || "", // Ensure string values are never null/undefined
         category: skill.category || "",
-        level: skill.level || "beginner", // Always default to a valid skill level
+        level: skill.level as "beginner" | "intermediate" | "expert", // Type assertion for clarity
         certification: skill.certification || "",
         credlyLink: skill.credlyLink || "",
         notes: skill.notes || "",
-        changeNote: "",
       });
     } else {
       // When adding a new skill
-      form.reset({
-        userId: user?.id,
-        name: "",
-        category: "",
-        level: "beginner", // Default value for new skills
-        certification: "",
-        credlyLink: "",
-        notes: "",
-        changeNote: "",
-      });
+      form.reset(defaultValues);
     }
   }, [skill, skillId, isOpen, user, form]);
   
@@ -343,7 +346,8 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                       <FormLabel>Proficiency Level</FormLabel>
                       <Select 
                         onValueChange={field.onChange}
-                        value={field.value || "beginner"} // Ensure there's always a non-empty value
+                        defaultValue="beginner"
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
