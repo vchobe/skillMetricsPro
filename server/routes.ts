@@ -284,7 +284,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/certification-report", ensureAdmin, async (req, res) => {
     try {
       const skills = await storage.getAllSkills();
-      const certifiedSkills = skills.filter(skill => skill.certification);
+      // Filter out skills where certification is 'true'/'false' or null/undefined
+      const certifiedSkills = skills.filter(skill => 
+        skill.certification && 
+        skill.certification !== 'true' && 
+        skill.certification !== 'false'
+      );
       
       // Group by user
       const userMap = new Map();
@@ -420,7 +425,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const certificationUsers = await storage.getAllUsers();
       const certSkills = await storage.getAllSkills();
       const certSkillsByUser = certSkills
-        .filter(skill => skill.certification)
+        .filter(skill => 
+          skill.certification &&
+          skill.certification !== 'true' &&
+          skill.certification !== 'false'
+        )
         .reduce((acc, skill) => {
           acc[skill.userId] = (acc[skill.userId] || 0) + 1;
           return acc;

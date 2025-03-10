@@ -146,7 +146,11 @@ export default function AdminDashboard() {
   const stats = {
     totalUsers: users?.length || 0,
     totalSkills: skills?.length || 0,
-    totalCertifications: skills?.filter(skill => skill.certification).length || 0,
+    totalCertifications: skills?.filter(skill => 
+      skill.certification && 
+      skill.certification !== 'true' && 
+      skill.certification !== 'false'
+    ).length || 0,
     updatesThisMonth: skills?.filter(skill => {
       const now = new Date();
       const skillDate = new Date(skill.lastUpdated);
