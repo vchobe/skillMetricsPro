@@ -706,16 +706,22 @@ export default function AdminDashboard() {
                               id: history.id,
                               date: (() => {
                                 try {
-                                  return new Date(history.createdAt).getTime();
+                                  // Parse the date using proper ISO format
+                                  const date = new Date(history.createdAt);
+                                  return isNaN(date.getTime()) ? Date.now() : date.getTime();
                                 } catch (e) {
                                   return Date.now(); // Fallback to current time if invalid
                                 }
                               })(),
                               formattedDate: (() => {
                                 try {
-                                  return format(new Date(history.createdAt), "MMM dd");
+                                  // Parse the date using proper ISO format
+                                  const date = new Date(history.createdAt);
+                                  return isNaN(date.getTime()) ? 
+                                    format(new Date(), "MMM dd") : // Use current date as fallback but formatted
+                                    format(date, "MMM dd");
                                 } catch (e) {
-                                  return "Invalid date";
+                                  return format(new Date(), "MMM dd"); // Consistent fallback
                                 }
                               })(),
                               skill: history.skill_name,
@@ -817,9 +823,12 @@ export default function AdminDashboard() {
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {(() => {
                                   try {
-                                    return format(new Date(history.createdAt), "MMM dd, yyyy");
+                                    const date = new Date(history.createdAt);
+                                    return isNaN(date.getTime()) ? 
+                                      format(new Date(), "MMM dd, yyyy") : // Use current date as fallback
+                                      format(date, "MMM dd, yyyy");
                                   } catch (e) {
-                                    return "Invalid date";
+                                    return format(new Date(), "MMM dd, yyyy"); // Consistent fallback
                                   }
                                 })()}
                               </td>
@@ -1030,7 +1039,11 @@ export default function AdminDashboard() {
                         ) : users && users.length > 0 ? (
                           users.map((user) => {
                             // Count user skills
-                            const userSkillCount = skills?.filter(s => s.userId === user.id).length || 0;
+                            // In the database, userId is stored as snake_case (user_id)
+                            const userSkillCount = skills?.filter(s => 
+                              s.userId === user.id || 
+                              (s as any).user_id === user.id
+                            ).length || 0;
                             
                             return (
                               <tr key={user.id}>
@@ -1065,8 +1078,11 @@ export default function AdminDashboard() {
                                     size="sm" 
                                     className="text-indigo-600 hover:text-indigo-900"
                                     onClick={() => {
-                                      // Get the user's skills
-                                      const userSkills = skills?.filter(s => s.userId === user.id) || [];
+                                      // Get the user's skills, checking both camelCase and snake_case
+                                      const userSkills = skills?.filter(s => 
+                                        s.userId === user.id || 
+                                        (s as any).user_id === user.id
+                                      ) || [];
                                       
                                       // Show skills in a dialog or modal
                                       toast({
