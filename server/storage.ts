@@ -111,14 +111,19 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(insertUser: InsertUser & { username?: string, password?: string }): Promise<User> {
     try {
       console.log("Creating user with data:", insertUser);
       const result = await this.pool.query(
-        `INSERT INTO users (email, is_admin) 
-         VALUES ($1, $2) 
+        `INSERT INTO users (email, is_admin, username, password) 
+         VALUES ($1, $2, $3, $4) 
          RETURNING *`,
-        [insertUser.email, insertUser.isAdmin || false]
+        [
+          insertUser.email, 
+          insertUser.isAdmin || false,
+          insertUser.username || insertUser.email.split('@')[0], // Use username if provided, otherwise derive from email
+          insertUser.password || '' // Use empty string as default password
+        ]
       );
       console.log("User created:", result.rows[0]);
       return result.rows[0];

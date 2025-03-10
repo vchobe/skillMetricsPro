@@ -53,11 +53,18 @@ export function setupAuth(app: Express) {
       {
         // Using email as the username field
         usernameField: 'email',
-        passwordField: 'password' // We need a password field for passport-local
+        passwordField: 'password', // We need a password field for passport-local
+        // Don't check for presence of credentials in the strategy - we'll validate before calling
+        passReqToCallback: false
       },
       async (email, password, done) => {
         try {
           console.log(`Attempting login with email: ${email}`);
+          if (!email) {
+            console.log('No email provided');
+            return done(null, false, { message: 'Email is required' });
+          }
+          
           const user = await storage.getUserByEmail(email);
           if (!user) {
             console.log(`No user found with email: ${email}`);
@@ -139,8 +146,17 @@ export function setupAuth(app: Express) {
     try {
       console.log("POST /api/login - Body:", req.body);
       
-      // Validate login data
-      const parsedData = loginUserSchema.safeParse(req.body);
+      // Check if email exists in the request body
+      if (!req.body.email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Validate login data (simplified for email-only auth)
+      const parsedData = loginUserSchema.safeParse({
+        email: req.body.email,
+        password: req.body.password || '' // Default to empty string for Passport
+      });
+      
       if (!parsedData.success) {
         console.log("POST /api/login - Validation failed:", parsedData.error.format());
         return res.status(400).json({ message: "Invalid login data", errors: parsedData.error.format() });
