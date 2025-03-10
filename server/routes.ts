@@ -283,6 +283,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get certification report
   app.get("/api/admin/certification-report", ensureAdmin, async (req, res) => {
     try {
+      console.log("Running certification report for user:", req.user);
+      
       const skills = await storage.getAllSkills();
       // Filter out skills where certification is 'true'/'false' or null/undefined
       const certifiedSkills = skills.filter(skill => 
@@ -299,33 +301,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userMap = new Map();
       
       for (const skill of certifiedSkills) {
-        if (!userMap.has(skill.userId)) {
-          const user = await storage.getUser(skill.userId);
-          if (user) {
-            const { password, ...userWithoutPassword } = user;
-            userMap.set(skill.userId, {
-              user: userWithoutPassword,
-              certifications: []
+        try {
+          if (!userMap.has(skill.userId)) {
+            const user = await storage.getUser(skill.userId);
+            if (user) {
+              const { password, ...userWithoutPassword } = user;
+              
+              // Create firstName and lastName from username if they don't exist
+              const firstName = userWithoutPassword.username ? userWithoutPassword.username.split(' ')[0] : '';
+              const lastName = userWithoutPassword.username ? userWithoutPassword.username.split(' ').slice(1).join(' ') : '';
+              
+              userMap.set(skill.userId, {
+                user: {
+                  ...userWithoutPassword,
+                  firstName: firstName,
+                  lastName: lastName
+                },
+                certifications: []
+              });
+            }
+          }
+          
+          if (userMap.has(skill.userId)) {
+            userMap.get(skill.userId).certifications.push({
+              skillId: skill.id,
+              name: skill.name,
+              category: skill.category,
+              level: skill.level,
+              certification: skill.certification,
+              credlyLink: skill.credlyLink,
+              acquired: skill.certificationDate || skill.lastUpdated,
+              expirationDate: skill.expirationDate,
+              isExpired: skill.expirationDate ? new Date(skill.expirationDate) < new Date() : false
             });
           }
-        }
-        
-        if (userMap.has(skill.userId)) {
-          userMap.get(skill.userId).certifications.push({
-            skillId: skill.id,
-            name: skill.name,
-            category: skill.category,
-            level: skill.level,
-            certification: skill.certification,
-            credlyLink: skill.credlyLink,
-            acquired: skill.certificationDate || skill.lastUpdated,
-            expirationDate: skill.expirationDate,
-            isExpired: skill.expirationDate ? new Date(skill.expirationDate) < new Date() : false
-          });
+        } catch (err) {
+          console.error(`Error processing skill ${skill.id} for user ${skill.userId}:`, err);
         }
       }
       
       const report = Array.from(userMap.values());
+      console.log("Certification report ready. Report length:", report.length);
       res.json(report);
     } catch (error) {
       res.status(500).json({ message: "Error generating certification report", error });
@@ -417,9 +433,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userSkillData = await Promise.all(
         validSkillUserEntries.map(async ({ id, count }) => {
           const user = await storage.getUser(id);
+          // Create a display name from username or email
+          let displayName = `User ${id}`;
+          if (user) {
+            if (user.username) {
+              displayName = user.username;
+            } else if (user.email) {
+              displayName = user.email.split('@')[0];
+            }
+          }
           return {
             userId: id,
-            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || user.email || `User ${id}` : `User ${id}`,
+            name: displayName,
             skillCount: count
           };
         })
@@ -451,9 +476,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const certifiedUsers = await Promise.all(
         validUserEntries.map(async ({ id, count }) => {
           const user = await storage.getUser(id);
+          // Create a display name from username or email
+          let displayName = `User ${id}`;
+          if (user) {
+            if (user.username) {
+              displayName = user.username;
+            } else if (user.email) {
+              displayName = user.email.split('@')[0];
+            }
+          }
           return {
             userId: id,
-            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || user.email || `User ${id}` : `User ${id}`,
+            name: displayName,
             certCount: count
           };
         })

@@ -897,12 +897,12 @@ export default function AdminDashboard() {
                                     <div className="flex items-center">
                                       <Avatar className="h-8 w-8">
                                         <AvatarFallback className="bg-indigo-600 text-white">
-                                          {report.user.firstName?.[0] || ""}{report.user.lastName?.[0] || ""}
+                                          {report.user.username?.[0]?.toUpperCase() || "U"}
                                         </AvatarFallback>
                                       </Avatar>
                                       <div className="ml-4">
                                         <div className="text-sm font-medium text-gray-900">
-                                          {report.user.firstName} {report.user.lastName}
+                                          {report.user.username || report.user.email?.split('@')[0] || `User ${report.user.id}`}
                                         </div>
                                         <div className="text-sm text-gray-500">{report.user.email}</div>
                                       </div>
@@ -1051,12 +1051,12 @@ export default function AdminDashboard() {
                                   <div className="flex items-center">
                                     <Avatar className="h-10 w-10">
                                       <AvatarFallback className="bg-indigo-600 text-white">
-                                        {user.firstName?.[0] || ""}{user.lastName?.[0] || ""}
+                                        {user.username?.[0]?.toUpperCase() || "U"}
                                       </AvatarFallback>
                                     </Avatar>
                                     <div className="ml-4">
-                                      <div className="text-sm font-medium text-gray-900">{user.firstName || ""} {user.lastName || ""}</div>
-                                      <div className="text-xs text-gray-500">@{user.username}</div>
+                                      <div className="text-sm font-medium text-gray-900">{user.username || user.email?.split('@')[0] || `User ${user.id}`}</div>
+                                      <div className="text-xs text-gray-500">{user.email}</div>
                                     </div>
                                   </div>
                                 </td>
