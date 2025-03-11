@@ -45,7 +45,7 @@ export default function UsersPage() {
   
   // Fetch all users
   const { data: users, isLoading: isLoadingUsers } = useQuery<Omit<User, 'password'>[]>({
-    queryKey: ["/api/admin/users"],
+    queryKey: ["/api/users"],
   });
   
   // Handle sort toggle

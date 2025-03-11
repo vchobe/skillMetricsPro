@@ -293,6 +293,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // All users directory (accessible to all authenticated users)
+  app.get("/api/users", ensureAuth, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Remove passwords from response
+      const usersWithoutPasswords = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      res.json(usersWithoutPasswords);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching users", error });
+    }
+  });
+
   // Admin routes
   app.get("/api/admin/users", ensureAdmin, async (req, res) => {
     try {
