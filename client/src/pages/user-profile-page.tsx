@@ -71,15 +71,17 @@ export default function UserProfilePage() {
   });
   
   // Format skill history for activity feed
-  const activityItems = skillHistory ? skillHistory.map((history: any) => ({
-    id: history.id,
-    type: history.previousLevel ? "update" : "add",
-    skillId: history.skillId,
-    previousLevel: history.previousLevel,
-    newLevel: history.newLevel,
-    date: history.createdAt,
-    note: history.changeNote
-  })) : [];
+  const activityItems = skillHistory && Array.isArray(skillHistory) 
+    ? skillHistory.map((history: any) => ({
+        id: history.id,
+        type: history.previousLevel ? "update" : "add",
+        skillId: history.skillId,
+        previousLevel: history.previousLevel,
+        newLevel: history.newLevel,
+        date: history.createdAt,
+        note: history.changeNote
+      })) 
+    : [];
   
   // Export user data (admin only)
   const handleExport = async () => {
