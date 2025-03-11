@@ -46,6 +46,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching profile", error });
     }
   });
+  
+  // Get a specific user's profile by ID (for viewing other users)
+  app.get("/api/users/:userId", ensureAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Remove sensitive information - only return basic profile data
+      const { password, ...userBasicInfo } = user;
+      res.json(userBasicInfo);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching user profile", error });
+    }
+  });
+  
+  // Get a specific user's skills by userId
+  app.get("/api/users/:userId/skills", ensureAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get skills for the specified user
+      const skills = await storage.getUserSkills(userId);
+      res.json(skills);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching user skills", error });
+    }
+  });
 
   app.patch("/api/user/profile", ensureAuth, async (req, res) => {
     try {
@@ -278,6 +324,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(histories);
     } catch (error) {
       res.status(500).json({ message: "Error fetching skill histories", error });
+    }
+  });
+  
+  // Export all data for admins (for data analysis and reporting)
+  app.get("/api/admin/export-data", ensureAdmin, async (req, res) => {
+    try {
+      // Get all data
+      const users = await storage.getAllUsers();
+      const skills = await storage.getAllSkills();
+      const skillHistories = await storage.getAllSkillHistories();
+      
+      // Remove sensitive information from users
+      const usersWithoutPasswords = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      
+      // Format data for export
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        exportedBy: {
+          id: req.user!.id,
+          username: req.user!.username,
+          email: req.user!.email
+        },
+        data: {
+          users: usersWithoutPasswords,
+          skills,
+          skillHistories
+        }
+      };
+      
+      res.json(exportData);
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      res.status(500).json({ message: "Error exporting data", error });
     }
   });
   
