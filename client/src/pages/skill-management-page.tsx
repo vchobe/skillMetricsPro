@@ -848,7 +848,7 @@ export default function SkillManagementPage() {
                                       <Input 
                                         placeholder="Q2 Expert React Target" 
                                         {...field} 
-                                        disabled={!!targetFormData.id} 
+                                        readOnly={!!targetFormData.id} 
                                       />
                                     </FormControl>
                                     <FormDescription>
@@ -893,7 +893,7 @@ export default function SkillManagementPage() {
                                                       }
                                                     }
                                                   }}
-                                                  disabled={!!targetFormData.id}
+                                                  readOnly={!!targetFormData.id}
                                                 />
                                                 <label 
                                                   htmlFor={`skill-${skill.id}`}
@@ -953,7 +953,7 @@ export default function SkillManagementPage() {
                                         type="date" 
                                         value={value || ''}
                                         onChange={onChange}
-                                        disabled={!!targetFormData.id}
+                                        readOnly={!!targetFormData.id}
                                         {...fieldProps}
                                       />
                                     </FormControl>
@@ -981,7 +981,7 @@ export default function SkillManagementPage() {
                                           const newValue = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
                                           onChange(newValue);
                                         }}
-                                        disabled={!!targetFormData.id}
+                                        readOnly={!!targetFormData.id}
                                         {...fieldProps}
                                       />
                                     </FormControl>
@@ -1003,7 +1003,7 @@ export default function SkillManagementPage() {
                                       <Textarea 
                                         placeholder="Rationale for this skill target"
                                         {...field} 
-                                        disabled={!!targetFormData.id}
+                                        readOnly={!!targetFormData.id}
                                       />
                                     </FormControl>
                                     <FormMessage />
