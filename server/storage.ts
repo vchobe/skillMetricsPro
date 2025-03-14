@@ -81,11 +81,28 @@ export class PostgresStorage implements IStorage {
     });
   }
 
+  // Helper function to convert snake_case to camelCase
+  private snakeToCamel(obj: any): any {
+    if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
+    
+    if (Array.isArray(obj)) {
+      return obj.map(v => this.snakeToCamel(v));
+    }
+    
+    return Object.keys(obj).reduce((result, key) => {
+      // Convert snake_case to camelCase
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      result[camelKey] = this.snakeToCamel(obj[key]);
+      return result;
+    }, {} as any);
+  }
+
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     try {
       const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-      return result.rows[0] || undefined;
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error getting user:", error);
       throw error;
@@ -95,7 +112,8 @@ export class PostgresStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
       const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-      return result.rows[0] || undefined;
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error getting user by username:", error);
       throw error;
@@ -105,7 +123,8 @@ export class PostgresStorage implements IStorage {
   async getUserByEmail(email: string): Promise<User | undefined> {
     try {
       const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-      return result.rows[0] || undefined;
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error getting user by email:", error);
       throw error;
@@ -127,7 +146,7 @@ export class PostgresStorage implements IStorage {
         ]
       );
       console.log("User created:", result.rows[0]);
-      return result.rows[0];
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating user:", error);
       throw error;
@@ -164,7 +183,7 @@ export class PostgresStorage implements IStorage {
         throw new Error("User not found");
       }
       
-      return result.rows[0];
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error updating user:", error);
       throw error;
@@ -190,7 +209,7 @@ export class PostgresStorage implements IStorage {
   async getAllUsers(): Promise<User[]> {
     try {
       const result = await pool.query('SELECT * FROM users ORDER BY id');
-      return result.rows;
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting all users:", error);
       throw error;
@@ -204,7 +223,7 @@ export class PostgresStorage implements IStorage {
         'SELECT * FROM skills WHERE user_id = $1 ORDER BY last_updated DESC',
         [userId]
       );
-      return result.rows;
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting user skills:", error);
       throw error;
@@ -214,7 +233,8 @@ export class PostgresStorage implements IStorage {
   async getSkill(id: number): Promise<Skill | undefined> {
     try {
       const result = await pool.query('SELECT * FROM skills WHERE id = $1', [id]);
-      return result.rows[0] || undefined;
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error getting skill:", error);
       throw error;
@@ -237,7 +257,7 @@ export class PostgresStorage implements IStorage {
           skill.notes || ''
         ]
       );
-      return result.rows[0];
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating skill:", error);
       throw error;
@@ -275,7 +295,7 @@ export class PostgresStorage implements IStorage {
         throw new Error("Skill not found");
       }
       
-      return result.rows[0];
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error updating skill:", error);
       throw error;
@@ -298,7 +318,7 @@ export class PostgresStorage implements IStorage {
   async getAllSkills(): Promise<Skill[]> {
     try {
       const result = await pool.query('SELECT * FROM skills ORDER BY last_updated DESC');
-      return result.rows;
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting all skills:", error);
       throw error;
@@ -319,7 +339,7 @@ export class PostgresStorage implements IStorage {
          ORDER BY last_updated DESC`,
         [searchQuery]
       );
-      return result.rows;
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error searching skills:", error);
       throw error;
@@ -333,7 +353,7 @@ export class PostgresStorage implements IStorage {
         'SELECT * FROM skill_histories WHERE skill_id = $1 ORDER BY created_at DESC',
         [skillId]
       );
-      return result.rows;
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting skill history:", error);
       throw error;
@@ -346,7 +366,7 @@ export class PostgresStorage implements IStorage {
         'SELECT * FROM skill_histories WHERE user_id = $1 ORDER BY created_at DESC',
         [userId]
       );
-      return result.rows;
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting user skill history:", error);
       throw error;
@@ -362,7 +382,7 @@ export class PostgresStorage implements IStorage {
         'JOIN users u ON sh.user_id = u.id ' +
         'ORDER BY sh.created_at DESC'
       );
-      return result.rows;
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting all skill histories:", error);
       throw error;
@@ -383,7 +403,7 @@ export class PostgresStorage implements IStorage {
           history.changeNote || ''
         ]
       );
-      return result.rows[0];
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating skill history:", error);
       throw error;
@@ -397,7 +417,7 @@ export class PostgresStorage implements IStorage {
         'SELECT * FROM profile_histories WHERE user_id = $1 ORDER BY created_at DESC',
         [userId]
       );
-      return result.rows;
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting user profile history:", error);
       throw error;
@@ -417,7 +437,7 @@ export class PostgresStorage implements IStorage {
           history.newValue
         ]
       );
-      return result.rows[0];
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating profile history:", error);
       throw error;
@@ -431,7 +451,7 @@ export class PostgresStorage implements IStorage {
         'SELECT e.*, u.email as endorser_email FROM endorsements e JOIN users u ON e.endorser_id = u.id WHERE skill_id = $1 ORDER BY created_at DESC',
         [skillId]
       );
-      return result.rows;
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting skill endorsements:", error);
       throw error;
@@ -444,7 +464,7 @@ export class PostgresStorage implements IStorage {
         'SELECT e.*, s.name as skill_name, u.email as endorser_email FROM endorsements e JOIN skills s ON e.skill_id = s.id JOIN users u ON e.endorser_id = u.id WHERE e.endorsee_id = $1 ORDER BY e.created_at DESC',
         [userId]
       );
-      return result.rows;
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting user endorsements:", error);
       throw error;
@@ -474,7 +494,7 @@ export class PostgresStorage implements IStorage {
           [endorsement.skillId]
         );
         
-        return result.rows[0];
+        return this.snakeToCamel(result.rows[0]);
       }
       
       // Create new endorsement
@@ -496,7 +516,7 @@ export class PostgresStorage implements IStorage {
         [endorsement.skillId]
       );
       
-      return result.rows[0];
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating endorsement:", error);
       throw error;
