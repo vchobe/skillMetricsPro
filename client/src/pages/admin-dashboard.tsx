@@ -565,12 +565,12 @@ export default function AdminDashboard() {
                     <div className="h-[420px] overflow-visible">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart 
-                          margin={{ top: 10, right: 10, bottom: 90, left: 10 }}
+                          margin={{ top: 10, right: 10, bottom: 100, left: 10 }}
                         >
                           <Pie
                             data={skillNameData}
                             cx="50%"
-                            cy="45%"
+                            cy="50%"
                             labelLine={false}
                             outerRadius={100}
                             fill="#8884d8"
