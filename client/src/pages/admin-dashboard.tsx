@@ -88,6 +88,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from "@/components/ui/alert-circle";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -518,6 +519,9 @@ export default function AdminDashboard() {
   
   return (
     <div className="min-h-screen flex">
+      {/* Hidden links for CSV exports */}
+      <a ref={csvExportRef} className="hidden"></a>
+      <a ref={skillGapExportRef} className="hidden"></a>
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/admin" />
       
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
