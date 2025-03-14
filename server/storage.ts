@@ -803,14 +803,15 @@ export class PostgresStorage implements IStorage {
   async createSkillTarget(target: InsertSkillTarget): Promise<SkillTarget> {
     try {
       const result = await pool.query(
-        `INSERT INTO skill_targets (name, description, target_level, target_date) 
-         VALUES ($1, $2, $3, $4) 
+        `INSERT INTO skill_targets (name, description, target_level, target_date, target_number) 
+         VALUES ($1, $2, $3, $4, $5) 
          RETURNING *`,
         [
           target.name,
           target.description || '',
           target.targetLevel,
-          target.targetDate || null
+          target.targetDate || null,
+          target.targetNumber || null
         ]
       );
       return this.snakeToCamel(result.rows[0]);
