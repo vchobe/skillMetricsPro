@@ -658,7 +658,7 @@ export default function AdminDashboard() {
                       <div className="text-sm">
                         <Button 
                           variant="link" 
-                          onClick={() => setLocation("/admin-dashboard?tab=certifications")}
+                          onClick={() => setLocation("/admin?tab=certifications")}
                           className="p-0 h-auto font-medium text-green-600 hover:text-green-500"
                         >
                           View all
@@ -792,7 +792,7 @@ export default function AdminDashboard() {
                     <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                       <Button 
                         variant="link" 
-                        onClick={() => setLocation("/admin-dashboard?tab=skill-history")}
+                        onClick={() => setLocation("/admin?tab=skill-history")}
                         className="p-0 h-auto font-medium text-indigo-600 hover:text-indigo-900"
                       >
                         View all updates
