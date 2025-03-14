@@ -131,12 +131,15 @@ export default function AdminDashboard() {
     }
   }, [user, setLocation]);
   
-  // Check for URL tab parameter
+  // Check for URL tab parameter and set active tab
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab === "users" || tab === "skill-history" || tab === "certifications") {
+    if (tab === "users" || tab === "skill-history" || tab === "certifications" || tab === "dashboard") {
       setActiveTab(tab);
+    } else {
+      // Default to dashboard if no valid tab is specified
+      setActiveTab("dashboard");
     }
   }, [location]);
   
@@ -534,12 +537,17 @@ export default function AdminDashboard() {
             <p className="opacity-90">Manage skills data and user certifications across the organization.</p>
           </div>
           
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs 
+            value={activeTab} 
+            onValueChange={(value) => {
+              // Update location when tab value changes through clicking tabs
+              setLocation(`/admin-dashboard?tab=${value}`);
+            }}
+          >
             <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger 
                 value="dashboard" 
                 className="flex items-center gap-2"
-                onClick={() => setLocation("/admin-dashboard?tab=dashboard")}
               >
                 <BarChart4 className="h-4 w-4" />
                 <span>Dashboard</span>
@@ -547,7 +555,6 @@ export default function AdminDashboard() {
               <TabsTrigger 
                 value="skill-history" 
                 className="flex items-center gap-2"
-                onClick={() => setLocation("/admin-dashboard?tab=skill-history")}
               >
                 <History className="h-4 w-4" />
                 <span>Skill History</span>
@@ -555,7 +562,6 @@ export default function AdminDashboard() {
               <TabsTrigger 
                 value="certifications" 
                 className="flex items-center gap-2"
-                onClick={() => setLocation("/admin-dashboard?tab=certifications")}
               >
                 <Award className="h-4 w-4" />
                 <span>Certifications</span>
@@ -563,7 +569,6 @@ export default function AdminDashboard() {
               <TabsTrigger 
                 value="users" 
                 className="flex items-center gap-2"
-                onClick={() => setLocation("/admin-dashboard?tab=users")}
               >
                 <Users className="h-4 w-4" />
                 <span>User Management</span>
