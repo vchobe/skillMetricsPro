@@ -11,6 +11,22 @@ import {
   insertNotificationSchema
 } from "@shared/schema";
 
+// Helper function to check if a user is an admin
+function isUserAdmin(user: any): boolean {
+  if (!user) return false;
+  
+  const adminValue = user.is_admin;
+  
+  // Handle different formats PostgreSQL might return
+  if (adminValue === true) return true;
+  if (typeof adminValue === 'string') {
+    const lowerValue = adminValue.toLowerCase();
+    return lowerValue === 't' || lowerValue === 'true';
+  }
+  
+  return false;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
@@ -30,9 +46,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Middleware to ensure user is admin
   const ensureAdmin = (req: Request, res: Response, next: Function) => {
-    if (!req.isAuthenticated() || !req.user?.is_admin) {
+    if (!req.isAuthenticated()) {
+      console.log("Admin check failed - user not authenticated");
       return res.status(403).json({ message: "Forbidden" });
     }
+    
+    if (!isUserAdmin(req.user)) {
+      console.log("Admin check failed. User:", req.user);
+      console.log("is_admin value:", req.user?.is_admin, "type:", typeof req.user?.is_admin);
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    
+    console.log("Admin check passed for user:", req.user?.email || req.user?.username);
     next();
   };
 
@@ -138,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Admin status from database (type):", typeof dbValue);
       console.log("Admin status converted to boolean:", isAdmin);
       console.log("User object from storage:", user);
-      console.log("User object isAdmin property:", user.isAdmin);
+      console.log("User object is_admin property:", user.is_admin);
       
       // Track changes for history
       for (const [key, value] of Object.entries(req.body)) {
@@ -241,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !req.user!.is_admin) {
+      if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
@@ -261,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !req.user!.is_admin) {
+      if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
@@ -296,7 +321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !req.user!.is_admin) {
+      if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
@@ -317,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !req.user!.is_admin) {
+      if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
