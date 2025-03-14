@@ -561,18 +561,18 @@ export default function AdminDashboard() {
                       </Select>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="h-[380px]">
+                  <CardContent className="pb-8">
+                    <div className="h-[420px] overflow-visible">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart 
-                          margin={{ top: 20, right: 20, bottom: 60, left: 20 }}
+                          margin={{ top: 10, right: 10, bottom: 90, left: 10 }}
                         >
                           <Pie
                             data={skillNameData}
                             cx="50%"
-                            cy="40%"
+                            cy="35%"
                             labelLine={false}
-                            outerRadius={110}
+                            outerRadius={100}
                             fill="#8884d8"
                             dataKey="value"
                             nameKey="name"
@@ -591,7 +591,13 @@ export default function AdminDashboard() {
                             layout="horizontal" 
                             verticalAlign="bottom" 
                             align="center"
-                            wrapperStyle={{ paddingTop: 30 }}
+                            wrapperStyle={{ 
+                              paddingTop: 50,
+                              width: '100%',
+                              bottom: 5,
+                              left: 0,
+                              right: 0
+                            }}
                           />
                         </PieChart>
                       </ResponsiveContainer>
