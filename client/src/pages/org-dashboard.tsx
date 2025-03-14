@@ -256,7 +256,7 @@ export default function OrgDashboard() {
     }));
   };
   
-  const isLoading = isLoadingUsers || isLoadingSkills;
+  const isLoading = isLoadingUsers || isLoadingSkills || isLoadingHistory;
 
   return (
     <div className="min-h-screen flex">
@@ -682,6 +682,51 @@ export default function OrgDashboard() {
                           </TableBody>
                         </Table>
                       </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                {/* Activity Tab */}
+                <TabsContent value="activity">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Organization Activity</CardTitle>
+                      <CardDescription>Recent skill updates and certifications across the organization</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {isLoadingHistory ? (
+                        <div className="flex justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : !skillHistoryData || skillHistoryData.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No recent activity.
+                        </div>
+                      ) : (
+                        <div>
+                          {/* Create formatted activity items for the feed */}
+                          {(() => {
+                            const activityItems: ActivityItem[] = skillHistoryData.map((history: any) => ({
+                              id: history.id,
+                              type: history.previousLevel || history.previous_level ? "update" : "add",
+                              skillId: history.skillId || history.skill_id,
+                              userId: history.userId || history.user_id,
+                              previousLevel: history.previousLevel || history.previous_level,
+                              newLevel: history.newLevel || history.new_level,
+                              date: history.createdAt || history.created_at,
+                              note: history.changeNote || history.change_note
+                            }));
+                            
+                            return (
+                              <ActivityFeed 
+                                activities={activityItems} 
+                                skills={allSkills || []} 
+                                showAll={true} 
+                              />
+                            );
+                          })()}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>

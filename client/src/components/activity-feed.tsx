@@ -30,9 +30,11 @@ interface ActivityFeedProps {
   activities: Activity[];
   skills: Skill[];
   showAll: boolean;
+  isPersonal?: boolean;
+  users?: any[];
 }
 
-export default function ActivityFeed({ activities, skills, showAll }: ActivityFeedProps) {
+export default function ActivityFeed({ activities, skills, showAll, isPersonal = true, users = [] }: ActivityFeedProps) {
   // Get skill details by ID
   const getSkill = (skillId: number) => {
     return skills.find(skill => skill.id === skillId);
@@ -123,31 +125,48 @@ export default function ActivityFeed({ activities, skills, showAll }: ActivityFe
                 <div className="flex-1 min-w-0">
                   <div>
                     <p className="text-sm text-gray-500">
-                      {activity.type === "update" ? (
-                        <>
-                          You updated {" "}
-                          <Link href={`/skills?edit=${activity.skillId}`} className="font-medium text-gray-900">
-                            {skill ? skill.name : `Skill #${activity.skillId}`}
-                          </Link> from{" "}
-                          <SkillLevelBadge 
-                            level={activity.previousLevel || "unknown"} 
-                            className="ml-1 mr-1"
-                          /> to{" "}
-                          <SkillLevelBadge 
-                            level={activity.newLevel} 
-                            className="ml-1"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          You added a new skill{" "}
-                          <Link href={`/skills?edit=${activity.skillId}`} className="font-medium text-gray-900">
-                            {skill ? skill.name : `Skill #${activity.skillId}`}
-                          </Link>{" "}
-                          with level{" "}
-                          <SkillLevelBadge level={activity.newLevel} className="ml-1" />
-                        </>
-                      )}
+                      {(() => {
+                        // Get user info if available
+                        const user = !isPersonal && users.length > 0 
+                          ? users.find(u => u.id === activity.userId) 
+                          : null;
+                        
+                        const userName = user 
+                          ? (user.username || user.email?.split('@')[0] || 'User') 
+                          : 'You';
+                        
+                        const isYou = isPersonal || !user;
+                        
+                        if (activity.type === "update") {
+                          return (
+                            <>
+                              {userName} updated {" "}
+                              <Link href={`/skills?edit=${activity.skillId}`} className="font-medium text-gray-900">
+                                {skill ? skill.name : `Skill #${activity.skillId}`}
+                              </Link> from{" "}
+                              <SkillLevelBadge 
+                                level={activity.previousLevel || "unknown"} 
+                                className="ml-1 mr-1"
+                              /> to{" "}
+                              <SkillLevelBadge 
+                                level={activity.newLevel} 
+                                className="ml-1"
+                              />
+                            </>
+                          );
+                        } else {
+                          return (
+                            <>
+                              {userName} added a new skill{" "}
+                              <Link href={`/skills?edit=${activity.skillId}`} className="font-medium text-gray-900">
+                                {skill ? skill.name : `Skill #${activity.skillId}`}
+                              </Link>{" "}
+                              with level{" "}
+                              <SkillLevelBadge level={activity.newLevel} className="ml-1" />
+                            </>
+                          );
+                        }
+                      })()}
                     </p>
                     
                     {activity.note && (
