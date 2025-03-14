@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { User } from "@shared/schema";
+import { User, Skill } from "@shared/schema";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import { Input } from "@/components/ui/input";
@@ -58,11 +58,33 @@ export default function UsersPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [roleFilter, setRoleFilter] = useState<string | undefined>();
   const [dateFilter, setDateFilter] = useState<string | undefined>();
+  const [skillLevelFilter, setSkillLevelFilter] = useState<string | undefined>();
+  const [certificationFilter, setCertificationFilter] = useState<boolean | undefined>();
+  const [skillCategoryFilter, setSkillCategoryFilter] = useState<string | undefined>();
+  const [skillCategories, setSkillCategories] = useState<string[]>([]);
   
   // Fetch all users
   const { data: users, isLoading: isLoadingUsers } = useQuery<Omit<User, 'password'>[]>({
     queryKey: ["/api/users"],
   });
+  
+  // Fetch all skills to get user skill data and categories
+  const { data: allSkills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
+    queryKey: ["/api/admin/skills"],
+  });
+  
+  // Extract all unique skill categories
+  useEffect(() => {
+    if (allSkills) {
+      const categoriesSet = new Set<string>();
+      allSkills.forEach(skill => {
+        if (skill.category) {
+          categoriesSet.add(skill.category);
+        }
+      });
+      setSkillCategories(Array.from(categoriesSet).sort());
+    }
+  }, [allSkills]);
   
   // Handle sort toggle
   const handleSort = (field: SortField) => {
@@ -74,8 +96,46 @@ export default function UsersPage() {
     }
   };
   
+  // Process user skills data to add skill-related properties to the users
+  const usersWithSkillData = useMemo(() => {
+    if (!users || !allSkills) return [];
+
+    return users.map(user => {
+      // Find all skills for this user
+      const userSkills = allSkills.filter(skill => skill.userId === user.id);
+      
+      // Count skills by level
+      const expertSkills = userSkills.filter(s => s.level === 'expert').length;
+      const intermediateSkills = userSkills.filter(s => s.level === 'intermediate').length;
+      const beginnerSkills = userSkills.filter(s => s.level === 'beginner').length;
+      
+      // Check if user has certifications
+      const hasCertifications = userSkills.some(s => 
+        s.certification && 
+        s.certification !== 'true' &&
+        s.certification !== 'false'
+      );
+      
+      // Get user's skill categories
+      const userCategories = userSkills
+        .map(s => s.category)
+        .filter((category): category is string => !!category);
+      
+      return {
+        ...user,
+        userSkills,
+        expertSkills,
+        intermediateSkills,
+        beginnerSkills,
+        totalSkills: userSkills.length,
+        hasCertifications,
+        skillCategories: userCategories
+      };
+    });
+  }, [users, allSkills]);
+
   // Filter and sort users
-  const filteredUsers = users ? users.filter(user => {
+  const filteredUsers = usersWithSkillData ? usersWithSkillData.filter(user => {
     // Search filter
     const searchTerms = searchQuery.toLowerCase().split(" ");
     const userString = `${user.username || ""} ${user.email} ${user.role || ""} ${user.location || ""}`.toLowerCase();
@@ -95,7 +155,23 @@ export default function UsersPage() {
       (dateFilter === "recent" && userCreatedAt >= thirtyDaysAgo) ||
       (dateFilter === "older" && userCreatedAt < thirtyDaysAgo);
     
-    return matchesSearch && matchesRole && matchesDate;
+    // Skill level filter
+    const matchesSkillLevel = !skillLevelFilter || (
+      skillLevelFilter === 'expert' && user.expertSkills > 0 ||
+      skillLevelFilter === 'intermediate' && user.intermediateSkills > 0 ||
+      skillLevelFilter === 'beginner' && user.beginnerSkills > 0
+    );
+    
+    // Certification filter
+    const matchesCertification = !certificationFilter || 
+      (certificationFilter === true && user.hasCertifications);
+    
+    // Category filter
+    const matchesCategory = !skillCategoryFilter || 
+      user.skillCategories?.includes(skillCategoryFilter);
+    
+    return matchesSearch && matchesRole && matchesDate && 
+           matchesSkillLevel && matchesCertification && matchesCategory;
   }) : [];
   
   // Sort users
