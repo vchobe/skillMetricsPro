@@ -562,15 +562,17 @@ export default function AdminDashboard() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-[300px]">
+                    <div className="h-[380px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
+                        <PieChart 
+                          margin={{ top: 20, right: 20, bottom: 60, left: 20 }}
+                        >
                           <Pie
                             data={skillNameData}
                             cx="50%"
-                            cy="50%"
+                            cy="40%"
                             labelLine={false}
-                            outerRadius={120}
+                            outerRadius={110}
                             fill="#8884d8"
                             dataKey="value"
                             nameKey="name"
@@ -585,7 +587,12 @@ export default function AdminDashboard() {
                             ))}
                           </Pie>
                           <Tooltip formatter={(value, name) => [`${value} users`, name]} />
-                          <Legend />
+                          <Legend 
+                            layout="horizontal" 
+                            verticalAlign="bottom" 
+                            align="center"
+                            wrapperStyle={{ paddingTop: 30 }}
+                          />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
