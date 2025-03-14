@@ -31,8 +31,24 @@ import {
   FileText,
   BarChart,
   LineChart,
-  Activity
+  Activity,
+  X,
+  Clock,
+  Bookmark,
+  BadgeCheck,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Define Activity interface for proper typing
 interface ActivityItem {
@@ -53,6 +69,8 @@ type Filters = {
   skillLevel?: string;
   category?: string;
   hasCertification?: boolean;
+  dateJoined?: string;
+  skillCount?: string;
 };
 
 // Type for user stats
@@ -146,22 +164,47 @@ export default function OrgDashboard() {
     certifications: 0
   });
   
-  // Filter users based on search query
+  // Filter users based on search query and filters
   const filteredUsers = userStats.filter(user => {
     // Search filter
     const searchTerms = searchQuery.toLowerCase().split(" ");
     const userString = `${user.username} ${user.email} ${user.role || ''}`.toLowerCase();
     const matchesSearch = searchTerms.every(term => userString.includes(term));
     
-    // Other filters
+    // Skill level filter
     const matchesSkillLevel = !filters.skillLevel || (
       filters.skillLevel === 'expert' ? user.expertSkills > 0 :
       filters.skillLevel === 'intermediate' ? user.intermediateSkills > 0 :
       filters.skillLevel === 'beginner' ? user.beginnerSkills > 0 : true
     );
+    
+    // Certification filter
     const matchesCertification = !filters.hasCertification || user.certifications > 0;
     
-    return matchesSearch && matchesSkillLevel && matchesCertification;
+    // Date joined filter
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    
+    const userCreatedAt = new Date(user.createdAt || 0);
+    const matchesDateJoined = !filters.dateJoined || (
+      filters.dateJoined === 'recent' ? userCreatedAt >= thirtyDaysAgo :
+      filters.dateJoined === 'quarter' ? (userCreatedAt >= ninetyDaysAgo && userCreatedAt < thirtyDaysAgo) :
+      filters.dateJoined === 'older' ? userCreatedAt < ninetyDaysAgo : true
+    );
+    
+    // Skill count filter
+    const matchesSkillCount = !filters.skillCount || (
+      filters.skillCount === 'high' ? user.totalSkills >= 5 :
+      filters.skillCount === 'medium' ? (user.totalSkills >= 2 && user.totalSkills < 5) :
+      filters.skillCount === 'low' ? user.totalSkills < 2 : true
+    );
+    
+    // Category filter is handled at the skill level, not implemented here
+    
+    return matchesSearch && matchesSkillLevel && matchesCertification && 
+           matchesDateJoined && matchesSkillCount;
   });
   
   // Sort users
@@ -558,40 +601,230 @@ export default function OrgDashboard() {
                     <CardContent>
                       {/* Search and filter */}
                       <div className="mb-6">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                          <Input 
-                            placeholder="Search users by name, email, or role..." 
-                            className="pl-10"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                          />
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="relative flex-grow">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input 
+                              placeholder="Search users by name, email, or role..." 
+                              className="pl-10"
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                          </div>
+                          
+                          {/* Advanced Filters Dropdown */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="flex items-center gap-1 whitespace-nowrap">
+                                <Filter className="h-4 w-4" />
+                                <span>Filters</span>
+                                {(filters.skillLevel || filters.hasCertification || filters.dateJoined || filters.skillCount || filters.category) && (
+                                  <span className="ml-1 bg-primary text-primary-foreground rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                                    {Object.values(filters).filter(Boolean).length}
+                                  </span>
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuLabel>Filter Employees</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              
+                              {/* Skill Level Filter */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <span className="flex items-center">
+                                    <Trophy className="mr-2 h-4 w-4" />
+                                    <span>Skill Level</span>
+                                  </span>
+                                  {filters.skillLevel && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="w-48">
+                                  <DropdownMenuCheckboxItem
+                                    checked={filters.skillLevel === "expert"}
+                                    onCheckedChange={() => applyFilter('skillLevel', filters.skillLevel === "expert" ? undefined : "expert")}
+                                  >
+                                    Expert Level
+                                  </DropdownMenuCheckboxItem>
+                                  <DropdownMenuCheckboxItem
+                                    checked={filters.skillLevel === "intermediate"}
+                                    onCheckedChange={() => applyFilter('skillLevel', filters.skillLevel === "intermediate" ? undefined : "intermediate")}
+                                  >
+                                    Intermediate Level
+                                  </DropdownMenuCheckboxItem>
+                                  <DropdownMenuCheckboxItem
+                                    checked={filters.skillLevel === "beginner"}
+                                    onCheckedChange={() => applyFilter('skillLevel', filters.skillLevel === "beginner" ? undefined : "beginner")}
+                                  >
+                                    Beginner Level
+                                  </DropdownMenuCheckboxItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => applyFilter('skillLevel', undefined)}>
+                                    Clear Filter
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              
+                              {/* Date Joined Filter */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <span className="flex items-center">
+                                    <Clock className="mr-2 h-4 w-4" />
+                                    <span>Date Joined</span>
+                                  </span>
+                                  {filters.dateJoined && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="w-48">
+                                  <DropdownMenuCheckboxItem
+                                    checked={filters.dateJoined === "recent"}
+                                    onCheckedChange={() => applyFilter('dateJoined', filters.dateJoined === "recent" ? undefined : "recent")}
+                                  >
+                                    Last 30 days
+                                  </DropdownMenuCheckboxItem>
+                                  <DropdownMenuCheckboxItem
+                                    checked={filters.dateJoined === "quarter"}
+                                    onCheckedChange={() => applyFilter('dateJoined', filters.dateJoined === "quarter" ? undefined : "quarter")}
+                                  >
+                                    1-3 months ago
+                                  </DropdownMenuCheckboxItem>
+                                  <DropdownMenuCheckboxItem
+                                    checked={filters.dateJoined === "older"}
+                                    onCheckedChange={() => applyFilter('dateJoined', filters.dateJoined === "older" ? undefined : "older")}
+                                  >
+                                    Older than 3 months
+                                  </DropdownMenuCheckboxItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => applyFilter('dateJoined', undefined)}>
+                                    Clear Filter
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              
+                              {/* Skill Count Filter */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <span className="flex items-center">
+                                    <Bookmark className="mr-2 h-4 w-4" />
+                                    <span>Skill Count</span>
+                                  </span>
+                                  {filters.skillCount && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="w-48">
+                                  <DropdownMenuCheckboxItem
+                                    checked={filters.skillCount === "high"}
+                                    onCheckedChange={() => applyFilter('skillCount', filters.skillCount === "high" ? undefined : "high")}
+                                  >
+                                    High (5+ skills)
+                                  </DropdownMenuCheckboxItem>
+                                  <DropdownMenuCheckboxItem
+                                    checked={filters.skillCount === "medium"}
+                                    onCheckedChange={() => applyFilter('skillCount', filters.skillCount === "medium" ? undefined : "medium")}
+                                  >
+                                    Medium (2-4 skills)
+                                  </DropdownMenuCheckboxItem>
+                                  <DropdownMenuCheckboxItem
+                                    checked={filters.skillCount === "low"}
+                                    onCheckedChange={() => applyFilter('skillCount', filters.skillCount === "low" ? undefined : "low")}
+                                  >
+                                    Low (0-1 skills)
+                                  </DropdownMenuCheckboxItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => applyFilter('skillCount', undefined)}>
+                                    Clear Filter
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              
+                              {/* Certification Filter */}
+                              <DropdownMenuCheckboxItem
+                                checked={!!filters.hasCertification}
+                                onCheckedChange={() => applyFilter('hasCertification', !filters.hasCertification)}
+                                className="flex items-center"
+                              >
+                                <BadgeCheck className="mr-2 h-4 w-4" />
+                                <span>Has Certifications</span>
+                              </DropdownMenuCheckboxItem>
+                              
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => {
+                                setFilters({});
+                              }}>
+                                Reset All Filters
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      </div>
-                      
-                      {/* Filter Pills */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <Button 
-                          variant={filters.skillLevel === 'expert' ? "default" : "outline"} 
-                          size="sm"
-                          onClick={() => applyFilter('skillLevel', 'expert')}
-                        >
-                          Expert Skills
-                        </Button>
-                        <Button 
-                          variant={filters.skillLevel === 'intermediate' ? "default" : "outline"} 
-                          size="sm"
-                          onClick={() => applyFilter('skillLevel', 'intermediate')}
-                        >
-                          Intermediate Skills
-                        </Button>
-                        <Button 
-                          variant={filters.hasCertification ? "default" : "outline"} 
-                          size="sm"
-                          onClick={() => applyFilter('hasCertification', !filters.hasCertification)}
-                        >
-                          Has Certifications
-                        </Button>
+                        
+                        {/* Active filters display */}
+                        {(filters.skillLevel || filters.hasCertification || filters.dateJoined || filters.skillCount || filters.category) && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {filters.skillLevel && (
+                              <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                                <Trophy className="h-3 w-3 mr-1" />
+                                <span>Level: {filters.skillLevel}</span>
+                                <button 
+                                  onClick={() => applyFilter('skillLevel', undefined)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                            
+                            {filters.dateJoined && (
+                              <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                                <Clock className="h-3 w-3 mr-1" />
+                                <span>
+                                  {filters.dateJoined === 'recent' ? 'Joined: Last 30 days' : 
+                                   filters.dateJoined === 'quarter' ? 'Joined: 1-3 months ago' : 
+                                   'Joined: Over 3 months ago'}
+                                </span>
+                                <button 
+                                  onClick={() => applyFilter('dateJoined', undefined)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                            
+                            {filters.skillCount && (
+                              <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                                <Bookmark className="h-3 w-3 mr-1" />
+                                <span>
+                                  {filters.skillCount === 'high' ? 'Skills: 5+' : 
+                                   filters.skillCount === 'medium' ? 'Skills: 2-4' : 
+                                   'Skills: 0-1'}
+                                </span>
+                                <button 
+                                  onClick={() => applyFilter('skillCount', undefined)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                            
+                            {filters.hasCertification && (
+                              <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                                <BadgeCheck className="h-3 w-3 mr-1" />
+                                <span>Has certifications</span>
+                                <button 
+                                  onClick={() => applyFilter('hasCertification', undefined)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                            
+                            <button 
+                              onClick={() => setFilters({})}
+                              className="text-sm text-primary hover:underline"
+                            >
+                              Clear all
+                            </button>
+                          </div>
+                        )}
                       </div>
                       
                       {/* Users table */}
