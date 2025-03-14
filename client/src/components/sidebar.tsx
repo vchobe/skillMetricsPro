@@ -187,8 +187,8 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 </h3>
               )}
               <div className="mt-2 space-y-2">
-                <Link href="/admin" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin" 
+                <Link href="/admin-dashboard" className={`flex items-center px-4 py-3 rounded-md ${
+                  currentPath === "/admin-dashboard" || currentPath === "/admin" 
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}>
@@ -197,8 +197,8 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                     <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Dashboard</span>
                   )}
                 </Link>
-                <Link href="/admin?tab=skill-history" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin?tab=skill-history" 
+                <Link href="/admin-dashboard?tab=skill-history" className={`flex items-center px-4 py-3 rounded-md ${
+                  currentPath === "/admin-dashboard" && location.includes("tab=skill-history")
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}>
@@ -207,8 +207,8 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                     <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill History</span>
                   )}
                 </Link>
-                <Link href="/admin?tab=certifications" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin?tab=certifications" 
+                <Link href="/admin-dashboard?tab=certifications" className={`flex items-center px-4 py-3 rounded-md ${
+                  currentPath === "/admin-dashboard" && location.includes("tab=certifications") 
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}>
@@ -220,8 +220,8 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                     <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Certifications</span>
                   )}
                 </Link>
-                <Link href="/admin?tab=users" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin?tab=users" 
+                <Link href="/admin-dashboard?tab=users" className={`flex items-center px-4 py-3 rounded-md ${
+                  currentPath === "/admin-dashboard" && location.includes("tab=users") 
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}>
@@ -230,8 +230,8 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                     <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>User Management</span>
                   )}
                 </Link>
-                <Link href="/admin/skills" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin/skills" 
+                <Link href="/admin-dashboard?tab=skills" className={`flex items-center px-4 py-3 rounded-md ${
+                  currentPath === "/admin-dashboard" && location.includes("tab=skills") 
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}>

@@ -911,8 +911,8 @@ export default function AdminDashboard() {
                             <tr key={index}>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm font-medium text-gray-900">{gap?.name}</div>
-                                {gap?.targetSkillCount > 0 && (
-                                  <div className="text-xs text-gray-500">{gap?.targetSkillCount} skill{gap?.targetSkillCount !== 1 ? 's' : ''}</div>
+                                {gap?.targetSkillCount && gap.targetSkillCount > 0 && (
+                                  <div className="text-xs text-gray-500">{gap.targetSkillCount} skill{gap.targetSkillCount !== 1 ? 's' : ''}</div>
                                 )}
                               </td>
                               <td className="px-6 py-4">
