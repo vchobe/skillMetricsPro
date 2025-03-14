@@ -178,8 +178,8 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
             </Link>
           </div>
 
-          {/* Admin Section - Only visible to admins */}
-          {user?.is_admin && (
+          {/* Admin Section - Only visible to admins - check both property formats */}
+          {(user?.is_admin || user?.isAdmin) && (
             <div className="mt-8">
               {(isOpen || !isMobile) && (
                 <h3 className={`px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider ${!isOpen && "lg:hidden"}`}>

@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, loginUserSchema, insertUserSchema } from "@shared/schema";
+import { pool } from "./db"; // Import pool for direct database access
 
 declare global {
   namespace Express {
@@ -89,30 +90,31 @@ export function setupAuth(app: Express) {
     try {
       const user = await storage.getUser(id);
       
-      // Ensure the admin flag is available under both property names (snake_case and camelCase)
+      // Directly check database for admin status
       if (user) {
         // Handle the user object with dynamically added properties safely
         const userObj = user as any;
         
-        // Get the admin value from database and handle PostgreSQL format (t/f string)
-        const rawAdminValue = userObj.is_admin;
-        let isAdminBoolean = false;
+        // DIRECT DB QUERY for admin status - most reliable method
+        const result = await pool.query('SELECT is_admin FROM users WHERE id = $1', [id]);
+        const dbValue = result.rows[0]?.is_admin;
         
-        // Convert various possible admin representations to boolean
-        if (rawAdminValue === true || rawAdminValue === 't' || rawAdminValue === 'true') {
-          isAdminBoolean = true;
-        }
+        // Convert PostgreSQL boolean representations to true JS boolean
+        const isAdminBoolean = dbValue === true || dbValue === 't' || dbValue === 'true';
+        
+        console.log(`Direct DB admin check for ${userObj.email}: raw value = ${dbValue} (${typeof dbValue})`);
         
         // Make sure it's consistently available in both formats as a true boolean
         userObj.isAdmin = isAdminBoolean;
         userObj.is_admin = isAdminBoolean;
         
         // Log the conversion for debugging
-        console.log(`Passport deserialize: User ${userObj.email} (ID: ${id}) - Raw admin value: ${rawAdminValue} (${typeof rawAdminValue}) - Converted to: ${isAdminBoolean}`);
+        console.log(`Passport deserialize: Ensured admin status (${isAdminBoolean}) is available under both properties for user ${userObj.email}`);
       }
       
       done(null, user);
     } catch (error) {
+      console.error("Error in passport deserialize:", error);
       done(error);
     }
   });
@@ -251,7 +253,7 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
     console.log("GET /api/user - Authentication status:", req.isAuthenticated());
     console.log("GET /api/user - Session:", req.session);
     console.log("GET /api/user - User:", req.user);
@@ -260,9 +262,31 @@ export function setupAuth(app: Express) {
       return res.sendStatus(401);
     }
     
-    // Remove password from response
-    const { password, ...userWithoutPassword } = req.user as SelectUser;
-    res.json(userWithoutPassword);
+    try {
+      // Do a direct database check for admin status
+      const userId = req.user!.id;
+      const result = await pool.query('SELECT is_admin FROM users WHERE id = $1', [userId]);
+      const dbValue = result.rows[0]?.is_admin;
+      
+      // Convert PostgreSQL boolean to JS boolean
+      const isAdmin = dbValue === true || dbValue === 't' || dbValue === 'true';
+      
+      console.log(`GET /api/user - Direct DB admin check: ${isAdmin} (${typeof isAdmin})`);
+      
+      // Add admin status in both formats
+      const userData = {
+        ...req.user,
+        isAdmin,
+        is_admin: isAdmin
+      };
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = userData as SelectUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error in /api/user endpoint:", error);
+      res.status(500).json({ message: "Server error fetching user data" });
+    }
   });
 
   // Password reset route (simplified for in-memory storage)
