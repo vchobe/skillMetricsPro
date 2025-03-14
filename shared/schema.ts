@@ -196,6 +196,7 @@ export const skillTargets = pgTable("skill_targets", {
   description: text("description"),
   targetLevel: skillLevelEnum("target_level").notNull(),
   targetDate: date("target_date"),
+  targetNumber: integer("target_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -217,6 +218,7 @@ export const insertSkillTargetSchema = createInsertSchema(skillTargets).pick({
   description: true,
   targetLevel: true,
   targetDate: true,
+  targetNumber: true,
 });
 
 export type SkillTemplate = typeof skillTemplates.$inferSelect;
