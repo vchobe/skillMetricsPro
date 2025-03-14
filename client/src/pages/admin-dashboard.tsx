@@ -523,7 +523,7 @@ export default function AdminDashboard() {
       {/* Hidden links for CSV exports */}
       <a ref={csvExportRef} className="hidden"></a>
       <a ref={skillGapExportRef} className="hidden"></a>
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/admin-dashboard" />
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/admin" />
       
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <Header 
@@ -544,7 +544,7 @@ export default function AdminDashboard() {
               // Update active tab state
               setActiveTab(value);
               // Update URL to reflect selected tab (this allows for bookmarking and sharing specific tabs)
-              setLocation(value === "dashboard" ? "/admin-dashboard" : `/admin-dashboard?tab=${value}`);
+              setLocation(value === "dashboard" ? "/admin" : `/admin?tab=${value}`);
             }}
           >
             <TabsList className="grid w-full grid-cols-4 mb-6">
@@ -599,7 +599,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-gray-50 px-5 py-3">
                       <div className="text-sm">
-                        <Button variant="link" onClick={() => setLocation("/admin-dashboard?tab=users")} className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500">
+                        <Button variant="link" onClick={() => setLocation("/admin?tab=users")} className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500">
                           View all
                         </Button>
                       </div>
