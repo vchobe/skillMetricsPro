@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Skill, insertSkillSchema } from "@shared/schema";
+import { Skill, insertSkillSchema, SkillTemplate } from "@shared/schema";
 import { 
   Dialog, 
   DialogContent, 
@@ -93,7 +93,7 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
   });
   
   // Get skill templates
-  const { data: skillTemplates = [] } = useQuery({
+  const { data: skillTemplates = [] } = useQuery<SkillTemplate[]>({
     queryKey: ["/api/admin/skill-templates"],
   });
   
@@ -280,7 +280,7 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
-                    {skillTemplates.map(template => (
+                    {skillTemplates.map((template: SkillTemplate) => (
                       <div 
                         key={template.id}
                         className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"

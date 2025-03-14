@@ -551,13 +551,13 @@ export default function AdminDashboard() {
                             fill="#8884d8"
                             dataKey="value"
                             nameKey="name"
-                            label={({ name, percent }) => 
+                            label={({ name, percent }: { name: string; percent: number }) => 
                               name.length > 8 
                                 ? `${name.substring(0, 8)}...: ${(percent * 100).toFixed(0)}%` 
                                 : `${name}: ${(percent * 100).toFixed(0)}%`
                             }
                           >
-                            {skillNameData.map((entry, index) => (
+                            {skillNameData.map((entry: { name: string; value: number }, index: number) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
