@@ -247,16 +247,6 @@ export default function AdminDashboard() {
   const skillGapAnalysis = useMemo(() => {
     if (!skills || !skillTargets) return [];
     
-    // Group skills by category
-    const skillsByCategory = skills.reduce((acc, skill) => {
-      const category = skill.category || "Uncategorized";
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(skill);
-      return acc;
-    }, {} as Record<string, Skill[]>);
-    
     // Helper function to convert skill level to numeric value
     const levelToValue = (level: string): number => {
       switch(level.toLowerCase()) {
@@ -267,45 +257,51 @@ export default function AdminDashboard() {
       }
     };
     
-    // Create gap analysis data structure
-    return Object.entries(skillsByCategory).map(([category, categorySkills]) => {
-      // Find targets that match skills in this category
-      const relevantTargets = skillTargets.filter(target => 
-        target.skillIds.some(id => categorySkills.some(skill => skill.id === id))
+    // Create gap analysis data structure based on skill targets
+    return skillTargets.map(target => {
+      // Skip if target has no assigned skills
+      if (!target.skillIds || target.skillIds.length === 0) return null;
+      
+      // Find the skills referenced by this target
+      const targetSkills = skills.filter(skill => 
+        target.skillIds.includes(skill.id)
       );
       
-      // If no targets defined for this category, skip
-      if (relevantTargets.length === 0) return null;
+      // Skip if no matching skills are found
+      if (targetSkills.length === 0) return null;
       
-      // Calculate current level (average of all skills in category)
-      const currentLevelValue = categorySkills.reduce((sum, skill) => 
-        sum + levelToValue(skill.level), 0) / categorySkills.length;
+      // Calculate current level (average of all targeted skills)
+      const currentLevelValue = targetSkills.reduce((sum, skill) => 
+        sum + levelToValue(skill.level), 0) / targetSkills.length;
       
-      // Calculate target level from relevant targets
-      const targetLevelValue = relevantTargets.reduce((sum, target) => 
-        sum + levelToValue(target.targetLevel), 0) / relevantTargets.length;
+      // Get target level
+      const targetLevelValue = levelToValue(target.targetLevel);
       
       // Calculate gap
       const gap = Math.max(0, targetLevelValue - currentLevelValue);
       
       // Count employees needing skill improvement
       const employeesNeedingImprovement = users?.filter(user => {
-        const userSkills = skills.filter(s => s.userId === user.id || (s as any).user_id === user.id);
-        const userCategorySkills = userSkills.filter(s => s.category === category);
+        // Get the user's skills that match this target
+        const userTargetSkills = skills.filter(s => 
+          (s.userId === user.id || (s as any).user_id === user.id) && 
+          target.skillIds.includes(s.id)
+        );
         
-        // If user has no skills in this category, they need improvement
-        if (userCategorySkills.length === 0) return true;
+        // If user has no relevant skills, they need improvement
+        if (userTargetSkills.length === 0) return true;
         
-        // Calculate user's average level in this category
-        const userAvgLevel = userCategorySkills.reduce((sum, skill) => 
-          sum + levelToValue(skill.level), 0) / userCategorySkills.length;
+        // Calculate user's average level for target skills
+        const userAvgLevel = userTargetSkills.reduce((sum, skill) => 
+          sum + levelToValue(skill.level), 0) / userTargetSkills.length;
           
         // If user's level is below target, they need improvement
         return userAvgLevel < targetLevelValue;
       }).length || 0;
       
       return {
-        category,
+        name: target.name || `Target ${target.id}`,
+        targetSkillCount: targetSkills.length,
         currentLevel: Math.round(currentLevelValue),
         targetLevel: Math.round(targetLevelValue),
         gap: Math.round(gap),
@@ -479,9 +475,10 @@ export default function AdminDashboard() {
     }
     
     // Create CSV content
-    const headers = ["Skill Category", "Current Level (%)", "Target Level (%)", "Gap (%)", "Employees Needing Improvement"];
+    const headers = ["Skill Target", "Skills Count", "Current Level (%)", "Target Level (%)", "Gap (%)", "Employees Needing Improvement"];
     const rows = skillGapAnalysis.map(gap => [
-      gap?.category || 'Unknown',
+      gap?.name || 'Unknown',
+      gap?.targetSkillCount || 0,
       gap?.currentLevel || 0,
       gap?.targetLevel || 0,
       gap?.gap || 0,
@@ -884,7 +881,10 @@ export default function AdminDashboard() {
                           skillGapAnalysis.map((gap, index) => (
                             <tr key={index}>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">{gap?.category}</div>
+                                <div className="text-sm font-medium text-gray-900">{gap?.name}</div>
+                                {gap?.targetSkillCount > 0 && (
+                                  <div className="text-xs text-gray-500">{gap?.targetSkillCount} skill{gap?.targetSkillCount !== 1 ? 's' : ''}</div>
+                                )}
                               </td>
                               <td className="px-6 py-4">
                                 <div className="w-full bg-gray-200 rounded-full h-2.5">
