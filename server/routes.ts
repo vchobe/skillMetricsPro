@@ -365,6 +365,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Skill template management (for admin)
+  app.get("/api/admin/skill-templates", ensureAdmin, async (req, res) => {
+    try {
+      // For now, since we don't have a dedicated table, we'll return a default empty array
+      res.json([]);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching skill templates", error });
+    }
+  });
+  
+  app.post("/api/admin/skill-templates", ensureAdmin, async (req, res) => {
+    try {
+      // We would normally store this in a database, but for the prototype just return the data
+      const newTemplate = {
+        id: Date.now(), // Generate a unique ID
+        ...req.body,
+        createdAt: new Date().toISOString()
+      };
+      res.status(201).json(newTemplate);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating skill template", error });
+    }
+  });
+  
+  app.patch("/api/admin/skill-templates/:id", ensureAdmin, async (req, res) => {
+    try {
+      // In a real implementation, we would update the database
+      // For the prototype, just return success and the updated template
+      const updatedTemplate = {
+        id: parseInt(req.params.id),
+        ...req.body,
+        updatedAt: new Date().toISOString()
+      };
+      res.json(updatedTemplate);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating skill template", error });
+    }
+  });
+  
+  app.delete("/api/admin/skill-templates/:id", ensureAdmin, async (req, res) => {
+    try {
+      // In a real implementation, we would delete from the database
+      // For the prototype, just return success
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting skill template", error });
+    }
+  });
+  
+  // Skill target management (for admin)
+  app.get("/api/admin/skill-targets", ensureAdmin, async (req, res) => {
+    try {
+      // For now, return a default empty array
+      res.json([]);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching skill targets", error });
+    }
+  });
+  
+  app.post("/api/admin/skill-targets", ensureAdmin, async (req, res) => {
+    try {
+      // We would normally store this in a database, but for the prototype just return the data
+      const newTarget = {
+        id: Date.now(), // Generate a unique ID
+        ...req.body,
+        createdAt: new Date().toISOString()
+      };
+      res.status(201).json(newTarget);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating skill target", error });
+    }
+  });
+  
+  app.delete("/api/admin/skill-targets/:id", ensureAdmin, async (req, res) => {
+    try {
+      // In a real implementation, we would delete from the database
+      // For the prototype, just return success
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting skill target", error });
+    }
+  });
+  
   // Get all skill histories across all users for admin
   app.get("/api/admin/skill-history", ensureAdmin, async (req, res) => {
     try {

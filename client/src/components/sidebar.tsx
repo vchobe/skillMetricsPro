@@ -230,6 +230,16 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                     <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>User Management</span>
                   )}
                 </Link>
+                <Link href="/admin/skills" className={`flex items-center px-4 py-3 rounded-md ${
+                  currentPath === "/admin/skills" 
+                    ? "bg-gray-900 text-white" 
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                }`}>
+                  <Brain className="h-5 w-5" />
+                  {(isOpen || !isMobile) && (
+                    <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill Management</span>
+                  )}
+                </Link>
               </div>
             </div>
           )}
