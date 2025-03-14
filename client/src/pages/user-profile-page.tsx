@@ -10,6 +10,18 @@ import Header from "@/components/header";
 import SkillLevelBadge from "@/components/skill-level-badge";
 import ActivityFeed from "@/components/activity-feed";
 import { Button } from "@/components/ui/button";
+
+// Define Activity interface for proper typing
+interface Activity {
+  id: number;
+  type: "update" | "add";
+  skillId: number;
+  previousLevel: string | null;
+  newLevel: string;
+  date: Date | string;
+  note?: string;
+}
+
 import {
   Card,
   CardContent,
@@ -71,10 +83,10 @@ export default function UserProfilePage() {
   });
   
   // Format skill history for activity feed
-  const activityItems = skillHistory && Array.isArray(skillHistory) 
+  const activityItems: Activity[] = skillHistory && Array.isArray(skillHistory) 
     ? skillHistory.map((history: any) => ({
         id: history.id,
-        type: history.previousLevel ? "update" as const : "add" as const,
+        type: history.previousLevel || history.previous_level ? "update" : "add",
         skillId: history.skillId || history.skill_id,
         previousLevel: history.previousLevel || history.previous_level,
         newLevel: history.newLevel || history.new_level,

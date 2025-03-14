@@ -135,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const newValue = value?.toString() || '';
           
           // Add to update data
-          if (typeof value !== 'undefined') {
+          if (typeof value !== 'undefined' && value !== null) {
             updateData[key as keyof typeof updateData] = value;
           }
           
