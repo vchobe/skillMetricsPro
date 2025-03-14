@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -101,11 +101,23 @@ export default function AdminDashboard() {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   
-  // Table sorting and filtering state
+  // User Management tab - sorting and filtering state
   const [sortField, setSortField] = useState<string>("username");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  
+  // Skill History tab - sorting and filtering state
+  const [skillHistorySortField, setSkillHistorySortField] = useState<string>("date");
+  const [skillHistorySortDirection, setSkillHistorySortDirection] = useState<"asc" | "desc">("desc");
+  const [skillHistorySearchQuery, setSkillHistorySearchQuery] = useState("");
+  const [skillHistoryLevelFilter, setSkillHistoryLevelFilter] = useState("all");
+  
+  // Certifications tab - sorting and filtering state
+  const [certSortField, setCertSortField] = useState<string>("name");
+  const [certSortDirection, setCertSortDirection] = useState<"asc" | "desc">("asc");
+  const [certSearchQuery, setCertSearchQuery] = useState("");
+  const [certCategoryFilter, setCertCategoryFilter] = useState("all");
   
   // Redirect if not admin
   const { toast } = useToast();
@@ -248,6 +260,74 @@ export default function AdminDashboard() {
   const getUserById = (userId: number) => {
     return users?.find(u => u.id === userId);
   };
+  
+  // Apply filters and sorting to users
+  const filteredSortedUsers = useMemo(() => {
+    if (!users) return [];
+    
+    // Step 1: Filter users by search query
+    let filtered = users.filter(user => {
+      if (searchQuery === "") return true;
+      
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        (user.username?.toLowerCase().includes(searchLower) || false) ||
+        (user.email?.toLowerCase().includes(searchLower) || false) ||
+        (user.firstName?.toLowerCase().includes(searchLower) || false) ||
+        (user.lastName?.toLowerCase().includes(searchLower) || false) ||
+        (user.role?.toLowerCase().includes(searchLower) || false) ||
+        (user.project?.toLowerCase().includes(searchLower) || false)
+      );
+    });
+    
+    // Step 2: Filter by role
+    if (roleFilter !== "all") {
+      filtered = filtered.filter(user => 
+        user.role?.toLowerCase() === roleFilter.toLowerCase()
+      );
+    }
+    
+    // Step 3: Sort users
+    return filtered.sort((a, b) => {
+      // Get comparable values based on sort field
+      let aValue: any, bValue: any;
+      
+      if (sortField === "username") {
+        aValue = a.username || a.email?.split('@')[0] || "";
+        bValue = b.username || b.email?.split('@')[0] || "";
+      } 
+      else if (sortField === "email") {
+        aValue = a.email || "";
+        bValue = b.email || "";
+      }
+      else if (sortField === "role") {
+        aValue = a.role || "";
+        bValue = b.role || "";
+      }
+      else if (sortField === "project") {
+        aValue = a.project || "";
+        bValue = b.project || "";
+      }
+      else if (sortField === "skills") {
+        // Count skills for each user
+        aValue = skills?.filter(s => s.userId === a.id || (s as any).user_id === a.id).length || 0;
+        bValue = skills?.filter(s => s.userId === b.id || (s as any).user_id === b.id).length || 0;
+      }
+      else {
+        aValue = a[sortField as keyof User] || "";
+        bValue = b[sortField as keyof User] || "";
+      }
+      
+      // Compare the values
+      if (aValue < bValue) {
+        return sortDirection === "asc" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortDirection === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [users, searchQuery, roleFilter, sortField, sortDirection, skills]);
   
   // CSV Export function for certifications
   const exportCertificationsCSV = () => {
@@ -819,19 +899,119 @@ export default function AdminDashboard() {
               </Card>
               
               <Card>
-                <CardHeader>
-                  <CardTitle>Skill History Log</CardTitle>
+                <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
+                  <div>
+                    <CardTitle>Skill History Log</CardTitle>
+                    <CardDescription>View all skill level changes</CardDescription>
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-4 mt-4 md:mt-0">
+                    <div className="relative w-full md:w-64">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <input
+                        placeholder="Search by skill or user..."
+                        className="pl-8 h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={skillHistorySearchQuery}
+                        onChange={(e) => setSkillHistorySearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <Select 
+                      value={skillHistoryLevelFilter} 
+                      onValueChange={setSkillHistoryLevelFilter}
+                    >
+                      <SelectTrigger className="w-full md:w-[180px] h-10">
+                        <SelectValue placeholder="Filter by level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Levels</SelectItem>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </CardHeader>
                 <CardContent className="px-0">
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skill</th>
+                          <th 
+                            scope="col" 
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                            onClick={() => {
+                              if (skillHistorySortField === "user_email") {
+                                setSkillHistorySortDirection(skillHistorySortDirection === "asc" ? "desc" : "asc");
+                              } else {
+                                setSkillHistorySortField("user_email");
+                                setSkillHistorySortDirection("asc");
+                              }
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <span>User</span>
+                              {skillHistorySortField === "user_email" && (
+                                <ArrowUpDown className={`ml-1 h-4 w-4 ${skillHistorySortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
+                              )}
+                            </div>
+                          </th>
+                          <th 
+                            scope="col" 
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                            onClick={() => {
+                              if (skillHistorySortField === "skill_name") {
+                                setSkillHistorySortDirection(skillHistorySortDirection === "asc" ? "desc" : "asc");
+                              } else {
+                                setSkillHistorySortField("skill_name");
+                                setSkillHistorySortDirection("asc");
+                              }
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <span>Skill</span>
+                              {skillHistorySortField === "skill_name" && (
+                                <ArrowUpDown className={`ml-1 h-4 w-4 ${skillHistorySortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
+                              )}
+                            </div>
+                          </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                          <th 
+                            scope="col" 
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                            onClick={() => {
+                              if (skillHistorySortField === "newLevel") {
+                                setSkillHistorySortDirection(skillHistorySortDirection === "asc" ? "desc" : "asc");
+                              } else {
+                                setSkillHistorySortField("newLevel");
+                                setSkillHistorySortDirection("asc");
+                              }
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <span>To</span>
+                              {skillHistorySortField === "newLevel" && (
+                                <ArrowUpDown className={`ml-1 h-4 w-4 ${skillHistorySortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
+                              )}
+                            </div>
+                          </th>
+                          <th 
+                            scope="col" 
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                            onClick={() => {
+                              if (skillHistorySortField === "date") {
+                                setSkillHistorySortDirection(skillHistorySortDirection === "asc" ? "desc" : "asc");
+                              } else {
+                                setSkillHistorySortField("date");
+                                setSkillHistorySortDirection("asc");
+                              }
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <span>Date</span>
+                              {skillHistorySortField === "date" && (
+                                <ArrowUpDown className={`ml-1 h-4 w-4 ${skillHistorySortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
+                              )}
+                            </div>
+                          </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
                         </tr>
                       </thead>
@@ -845,7 +1025,65 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ) : skillHistories && skillHistories.length > 0 ? (
-                          skillHistories.slice(0, 10).map((history, index) => (
+                          // Filter and sort skill histories
+                          skillHistories
+                            .filter(history => {
+                              // Apply level filter
+                              if (skillHistoryLevelFilter !== 'all' && history.newLevel !== skillHistoryLevelFilter) {
+                                return false;
+                              }
+                              
+                              // Apply search filter
+                              if (skillHistorySearchQuery) {
+                                const searchLower = skillHistorySearchQuery.toLowerCase();
+                                return (
+                                  (history.skill_name?.toLowerCase().includes(searchLower) || false) ||
+                                  (history.user_email?.toLowerCase().includes(searchLower) || false) ||
+                                  (history.changeNote?.toLowerCase().includes(searchLower) || false)
+                                );
+                              }
+                              return true;
+                            })
+                            .sort((a, b) => {
+                              // Apply sort
+                              if (skillHistorySortField === "user_email") {
+                                const aValue = a.user_email || "";
+                                const bValue = b.user_email || "";
+                                return skillHistorySortDirection === "asc" 
+                                  ? aValue.localeCompare(bValue)
+                                  : bValue.localeCompare(aValue);
+                              }
+                              else if (skillHistorySortField === "skill_name") {
+                                const aValue = a.skill_name || "";
+                                const bValue = b.skill_name || "";
+                                return skillHistorySortDirection === "asc" 
+                                  ? aValue.localeCompare(bValue)
+                                  : bValue.localeCompare(aValue);
+                              }
+                              else if (skillHistorySortField === "newLevel") {
+                                const levelValue = {
+                                  "beginner": 1,
+                                  "intermediate": 2,
+                                  "expert": 3
+                                };
+                                const aValue = levelValue[a.newLevel as keyof typeof levelValue] || 0;
+                                const bValue = levelValue[b.newLevel as keyof typeof levelValue] || 0;
+                                return skillHistorySortDirection === "asc" 
+                                  ? aValue - bValue
+                                  : bValue - aValue;
+                              }
+                              else if (skillHistorySortField === "date") {
+                                const aDate = new Date(a.createdAt).getTime();
+                                const bDate = new Date(b.createdAt).getTime();
+                                return skillHistorySortDirection === "asc" 
+                                  ? aDate - bDate
+                                  : bDate - aDate;
+                              }
+                              // Default sort by date desc
+                              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                            })
+                            .slice(0, 20)
+                            .map((history, index) => (
                             <tr key={index}>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm font-medium text-gray-900">{history.user_email}</div>
