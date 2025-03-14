@@ -57,6 +57,7 @@ import {
 } from "recharts";
 import {
   BarChart4,
+  ArrowUpDown,
   Users,
   Brain,
   Clock,
@@ -79,6 +80,7 @@ import {
   RadarIcon,
   DownloadCloud,
   Calendar,
+  Search,
   SquareStack,
   User as UserIcon
 } from "lucide-react";
@@ -98,6 +100,12 @@ export default function AdminDashboard() {
   // User profile dialog state
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  
+  // Table sorting and filtering state
+  const [sortField, setSortField] = useState<string>("username");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
   
   // Redirect if not admin
   const { toast } = useToast();
@@ -1057,13 +1065,11 @@ export default function AdminDashboard() {
                         type="text" 
                         placeholder="Search users..." 
                         className="pl-8 h-9 w-full sm:w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        onChange={(e) => {
-                          // Here we would implement search functionality
-                          // This is a placeholder for now
-                        }}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
-                    <Select defaultValue="all">
+                    <Select value={roleFilter} onValueChange={setRoleFilter}>
                       <SelectTrigger className="w-full sm:w-[150px]">
                         <SelectValue placeholder="Filter by role" />
                       </SelectTrigger>
@@ -1083,33 +1089,48 @@ export default function AdminDashboard() {
                       <thead className="bg-gray-50">
                         <tr>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                            <div className="flex items-center">
+                            <div className="flex items-center" onClick={() => {
+                              setSortField("username");
+                              setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                            }}>
                               User
-                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                              <ArrowUpDown className={`ml-1 h-3 w-3 ${sortField === "username" ? "opacity-100" : "opacity-50"}`} />
                             </div>
                           </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                            <div className="flex items-center">
+                            <div className="flex items-center" onClick={() => {
+                              setSortField("email");
+                              setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                            }}>
                               Email
-                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                              <ArrowUpDown className={`ml-1 h-3 w-3 ${sortField === "email" ? "opacity-100" : "opacity-50"}`} />
                             </div>
                           </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                            <div className="flex items-center">
+                            <div className="flex items-center" onClick={() => {
+                              setSortField("role");
+                              setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                            }}>
                               Role
-                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                              <ArrowUpDown className={`ml-1 h-3 w-3 ${sortField === "role" ? "opacity-100" : "opacity-50"}`} />
                             </div>
                           </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                            <div className="flex items-center">
+                            <div className="flex items-center" onClick={() => {
+                              setSortField("project");
+                              setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                            }}>
                               Project
-                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                              <ArrowUpDown className={`ml-1 h-3 w-3 ${sortField === "project" ? "opacity-100" : "opacity-50"}`} />
                             </div>
                           </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                            <div className="flex items-center">
+                            <div className="flex items-center" onClick={() => {
+                              setSortField("skills");
+                              setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                            }}>
                               Skills
-                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                              <ArrowUpDown className={`ml-1 h-3 w-3 ${sortField === "skills" ? "opacity-100" : "opacity-50"}`} />
                             </div>
                           </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
