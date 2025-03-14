@@ -136,15 +136,21 @@ export default function AdminDashboard() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
+    
+    // This function ensures both state and URL are in sync
+    const updateActiveTab = (newTab: string) => {
+      setActiveTab(newTab);
+      const newUrl = newTab === "dashboard" ? "/admin" : `/admin?tab=${newTab}`;
+      if (window.location.pathname + window.location.search !== newUrl) {
+        setLocation(newUrl);
+      }
+    };
+    
     if (tab === "users" || tab === "skill-history" || tab === "certifications") {
-      setActiveTab(tab);
+      updateActiveTab(tab);
     } else {
       // Default to dashboard if no valid tab is specified
-      setActiveTab("dashboard");
-      // If we're on the admin page without a tab parameter, update the URL to reflect default tab
-      if (window.location.pathname === "/admin" && !tab) {
-        setLocation("/admin");
-      }
+      updateActiveTab("dashboard");
     }
   }, [location, setLocation]);
   
@@ -543,12 +549,14 @@ export default function AdminDashboard() {
           </div>
           
           <Tabs 
+            defaultValue="dashboard"
             value={activeTab} 
             onValueChange={(value) => {
-              // Update active tab state
+              // Force refresh of all components by setting active tab
               setActiveTab(value);
               // Update URL to reflect selected tab (this allows for bookmarking and sharing specific tabs)
-              setLocation(value === "dashboard" ? "/admin" : `/admin?tab=${value}`);
+              const newUrl = value === "dashboard" ? "/admin" : `/admin?tab=${value}`;
+              setLocation(newUrl);
             }}
           >
             <TabsList className="grid w-full grid-cols-4 mb-6">
