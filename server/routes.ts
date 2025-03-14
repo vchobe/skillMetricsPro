@@ -128,8 +128,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create profile history for each changed field
       const updateData: Partial<typeof user> = {};
       
-      // Get the admin flag from db field directly
-      const isAdmin = user.is_admin === true;
+      // Directly check database for current admin status
+      const userCheck = await pool.query('SELECT is_admin FROM users WHERE id = $1', [userId]);
+      const isAdmin = userCheck.rows[0]?.is_admin === true;
+      console.log("Admin status directly from database:", userCheck.rows[0]?.is_admin, "Parsed as boolean:", isAdmin);
       
       console.log("Current admin status before update:", isAdmin);
       
