@@ -91,16 +91,16 @@ export const insertSkillHistorySchema = createInsertSchema(skillHistories).pick(
 export const profileHistories = pgTable("profile_histories", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  field: text("field").notNull(),
-  oldValue: text("old_value"),
+  changedField: text("changed_field").notNull(),
+  previousValue: text("previous_value"),
   newValue: text("new_value").notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertProfileHistorySchema = createInsertSchema(profileHistories).pick({
   userId: true,
-  field: true,
-  oldValue: true,
+  changedField: true,
+  previousValue: true,
   newValue: true,
 });
 

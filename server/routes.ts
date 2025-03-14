@@ -142,8 +142,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Create history entry
           await storage.createProfileHistory({
             userId,
-            field: key,
-            oldValue,
+            changedField: key,
+            previousValue: oldValue,
             newValue
           });
         }

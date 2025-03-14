@@ -458,13 +458,13 @@ export class PostgresStorage implements IStorage {
   async createProfileHistory(history: InsertProfileHistory): Promise<ProfileHistory> {
     try {
       const result = await pool.query(
-        `INSERT INTO profile_histories (user_id, field, old_value, new_value) 
+        `INSERT INTO profile_histories (user_id, changed_field, previous_value, new_value) 
          VALUES ($1, $2, $3, $4) 
          RETURNING *`,
         [
           history.userId, 
-          history.field, 
-          history.oldValue || '', 
+          history.changedField, 
+          history.previousValue || '', 
           history.newValue
         ]
       );

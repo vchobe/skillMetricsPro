@@ -476,17 +476,17 @@ export default function ProfilePage() {
                             <div>
                               <div className="flex items-center">
                                 <p className="font-medium text-gray-900 mr-2">
-                                  Updated {entry.field}
+                                  Updated {entry.changedField}
                                 </p>
                                 <span className="text-xs text-gray-500">
-                                  {format(new Date(entry.updatedAt), "MMM dd, yyyy 'at' h:mm a")}
+                                  {format(new Date(entry.createdAt), "MMM dd, yyyy 'at' h:mm a")}
                                 </span>
                               </div>
                               <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2">
                                 <div className="flex items-center">
                                   <span className="text-sm text-gray-500 mr-1">From:</span>
                                   <span className="text-sm bg-gray-100 px-2 py-0.5 rounded">
-                                    {entry.oldValue || '(empty)'}
+                                    {entry.previousValue || '(empty)'}
                                   </span>
                                 </div>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400 hidden sm:block" viewBox="0 0 20 20" fill="currentColor">
