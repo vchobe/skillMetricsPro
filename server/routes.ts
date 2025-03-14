@@ -11,12 +11,28 @@ import {
   insertNotificationSchema
 } from "@shared/schema";
 
-// Helper function to check if a user is an admin
+// Direct database check for admin status
+async function checkIsUserAdminDirectly(userId: number): Promise<boolean> {
+  try {
+    const result = await pool.query('SELECT is_admin FROM users WHERE id = $1', [userId]);
+    if (result.rows.length === 0) return false;
+    
+    const dbValue = result.rows[0]?.is_admin;
+    // PostgreSQL returns boolean values in different formats
+    return dbValue === true || dbValue === 't' || dbValue === 'true';
+  } catch (error) {
+    console.error("Error checking admin status directly:", error);
+    return false;
+  }
+}
+
+// Helper function to check if a user is an admin from the user object
 function isUserAdmin(user: any): boolean {
   if (!user) return false;
   
   // Convert any user object to have consistent properties
   const userObj = user as {
+    id?: number;
     is_admin?: boolean | string;
     isAdmin?: boolean | string;
   };
@@ -55,17 +71,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
   
   // Middleware to ensure user is admin
-  const ensureAdmin = (req: Request, res: Response, next: Function) => {
+  const ensureAdmin = async (req: Request, res: Response, next: Function) => {
     if (!req.isAuthenticated()) {
       console.log("Admin check failed - user not authenticated");
       return res.status(403).json({ message: "Forbidden" });
     }
     
-    if (!isUserAdmin(req.user)) {
-      console.log("Admin check failed. User:", req.user);
-      console.log("isAdmin value:", req.user?.isAdmin, "type:", typeof req.user?.isAdmin);
-      console.log("is_admin value:", req.user?.is_admin, "type:", typeof req.user?.is_admin);
-      return res.status(403).json({ message: "Forbidden" });
+    // First try the user object from the session
+    const sessionAdminCheck = isUserAdmin(req.user);
+    
+    // If that fails, do a direct database check (more reliable)
+    if (!sessionAdminCheck) {
+      const userId = req.user!.id;
+      const directAdminCheck = await checkIsUserAdminDirectly(userId);
+      
+      console.log("Admin check details:");
+      console.log("- User:", req.user);
+      console.log("- Session check result:", sessionAdminCheck);
+      console.log("- Direct DB check result:", directAdminCheck);
+      console.log("- isAdmin value:", req.user?.isAdmin, "type:", typeof req.user?.isAdmin);
+      console.log("- is_admin value:", req.user?.is_admin, "type:", typeof req.user?.is_admin);
+      
+      if (!directAdminCheck) {
+        console.log("Admin check failed for user:", req.user?.email || req.user?.username);
+        return res.status(403).json({ message: "Forbidden" });
+      }
     }
     
     console.log("Admin check passed for user:", req.user?.email || req.user?.username);

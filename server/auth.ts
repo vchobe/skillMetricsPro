@@ -94,16 +94,21 @@ export function setupAuth(app: Express) {
         // Handle the user object with dynamically added properties safely
         const userObj = user as any;
         
-        // Get the admin status, prioritizing is_admin (from database) if available
-        const isAdminValue = userObj.is_admin !== undefined ? userObj.is_admin : false;
+        // Get the admin value from database and handle PostgreSQL format (t/f string)
+        const rawAdminValue = userObj.is_admin;
+        let isAdminBoolean = false;
         
-        // Make sure it's consistently available in both formats
-        if (typeof isAdminValue === 'boolean' || 
-            typeof isAdminValue === 'string') {
-          userObj.isAdmin = isAdminValue;
-          userObj.is_admin = isAdminValue;
-          console.log(`Passport deserialize: Ensured admin status (${isAdminValue}) is available under both properties for user ${userObj.email}`);
+        // Convert various possible admin representations to boolean
+        if (rawAdminValue === true || rawAdminValue === 't' || rawAdminValue === 'true') {
+          isAdminBoolean = true;
         }
+        
+        // Make sure it's consistently available in both formats as a true boolean
+        userObj.isAdmin = isAdminBoolean;
+        userObj.is_admin = isAdminBoolean;
+        
+        // Log the conversion for debugging
+        console.log(`Passport deserialize: User ${userObj.email} (ID: ${id}) - Raw admin value: ${rawAdminValue} (${typeof rawAdminValue}) - Converted to: ${isAdminBoolean}`);
       }
       
       done(null, user);
