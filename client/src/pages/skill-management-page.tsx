@@ -92,7 +92,16 @@ export default function SkillManagementPage() {
   const [editingTemplate, setEditingTemplate] = useState<SkillTemplate | null>(null);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showTargetDialog, setShowTargetDialog] = useState(false);
-  const [targetFormData, setTargetFormData] = useState({
+  // This state holds the form data for the skill target being viewed/edited
+  const [targetFormData, setTargetFormData] = useState<{
+    id: number | null;
+    name: string;
+    skillIds: number[];
+    targetLevel: string;
+    targetDate: Date | undefined;
+    targetNumber: number | undefined;
+    description: string;
+  }>({
     id: null,
     name: '',
     skillIds: [],
@@ -338,7 +347,25 @@ export default function SkillManagementPage() {
   
   useEffect(() => {
     if (!showTargetDialog) {
-      targetForm.reset();
+      // Reset the form with default values when dialog is closed
+      targetForm.reset({
+        name: "",
+        skillIds: [],
+        targetLevel: "intermediate" as const, // Use const assertion to fix type issue
+        targetDate: undefined,
+        targetNumber: undefined,
+        description: ""
+      });
+      // Reset the target form data state
+      setTargetFormData({
+        id: null,
+        name: '',
+        skillIds: [],
+        targetLevel: 'beginner',
+        targetDate: undefined,
+        targetNumber: undefined,
+        description: ''
+      });
     }
   }, [showTargetDialog, targetForm]);
   
@@ -511,9 +538,11 @@ export default function SkillManagementPage() {
                                               <SelectItem value="Other">Other</SelectItem>
                                             </>
                                           )}
-                                          <SelectItem value={field.value}>
-                                            {field.value || "Custom Category"}
-                                          </SelectItem>
+                                          {field.value && field.value.trim() !== "" && (
+                                            <SelectItem value={field.value}>
+                                              {field.value || "Custom Category"}
+                                            </SelectItem>
+                                          )}
                                         </SelectContent>
                                       </Select>
                                     </FormControl>
@@ -749,9 +778,13 @@ export default function SkillManagementPage() {
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[500px]">
                           <DialogHeader>
-                            <DialogTitle>Create Skill Target</DialogTitle>
+                            <DialogTitle>
+                              {targetFormData.id ? 'View Skill Target' : 'Create Skill Target'}
+                            </DialogTitle>
                             <DialogDescription>
-                              Set a target level for specific skills across the organization
+                              {targetFormData.id 
+                                ? 'View details for this skill target' 
+                                : 'Set a target level for specific skills across the organization'}
                             </DialogDescription>
                           </DialogHeader>
                           
@@ -920,15 +953,24 @@ export default function SkillManagementPage() {
                                 >
                                   Cancel
                                 </Button>
-                                <Button 
-                                  type="submit" 
-                                  disabled={createTargetMutation.isPending}
-                                >
-                                  {createTargetMutation.isPending && (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  )}
-                                  Set Target
-                                </Button>
+                                {targetFormData.id ? (
+                                  <Button 
+                                    type="button" 
+                                    onClick={() => setShowTargetDialog(false)}
+                                  >
+                                    Close
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    type="submit" 
+                                    disabled={createTargetMutation.isPending}
+                                  >
+                                    {createTargetMutation.isPending && (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    )}
+                                    Set Target
+                                  </Button>
+                                )}
                               </DialogFooter>
                             </form>
                           </Form>
@@ -1001,6 +1043,21 @@ export default function SkillManagementPage() {
                                         variant="outline" 
                                         size="sm"
                                         onClick={() => {
+                                          // Use type assertions to enforce proper skill target type
+                                          const skillLevel = (target.targetLevel === "beginner" || 
+                                                             target.targetLevel === "intermediate" || 
+                                                             target.targetLevel === "expert") 
+                                                           ? target.targetLevel 
+                                                           : "beginner" as const;
+                                          
+                                          targetForm.reset({
+                                            name: target.name || '',
+                                            skillIds: target.skillIds || [],
+                                            targetLevel: skillLevel,
+                                            targetDate: target.targetDate || undefined,
+                                            targetNumber: target.targetNumber || undefined,
+                                            description: target.description || ''
+                                          });
                                           setTargetFormData({
                                             id: target.id,
                                             name: target.name || '',
