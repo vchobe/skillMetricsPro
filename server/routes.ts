@@ -128,6 +128,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create profile history for each changed field
       const updateData: Partial<typeof user> = {};
       
+      // Preserve the admin flag
+      const isAdmin = user.is_admin;
+      
       // Track changes for history
       for (const [key, value] of Object.entries(req.body)) {
         if (key in user && key !== 'id' && key !== 'password' && user[key as keyof typeof user] !== value) {
@@ -150,7 +153,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (Object.keys(updateData).length > 0) {
-        const updatedUser = await storage.updateUser(userId, updateData);
+        // Always preserve the admin flag
+        const updatedUser = await storage.updateUser(userId, {
+          ...updateData,
+          is_admin: isAdmin // Explicitly keep the admin flag unchanged
+        });
         const { password, ...userWithoutPassword } = updatedUser;
         res.json(userWithoutPassword);
       } else {
