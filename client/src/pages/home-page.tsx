@@ -12,7 +12,7 @@ import Header from "@/components/header";
 import SkillChart from "@/components/skill-chart";
 import ActivityFeed from "@/components/activity-feed";
 import SkillLevelBadge from "@/components/skill-level-badge";
-import { formatRelativeTime } from "@/lib/date-utils";
+import { formatRelativeTime, parseDate } from "@/lib/date-utils";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -107,8 +107,15 @@ export default function HomePage() {
       if (!b.lastUpdated) return -1; // a comes first
       
       try {
-        return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+        const dateA = parseDate(a.lastUpdated);
+        const dateB = parseDate(b.lastUpdated);
+        
+        if (dateA && dateB) {
+          return dateB.getTime() - dateA.getTime();
+        }
+        return 0;
       } catch (e) {
+        console.error("Error comparing dates:", e);
         return 0; // If date parsing fails, consider them equal
       }
     }).slice(0, 3) : [];
@@ -316,7 +323,7 @@ export default function HomePage() {
                               <SkillLevelBadge level={skill.level} />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {skill.lastUpdated ? formatDistanceToNow(new Date(skill.lastUpdated), { addSuffix: true }) : 'recently'}
+                              {skill.lastUpdated ? formatRelativeTime(skill.lastUpdated, { addSuffix: true }, 'recently') : 'recently'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {skill.certification ? (

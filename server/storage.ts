@@ -81,7 +81,7 @@ export class PostgresStorage implements IStorage {
     });
   }
 
-  // Helper function to convert snake_case to camelCase
+  // Helper function to convert snake_case to camelCase and standardize dates
   private snakeToCamel(obj: any): any {
     if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
     
@@ -92,7 +92,31 @@ export class PostgresStorage implements IStorage {
     return Object.keys(obj).reduce((result, key) => {
       // Convert snake_case to camelCase
       const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-      result[camelKey] = this.snakeToCamel(obj[key]);
+      
+      // Standard date fields that should be properly formatted
+      const dateFields = ['createdAt', 'updatedAt', 'lastUpdated', 'targetDate', 'certificationDate'];
+      
+      let value = obj[key];
+      
+      // Standardize date formats if the field is a known date field and contains a valid date
+      if (dateFields.includes(camelKey) && value !== null && value !== undefined) {
+        // Convert PostgreSQL timestamps to ISO strings
+        if (value instanceof Date) {
+          value = value.toISOString();
+        } else if (typeof value === 'string') {
+          try {
+            // Attempt to convert string to standard ISO format
+            const dateObj = new Date(value);
+            if (!isNaN(dateObj.getTime())) {
+              value = dateObj.toISOString();
+            }
+          } catch (e) {
+            console.error(`Error standardizing date for field ${camelKey}:`, e);
+          }
+        }
+      }
+      
+      result[camelKey] = this.snakeToCamel(value);
       return result;
     }, {} as any);
   }
