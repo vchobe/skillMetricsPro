@@ -6,6 +6,7 @@ import { Skill, User, SkillHistory } from "@shared/schema";
 import { formatDate, DATE_FORMATS } from "@/lib/date-utils";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
+import UserProfileDialog from "@/components/user-profile-dialog";
 import { 
   Card, 
   CardContent, 
@@ -93,6 +94,10 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [skillCategoryFilter, setSkillCategoryFilter] = useState("all");
+  
+  // User profile dialog state
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   
   // Redirect if not admin
   const { toast } = useToast();
@@ -1143,8 +1148,9 @@ export default function AdminDashboard() {
                                     size="sm" 
                                     className="text-primary hover:text-primary-foreground"
                                     onClick={() => {
-                                      // Navigate to user profile
-                                      window.location.href = `/users/${user.id}`;
+                                      // Open the profile dialog
+                                      setSelectedUserId(user.id);
+                                      setProfileDialogOpen(true);
                                     }}
                                   >
                                     <UserIcon className="h-4 w-4 mr-1" />
