@@ -721,7 +721,9 @@ export default function OrgDashboard() {
                               <ActivityFeed 
                                 activities={activityItems} 
                                 skills={allSkills || []} 
-                                showAll={true} 
+                                showAll={true}
+                                isPersonal={false}
+                                users={users || []}
                               />
                             );
                           })()}

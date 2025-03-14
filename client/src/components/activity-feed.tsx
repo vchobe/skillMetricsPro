@@ -20,6 +20,7 @@ interface Activity {
   id: number;
   type: "update" | "add";
   skillId: number;
+  userId: number;
   previousLevel: string | null;
   newLevel: string;
   date: Date | string;
