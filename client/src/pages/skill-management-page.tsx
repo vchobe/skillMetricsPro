@@ -797,7 +797,11 @@ export default function SkillManagementPage() {
                                   <FormItem>
                                     <FormLabel>Target Name</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="Q2 Expert React Target" {...field} />
+                                      <Input 
+                                        placeholder="Q2 Expert React Target" 
+                                        {...field} 
+                                        disabled={!!targetFormData.id} 
+                                      />
                                     </FormControl>
                                     <FormDescription>
                                       Name for this skill target
@@ -830,14 +834,18 @@ export default function SkillManagementPage() {
                                                   value={skill.id}
                                                   checked={field.value.includes(skill.id)}
                                                   onChange={(e) => {
-                                                    const checked = e.target.checked;
-                                                    const id = Number(e.target.value);
-                                                    if (checked) {
-                                                      field.onChange([...field.value, id]);
-                                                    } else {
-                                                      field.onChange(field.value.filter(v => v !== id));
+                                                    // Only allow changes if not in view mode
+                                                    if (!targetFormData.id) {
+                                                      const checked = e.target.checked;
+                                                      const id = Number(e.target.value);
+                                                      if (checked) {
+                                                        field.onChange([...field.value, id]);
+                                                      } else {
+                                                        field.onChange(field.value.filter(v => v !== id));
+                                                      }
                                                     }
                                                   }}
+                                                  disabled={!!targetFormData.id}
                                                 />
                                                 <label 
                                                   htmlFor={`skill-${skill.id}`}
@@ -866,6 +874,7 @@ export default function SkillManagementPage() {
                                       <Select 
                                         value={field.value} 
                                         onValueChange={field.onChange}
+                                        disabled={!!targetFormData.id}
                                       >
                                         <SelectTrigger>
                                           <SelectValue placeholder="Select target level" />
@@ -892,7 +901,11 @@ export default function SkillManagementPage() {
                                   <FormItem>
                                     <FormLabel>Target Date</FormLabel>
                                     <FormControl>
-                                      <Input type="date" {...field} />
+                                      <Input 
+                                        type="date" 
+                                        {...field} 
+                                        disabled={!!targetFormData.id}
+                                      />
                                     </FormControl>
                                     <FormDescription>
                                       Target date for achieving this skill level
@@ -918,6 +931,7 @@ export default function SkillManagementPage() {
                                           const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
                                           field.onChange(value);
                                         }}
+                                        disabled={!!targetFormData.id}
                                       />
                                     </FormControl>
                                     <FormDescription>
@@ -938,6 +952,7 @@ export default function SkillManagementPage() {
                                       <Textarea 
                                         placeholder="Rationale for this skill target"
                                         {...field} 
+                                        disabled={!!targetFormData.id}
                                       />
                                     </FormControl>
                                     <FormMessage />
