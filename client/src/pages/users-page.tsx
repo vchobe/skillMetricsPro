@@ -305,11 +305,86 @@ export default function UsersPage() {
                           </DropdownMenuItem>
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
+
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <span>Skill Level</span>
+                          {skillLevelFilter && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-48">
+                          <DropdownMenuCheckboxItem
+                            checked={skillLevelFilter === "expert"}
+                            onCheckedChange={() => setSkillLevelFilter(skillLevelFilter === "expert" ? undefined : "expert")}
+                          >
+                            Expert
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem
+                            checked={skillLevelFilter === "intermediate"}
+                            onCheckedChange={() => setSkillLevelFilter(skillLevelFilter === "intermediate" ? undefined : "intermediate")}
+                          >
+                            Intermediate
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem
+                            checked={skillLevelFilter === "beginner"}
+                            onCheckedChange={() => setSkillLevelFilter(skillLevelFilter === "beginner" ? undefined : "beginner")}
+                          >
+                            Beginner
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setSkillLevelFilter(undefined)}>
+                            Clear Filter
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <span>Skill Category</span>
+                          {skillCategoryFilter && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-48 max-h-40 overflow-auto">
+                          {skillCategories.map(category => (
+                            <DropdownMenuCheckboxItem
+                              key={category}
+                              checked={skillCategoryFilter === category}
+                              onCheckedChange={() => setSkillCategoryFilter(skillCategoryFilter === category ? undefined : category)}
+                            >
+                              {category}
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                          {skillCategories.length > 0 && <DropdownMenuSeparator />}
+                          <DropdownMenuItem onClick={() => setSkillCategoryFilter(undefined)}>
+                            Clear Filter
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <span>Certifications</span>
+                          {certificationFilter !== undefined && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-48">
+                          <DropdownMenuCheckboxItem
+                            checked={certificationFilter === true}
+                            onCheckedChange={() => setCertificationFilter(certificationFilter === true ? undefined : true)}
+                          >
+                            Has Certifications
+                          </DropdownMenuCheckboxItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setCertificationFilter(undefined)}>
+                            Clear Filter
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
                       
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => {
                         setRoleFilter(undefined);
                         setDateFilter(undefined);
+                        setSkillLevelFilter(undefined);
+                        setSkillCategoryFilter(undefined);
+                        setCertificationFilter(undefined);
                       }}>
                         Reset All Filters
                       </DropdownMenuItem>
@@ -318,7 +393,7 @@ export default function UsersPage() {
                 </div>
                 
                 {/* Active filters display */}
-                {(roleFilter || dateFilter) && (
+                {(roleFilter || dateFilter || skillLevelFilter || skillCategoryFilter || certificationFilter !== undefined) && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {roleFilter && (
                       <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
@@ -346,10 +421,49 @@ export default function UsersPage() {
                       </div>
                     )}
                     
+                    {skillLevelFilter && (
+                      <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                        <span>Skill Level: {skillLevelFilter.charAt(0).toUpperCase() + skillLevelFilter.slice(1)}</span>
+                        <button 
+                          onClick={() => setSkillLevelFilter(undefined)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {skillCategoryFilter && (
+                      <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                        <span>Category: {skillCategoryFilter}</span>
+                        <button 
+                          onClick={() => setSkillCategoryFilter(undefined)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {certificationFilter !== undefined && (
+                      <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                        <span>Has Certifications</span>
+                        <button 
+                          onClick={() => setCertificationFilter(undefined)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                    
                     <button 
                       onClick={() => {
                         setRoleFilter(undefined);
                         setDateFilter(undefined);
+                        setSkillLevelFilter(undefined);
+                        setSkillCategoryFilter(undefined);
+                        setCertificationFilter(undefined);
                       }}
                       className="text-sm text-primary hover:underline"
                     >

@@ -184,14 +184,13 @@ export default function SkillDetailPage() {
                           {skill.certification}
                         </p>
                         {skill.credlyLink && (
-                          <a 
-                            href={skill.credlyLink} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:underline mt-1 inline-block"
+                          <button 
+                            onClick={() => window.open(skill.credlyLink, '_blank')}
+                            className="flex items-center text-sm text-primary hover:underline mt-1"
                           >
-                            View Certification
-                          </a>
+                            <span className="mr-1">View Certification on Credly</span>
+                            <ExternalLink className="h-3 w-3" />
+                          </button>
                         )}
                       </div>
                     </>
