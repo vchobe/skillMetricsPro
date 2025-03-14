@@ -164,7 +164,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
               )}
             </Link>
             
-            <Link href="/profile" className={`flex items-center px-4 py-3 rounded-md ${
+            <Link href="/profile" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
               currentPath === "/profile" 
                 ? "bg-gray-900 text-white" 
                 : "text-gray-300 hover:bg-gray-700 hover:text-white"
@@ -185,7 +185,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 </h3>
               )}
               <div className="mt-2 space-y-2">
-                <Link href="/admin" className={`flex items-center px-4 py-3 rounded-md ${
+                <Link href="/admin" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
                   currentPath === "/admin" 
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
