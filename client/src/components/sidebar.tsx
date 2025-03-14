@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 // Import the logo directly as a module
-import atyetiLogo from "../assets/atyeti-logo.svg";
+import atyetiLogo from "../assets/Atyeti_logo.png";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -67,7 +67,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
       >
         <div className="px-4 py-5 flex justify-between items-center border-b border-gray-700">
           <div className="flex items-center">
-            <img src={atyetiLogo} alt="Atyeti Logo" className="h-8 w-auto" />
+            <img src={atyetiLogo} alt="Atyeti Logo" className="h-8 w-auto object-contain bg-white rounded-sm p-1" />
             {(isOpen || !isMobile) && (
               <span className={`font-semibold text-xl tracking-tight ml-2 ${!isOpen && "lg:hidden"}`}>
                 SkillMetrics

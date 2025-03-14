@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import NotificationDropdown from "./notification-dropdown";
 // Import the logo directly as a module
-import atyetiLogo from "../assets/atyeti-logo.svg";
+import atyetiLogo from "../assets/Atyeti_logo.png";
 import { 
   Dialog,
   DialogContent,
@@ -69,7 +69,7 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
             <span className="sr-only">Toggle sidebar</span>
           </Button>
           <div className="flex items-center">
-            <img src={atyetiLogo} alt="Atyeti Logo" className="h-8 mr-3" />
+            <img src={atyetiLogo} alt="Atyeti Logo" className="h-8 mr-3 object-contain" />
             <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
           </div>
         </div>
