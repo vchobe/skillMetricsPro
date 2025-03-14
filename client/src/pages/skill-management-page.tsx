@@ -945,14 +945,16 @@ export default function SkillManagementPage() {
                               <FormField
                                 control={targetForm.control}
                                 name="targetDate"
-                                render={({ field }) => (
+                                render={({ field: { value, onChange, ...fieldProps } }) => (
                                   <FormItem>
                                     <FormLabel>Target Date</FormLabel>
                                     <FormControl>
                                       <Input 
                                         type="date" 
-                                        {...field} 
+                                        value={value || ''}
+                                        onChange={onChange}
                                         disabled={!!targetFormData.id}
+                                        {...fieldProps}
                                       />
                                     </FormControl>
                                     <FormDescription>
@@ -1127,8 +1129,8 @@ export default function SkillManagementPage() {
                                             name: target.name || '',
                                             skillIds: target.skillIds || [],
                                             targetLevel: target.targetLevel || 'beginner',
-                                            targetDate: target.targetDate ? new Date(target.targetDate) : undefined,
-                                            targetNumber: target.targetNumber !== undefined ? target.targetNumber : undefined,
+                                            targetDate: target.targetDate || '',
+                                            targetNumber: target.targetNumber !== undefined && target.targetNumber !== null ? target.targetNumber : '',
                                             description: target.description || ''
                                           });
                                           setShowTargetDialog(true);
