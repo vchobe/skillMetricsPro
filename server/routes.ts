@@ -136,7 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Add to update data
           if (typeof value !== 'undefined' && value !== null) {
-            updateData[key as keyof typeof updateData] = value;
+            (updateData as any)[key] = value;
           }
           
           // Create history entry

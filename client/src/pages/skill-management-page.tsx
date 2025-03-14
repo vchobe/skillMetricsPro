@@ -328,7 +328,9 @@ export default function SkillManagementPage() {
   }, [showTargetDialog, targetForm]);
   
   // Extract all unique categories
-  const categories = [...new Set(skillTemplates.map(t => t.category))];
+  const categorySet = new Set<string>();
+  skillTemplates.forEach(t => categorySet.add(t.category));
+  const categories = Array.from(categorySet);
   
   // Group skills by category for selection in target form
   const skillsByCategory = allSkills.reduce((acc, skill) => {

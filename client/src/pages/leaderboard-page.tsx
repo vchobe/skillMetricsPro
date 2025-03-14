@@ -27,14 +27,14 @@ type UserStats = {
   id: number;
   username: string;
   email: string;
-  role?: string;
+  role: string | null | undefined;
   totalSkills: number;
   expertSkills: number;
   intermediateSkills: number;
   beginnerSkills: number;
   certifications: number;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt?: string | null;
 };
 
 export default function LeaderboardPage() {
@@ -58,7 +58,10 @@ export default function LeaderboardPage() {
   
   useEffect(() => {
     if (allSkills) {
-      const categories = [...new Set(allSkills.map(skill => skill.category || 'Other'))];
+      // Create a set and then convert to array to avoid iteration type error
+      const categorySet = new Set<string>();
+      allSkills.forEach(skill => categorySet.add(skill.category || 'Other'));
+      const categories = Array.from(categorySet);
       setSkillCategories(categories);
     }
   }, [allSkills]);
@@ -81,7 +84,7 @@ export default function LeaderboardPage() {
         s.certification !== 'false'
       ).length,
       createdAt: user.createdAt?.toString() || '',
-      updatedAt: user.updatedAt?.toString()
+      updatedAt: undefined // User type doesn't have updatedAt
     };
   }) : [];
   
@@ -220,7 +223,7 @@ export default function LeaderboardPage() {
                     <span>Expert Skills</span>
                   </TabsTrigger>
                   <TabsTrigger value="certifications" className="flex items-center gap-2">
-                    <Certificate className="h-4 w-4" />
+                    <Award className="h-4 w-4" />
                     <span>Certifications</span>
                   </TabsTrigger>
                   <TabsTrigger value="total" className="flex items-center gap-2">
