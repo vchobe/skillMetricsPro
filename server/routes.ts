@@ -247,18 +247,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Forbidden" });
       }
       
+      // Create a copy of the request body without changeNote for skill update
+      const { changeNote, ...skillUpdateData } = req.body;
+      
       // If level is changed, record history
-      if (req.body.level && req.body.level !== skill.level) {
+      if (skillUpdateData.level && skillUpdateData.level !== skill.level) {
         await storage.createSkillHistory({
           skillId,
           userId: req.user!.id,
           previousLevel: skill.level,
-          newLevel: req.body.level,
-          changeNote: req.body.changeNote || `Updated from ${skill.level} to ${req.body.level}`
+          newLevel: skillUpdateData.level,
+          changeNote: changeNote || `Updated from ${skill.level} to ${skillUpdateData.level}`
         });
       }
       
-      const updatedSkill = await storage.updateSkill(skillId, req.body);
+      const updatedSkill = await storage.updateSkill(skillId, skillUpdateData);
       res.json(updatedSkill);
     } catch (error) {
       res.status(500).json({ message: "Error updating skill", error });
