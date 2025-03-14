@@ -15,7 +15,9 @@ import {
 function isUserAdmin(user: any): boolean {
   if (!user) return false;
   
-  const adminValue = user.is_admin;
+  // Check both camelCase and snake_case properties since the property name 
+  // might change during conversion between storage and session
+  const adminValue = user.isAdmin !== undefined ? user.isAdmin : user.is_admin;
   
   // Handle different formats PostgreSQL might return
   if (adminValue === true) return true;
@@ -53,6 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     if (!isUserAdmin(req.user)) {
       console.log("Admin check failed. User:", req.user);
+      console.log("isAdmin value:", req.user?.isAdmin, "type:", typeof req.user?.isAdmin);
       console.log("is_admin value:", req.user?.is_admin, "type:", typeof req.user?.is_admin);
       return res.status(403).json({ message: "Forbidden" });
     }
