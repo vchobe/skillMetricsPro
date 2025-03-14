@@ -443,23 +443,57 @@ export default function UserProfilePage() {
                               
                               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
                                 {categorySkills.map(skill => (
-                                  <div key={skill.id} className="bg-muted/30 rounded-lg p-3 flex justify-between items-center">
-                                    <div>
-                                      <div className="font-medium">{skill.name}</div>
-                                      <div className="flex mt-1">
-                                        <SkillLevelBadge level={skill.level} />
-                                        {skill.certification && 
-                                          skill.certification !== 'true' && 
-                                          skill.certification !== 'false' && (
-                                          <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                                            Certified
-                                          </span>
+                                  <div key={skill.id} className="bg-muted/30 rounded-lg p-3 flex flex-col space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <div>
+                                        <div className="font-medium">{skill.name}</div>
+                                        <div className="flex mt-1">
+                                          <SkillLevelBadge level={skill.level} />
+                                          {skill.certification && 
+                                            skill.certification !== 'true' && 
+                                            skill.certification !== 'false' && (
+                                            <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                                              Certified
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <Link href={`/skills/${skill.id}`}>
+                                        <Button variant="ghost" size="sm">View</Button>
+                                      </Link>
+                                    </div>
+                                    
+                                    {/* Certification Details */}
+                                    {skill.certification && 
+                                      skill.certification !== 'true' && 
+                                      skill.certification !== 'false' && (
+                                      <div className="bg-amber-50 p-2 rounded-md text-sm">
+                                        <div className="font-medium text-amber-800">
+                                          {skill.certification}
+                                        </div>
+                                        {skill.credly_link && (
+                                          <a 
+                                            href={skill.credly_link} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline flex items-center mt-1 text-xs"
+                                          >
+                                            <Award className="h-3 w-3 mr-1" />
+                                            View Credential
+                                          </a>
+                                        )}
+                                        {skill.certification_date && (
+                                          <div className="mt-1 text-xs text-gray-600">
+                                            Earned: {formatDate(skill.certification_date, "MMM yyyy")}
+                                          </div>
+                                        )}
+                                        {skill.expiration_date && (
+                                          <div className="text-xs text-gray-600">
+                                            Expires: {formatDate(skill.expiration_date, "MMM yyyy")}
+                                          </div>
                                         )}
                                       </div>
-                                    </div>
-                                    <Link href={`/skills/${skill.id}`}>
-                                      <Button variant="ghost" size="sm">View</Button>
-                                    </Link>
+                                    )}
                                   </div>
                                 ))}
                               </div>
