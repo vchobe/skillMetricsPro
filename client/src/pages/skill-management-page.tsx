@@ -926,7 +926,7 @@ export default function SkillManagementPage() {
                                         type="number"
                                         min="1"
                                         placeholder="Number of employees to reach this level"
-                                        {...field}
+                                        value={field.value || ''}
                                         onChange={(e) => {
                                           const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
                                           field.onChange(value);
