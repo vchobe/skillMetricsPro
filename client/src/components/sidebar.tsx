@@ -65,11 +65,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
       >
         <div className="px-4 py-5 flex justify-between items-center border-b border-gray-700">
           <div className="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-              <path d="M2 17l10 5 10-5"></path>
-              <path d="M2 12l10 5 10-5"></path>
-            </svg>
+            <img src="/atyeti-logo.svg" alt="Atyeti Logo" className="h-8 w-auto" />
             {(isOpen || !isMobile) && (
               <span className={`font-semibold text-xl tracking-tight ml-2 ${!isOpen && "lg:hidden"}`}>
                 SkillMetrics

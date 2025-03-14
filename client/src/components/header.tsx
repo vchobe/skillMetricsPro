@@ -66,7 +66,10 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
             <MenuIcon className="h-5 w-5" />
             <span className="sr-only">Toggle sidebar</span>
           </Button>
-          <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+          <div className="flex items-center">
+            <img src="/atyeti-logo.svg" alt="Atyeti Logo" className="h-8 mr-3" />
+            <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+          </div>
         </div>
         
         <div className="flex space-x-4 items-center">
