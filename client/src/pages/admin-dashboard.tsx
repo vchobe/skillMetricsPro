@@ -170,6 +170,20 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/advanced-analytics"],
   });
   
+  // Get skill targets
+  const { data: skillTargets = [], isLoading: isLoadingTargets } = useQuery<{
+    id: number;
+    name?: string;
+    skillIds: number[];
+    targetLevel: string;
+    targetDate?: string;
+    targetNumber?: number;
+    description?: string;
+    assignedUsers?: number[];
+  }[]>({
+    queryKey: ["/api/admin/skill-targets"],
+  });
+  
   // Calculate stats
   const stats = {
     totalUsers: users?.length || 0,
