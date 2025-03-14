@@ -20,7 +20,8 @@ import {
   Award, 
   Clock, 
   ThumbsUp, 
-  History 
+  History,
+  ExternalLink
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, formatRelativeTime } from "@/lib/date-utils";
