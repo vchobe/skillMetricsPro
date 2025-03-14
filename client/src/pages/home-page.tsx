@@ -12,7 +12,7 @@ import Header from "@/components/header";
 import SkillChart from "@/components/skill-chart";
 import ActivityFeed from "@/components/activity-feed";
 import SkillLevelBadge from "@/components/skill-level-badge";
-import { formatDistanceToNow } from "date-fns";
+import { formatRelativeTime } from "@/lib/date-utils";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -88,7 +88,8 @@ export default function HomePage() {
     skillId: entry.skillId,
     previousLevel: entry.previousLevel,
     newLevel: entry.newLevel,
-    date: entry.createdAt
+    date: entry.createdAt,
+    userId: entry.userId
   }));
   
   // Top skills (highest level first, then most recently updated)
