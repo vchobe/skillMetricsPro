@@ -1,254 +1,394 @@
 # Database Schema Overview
 
-The Skills Management Platform uses a PostgreSQL database with the following schema:
+The Skills Management Platform uses PostgreSQL with Drizzle ORM. This document outlines the database schema defined in `shared/schema.ts`.
 
-## Entity Relationship Diagram
+## Entity Relationships
+
+![Entity Relationship Diagram](../assets/erd.png)
 
 ```
-+---------------+     +----------------+     +-----------------+
-|     users     |     |     skills     |     |   endorsements  |
-+---------------+     +----------------+     +-----------------+
-| id            |1---*| id             |1---*| id              |
-| username      |     | userId         |     | skillId         |
-| email         |     | name           |     | endorserId      |
-| password      |     | category       |     | comment         |
-| firstName     |     | level          |     | createdAt       |
-| lastName      |     | description    |     +-----------------+
-| role          |     | certification  |
-| isAdmin       |     | createdAt      |
-| project       |     | updatedAt      |
-| location      |     +----------------+
-| createdAt     |            |
-| updatedAt     |            |1
-+---------------+            |
-       |                     |
-       |1                    |
-       |               +-----*-------+     +-----------------+
-       |               | skillHistory|     | notifications   |
-       |               +-------------+     +-----------------+
-       |               | id          |     | id              |
-       |               | skillId     |     | userId          |
-       |               | userId      |     | type            |
-       |               | previousLevel|    | message         |
-       |               | newLevel    |     | read            |
-       |               | date        |     | createdAt       |
-       |               | note        |     | relatedId       |
-       |               +-------------+     +-----------------+
-       |                                          |*
-       |1                                         |
-+------*--------+                                 |1
-| profileHistory|                         +-------*------+
-+---------------+                         | skillTargets |
-| id            |                         +--------------+
-| userId        |                         | id           |
-| field         |                         | name         |
-| previousValue |                         | description  |
-| newValue      |                         | targetLevel  |
-| date          |                         | targetDate   |
-| note          |                         | createdAt    |
-+---------------+                         | updatedAt    |
-                                          +--------------+
-                                                 |
-                                                 |1
-                                                 |
-                                          +------*-------+
-                                          | skillTargetUsers |
-                                          +----------------+
-                                          | targetId       |
-                                          | userId         |
-                                          +----------------+
-                                              
-                                          +----------------+
-                                          | skillTargetSkills |
-                                          +----------------+
-                                          | targetId       |
-                                          | skillId        |
-                                          +----------------+
-
-+---------------+     
-| skillTemplates|     
-+---------------+     
-| id            |     
-| name          |     
-| category      |     
-| description   |     
-| isRecommended |     
-| createdAt     |     
-| updatedAt     |     
-+---------------+     
+users (1)--(*) skills
+skills (1)--(*) skill_histories
+users (1)--(*) profile_histories
+skills (1)--(*) endorsements
+users (1)--(*) notifications
+users (1)--(*) skill_target_users
+skills (1)--(*) skill_target_skills
 ```
 
-## Tables and Columns
+## Tables and Schemas
 
-### users
+### Users Table
 
-This table stores user information.
+The `users` table stores information about users of the platform.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | `serial` | Primary key |
-| `username` | `text` | Unique username |
-| `email` | `text` | Unique email address |
-| `password` | `text` | Hashed password |
-| `firstName` | `text` | User's first name |
-| `lastName` | `text` | User's last name |
-| `role` | `text` | User's job role |
-| `isAdmin` | `boolean` | Whether the user is an admin |
-| `project` | `text` | User's current project |
-| `location` | `text` | User's location |
-| `createdAt` | `timestamp` | When the user was created |
-| `updatedAt` | `timestamp` | When the user was last updated |
+```typescript
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  isAdmin: boolean("is_admin").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  project: text("project"),
+  role: text("role"),
+  location: text("location"),
+});
+```
 
-### skills
+**Key Constraints:**
+- Primary Key: `id`
+- Unique: `username`, `email`
 
-This table stores skills associated with users.
+**Fields Description:**
+- `id`: Auto-incrementing identifier
+- `username`: User's login username
+- `email`: User's email address
+- `password`: Hashed password
+- `isAdmin`: Admin privilege flag
+- `createdAt`: Account creation timestamp
+- `updatedAt`: Account last update timestamp
+- `firstName`: User's first name
+- `lastName`: User's last name
+- `project`: Current project assignment
+- `role`: Job role or title
+- `location`: Work location
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | `serial` | Primary key |
-| `userId` | `integer` | Foreign key to users.id |
-| `name` | `text` | Skill name |
-| `category` | `text` | Skill category |
-| `level` | `enum` | Skill level (beginner, intermediate, expert) |
-| `description` | `text` | Skill description |
-| `certification` | `text` | Certification URL or ID |
-| `certificationDate` | `date` | When certification was obtained |
-| `certificationName` | `text` | Name of certification |
-| `createdAt` | `timestamp` | When the skill was created |
-| `updatedAt` | `timestamp` | When the skill was last updated |
+### Skills Table
 
-### skillHistories
+The `skills` table stores skills possessed by users.
 
-This table tracks changes to skills over time.
+```typescript
+export const skillLevelEnum = pgEnum("skill_level", ["beginner", "intermediate", "expert"]);
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | `serial` | Primary key |
-| `skillId` | `integer` | Foreign key to skills.id |
-| `userId` | `integer` | Foreign key to users.id |
-| `previousLevel` | `enum` | Previous skill level |
-| `newLevel` | `enum` | New skill level |
-| `date` | `timestamp` | When the change occurred |
-| `note` | `text` | Note about the change |
+export const skills = pgTable("skills", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  level: skillLevelEnum("level").notNull(),
+  yearsOfExperience: numeric("years_of_experience"),
+  description: text("description"),
+  certification: text("certification"),
+  certificationLink: text("certification_link"),
+  certificationDate: timestamp("certification_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+```
 
-### profileHistories
+**Key Constraints:**
+- Primary Key: `id`
+- Foreign Key: `userId` references `users.id`
 
-This table tracks changes to user profiles.
+**Fields Description:**
+- `id`: Auto-incrementing identifier
+- `userId`: Reference to user who possesses this skill
+- `name`: Skill name
+- `category`: Skill category
+- `level`: Skill proficiency level (beginner, intermediate, expert)
+- `yearsOfExperience`: Years of experience with the skill
+- `description`: Detailed description of the skill
+- `certification`: Name of certification, if any
+- `certificationLink`: URL to certification verification
+- `certificationDate`: Date when certification was obtained
+- `createdAt`: Skill record creation timestamp
+- `updatedAt`: Skill record last update timestamp
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | `serial` | Primary key |
-| `userId` | `integer` | Foreign key to users.id |
-| `field` | `text` | Profile field that changed |
-| `previousValue` | `text` | Previous value |
-| `newValue` | `text` | New value |
-| `date` | `timestamp` | When the change occurred |
-| `note` | `text` | Note about the change |
+### Skill Histories Table
 
-### endorsements
+The `skill_histories` table tracks changes to skill levels over time.
 
-This table stores skill endorsements between users.
+```typescript
+export const skillHistories = pgTable("skill_histories", {
+  id: serial("id").primaryKey(),
+  skillId: integer("skill_id").notNull().references(() => skills.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  previousLevel: skillLevelEnum("previous_level"),
+  newLevel: skillLevelEnum("new_level").notNull(),
+  date: timestamp("date").defaultNow(),
+  note: text("note"),
+});
+```
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | `serial` | Primary key |
-| `skillId` | `integer` | Foreign key to skills.id |
-| `endorserId` | `integer` | Foreign key to users.id (who gave the endorsement) |
-| `comment` | `text` | Endorsement comment |
-| `createdAt` | `timestamp` | When the endorsement was created |
+**Key Constraints:**
+- Primary Key: `id`
+- Foreign Keys: 
+  - `skillId` references `skills.id`
+  - `userId` references `users.id`
 
-### notifications
+**Fields Description:**
+- `id`: Auto-incrementing identifier
+- `skillId`: Reference to the skill being updated
+- `userId`: Reference to the user who owns the skill
+- `previousLevel`: Previous skill level
+- `newLevel`: New skill level
+- `date`: Date of the change
+- `note`: Optional note about the change
 
-This table stores user notifications.
+### Profile Histories Table
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | `serial` | Primary key |
-| `userId` | `integer` | Foreign key to users.id |
-| `type` | `enum` | Notification type (endorsement, level_up, achievement) |
-| `message` | `text` | Notification message |
-| `read` | `boolean` | Whether the notification has been read |
-| `createdAt` | `timestamp` | When the notification was created |
-| `relatedId` | `integer` | Related entity ID (skill, endorsement, etc.) |
+The `profile_histories` table tracks changes to user profiles.
 
-### skillTemplates
+```typescript
+export const profileHistories = pgTable("profile_histories", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  field: text("field").notNull(),
+  previousValue: text("previous_value"),
+  newValue: text("new_value").notNull(),
+  date: timestamp("date").defaultNow(),
+});
+```
 
-This table stores predefined skill templates that users can adopt.
+**Key Constraints:**
+- Primary Key: `id`
+- Foreign Key: `userId` references `users.id`
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | `serial` | Primary key |
-| `name` | `text` | Template name |
-| `category` | `text` | Skill category |
-| `description` | `text` | Template description |
-| `isRecommended` | `boolean` | Whether this is a recommended template |
-| `createdAt` | `timestamp` | When the template was created |
-| `updatedAt` | `timestamp` | When the template was last updated |
+**Fields Description:**
+- `id`: Auto-incrementing identifier
+- `userId`: Reference to the user whose profile changed
+- `field`: Name of the profile field that changed
+- `previousValue`: Previous field value
+- `newValue`: New field value
+- `date`: Date of the change
 
-### skillTargets
+### Notifications Table
 
-This table stores skill targets for the organization.
+The `notifications` table stores system notifications for users.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | `serial` | Primary key |
-| `name` | `text` | Target name |
-| `description` | `text` | Target description |
-| `targetLevel` | `enum` | Target skill level |
-| `targetDate` | `date` | Target completion date |
-| `createdAt` | `timestamp` | When the target was created |
-| `updatedAt` | `timestamp` | When the target was last updated |
+```typescript
+export const notificationTypeEnum = pgEnum("notification_type", ["endorsement", "level_up", "achievement"]);
 
-### skillTargetSkills
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: notificationTypeEnum("type").notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  relatedSkillId: integer("related_skill_id").references(() => skills.id, { onDelete: "set null" }),
+  relatedUserId: integer("related_user_id").references(() => users.id, { onDelete: "set null" }),
+});
+```
 
-This table maps skills to skill targets (many-to-many).
+**Key Constraints:**
+- Primary Key: `id`
+- Foreign Keys:
+  - `userId` references `users.id`
+  - `relatedSkillId` references `skills.id`
+  - `relatedUserId` references `users.id`
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `targetId` | `integer` | Foreign key to skillTargets.id |
-| `skillId` | `integer` | Foreign key to skills.id |
+**Fields Description:**
+- `id`: Auto-incrementing identifier
+- `userId`: Reference to the notification recipient
+- `type`: Notification type (endorsement, level_up, achievement)
+- `message`: Notification message content
+- `isRead`: Flag indicating if notification has been read
+- `createdAt`: Notification creation timestamp
+- `relatedSkillId`: Optional reference to a skill related to the notification
+- `relatedUserId`: Optional reference to a user related to the notification
 
-### skillTargetUsers
+### Endorsements Table
 
-This table maps users to skill targets (many-to-many).
+The `endorsements` table stores skill endorsements between users.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `targetId` | `integer` | Foreign key to skillTargets.id |
-| `userId` | `integer` | Foreign key to users.id |
+```typescript
+export const endorsements = pgTable("endorsements", {
+  id: serial("id").primaryKey(),
+  skillId: integer("skill_id").notNull().references(() => skills.id, { onDelete: "cascade" }),
+  endorserId: integer("endorser_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+```
 
-## Enums
+**Key Constraints:**
+- Primary Key: `id`
+- Foreign Keys:
+  - `skillId` references `skills.id`
+  - `endorserId` references `users.id`
 
-The database uses the following enum types:
+**Fields Description:**
+- `id`: Auto-incrementing identifier
+- `skillId`: Reference to the endorsed skill
+- `endorserId`: Reference to the user who made the endorsement
+- `comment`: Optional endorsement comment
+- `createdAt`: Endorsement creation timestamp
 
-### skill_level
-- `beginner`
-- `intermediate`
-- `expert`
+### Skill Templates Table
 
-### notification_type
-- `endorsement`
-- `level_up`
-- `achievement`
+The `skill_templates` table stores predefined skill templates for organizations.
 
-## Indexes
+```typescript
+export const skillTemplates = pgTable("skill_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  description: text("description"),
+  isRecommended: boolean("is_recommended").default(false),
+  targetLevel: skillLevelEnum("target_level"),
+  targetDate: timestamp("target_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+```
 
-Important indexes for performance optimization:
+**Key Constraints:**
+- Primary Key: `id`
 
-- `users_email_idx`: Index on `users.email`
-- `users_username_idx`: Index on `users.username`
-- `skills_userId_idx`: Index on `skills.userId`
-- `skills_category_idx`: Index on `skills.category`
-- `endorsements_skillId_idx`: Index on `endorsements.skillId`
-- `notifications_userId_idx`: Index on `notifications.userId`
-- `skillTargetSkills_targetId_idx`: Index on `skillTargetSkills.targetId`
-- `skillTargetUsers_targetId_idx`: Index on `skillTargetUsers.targetId`
+**Fields Description:**
+- `id`: Auto-incrementing identifier
+- `name`: Template skill name
+- `category`: Skill category
+- `description`: Detailed description
+- `isRecommended`: Flag for organization-recommended skills
+- `targetLevel`: Recommended target skill level
+- `targetDate`: Suggested date for reaching target level
+- `createdAt`: Template creation timestamp
+- `updatedAt`: Template last update timestamp
 
-## Constraints
+### Skill Targets Table
 
-Key constraints in the database:
+The `skill_targets` table defines skill targets for individuals or groups.
 
-- `users_email_unique`: Unique constraint on `users.email`
-- `users_username_unique`: Unique constraint on `users.username`
-- `skills_userId_name_unique`: Unique constraint on `skills.userId` and `skills.name`
-- `endorsements_skillId_endorserId_unique`: Unique constraint preventing duplicate endorsements
+```typescript
+export const skillTargets = pgTable("skill_targets", {
+  id: serial("id").primaryKey(),
+  name: text("name"),
+  description: text("description"),
+  targetLevel: skillLevelEnum("target_level").notNull(),
+  targetDate: timestamp("target_date"),
+  targetNumber: integer("target_number"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const skillTargetSkills = pgTable("skill_target_skills", {
+  targetId: integer("target_id").notNull().references(() => skillTargets.id, { onDelete: "cascade" }),
+  skillId: integer("skill_id").notNull().references(() => skills.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.targetId, t.skillId] }),
+}));
+
+export const skillTargetUsers = pgTable("skill_target_users", {
+  targetId: integer("target_id").notNull().references(() => skillTargets.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.targetId, t.userId] }),
+}));
+```
+
+**Key Constraints:**
+- Primary Keys:
+  - `id` for `skillTargets`
+  - Composite of `targetId` and `skillId` for `skillTargetSkills`
+  - Composite of `targetId` and `userId` for `skillTargetUsers`
+- Foreign Keys:
+  - `targetId` references `skillTargets.id`
+  - `skillId` references `skills.id`
+  - `userId` references `users.id`
+
+**Fields Description:**
+- `id`: Auto-incrementing identifier
+- `name`: Target name
+- `description`: Target description
+- `targetLevel`: Required skill level
+- `targetDate`: Target date for completion
+- `targetNumber`: Required number of skills to meet target
+- `createdAt`: Target creation timestamp
+- `updatedAt`: Target last update timestamp
+
+## TypeScript Types
+
+The schema defines TypeScript types for all entities:
+
+```typescript
+export type User = typeof users.$inferSelect & {
+  isAdmin?: boolean;
+};
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type LoginUser = z.infer<typeof loginUserSchema>;
+
+export type Skill = typeof skills.$inferSelect;
+export type InsertSkill = z.infer<typeof insertSkillSchema>;
+
+export type SkillHistory = typeof skillHistories.$inferSelect;
+export type InsertSkillHistory = z.infer<typeof insertSkillHistorySchema>;
+
+export type ProfileHistory = typeof profileHistories.$inferSelect;
+export type InsertProfileHistory = z.infer<typeof insertProfileHistorySchema>;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type Endorsement = typeof endorsements.$inferSelect;
+export type InsertEndorsement = z.infer<typeof insertEndorsementSchema>;
+
+export type SkillTemplate = typeof skillTemplates.$inferSelect;
+export type InsertSkillTemplate = z.infer<typeof insertSkillTemplateSchema>;
+
+export type SkillTarget = typeof skillTargets.$inferSelect;
+export type InsertSkillTarget = z.infer<typeof insertSkillTargetSchema>;
+```
+
+## Validation Schemas
+
+The schema also defines Zod validation schemas for data insertion:
+
+```typescript
+export const insertUserSchema = createInsertSchema(users);
+export const loginUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string()
+});
+export const registerSchema = z.object({
+  username: z.string().min(3),
+  email: z.string().email(),
+  password: z.string().min(8),
+  confirmPassword: z.string().min(8),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
+});
+
+export const insertSkillSchema = createInsertSchema(skills).pick({
+  userId: true,
+  name: true,
+  category: true,
+  level: true,
+  yearsOfExperience: true,
+  description: true,
+  certification: true,
+  certificationLink: true,
+  certificationDate: true,
+});
+
+// Additional validation schemas for other entities...
+```
+
+## Migration and Database Management
+
+The platform uses Drizzle for database migrations:
+
+1. Database schema changes are made in `shared/schema.ts`
+2. Run `npm run db:push` to update the database schema
+
+For complete database migration scripts, refer to:
+- `db-push.js` - Handles schema migrations
+- `scripts/regenerate-data.js` - Resets and regenerates test data
+- `deployment/setup-database.sh` - Sets up the database in production
+
+## Schema Best Practices
+
+1. Use appropriate column types (e.g., `text()` for strings, `integer()` for numbers)
+2. Define foreign key relationships with `references()`
+3. Set cascading deletes where appropriate with `{ onDelete: "cascade" }`
+4. Use enums for fields with a fixed set of values
+5. Include timestamps for audit purposes (`createdAt`, `updatedAt`)
+6. Add meaningful constraints and defaults
