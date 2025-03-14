@@ -10,7 +10,8 @@ import {
   ChevronRight,
   BarChart4,
   UsersRound,
-  LogOut
+  LogOut,
+  Trophy
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -118,6 +119,39 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
               <Brain className="h-5 w-5" />
               {(isOpen || !isMobile) && (
                 <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>My Skills</span>
+              )}
+            </Link>
+            
+            <Link href="/organization" className={`flex items-center px-4 py-3 rounded-md ${
+              currentPath === "/organization" 
+                ? "bg-gray-900 text-white" 
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`}>
+              <BarChart4 className="h-5 w-5" />
+              {(isOpen || !isMobile) && (
+                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Organization</span>
+              )}
+            </Link>
+            
+            <Link href="/leaderboard" className={`flex items-center px-4 py-3 rounded-md ${
+              currentPath === "/leaderboard" 
+                ? "bg-gray-900 text-white" 
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`}>
+              <Trophy className="h-5 w-5" />
+              {(isOpen || !isMobile) && (
+                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Leaderboard</span>
+              )}
+            </Link>
+            
+            <Link href="/users" className={`flex items-center px-4 py-3 rounded-md ${
+              currentPath === "/users" 
+                ? "bg-gray-900 text-white" 
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`}>
+              <UsersRound className="h-5 w-5" />
+              {(isOpen || !isMobile) && (
+                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Users</span>
               )}
             </Link>
             

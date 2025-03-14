@@ -29,7 +29,7 @@ function Router() {
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/users" component={UsersPage} />
       <ProtectedRoute path="/users/:userId" component={UserProfilePage} />
-      <ProtectedRoute path="/org" component={OrgDashboard} />
+      <ProtectedRoute path="/organization" component={OrgDashboard} />
       <ProtectedRoute path="/leaderboard" component={LeaderboardPage} />
       <ProtectedRoute path="/admin" component={AdminDashboard} adminOnly={true} />
       <ProtectedRoute path="/admin/skills" component={SkillManagementPage} adminOnly={true} />
