@@ -78,7 +78,8 @@ import {
   RadarIcon,
   DownloadCloud,
   Calendar,
-  SquareStack
+  SquareStack,
+  User as UserIcon
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
@@ -1101,7 +1102,7 @@ export default function AdminDashboard() {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="text-sm text-gray-900">{userSkillCount}</div>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                                   <Button 
                                     variant="ghost" 
                                     size="sm" 
@@ -1135,6 +1136,19 @@ export default function AdminDashboard() {
                                     }}
                                   >
                                     View Skills
+                                  </Button>
+                                  
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-primary hover:text-primary-foreground"
+                                    onClick={() => {
+                                      // Navigate to user profile
+                                      window.location.href = `/users/${user.id}`;
+                                    }}
+                                  >
+                                    <UserIcon className="h-4 w-4 mr-1" />
+                                    View Profile
                                   </Button>
                                 </td>
                               </tr>
