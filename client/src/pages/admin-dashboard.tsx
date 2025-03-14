@@ -570,7 +570,7 @@ export default function AdminDashboard() {
                           <Pie
                             data={skillNameData}
                             cx="50%"
-                            cy="35%"
+                            cy="45%"
                             labelLine={false}
                             outerRadius={100}
                             fill="#8884d8"
@@ -592,9 +592,9 @@ export default function AdminDashboard() {
                             verticalAlign="bottom" 
                             align="center"
                             wrapperStyle={{ 
-                              paddingTop: 50,
+                              paddingTop: 20,
                               width: '100%',
-                              bottom: 5,
+                              bottom: 10,
                               left: 0,
                               right: 0
                             }}
