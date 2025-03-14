@@ -1630,8 +1630,8 @@ export default function AdminDashboard() {
                               </div>
                             </td>
                           </tr>
-                        ) : users && users.length > 0 ? (
-                          users.map((user) => {
+                        ) : filteredSortedUsers && filteredSortedUsers.length > 0 ? (
+                          filteredSortedUsers.map((user) => {
                             // Count user skills
                             // In the database, userId is stored as snake_case (user_id)
                             const userSkillCount = skills?.filter(s => 
@@ -1722,7 +1722,7 @@ export default function AdminDashboard() {
                         ) : (
                           <tr>
                             <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                              No users found
+                              {searchQuery ? `No users found matching "${searchQuery}"` : "No users found"}
                             </td>
                           </tr>
                         )}
