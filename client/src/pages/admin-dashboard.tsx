@@ -97,6 +97,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [skillCategoryFilter, setSkillCategoryFilter] = useState("all");
+  // This was removed as there's already another useEffect for the same purpose below
   
   // User profile dialog state
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
@@ -522,7 +523,7 @@ export default function AdminDashboard() {
       {/* Hidden links for CSV exports */}
       <a ref={csvExportRef} className="hidden"></a>
       <a ref={skillGapExportRef} className="hidden"></a>
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/admin" />
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/admin-dashboard" />
       
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <Header 
@@ -540,8 +541,10 @@ export default function AdminDashboard() {
           <Tabs 
             value={activeTab} 
             onValueChange={(value) => {
-              // Update location when tab value changes through clicking tabs
-              setLocation(`/admin-dashboard?tab=${value}`);
+              // Update active tab state
+              setActiveTab(value);
+              // Update URL to reflect selected tab (this allows for bookmarking and sharing specific tabs)
+              setLocation(value === "dashboard" ? "/admin-dashboard" : `/admin-dashboard?tab=${value}`);
             }}
           >
             <TabsList className="grid w-full grid-cols-4 mb-6">

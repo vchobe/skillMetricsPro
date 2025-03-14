@@ -198,7 +198,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   )}
                 </Link>
                 <Link href="/admin-dashboard?tab=skill-history" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin-dashboard" && location.includes("tab=skill-history")
+                  currentPath === "/admin-dashboard" && window.location.search.includes("tab=skill-history")
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}>
@@ -208,7 +208,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   )}
                 </Link>
                 <Link href="/admin-dashboard?tab=certifications" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin-dashboard" && location.includes("tab=certifications") 
+                  currentPath === "/admin-dashboard" && window.location.search.includes("tab=certifications") 
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}>
@@ -221,7 +221,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   )}
                 </Link>
                 <Link href="/admin-dashboard?tab=users" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin-dashboard" && location.includes("tab=users") 
+                  currentPath === "/admin-dashboard" && window.location.search.includes("tab=users") 
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}>
@@ -231,7 +231,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   )}
                 </Link>
                 <Link href="/admin-dashboard?tab=skills" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin-dashboard" && location.includes("tab=skills") 
+                  currentPath === "/admin-dashboard" && window.location.search.includes("tab=skills") 
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}>
