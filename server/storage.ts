@@ -89,7 +89,7 @@ export class PostgresStorage implements IStorage {
   constructor() {
     // Use the shared pool from db.ts
     this.sessionStore = new PostgresSessionStore({
-      pool: pool,
+      pool: pool as any, // Type conversion needed due to differences between pg Pool and neon Pool
       createTableIfMissing: true,
       tableName: 'session', // Explicitly name the session table
       createTableSql: `

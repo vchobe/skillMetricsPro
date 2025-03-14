@@ -184,9 +184,9 @@ export default function SkillDetailPage() {
                           <Award className="mr-1 h-4 w-4 text-muted-foreground" />
                           {skill.certification}
                         </p>
-                        {skill.credlyLink && (
+                        {skill.credlyLink && skill.credlyLink.trim() !== '' && (
                           <button 
-                            onClick={() => window.open(skill.credlyLink, '_blank')}
+                            onClick={() => window.open(String(skill.credlyLink || ''), '_blank')}
                             className="flex items-center text-sm text-primary hover:underline mt-1"
                           >
                             <span className="mr-1">View Certification on Credly</span>
