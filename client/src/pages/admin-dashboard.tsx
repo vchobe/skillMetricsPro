@@ -1046,19 +1046,72 @@ export default function AdminDashboard() {
             
             <TabsContent value="users">
               <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>User Management</CardTitle>
+                <CardHeader className="flex flex-col sm:flex-row justify-between sm:items-center">
+                  <div>
+                    <CardTitle>User Management</CardTitle>
+                  </div>
+                  <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                      <input 
+                        type="text" 
+                        placeholder="Search users..." 
+                        className="pl-8 h-9 w-full sm:w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        onChange={(e) => {
+                          // Here we would implement search functionality
+                          // This is a placeholder for now
+                        }}
+                      />
+                    </div>
+                    <Select defaultValue="all">
+                      <SelectTrigger className="w-full sm:w-[150px]">
+                        <SelectValue placeholder="Filter by role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Roles</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="developer">Developer</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="employee">Employee</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </CardHeader>
                 <CardContent className="px-0">
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skills</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                            <div className="flex items-center">
+                              User
+                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                            </div>
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                            <div className="flex items-center">
+                              Email
+                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                            </div>
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                            <div className="flex items-center">
+                              Role
+                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                            </div>
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                            <div className="flex items-center">
+                              Project
+                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                            </div>
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                            <div className="flex items-center">
+                              Skills
+                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                            </div>
+                          </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
