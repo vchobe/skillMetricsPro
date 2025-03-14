@@ -120,6 +120,17 @@ export class PostgresStorage implements IStorage {
       
       let value = obj[key];
       
+      // Specific handling for boolean fields from PostgreSQL
+      if (key === 'is_admin') {
+        // PostgreSQL returns booleans as 't' or 'f' strings sometimes
+        if (value === 't' || value === true || value === 'true') {
+          value = true;
+        } else if (value === 'f' || value === false || value === 'false') {
+          value = false;
+        }
+        console.log(`Converting is_admin from ${obj[key]} to ${value}`);
+      }
+      
       // Standardize date formats if the field is a known date field and contains a valid date
       if (dateFields.includes(camelKey) && value !== null && value !== undefined) {
         // Convert PostgreSQL timestamps to ISO strings

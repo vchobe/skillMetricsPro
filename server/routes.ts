@@ -130,10 +130,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Directly check database for current admin status
       const userCheck = await pool.query('SELECT is_admin FROM users WHERE id = $1', [userId]);
-      const isAdmin = userCheck.rows[0]?.is_admin === true;
-      console.log("Admin status directly from database:", userCheck.rows[0]?.is_admin, "Parsed as boolean:", isAdmin);
+      // Convert PostgreSQL boolean representation to JS boolean
+      const dbValue = userCheck.rows[0]?.is_admin;
+      const isAdmin = dbValue === true || dbValue === 't' || dbValue === 'true';
       
-      console.log("Current admin status before update:", isAdmin);
+      console.log("Admin status from database (raw):", dbValue);
+      console.log("Admin status from database (type):", typeof dbValue);
+      console.log("Admin status converted to boolean:", isAdmin);
+      console.log("User object from storage:", user);
+      console.log("User object isAdmin property:", user.isAdmin);
       
       // Track changes for history
       for (const [key, value] of Object.entries(req.body)) {
