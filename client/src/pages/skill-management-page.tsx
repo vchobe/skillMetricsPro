@@ -73,6 +73,7 @@ type SkillTemplate = {
 
 type SkillTarget = {
   id: number;
+  name?: string;
   skillIds: number[];
   targetLevel: string;
   targetDate?: string;
@@ -746,6 +747,23 @@ export default function SkillManagementPage() {
                             <form onSubmit={targetForm.handleSubmit(onTargetSubmit)} className="space-y-4">
                               <FormField
                                 control={targetForm.control}
+                                name="name"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Target Name</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Q2 Expert React Target" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Name for this skill target
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={targetForm.control}
                                 name="skillIds"
                                 render={({ field }) => (
                                   <FormItem>
@@ -904,7 +922,7 @@ export default function SkillManagementPage() {
                                 <TableRow key={target.id}>
                                   <TableCell>
                                     <div className="font-medium">
-                                      {target.description || `Skills Target #${target.id}`}
+                                      {target.name || target.description || `Skills Target #${target.id}`}
                                     </div>
                                     <div className="text-sm text-muted-foreground">
                                       {target.skillIds.length} skills included
