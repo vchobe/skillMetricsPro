@@ -536,19 +536,35 @@ export default function AdminDashboard() {
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="dashboard" 
+                className="flex items-center gap-2"
+                onClick={() => setLocation("/admin-dashboard?tab=dashboard")}
+              >
                 <BarChart4 className="h-4 w-4" />
                 <span>Dashboard</span>
               </TabsTrigger>
-              <TabsTrigger value="skill-history" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="skill-history" 
+                className="flex items-center gap-2"
+                onClick={() => setLocation("/admin-dashboard?tab=skill-history")}
+              >
                 <History className="h-4 w-4" />
                 <span>Skill History</span>
               </TabsTrigger>
-              <TabsTrigger value="certifications" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="certifications" 
+                className="flex items-center gap-2"
+                onClick={() => setLocation("/admin-dashboard?tab=certifications")}
+              >
                 <Award className="h-4 w-4" />
                 <span>Certifications</span>
               </TabsTrigger>
-              <TabsTrigger value="users" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="users" 
+                className="flex items-center gap-2"
+                onClick={() => setLocation("/admin-dashboard?tab=users")}
+              >
                 <Users className="h-4 w-4" />
                 <span>User Management</span>
               </TabsTrigger>
@@ -575,7 +591,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-gray-50 px-5 py-3">
                       <div className="text-sm">
-                        <Button variant="link" onClick={() => setActiveTab("users")} className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500">
+                        <Button variant="link" onClick={() => setLocation("/admin-dashboard?tab=users")} className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500">
                           View all
                         </Button>
                       </div>
@@ -632,7 +648,11 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-gray-50 px-5 py-3">
                       <div className="text-sm">
-                        <Button variant="link" className="p-0 h-auto font-medium text-green-600 hover:text-green-500">
+                        <Button 
+                          variant="link" 
+                          onClick={() => setLocation("/admin-dashboard?tab=certifications")}
+                          className="p-0 h-auto font-medium text-green-600 hover:text-green-500"
+                        >
                           View all
                         </Button>
                       </div>
@@ -762,7 +782,11 @@ export default function AdminDashboard() {
                       </table>
                     </div>
                     <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                      <Button variant="link" className="p-0 h-auto font-medium text-indigo-600 hover:text-indigo-900">
+                      <Button 
+                        variant="link" 
+                        onClick={() => setLocation("/admin-dashboard?tab=skill-history")}
+                        className="p-0 h-auto font-medium text-indigo-600 hover:text-indigo-900"
+                      >
                         View all updates
                       </Button>
                     </div>
