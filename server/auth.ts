@@ -158,6 +158,11 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Invalid email format" });
       }
       
+      // Validate domain restriction - only allow @atyeti.com emails
+      if (!req.body.email.endsWith('@atyeti.com')) {
+        return res.status(400).json({ message: "Only @atyeti.com email addresses are allowed" });
+      }
+      
       // Check if the email already exists
       const existingEmail = await storage.getUserByEmail(req.body.email);
       if (existingEmail) {
@@ -165,9 +170,40 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already exists" });
       }
 
-      // Generate a random password
-      const generatedPassword = randomBytes(6).toString("hex");
-      console.log(`Generated password for ${req.body.email}: ${generatedPassword}`);
+      // Generate a secure temporary password (8 characters with at least 1 uppercase, 1 lowercase, 1 number, 1 special character)
+      // This ensures that even the temporary password meets security requirements
+      const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const lower = 'abcdefghijklmnopqrstuvwxyz';
+      const numbers = '0123456789';
+      const special = '@$!%*?&';
+      
+      // Get at least one character from each category
+      const randomUpper = upper.charAt(Math.floor(Math.random() * upper.length));
+      const randomLower = lower.charAt(Math.floor(Math.random() * lower.length));
+      const randomNumber = numbers.charAt(Math.floor(Math.random() * numbers.length));
+      const randomSpecial = special.charAt(Math.floor(Math.random() * special.length));
+      
+      // Generate remaining random characters (4 more for a total of 8)
+      const allChars = upper + lower + numbers + special;
+      let remaining = '';
+      for (let i = 0; i < 4; i++) {
+        remaining += allChars.charAt(Math.floor(Math.random() * allChars.length));
+      }
+      
+      // Combine all parts and shuffle
+      const shuffleArray = (arr: string[]) => {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      };
+      
+      const generatedPassword = shuffleArray([
+        randomUpper, randomLower, randomNumber, randomSpecial, ...remaining.split('')
+      ]).join('');
+      
+      console.log(`Generated secure password for ${req.body.email}: ${generatedPassword}`);
       
       // Hash the generated password
       const hashedPassword = await hashPassword(generatedPassword);
@@ -360,21 +396,77 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email is required" });
       }
 
+      // Validate email format
+      if (!email.includes('@')) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      
+      // Only allow password resets for atyeti.com domain
+      if (!email.endsWith('@atyeti.com')) {
+        return res.status(200).json({ message: "If your email exists, a password reset link will be sent" });
+      }
+
       const user = await storage.getUserByEmail(email);
       if (!user) {
         // Don't reveal whether a user exists or not
         return res.status(200).json({ message: "If your email exists, a password reset link will be sent" });
       }
 
-      // In a real application, send an email with a reset token
-      // For demo, we're just resetting to a temporary password
-      const temporaryPassword = randomBytes(8).toString("hex");
+      // Generate a secure temporary password (8 characters with mix of types)
+      const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const lower = 'abcdefghijklmnopqrstuvwxyz';
+      const numbers = '0123456789';
+      const special = '@$!%*?&';
+      
+      // Get at least one character from each category
+      const randomUpper = upper.charAt(Math.floor(Math.random() * upper.length));
+      const randomLower = lower.charAt(Math.floor(Math.random() * lower.length));
+      const randomNumber = numbers.charAt(Math.floor(Math.random() * numbers.length));
+      const randomSpecial = special.charAt(Math.floor(Math.random() * special.length));
+      
+      // Generate remaining random characters (4 more for a total of 8)
+      const allChars = upper + lower + numbers + special;
+      let remaining = '';
+      for (let i = 0; i < 4; i++) {
+        remaining += allChars.charAt(Math.floor(Math.random() * allChars.length));
+      }
+      
+      // Combine all parts and shuffle
+      const shuffleArray = (arr: string[]) => {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      };
+      
+      const temporaryPassword = shuffleArray([
+        randomUpper, randomLower, randomNumber, randomSpecial, ...remaining.split('')
+      ]).join('');
+
       const hashedPassword = await hashPassword(temporaryPassword);
       
       await storage.updateUserPassword(user.id, hashedPassword);
       
       // In a real implementation, send an email with the temp password
-      console.log(`Temporary password for ${email}: ${temporaryPassword}`);
+      console.log(`
+      ========== PASSWORD RESET CONFIRMATION ==========
+      To: ${user.email}
+      Subject: Your Password Has Been Reset
+      
+      Hello ${user.username},
+      
+      Your password has been reset successfully.
+      Please use the following temporary password to log in:
+      
+      Temporary Password: ${temporaryPassword}
+      
+      Please change your password immediately after logging in.
+      
+      Best regards,
+      The Employee Skill Metrics Team
+      ============================================
+      `);
       
       res.status(200).json({ message: "If your email exists, a password reset link will be sent" });
     } catch (error) {

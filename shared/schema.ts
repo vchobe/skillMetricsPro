@@ -27,9 +27,13 @@ export const insertUserSchema = createInsertSchema(users)
     password: z.string().optional(), // Password is generated on server
   });
 
-// Registration schema only needs email
+// Registration schema only needs email, and must be an @atyeti.com domain
 export const registerSchema = z.object({
-  email: z.string().email("Valid email is required"),
+  email: z.string()
+    .email("Valid email is required")
+    .refine(email => email.endsWith('@atyeti.com'), {
+      message: "Only @atyeti.com email addresses are allowed"
+    }),
 });
 
 export const loginUserSchema = z.object({
