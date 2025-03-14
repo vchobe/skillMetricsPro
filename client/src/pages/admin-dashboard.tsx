@@ -542,9 +542,24 @@ export default function AdminDashboard() {
                 </Card>
                 
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Top Skills Distribution</CardTitle>
-                    <CardDescription>Shows the most frequently added skills across organization</CardDescription>
+                  <CardHeader className="flex flex-col md:flex-row justify-between md:items-center pb-6">
+                    <div>
+                      <CardTitle>Top Skills Distribution</CardTitle>
+                      <CardDescription>Shows the most frequently added skills across organization</CardDescription>
+                    </div>
+                    <div className="mt-4 md:mt-0">
+                      <Select value={skillCategoryFilter} onValueChange={setSkillCategoryFilter}>
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Filter by category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {skillCategories.map((category) => (
+                            <SelectItem key={category} value={category}>{category}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="h-[300px]">
