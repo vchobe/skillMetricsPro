@@ -214,8 +214,15 @@ export class PostgresStorage implements IStorage {
       
       // Build SET clause and parameters
       for (const [key, value] of Object.entries(data)) {
-        // Convert camelCase to snake_case for database column names
-        const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        // Special case handling for isAdmin -> is_admin
+        let columnName;
+        if (key === 'isAdmin') {
+          columnName = 'is_admin';
+        } else {
+          // Convert camelCase to snake_case for database column names
+          columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        }
+        console.log(`Converting property ${key} to column ${columnName} with value ${value}`);
         sets.push(`${columnName} = $${paramIndex}`);
         params.push(value);
         paramIndex++;

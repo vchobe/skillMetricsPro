@@ -155,9 +155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (Object.keys(updateData).length > 0) {
-        // Always preserve the admin flag using is_admin for the database
-        // Use type assertion to bypass TypeScript's property checking
-        (updateData as any).is_admin = isAdmin;
+        // Always preserve the admin flag by including it specifically as isAdmin
+        // This will be properly converted to is_admin in storage.ts
+        (updateData as any).isAdmin = isAdmin;
         
         console.log("Update data with preserved admin flag:", updateData);
         
