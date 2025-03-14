@@ -534,7 +534,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: targetData.name || `Target: ${targetData.targetLevel} level`, // Default name if not provided
         description: targetData.description,
         targetLevel: targetData.targetLevel,
-        targetDate: targetData.targetDate
+        targetDate: targetData.targetDate,
+        targetNumber: targetData.targetNumber
       });
       
       // Add skills to the target
