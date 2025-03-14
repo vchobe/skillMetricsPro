@@ -282,6 +282,34 @@ export default function SkillManagementPage() {
     },
   });
   
+  // Update skill target mutation
+  const updateTargetMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: SkillTargetValues }) => {
+      const res = await apiRequest("PATCH", `/api/admin/skill-targets/${id}`, data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update skill target");
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-targets"] });
+      toast({
+        title: "Success",
+        description: "Skill target updated successfully",
+      });
+      setShowTargetDialog(false);
+      targetForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Delete skill target mutation
   const deleteTargetMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -319,7 +347,13 @@ export default function SkillManagementPage() {
   
   // Handle target form submission
   const onTargetSubmit = (data: SkillTargetValues) => {
-    createTargetMutation.mutate(data);
+    if (targetFormData.id) {
+      // Handle update case
+      updateTargetMutation.mutate({ id: targetFormData.id, data });
+    } else {
+      // Handle create case
+      createTargetMutation.mutate(data);
+    }
   };
   
   // Handle editing template
