@@ -859,6 +859,74 @@ export default function SkillManagementPage() {
                                 )}
                               />
                               
+                              {/* Template Selector - Only shown when creating new target */}
+                              {!targetFormData.id && (
+                                <div className="mb-4">
+                                  <h3 className="text-base font-medium mb-2">Use Template</h3>
+                                  <p className="text-sm text-gray-500 mb-3">
+                                    Optionally select a template to pre-fill skill details
+                                  </p>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {skillTemplates.map(template => (
+                                      <div 
+                                        key={template.id}
+                                        className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                                        onClick={() => {
+                                          // Pre-fill form with template values
+                                          targetForm.setValue('name', `${template.name} Target`);
+                                          targetForm.setValue('targetLevel', 
+                                            (template.targetLevel as "beginner" | "intermediate" | "expert") || 'intermediate');
+                                          if (template.targetDate) {
+                                            const date = new Date(template.targetDate);
+                                            if (!isNaN(date.getTime())) {
+                                              targetForm.setValue('targetDate', date.toISOString().split('T')[0]);
+                                            }
+                                          }
+                                          targetForm.setValue('description', template.description || '');
+                                          
+                                          // Select the associated skills if available
+                                          const matchingSkills = allSkills.filter(
+                                            skill => skill.name?.toLowerCase() === template.name?.toLowerCase() || 
+                                                    skill.category?.toLowerCase() === template.category?.toLowerCase()
+                                          ).map(skill => skill.id);
+                                          
+                                          if (matchingSkills.length > 0) {
+                                            targetForm.setValue('skillIds', matchingSkills);
+                                          }
+                                          
+                                          // Show feedback toast
+                                          toast({
+                                            title: "Template Applied",
+                                            description: `Applied template "${template.name}" to this target`
+                                          });
+                                        }}
+                                      >
+                                        <div className="flex justify-between items-start">
+                                          <div>
+                                            <span className="font-medium">{template.name}</span>
+                                            <p className="text-xs text-gray-500">{template.category}</p>
+                                          </div>
+                                          {template.isRecommended && (
+                                            <Badge className="bg-green-100 text-green-800 border-green-200">
+                                              Recommended
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        {template.description && (
+                                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{template.description}</p>
+                                        )}
+                                        {template.targetLevel && (
+                                          <div className="mt-2 flex items-center">
+                                            <span className="text-xs text-gray-500 mr-2">Target Level:</span>
+                                            <SkillLevelBadge level={template.targetLevel} size="sm" />
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            
                               <FormField
                                 control={targetForm.control}
                                 name="skillIds"
