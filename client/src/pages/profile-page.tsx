@@ -109,13 +109,18 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       console.log("User data for profile form:", user);
-      profileForm.reset({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        project: user.project || "",
-        role: user.role || "",
-        location: user.location || "",
-      });
+      console.log("First name:", user.firstName);
+      console.log("Last name:", user.lastName);
+      console.log("Project:", user.project);
+      console.log("Role:", user.role);
+      console.log("Location:", user.location);
+      
+      // Set each field individually to better handle potential undefined values
+      profileForm.setValue("firstName", user.firstName || "");
+      profileForm.setValue("lastName", user.lastName || "");
+      profileForm.setValue("project", user.project || "");
+      profileForm.setValue("role", user.role || "");
+      profileForm.setValue("location", user.location || "");
     }
   }, [user, profileForm]);
   
