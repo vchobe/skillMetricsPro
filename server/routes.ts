@@ -371,8 +371,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Skill template management (for admin)
   app.get("/api/admin/skill-templates", ensureAdmin, async (req, res) => {
     try {
-      // For now, since we don't have a dedicated table, we'll return a default empty array
-      res.json([]);
+      const templates = await storage.getAllSkillTemplates();
+      res.json(templates);
     } catch (error) {
       res.status(500).json({ message: "Error fetching skill templates", error });
     }
@@ -380,12 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/admin/skill-templates", ensureAdmin, async (req, res) => {
     try {
-      // We would normally store this in a database, but for the prototype just return the data
-      const newTemplate = {
-        id: Date.now(), // Generate a unique ID
-        ...req.body,
-        createdAt: new Date().toISOString()
-      };
+      const newTemplate = await storage.createSkillTemplate(req.body);
       res.status(201).json(newTemplate);
     } catch (error) {
       res.status(500).json({ message: "Error creating skill template", error });
@@ -394,13 +389,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.patch("/api/admin/skill-templates/:id", ensureAdmin, async (req, res) => {
     try {
-      // In a real implementation, we would update the database
-      // For the prototype, just return success and the updated template
-      const updatedTemplate = {
-        id: parseInt(req.params.id),
-        ...req.body,
-        updatedAt: new Date().toISOString()
-      };
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid template ID" });
+      }
+      
+      const updatedTemplate = await storage.updateSkillTemplate(id, req.body);
       res.json(updatedTemplate);
     } catch (error) {
       res.status(500).json({ message: "Error updating skill template", error });
@@ -409,8 +403,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.delete("/api/admin/skill-templates/:id", ensureAdmin, async (req, res) => {
     try {
-      // In a real implementation, we would delete from the database
-      // For the prototype, just return success
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid template ID" });
+      }
+      
+      await storage.deleteSkillTemplate(id);
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting skill template", error });
@@ -420,8 +418,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Skill target management (for admin)
   app.get("/api/admin/skill-targets", ensureAdmin, async (req, res) => {
     try {
-      // For now, return a default empty array
-      res.json([]);
+      const targets = await storage.getAllSkillTargets();
+      
+      // For each target, get the associated skills and users
+      const targetsWithDetails = await Promise.all(
+        targets.map(async (target) => {
+          const skillIds = await storage.getSkillTargetSkills(target.id);
+          const userIds = await storage.getSkillTargetUsers(target.id);
+          
+          return {
+            ...target,
+            skillIds,
+            assignedUsers: userIds
+          };
+        })
+      );
+      
+      res.json(targetsWithDetails);
     } catch (error) {
       res.status(500).json({ message: "Error fetching skill targets", error });
     }
@@ -429,22 +442,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/admin/skill-targets", ensureAdmin, async (req, res) => {
     try {
-      // We would normally store this in a database, but for the prototype just return the data
-      const newTarget = {
-        id: Date.now(), // Generate a unique ID
-        ...req.body,
-        createdAt: new Date().toISOString()
-      };
-      res.status(201).json(newTarget);
+      const { skillIds, assignedUsers, ...targetData } = req.body;
+      
+      // Create the target
+      const target = await storage.createSkillTarget({
+        name: targetData.name,
+        description: targetData.description,
+        targetLevel: targetData.targetLevel,
+        targetDate: targetData.targetDate
+      });
+      
+      // Add skills to the target
+      if (Array.isArray(skillIds)) {
+        for (const skillId of skillIds) {
+          await storage.addSkillToTarget(target.id, skillId);
+        }
+      }
+      
+      // Add users to the target
+      if (Array.isArray(assignedUsers)) {
+        for (const userId of assignedUsers) {
+          await storage.addUserToTarget(target.id, userId);
+        }
+      }
+      
+      // Return the target with skills and users
+      const skillIdsFromDb = await storage.getSkillTargetSkills(target.id);
+      const userIdsFromDb = await storage.getSkillTargetUsers(target.id);
+      
+      res.status(201).json({
+        ...target,
+        skillIds: skillIdsFromDb,
+        assignedUsers: userIdsFromDb
+      });
     } catch (error) {
       res.status(500).json({ message: "Error creating skill target", error });
     }
   });
   
+  app.patch("/api/admin/skill-targets/:id", ensureAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid target ID" });
+      }
+      
+      const { skillIds, assignedUsers, ...targetData } = req.body;
+      
+      // Update the basic target data
+      const updatedTarget = await storage.updateSkillTarget(id, targetData);
+      
+      // If skillIds are provided, update the target skills
+      if (Array.isArray(skillIds)) {
+        // Get current skill IDs
+        const currentSkillIds = await storage.getSkillTargetSkills(id);
+        
+        // Remove skills that are no longer in the list
+        for (const currentId of currentSkillIds) {
+          if (!skillIds.includes(currentId)) {
+            await storage.removeSkillFromTarget(id, currentId);
+          }
+        }
+        
+        // Add new skills
+        for (const skillId of skillIds) {
+          if (!currentSkillIds.includes(skillId)) {
+            await storage.addSkillToTarget(id, skillId);
+          }
+        }
+      }
+      
+      // If assignedUsers are provided, update the target users
+      if (Array.isArray(assignedUsers)) {
+        // Get current user IDs
+        const currentUserIds = await storage.getSkillTargetUsers(id);
+        
+        // Remove users that are no longer in the list
+        for (const currentId of currentUserIds) {
+          if (!assignedUsers.includes(currentId)) {
+            await storage.removeUserFromTarget(id, currentId);
+          }
+        }
+        
+        // Add new users
+        for (const userId of assignedUsers) {
+          if (!currentUserIds.includes(userId)) {
+            await storage.addUserToTarget(id, userId);
+          }
+        }
+      }
+      
+      // Return the updated target with skills and users
+      const skillIdsFromDb = await storage.getSkillTargetSkills(id);
+      const userIdsFromDb = await storage.getSkillTargetUsers(id);
+      
+      res.json({
+        ...updatedTarget,
+        skillIds: skillIdsFromDb,
+        assignedUsers: userIdsFromDb
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error updating skill target", error });
+    }
+  });
+  
   app.delete("/api/admin/skill-targets/:id", ensureAdmin, async (req, res) => {
     try {
-      // In a real implementation, we would delete from the database
-      // For the prototype, just return success
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid target ID" });
+      }
+      
+      await storage.deleteSkillTarget(id);
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting skill target", error });

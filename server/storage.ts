@@ -3,7 +3,9 @@ import {
   SkillHistory, InsertSkillHistory, 
   ProfileHistory, InsertProfileHistory,
   Endorsement, InsertEndorsement,
-  Notification, InsertNotification
+  Notification, InsertNotification,
+  SkillTemplate, InsertSkillTemplate,
+  SkillTarget, InsertSkillTarget
 } from "@shared/schema";
 import session from "express-session";
 import { Store } from "express-session";
@@ -55,6 +57,26 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(notificationId: number): Promise<void>;
   markAllNotificationsAsRead(userId: number): Promise<void>;
+  
+  // Skill Template operations
+  getAllSkillTemplates(): Promise<SkillTemplate[]>;
+  getSkillTemplate(id: number): Promise<SkillTemplate | undefined>;
+  createSkillTemplate(template: InsertSkillTemplate): Promise<SkillTemplate>;
+  updateSkillTemplate(id: number, data: Partial<SkillTemplate>): Promise<SkillTemplate>;
+  deleteSkillTemplate(id: number): Promise<void>;
+  
+  // Skill Target operations
+  getAllSkillTargets(): Promise<SkillTarget[]>;
+  getSkillTarget(id: number): Promise<SkillTarget | undefined>;
+  createSkillTarget(target: InsertSkillTarget): Promise<SkillTarget>;
+  updateSkillTarget(id: number, data: Partial<SkillTarget>): Promise<SkillTarget>;
+  deleteSkillTarget(id: number): Promise<void>;
+  getSkillTargetSkills(targetId: number): Promise<number[]>;
+  addSkillToTarget(targetId: number, skillId: number): Promise<void>;
+  removeSkillFromTarget(targetId: number, skillId: number): Promise<void>;
+  getSkillTargetUsers(targetId: number): Promise<number[]>;
+  addUserToTarget(targetId: number, userId: number): Promise<void>;
+  removeUserFromTarget(targetId: number, userId: number): Promise<void>;
   
   // Session store
   sessionStore: Store;
@@ -647,6 +669,289 @@ export class PostgresStorage implements IStorage {
       );
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
+      throw error;
+    }
+  }
+  
+  // Skill Template operations
+  async getAllSkillTemplates(): Promise<SkillTemplate[]> {
+    try {
+      const result = await pool.query('SELECT * FROM skill_templates ORDER BY name');
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all skill templates:", error);
+      throw error;
+    }
+  }
+  
+  async getSkillTemplate(id: number): Promise<SkillTemplate | undefined> {
+    try {
+      const result = await pool.query('SELECT * FROM skill_templates WHERE id = $1', [id]);
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting skill template:", error);
+      throw error;
+    }
+  }
+  
+  async createSkillTemplate(template: InsertSkillTemplate): Promise<SkillTemplate> {
+    try {
+      const result = await pool.query(
+        `INSERT INTO skill_templates (name, category, description, is_recommended, target_level, target_date) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
+         RETURNING *`,
+        [
+          template.name,
+          template.category,
+          template.description || '',
+          template.isRecommended || false,
+          template.targetLevel || null,
+          template.targetDate || null
+        ]
+      );
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error creating skill template:", error);
+      throw error;
+    }
+  }
+  
+  async updateSkillTemplate(id: number, data: Partial<SkillTemplate>): Promise<SkillTemplate> {
+    try {
+      const sets: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+      
+      // Build SET clause and parameters
+      for (const [key, value] of Object.entries(data)) {
+        if (key === 'id' || key === 'createdAt') continue; // Skip id and createdAt
+        
+        // Convert camelCase to snake_case for database column names
+        const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        sets.push(`${columnName} = $${paramIndex}`);
+        params.push(value === null ? null : value);
+        paramIndex++;
+      }
+      
+      // Add updated_at timestamp
+      sets.push(`updated_at = CURRENT_TIMESTAMP`);
+      
+      params.push(id); // Add id as the last parameter
+      
+      const result = await pool.query(
+        `UPDATE skill_templates SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+        params
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error("Skill template not found");
+      }
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error updating skill template:", error);
+      throw error;
+    }
+  }
+  
+  async deleteSkillTemplate(id: number): Promise<void> {
+    try {
+      const result = await pool.query('DELETE FROM skill_templates WHERE id = $1', [id]);
+      
+      if (result.rowCount === 0) {
+        throw new Error("Skill template not found");
+      }
+    } catch (error) {
+      console.error("Error deleting skill template:", error);
+      throw error;
+    }
+  }
+  
+  // Skill Target operations
+  async getAllSkillTargets(): Promise<SkillTarget[]> {
+    try {
+      const result = await pool.query('SELECT * FROM skill_targets ORDER BY name');
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all skill targets:", error);
+      throw error;
+    }
+  }
+  
+  async getSkillTarget(id: number): Promise<SkillTarget | undefined> {
+    try {
+      const result = await pool.query('SELECT * FROM skill_targets WHERE id = $1', [id]);
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting skill target:", error);
+      throw error;
+    }
+  }
+  
+  async createSkillTarget(target: InsertSkillTarget): Promise<SkillTarget> {
+    try {
+      const result = await pool.query(
+        `INSERT INTO skill_targets (name, description, target_level, target_date) 
+         VALUES ($1, $2, $3, $4) 
+         RETURNING *`,
+        [
+          target.name,
+          target.description || '',
+          target.targetLevel,
+          target.targetDate || null
+        ]
+      );
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error creating skill target:", error);
+      throw error;
+    }
+  }
+  
+  async updateSkillTarget(id: number, data: Partial<SkillTarget>): Promise<SkillTarget> {
+    try {
+      const sets: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+      
+      // Build SET clause and parameters
+      for (const [key, value] of Object.entries(data)) {
+        if (key === 'id' || key === 'createdAt') continue; // Skip id and createdAt
+        
+        // Convert camelCase to snake_case for database column names
+        const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        sets.push(`${columnName} = $${paramIndex}`);
+        params.push(value === null ? null : value);
+        paramIndex++;
+      }
+      
+      // Add updated_at timestamp
+      sets.push(`updated_at = CURRENT_TIMESTAMP`);
+      
+      params.push(id); // Add id as the last parameter
+      
+      const result = await pool.query(
+        `UPDATE skill_targets SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+        params
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error("Skill target not found");
+      }
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error updating skill target:", error);
+      throw error;
+    }
+  }
+  
+  async deleteSkillTarget(id: number): Promise<void> {
+    try {
+      // First delete all associated skill-target and user-target mappings
+      await pool.query('DELETE FROM skill_target_skills WHERE target_id = $1', [id]);
+      await pool.query('DELETE FROM skill_target_users WHERE target_id = $1', [id]);
+      
+      // Then delete the target
+      const result = await pool.query('DELETE FROM skill_targets WHERE id = $1', [id]);
+      
+      if (result.rowCount === 0) {
+        throw new Error("Skill target not found");
+      }
+    } catch (error) {
+      console.error("Error deleting skill target:", error);
+      throw error;
+    }
+  }
+  
+  async getSkillTargetSkills(targetId: number): Promise<number[]> {
+    try {
+      const result = await pool.query(
+        'SELECT skill_id FROM skill_target_skills WHERE target_id = $1',
+        [targetId]
+      );
+      return result.rows.map(row => row.skill_id);
+    } catch (error) {
+      console.error("Error getting skill target skills:", error);
+      throw error;
+    }
+  }
+  
+  async addSkillToTarget(targetId: number, skillId: number): Promise<void> {
+    try {
+      // Check if mapping already exists
+      const existsCheck = await pool.query(
+        'SELECT 1 FROM skill_target_skills WHERE target_id = $1 AND skill_id = $2',
+        [targetId, skillId]
+      );
+      
+      if (existsCheck.rows.length === 0) {
+        await pool.query(
+          'INSERT INTO skill_target_skills (target_id, skill_id) VALUES ($1, $2)',
+          [targetId, skillId]
+        );
+      }
+    } catch (error) {
+      console.error("Error adding skill to target:", error);
+      throw error;
+    }
+  }
+  
+  async removeSkillFromTarget(targetId: number, skillId: number): Promise<void> {
+    try {
+      await pool.query(
+        'DELETE FROM skill_target_skills WHERE target_id = $1 AND skill_id = $2',
+        [targetId, skillId]
+      );
+    } catch (error) {
+      console.error("Error removing skill from target:", error);
+      throw error;
+    }
+  }
+  
+  async getSkillTargetUsers(targetId: number): Promise<number[]> {
+    try {
+      const result = await pool.query(
+        'SELECT user_id FROM skill_target_users WHERE target_id = $1',
+        [targetId]
+      );
+      return result.rows.map(row => row.user_id);
+    } catch (error) {
+      console.error("Error getting skill target users:", error);
+      throw error;
+    }
+  }
+  
+  async addUserToTarget(targetId: number, userId: number): Promise<void> {
+    try {
+      // Check if mapping already exists
+      const existsCheck = await pool.query(
+        'SELECT 1 FROM skill_target_users WHERE target_id = $1 AND user_id = $2',
+        [targetId, userId]
+      );
+      
+      if (existsCheck.rows.length === 0) {
+        await pool.query(
+          'INSERT INTO skill_target_users (target_id, user_id) VALUES ($1, $2)',
+          [targetId, userId]
+        );
+      }
+    } catch (error) {
+      console.error("Error adding user to target:", error);
+      throw error;
+    }
+  }
+  
+  async removeUserFromTarget(targetId: number, userId: number): Promise<void> {
+    try {
+      await pool.query(
+        'DELETE FROM skill_target_users WHERE target_id = $1 AND user_id = $2',
+        [targetId, userId]
+      );
+    } catch (error) {
+      console.error("Error removing user from target:", error);
       throw error;
     }
   }

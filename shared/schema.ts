@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -163,3 +163,61 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export type Endorsement = typeof endorsements.$inferSelect;
 export type InsertEndorsement = z.infer<typeof insertEndorsementSchema>;
+
+// Skill Templates schema
+export const skillTemplates = pgTable("skill_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  description: text("description"),
+  isRecommended: boolean("is_recommended").default(false),
+  targetLevel: skillLevelEnum("target_level"),
+  targetDate: date("target_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSkillTemplateSchema = createInsertSchema(skillTemplates).pick({
+  name: true,
+  category: true,
+  description: true,
+  isRecommended: true,
+  targetLevel: true,
+  targetDate: true,
+});
+
+// Skill Targets schema
+export const skillTargets = pgTable("skill_targets", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  targetLevel: skillLevelEnum("target_level").notNull(),
+  targetDate: date("target_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const skillTargetSkills = pgTable("skill_target_skills", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull(),
+  skillId: integer("skill_id").notNull(),
+});
+
+export const skillTargetUsers = pgTable("skill_target_users", {
+  id: serial("id").primaryKey(),
+  targetId: integer("target_id").notNull(),
+  userId: integer("user_id").notNull(),
+});
+
+export const insertSkillTargetSchema = createInsertSchema(skillTargets).pick({
+  name: true,
+  description: true,
+  targetLevel: true,
+  targetDate: true,
+});
+
+export type SkillTemplate = typeof skillTemplates.$inferSelect;
+export type InsertSkillTemplate = z.infer<typeof insertSkillTemplateSchema>;
+
+export type SkillTarget = typeof skillTargets.$inferSelect;
+export type InsertSkillTarget = z.infer<typeof insertSkillTargetSchema>;
