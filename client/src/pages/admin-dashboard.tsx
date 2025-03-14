@@ -136,13 +136,17 @@ export default function AdminDashboard() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab === "users" || tab === "skill-history" || tab === "certifications" || tab === "dashboard") {
+    if (tab === "users" || tab === "skill-history" || tab === "certifications") {
       setActiveTab(tab);
     } else {
       // Default to dashboard if no valid tab is specified
       setActiveTab("dashboard");
+      // If we're on the admin page without a tab parameter, update the URL to reflect default tab
+      if (window.location.pathname === "/admin" && !tab) {
+        setLocation("/admin");
+      }
     }
-  }, [location]);
+  }, [location, setLocation]);
   
   // Get all users
   const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
