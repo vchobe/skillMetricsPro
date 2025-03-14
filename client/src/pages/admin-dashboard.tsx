@@ -170,13 +170,18 @@ export default function AdminDashboard() {
     ).map(([name, value]) => ({ name, value }))
     : [];
   
-  // Skill level data
-  const skillLevelData = skills ?
-    [
-      { name: "Expert", value: skills.filter(s => s.level === "expert").length || 0 },
-      { name: "Intermediate", value: skills.filter(s => s.level === "intermediate").length || 0 },
-      { name: "Beginner", value: skills.filter(s => s.level === "beginner").length || 0 }
-    ]
+  // Skill distribution by name
+  const skillNameData = skills ? 
+    Array.from(
+      skills.reduce((acc, skill) => {
+        const name = skill.name || "Unnamed";
+        acc.set(name, (acc.get(name) || 0) + 1);
+        return acc;
+      }, new Map<string, number>())
+    )
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value) // Sort by frequency, highest first
+    .slice(0, 10) // Take top 10 skills only
     : [];
   
   // Department data (mock - would be calculated based on user.project or department field)
@@ -530,27 +535,33 @@ export default function AdminDashboard() {
                 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Skill Level Distribution</CardTitle>
+                    <CardTitle>Top Skills Distribution</CardTitle>
+                    <CardDescription>Shows the most frequently added skills across organization</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={skillLevelData}
+                            data={skillNameData}
                             cx="50%"
                             cy="50%"
                             labelLine={false}
                             outerRadius={120}
                             fill="#8884d8"
                             dataKey="value"
-                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            nameKey="name"
+                            label={({ name, percent }) => 
+                              name.length > 8 
+                                ? `${name.substring(0, 8)}...: ${(percent * 100).toFixed(0)}%` 
+                                : `${name}: ${(percent * 100).toFixed(0)}%`
+                            }
                           >
-                            {skillLevelData.map((entry, index) => (
+                            {skillNameData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
-                          <Tooltip />
+                          <Tooltip formatter={(value, name) => [`${value} users`, name]} />
                           <Legend />
                         </PieChart>
                       </ResponsiveContainer>
