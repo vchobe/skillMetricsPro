@@ -1,17 +1,24 @@
 # Installation Guide
 
-This document provides instructions for setting up and running the Skills Management Platform.
+This guide provides step-by-step instructions for installing and setting up the Skills Management Platform.
 
 ## Prerequisites
 
-Before installing, ensure you have the following:
+Before installing the Skills Management Platform, ensure you have the following:
 
-- Node.js v20.x or later
-- PostgreSQL v15.x or later
-- npm v10.x or later
-- Git
+- **Node.js**: Version 20.x or later
+- **NPM**: Version 10.x or later
+- **PostgreSQL**: Version 15.x or later
+- **Git**: Latest stable version
 
-## Quick Start
+## System Requirements
+
+- **CPU**: Dual core or better
+- **RAM**: Minimum 4GB (8GB recommended)
+- **Disk Space**: 1GB for application code and dependencies
+- **OS**: Any operating system that supports Node.js (Windows, macOS, Linux)
+
+## Installation Steps
 
 ### 1. Clone the Repository
 
@@ -28,7 +35,7 @@ npm install
 
 ### 3. Set Up Environment Variables
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory with the following variables:
 
 ```
 DATABASE_URL=postgres://username:password@localhost:5432/skills_platform
@@ -36,93 +43,136 @@ NODE_ENV=development
 SESSION_SECRET=your_session_secret
 ```
 
-Replace `username`, `password`, and other values with your actual database credentials.
+For more details on environment variables, see [Environment Variables Documentation](./environment_variables.md).
 
-### 4. Set Up the Database
+### 4. Create the Database
 
-Create a PostgreSQL database:
+Using PostgreSQL command-line tools:
 
 ```bash
 createdb skills_platform
 ```
 
-Run the database migration:
+Or using pgAdmin or another PostgreSQL administration tool, create a new database named `skills_platform`.
+
+### 5. Run Database Migrations
+
+Apply the database schema:
 
 ```bash
 npm run db:push
 ```
 
-### 5. Add Initial Test Data (Optional)
+### 6. (Optional) Add Sample Data
+
+For development or testing purposes, you can populate the database with sample data:
 
 ```bash
+# Create an admin user
 node scripts/create-admin.js
+
+# Create test users
 node scripts/create-test-users.js
+
+# Generate skill data
 node scripts/generate-test-data.js
-node scripts/add-certifications.js
 ```
 
-### 6. Start the Application
+### 7. Start the Application
+
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:3000`.
-
-## Detailed Setup Instructions
-
-For more detailed installation instructions, see:
-
-- [Local Development Setup](./local_setup.md)
-- [Environment Variables](./environment_variables.md)
-- [Database Configuration](./database_setup.md)
+The application should now be running at `http://localhost:3000`.
 
 ## Docker Installation
 
-The application can also be run using Docker:
+Alternatively, you can use Docker to run the application.
+
+### 1. Build the Docker Image
 
 ```bash
-# Build the Docker image
-docker build -t skills-management-platform .
-
-# Run the container
-docker run -p 3000:3000 \
-  -e DATABASE_URL=postgres://username:password@host.docker.internal:5432/skills_platform \
-  -e NODE_ENV=production \
-  -e SESSION_SECRET=your_session_secret \
-  skills-management-platform
+docker build -t skills-platform:latest .
 ```
 
-## Cloud Deployment
+### 2. Run the Container
 
-For deploying to Google Cloud Platform, refer to the [Deployment Documentation](../deployment/gcp.md).
+```bash
+docker run -p 3000:3000 \
+  -e DATABASE_URL=postgres://username:password@host.docker.internal:5432/skills_platform \
+  -e NODE_ENV=development \
+  -e SESSION_SECRET=your_session_secret \
+  skills-platform:latest
+```
+
+## Verifying Installation
+
+To verify that the installation was successful:
+
+1. Open your browser and navigate to `http://localhost:3000`
+2. You should see the login page
+3. Login with the default admin credentials:
+   - Email: `admin@skillsplatform.com`
+   - Password: `Admin@2025`
 
 ## Troubleshooting
 
-### Common Issues
+### Database Connection Issues
 
-1. **Database Connection Issues**
+If you encounter database connection problems:
 
-   Ensure your PostgreSQL server is running and accessible with the credentials in your `.env` file.
-
-2. **Port Conflicts**
-
-   If port 3000 is already in use, you can specify a different port:
-
+1. Verify that PostgreSQL is running:
    ```bash
-   PORT=3001 npm run dev
+   pg_isready -h localhost -p 5432
    ```
 
-3. **Dependencies Issues**
-
-   If you encounter issues with npm dependencies, try:
-
+2. Check that the database was created:
    ```bash
-   npm cache clean --force
-   rm -rf node_modules
-   npm install
+   psql -l | grep skills_platform
    ```
 
-### Getting Help
+3. Verify your `.env` file has the correct `DATABASE_URL` value
 
-If you encounter problems not covered here, please open an issue on the GitHub repository or contact the development team.
+### Node.js or NPM Issues
+
+If you encounter problems with Node.js or NPM:
+
+1. Verify your Node.js version:
+   ```bash
+   node --version
+   ```
+
+2. Verify your NPM version:
+   ```bash
+   npm --version
+   ```
+
+3. If you have version problems, consider using nvm (Node Version Manager) to install the correct version:
+   ```bash
+   nvm install 20
+   nvm use 20
+   ```
+
+### Application Won't Start
+
+If the application won't start:
+
+1. Check the console for error messages
+2. Verify all environment variables are correctly set
+3. Ensure the database is accessible
+4. Check that the port 3000 is not already in use:
+   ```bash
+   lsof -i :3000
+   ```
+
+## Next Steps
+
+Now that you have installed the Skills Management Platform, you may want to:
+
+1. [Configure environment variables](./environment_variables.md) for your specific needs
+2. Review [deployment options](../deployment/gcp.md) for production environments
+3. Explore the [API documentation](../api/README.md)
+4. Understand the [database schema](../database/schema_overview.md)

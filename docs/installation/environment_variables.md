@@ -1,116 +1,236 @@
 # Environment Variables
 
-The Skills Management Platform uses environment variables for configuration. This document describes all available environment variables and their purpose.
+This document provides a comprehensive guide to the environment variables used in the Skills Management Platform.
 
-## Required Variables
+## Core Environment Variables
 
-These variables are required for the application to function properly:
+These environment variables are essential for the application to function correctly:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgres://username:password@localhost:5432/skills_platform` |
-| `NODE_ENV` | Application environment | `development`, `production` |
-| `SESSION_SECRET` | Secret for session encryption | `random_string_at_least_32_chars` |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | Yes | - | PostgreSQL connection string (e.g., `postgres://username:password@localhost:5432/skills_platform`) |
+| `NODE_ENV` | Yes | `development` | Application environment (`development`, `test`, or `production`) |
+| `SESSION_SECRET` | Yes | - | Secret key for session encryption (should be a random string) |
+| `PORT` | No | `3000` | Port number for the application server |
 
-## Optional Variables
+## Database Configuration
 
-These variables are optional and have default values:
+If you prefer to configure the database connection individually instead of using `DATABASE_URL`, you can use these variables:
 
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `PORT` | Port for the Express server | `3000` | `8080` |
-| `HOST` | Host address to bind to | `0.0.0.0` | `localhost` |
-| `LOG_LEVEL` | Logging verbosity | `info` | `debug`, `warn`, `error` |
-| `SESSION_MAX_AGE` | Session duration in milliseconds | `86400000` (24 hours) | `3600000` (1 hour) |
-| `COOKIE_SECURE` | Require HTTPS for cookies | `false` in development, `true` in production | `true` |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DB_HOST` | No | `localhost` | PostgreSQL server hostname |
+| `DB_PORT` | No | `5432` | PostgreSQL server port |
+| `DB_NAME` | No | `skills_platform` | PostgreSQL database name |
+| `DB_USER` | No | - | PostgreSQL username |
+| `DB_PASSWORD` | No | - | PostgreSQL password |
+| `DB_SSL` | No | `false` | Enable SSL for database connection (`true` or `false`) |
 
-## Development Variables
+**Note**: If `DATABASE_URL` is provided, it takes precedence over individual database configuration variables.
 
-These variables are only used in development:
+## Session Configuration
 
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `VITE_DEV_SERVER_PORT` | Port for Vite dev server | `5173` | `5174` |
-| `VITE_CARTOGRAPHER_ENABLED` | Enable source mapping | `true` | `false` |
+Variables related to session management:
 
-## Authentication Variables
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SESSION_SECRET` | Yes | - | Secret key for session encryption |
+| `SESSION_MAX_AGE` | No | `86400000` (1 day) | Maximum session age in milliseconds |
+| `SESSION_SECURE` | No | `false` | Require HTTPS for cookies (`true` or `false`) |
+| `SESSION_DOMAIN` | No | - | Cookie domain (e.g., `.example.com`) |
 
-These variables control authentication settings:
+## Security Settings
 
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `BCRYPT_SALT_ROUNDS` | Number of salt rounds for password hashing | `10` | `12` |
-| `PASSWORD_MIN_LENGTH` | Minimum password length | `8` | `12` |
-| `SESSION_NAME` | Name of the session cookie | `skills_platform_session` | `custom_session_name` |
+Variables related to application security:
 
-## Database Variables
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `CORS_ORIGIN` | No | `*` | CORS allowed origins (can be comma-separated list) |
+| `RATE_LIMIT_WINDOW_MS` | No | `60000` (1 minute) | Rate limiting window in milliseconds |
+| `RATE_LIMIT_MAX_REQUESTS` | No | `100` | Maximum requests per IP within the rate limit window |
+| `BCRYPT_SALT_ROUNDS` | No | `10` | Number of bcrypt salt rounds for password hashing |
 
-These variables provide additional database configuration:
+## Admin Setup
 
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `DB_SSL` | Enable SSL for database connections | `false` | `true` |
-| `DB_POOL_MIN` | Minimum pool connections | `2` | `5` |
-| `DB_POOL_MAX` | Maximum pool connections | `10` | `20` |
-| `DB_IDLE_TIMEOUT` | Connection idle timeout in ms | `30000` | `60000` |
+Variables for initial admin user setup:
 
-## Environment Specific Configuration
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ADMIN_EMAIL` | No | `admin@skillsplatform.com` | Email for the default admin user |
+| `ADMIN_PASSWORD` | No | `Admin@2025` | Password for the default admin user |
+| `ADMIN_USERNAME` | No | `admin` | Username for the default admin user |
+| `ADMIN_FIRST_NAME` | No | `Admin` | First name for the default admin user |
+| `ADMIN_LAST_NAME` | No | `User` | Last name for the default admin user |
+
+## Logging Configuration
+
+Variables for application logging:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `LOG_LEVEL` | No | `info` | Log level (`error`, `warn`, `info`, `debug`) |
+| `LOG_FORMAT` | No | `combined` | Log format (`combined`, `common`, `dev`, `short`, `tiny`) |
+
+## Cloud Deployment Variables
+
+Additional variables for cloud deployments:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DB_CONNECTION_NAME` | No | - | Cloud SQL connection name for Google Cloud Platform |
+| `GCP_PROJECT_ID` | No | - | Google Cloud Platform project ID |
+| `GCP_REGION` | No | `us-central1` | Google Cloud Platform region |
+| `GCP_BUCKET` | No | - | Google Cloud Storage bucket name for backups |
+
+## Example .env File
+
+Here's a complete example of a `.env` file with commonly used variables:
+
+```
+# Core Configuration
+NODE_ENV=development
+PORT=3000
+
+# Database Configuration
+DATABASE_URL=postgres://postgres:password@localhost:5432/skills_platform
+
+# Session Configuration
+SESSION_SECRET=your_very_long_random_session_secret_key
+SESSION_MAX_AGE=86400000
+SESSION_SECURE=false
+
+# Security Settings
+CORS_ORIGIN=http://localhost:3000
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX_REQUESTS=100
+BCRYPT_SALT_ROUNDS=10
+
+# Admin Setup
+ADMIN_EMAIL=admin@skillsplatform.com
+ADMIN_PASSWORD=Admin@2025
+ADMIN_USERNAME=admin
+ADMIN_FIRST_NAME=Admin
+ADMIN_LAST_NAME=User
+
+# Logging Configuration
+LOG_LEVEL=info
+LOG_FORMAT=dev
+```
+
+## Environment-Specific Configurations
 
 ### Development Environment
 
-For local development, create a `.env` file in the root directory:
+For development environments, you can use a minimal configuration:
 
 ```
-DATABASE_URL=postgres://username:password@localhost:5432/skills_platform
 NODE_ENV=development
-SESSION_SECRET=your_development_secret
-LOG_LEVEL=debug
+DATABASE_URL=postgres://postgres:password@localhost:5432/skills_platform
+SESSION_SECRET=dev_session_secret
+```
+
+### Test Environment
+
+For test environments, use a separate database:
+
+```
+NODE_ENV=test
+DATABASE_URL=postgres://postgres:password@localhost:5432/skills_platform_test
+SESSION_SECRET=test_session_secret
 ```
 
 ### Production Environment
 
-In production environments, it's recommended to set environment variables securely using your hosting platform's environment configuration:
+For production environments, ensure all security settings are properly configured:
 
 ```
-DATABASE_URL=postgres://username:password@production-db-host:5432/skills_platform
 NODE_ENV=production
-SESSION_SECRET=your_strong_production_secret
-COOKIE_SECURE=true
+PORT=3000
+DATABASE_URL=postgres://username:strong_password@database-host:5432/skills_platform
+SESSION_SECRET=very_long_random_secret_key
+SESSION_SECURE=true
+SESSION_DOMAIN=yourcompany.com
+CORS_ORIGIN=https://skills.yourcompany.com
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX_REQUESTS=50
+BCRYPT_SALT_ROUNDS=12
 LOG_LEVEL=warn
 ```
 
-### Google Cloud Platform
+## Setting Environment Variables
 
-When deploying to Google Cloud Run, environment variables can be set during deployment:
+### Local Development
 
-```bash
-gcloud run deploy skills-management-app \
-  --image gcr.io/project-id/skills-management-app \
-  --update-env-vars "DATABASE_URL=postgres://user:pass@host/db,NODE_ENV=production,SESSION_SECRET=secret"
-```
+For local development, create a `.env` file in the root directory of the project.
 
-## Secret Management
+### Docker
 
-For production environments, it's recommended to use a secure secret management service:
-
-### Google Cloud Secret Manager
+When using Docker, you can pass environment variables using the `-e` flag:
 
 ```bash
-# Store a secret
-gcloud secrets create session-secret --replication-policy="automatic" --data-file=- <<< "your_secret_value"
-
-# Reference in deployment
-gcloud run deploy skills-management-app \
-  --image gcr.io/project-id/skills-management-app \
-  --update-secrets=SESSION_SECRET=session-secret:latest
+docker run -p 3000:3000 \
+  -e DATABASE_URL=postgres://username:password@host.docker.internal:5432/skills_platform \
+  -e NODE_ENV=development \
+  -e SESSION_SECRET=your_secret \
+  skills-platform:latest
 ```
 
-## Testing Variables
+### Docker Compose
 
-Additional variables used for testing:
+With Docker Compose, define environment variables in your `docker-compose.yml` file:
 
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `TEST_DATABASE_URL` | Database URL for tests | N/A | `postgres://test:test@localhost:5432/skills_platform_test` |
-| `TEST_USER_EMAIL` | Email for test user | `test@example.com` | `admin@test.com` |
-| `TEST_USER_PASSWORD` | Password for test user | `password123` | `TestPass123!` |
+```yaml
+services:
+  app:
+    image: skills-platform:latest
+    environment:
+      - DATABASE_URL=postgres://username:password@db:5432/skills_platform
+      - NODE_ENV=production
+      - SESSION_SECRET=your_secret
+```
+
+### Cloud Deployment
+
+When deploying to Google Cloud Run, set environment variables through the Google Cloud Console or using the `gcloud` CLI:
+
+```bash
+gcloud run deploy skills-platform \
+  --image gcr.io/project-id/skills-platform:latest \
+  --set-env-vars="NODE_ENV=production,PORT=8080"
+```
+
+## Best Practices
+
+1. **Never commit sensitive environment variables to version control**
+2. **Use strong, unique values for secrets**
+3. **Rotate secrets regularly**
+4. **Use different values for different environments**
+5. **Keep a template `.env.example` file in version control with dummy values**
+6. **Set stricter security settings in production**
+
+## Troubleshooting
+
+### Missing Environment Variables
+
+If the application fails to start with an error about missing environment variables:
+
+1. Check that your `.env` file exists in the project root
+2. Verify that all required variables are defined
+3. Restart the application after making changes to environment variables
+
+### Environment File Not Loading
+
+If your environment file isn't being loaded:
+
+1. Make sure the file is named exactly `.env` (with the dot)
+2. Check file permissions
+3. Verify the file is in the project root
+4. Ensure your application is starting from the correct directory
+
+### Security Issues
+
+If you encounter security warnings:
+
+1. Ensure `SESSION_SECRET` is a strong, random string
+2. Set `SESSION_SECURE=true` in production
+3. Configure `CORS_ORIGIN` with specific origins instead of wildcard `*`
