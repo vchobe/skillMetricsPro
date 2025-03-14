@@ -122,6 +122,7 @@ export default function AdminDashboard() {
   // Redirect if not admin
   const { toast } = useToast();
   const csvExportRef = useRef<HTMLAnchorElement>(null);
+  const skillGapExportRef = useRef<HTMLAnchorElement>(null);
   
   useEffect(() => {
     if (user && !user.is_admin) {
@@ -479,11 +480,11 @@ export default function AdminDashboard() {
     // Create CSV content
     const headers = ["Skill Category", "Current Level (%)", "Target Level (%)", "Gap (%)", "Employees Needing Improvement"];
     const rows = skillGapAnalysis.map(gap => [
-      gap.category,
-      gap.currentLevel,
-      gap.targetLevel,
-      gap.gap,
-      gap.employeesNeedingImprovement
+      gap?.category || 'Unknown',
+      gap?.currentLevel || 0,
+      gap?.targetLevel || 0,
+      gap?.gap || 0,
+      gap?.employeesNeedingImprovement || 0
     ]);
     
     const csvContent = [
@@ -835,7 +836,7 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
                   <CardTitle>Skill Gap Analysis</CardTitle>
-                  <Button className="mt-4 md:mt-0">
+                  <Button className="mt-4 md:mt-0" onClick={exportSkillGapCSV}>
                     <Download className="h-4 w-4 mr-2" />
                     Export Report
                   </Button>
@@ -853,81 +854,77 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        <tr>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">Cloud Technologies</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                              <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: "60%" }}></div>
-                            </div>
-                            <span className="text-xs text-gray-500">60%</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                              <div className="bg-indigo-300 h-2.5 rounded-full" style={{ width: "85%" }}></div>
-                            </div>
-                            <span className="text-xs text-gray-500">85%</span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                              25%
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            Training needed for 15 employees
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">Frontend Development</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                              <div className="bg-green-500 h-2.5 rounded-full" style={{ width: "80%" }}></div>
-                            </div>
-                            <span className="text-xs text-gray-500">80%</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                              <div className="bg-indigo-300 h-2.5 rounded-full" style={{ width: "85%" }}></div>
-                            </div>
-                            <span className="text-xs text-gray-500">85%</span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                              5%
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            Minor updates to React knowledge
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">Data Analysis</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                              <div className="bg-amber-500 h-2.5 rounded-full" style={{ width: "40%" }}></div>
-                            </div>
-                            <span className="text-xs text-gray-500">40%</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                              <div className="bg-indigo-300 h-2.5 rounded-full" style={{ width: "75%" }}></div>
-                            </div>
-                            <span className="text-xs text-gray-500">75%</span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                              35%
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            Critical - Need hiring or training program
-                          </td>
-                        </tr>
+                        {isLoadingSkills || isLoadingTargets ? (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-8 text-center">
+                              <div className="flex justify-center items-center">
+                                <svg className="animate-spin h-5 w-5 mr-3 text-indigo-500" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Loading skill gap data...</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : skillGapAnalysis.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                              <div className="flex flex-col items-center">
+                                <AlertCircle className="h-12 w-12 text-gray-400 mb-2" />
+                                <p>No skill targets have been defined that match existing skills.</p>
+                                <p className="text-sm mt-1">Set up skill targets to see the gap analysis.</p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          skillGapAnalysis.map((gap, index) => (
+                            <tr key={index}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">{gap?.category}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                  <div 
+                                    className={`h-2.5 rounded-full ${
+                                      (gap?.currentLevel || 0) > 66 ? 'bg-green-500' : 
+                                      (gap?.currentLevel || 0) > 33 ? 'bg-blue-500' : 'bg-orange-400'
+                                    }`} 
+                                    style={{ width: `${gap?.currentLevel || 0}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-xs text-gray-500">{gap?.currentLevel || 0}%</span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                  <div className="bg-indigo-300 h-2.5 rounded-full" style={{ width: `${gap?.targetLevel || 0}%` }}></div>
+                                </div>
+                                <span className="text-xs text-gray-500">{gap?.targetLevel || 0}%</span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {(gap?.gap || 0) === 0 ? (
+                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    On Target
+                                  </span>
+                                ) : (gap?.gap || 0) > 15 ? (
+                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                    {gap?.gap || 0}%
+                                  </span>
+                                ) : (
+                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    {gap?.gap || 0}%
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {(gap?.gap || 0) === 0 ? (
+                                  'No action needed'
+                                ) : (
+                                  `Training needed for ${gap?.employeesNeedingImprovement || 0} employee${(gap?.employeesNeedingImprovement || 0) !== 1 ? 's' : ''}`
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
