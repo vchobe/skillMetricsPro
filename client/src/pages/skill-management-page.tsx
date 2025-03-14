@@ -271,7 +271,14 @@ export default function SkillManagementPage() {
         description: "Skill target created successfully",
       });
       setShowTargetDialog(false);
-      targetForm.reset();
+      targetForm.reset({
+        name: "",
+        skillIds: [],
+        targetLevel: "intermediate",
+        targetDate: undefined,
+        targetNumber: undefined,
+        description: ""
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -299,7 +306,14 @@ export default function SkillManagementPage() {
         description: "Skill target updated successfully",
       });
       setShowTargetDialog(false);
-      targetForm.reset();
+      targetForm.reset({
+        name: "",
+        skillIds: [],
+        targetLevel: "intermediate",
+        targetDate: undefined,
+        targetNumber: undefined,
+        description: ""
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -952,7 +966,7 @@ export default function SkillManagementPage() {
                               <FormField
                                 control={targetForm.control}
                                 name="targetNumber"
-                                render={({ field }) => (
+                                render={({ field: { value, onChange, ...fieldProps } }) => (
                                   <FormItem>
                                     <FormLabel>Target Number</FormLabel>
                                     <FormControl>
@@ -960,12 +974,13 @@ export default function SkillManagementPage() {
                                         type="number"
                                         min="1"
                                         placeholder="Number of employees to reach this level"
-                                        value={field.value === undefined || field.value === null ? '' : field.value}
+                                        value={value === undefined || value === null ? '' : value}
                                         onChange={(e) => {
-                                          const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
-                                          field.onChange(value);
+                                          const newValue = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                                          onChange(newValue);
                                         }}
                                         disabled={!!targetFormData.id}
+                                        {...fieldProps}
                                       />
                                     </FormControl>
                                     <FormDescription>
