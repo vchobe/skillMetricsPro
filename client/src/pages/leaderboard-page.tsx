@@ -18,7 +18,6 @@ import {
   Trophy,
   Award,
   Medal,
-  Certificate,
   Brain,
   Filter
 } from "lucide-react";

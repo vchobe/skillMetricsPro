@@ -16,7 +16,7 @@ import { formatDate } from "@/lib/date-utils";
 import {
   BarChart3,
   Brain,
-  Certificate,
+  Award,
   ChevronUp,
   ChevronDown,
   Loader2,
@@ -42,7 +42,7 @@ type UserStats = {
   id: number;
   username: string;
   email: string;
-  role?: string;
+  role: string | null | undefined;
   totalSkills: number;
   expertSkills: number;
   intermediateSkills: number;
@@ -75,19 +75,21 @@ export default function OrgDashboard() {
   // Extract all unique skill categories
   useEffect(() => {
     if (allSkills) {
-      const categories = [...new Set(allSkills.map(skill => skill.category || 'Other'))];
-      setSkillCategories(categories);
+      const categoriesSet = new Set<string>();
+      allSkills.forEach(skill => categoriesSet.add(skill.category || 'Other'));
+      setSkillCategories(Array.from(categoriesSet));
     }
   }, [allSkills]);
   
   // Calculate user statistics
   const userStats: UserStats[] = users && allSkills ? users.map(user => {
     const userSkills = allSkills.filter(skill => skill.userId === user.id);
+    // Create user stats with appropriate type conversions and fallbacks
     return {
       id: user.id,
       username: user.username || user.email.split('@')[0],
       email: user.email,
-      role: user.role,
+      role: user.role || undefined,
       totalSkills: userSkills.length,
       expertSkills: userSkills.filter(s => s.level === 'expert').length,
       intermediateSkills: userSkills.filter(s => s.level === 'intermediate').length,
@@ -98,7 +100,7 @@ export default function OrgDashboard() {
         s.certification !== 'false'
       ).length,
       createdAt: user.createdAt?.toString() || '',
-      updatedAt: user.updatedAt?.toString()
+      updatedAt: undefined // User type doesn't have updatedAt field
     };
   }) : [];
   
@@ -129,7 +131,11 @@ export default function OrgDashboard() {
     const matchesSearch = searchTerms.every(term => userString.includes(term));
     
     // Other filters
-    const matchesSkillLevel = !filters.skillLevel || user[`${filters.skillLevel}Skills` as keyof UserStats] > 0;
+    const matchesSkillLevel = !filters.skillLevel || (
+      filters.skillLevel === 'expert' ? user.expertSkills > 0 :
+      filters.skillLevel === 'intermediate' ? user.intermediateSkills > 0 :
+      filters.skillLevel === 'beginner' ? user.beginnerSkills > 0 : true
+    );
     const matchesCertification = !filters.hasCertification || user.certifications > 0;
     
     return matchesSearch && matchesSkillLevel && matchesCertification;
@@ -321,7 +327,7 @@ export default function OrgDashboard() {
                         <CardContent className="pt-6">
                           <div className="flex items-center">
                             <div className="bg-purple-100 p-3 rounded-full">
-                              <Certificate className="h-6 w-6 text-purple-600" />
+                              <Award className="h-6 w-6 text-purple-600" />
                             </div>
                             <div className="ml-4">
                               <p className="text-sm font-medium text-gray-500">Certifications</p>

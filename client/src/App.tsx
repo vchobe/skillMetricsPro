@@ -13,6 +13,9 @@ import ProfilePage from "@/pages/profile-page";
 import UserProfilePage from "@/pages/user-profile-page";
 import UsersPage from "@/pages/users-page";
 import AdminDashboard from "@/pages/admin-dashboard";
+import OrgDashboard from "@/pages/org-dashboard";
+import LeaderboardPage from "@/pages/leaderboard-page";
+import SkillManagementPage from "@/pages/skill-management-page";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 
@@ -26,7 +29,10 @@ function Router() {
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/users" component={UsersPage} />
       <ProtectedRoute path="/users/:userId" component={UserProfilePage} />
+      <ProtectedRoute path="/org" component={OrgDashboard} />
+      <ProtectedRoute path="/leaderboard" component={LeaderboardPage} />
       <ProtectedRoute path="/admin" component={AdminDashboard} adminOnly={true} />
+      <ProtectedRoute path="/admin/skills" component={SkillManagementPage} adminOnly={true} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
