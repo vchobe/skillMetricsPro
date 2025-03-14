@@ -862,6 +862,32 @@ export default function SkillManagementPage() {
                               
                               <FormField
                                 control={targetForm.control}
+                                name="targetNumber"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Target Number</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min="1"
+                                        placeholder="Number of employees to reach this level"
+                                        {...field}
+                                        onChange={(e) => {
+                                          const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                                          field.onChange(value);
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Number of employees targeted to achieve this skill level
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={targetForm.control}
                                 name="description"
                                 render={({ field }) => (
                                   <FormItem>
@@ -909,6 +935,7 @@ export default function SkillManagementPage() {
                               <TableHead>Target</TableHead>
                               <TableHead>Target Level</TableHead>
                               <TableHead>Target Date</TableHead>
+                              <TableHead>Target Number</TableHead>
                               <TableHead>Progress</TableHead>
                               <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -916,7 +943,7 @@ export default function SkillManagementPage() {
                           <TableBody>
                             {skillTargets.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                                   No skill targets set. Create your first target.
                                 </TableCell>
                               </TableRow>
@@ -939,6 +966,13 @@ export default function SkillManagementPage() {
                                       <span>{new Date(target.targetDate).toLocaleDateString()}</span>
                                     ) : (
                                       <span className="text-gray-500">Ongoing</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {target.targetNumber ? (
+                                      <span className="font-medium">{target.targetNumber}</span>
+                                    ) : (
+                                      <span className="text-gray-500">Not specified</span>
                                     )}
                                   </TableCell>
                                   <TableCell>
