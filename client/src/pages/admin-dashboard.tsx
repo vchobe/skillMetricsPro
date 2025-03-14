@@ -91,6 +91,7 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [skillCategoryFilter, setSkillCategoryFilter] = useState("all");
   
   // Redirect if not admin
   const { toast } = useToast();
@@ -170,14 +171,21 @@ export default function AdminDashboard() {
     ).map(([name, value]) => ({ name, value }))
     : [];
   
-  // Skill distribution by name
+  // Get unique categories for filter
+  const skillCategories = skills ? 
+    Array.from(new Set(skills.map(skill => skill.category || "Other")))
+    : [];
+    
+  // Skill distribution by name with optional category filter
   const skillNameData = skills ? 
     Array.from(
-      skills.reduce((acc, skill) => {
-        const name = skill.name || "Unnamed";
-        acc.set(name, (acc.get(name) || 0) + 1);
-        return acc;
-      }, new Map<string, number>())
+      skills
+        .filter(skill => skillCategoryFilter === "all" || skill.category === skillCategoryFilter)
+        .reduce((acc, skill) => {
+          const name = skill.name || "Unnamed";
+          acc.set(name, (acc.get(name) || 0) + 1);
+          return acc;
+        }, new Map<string, number>())
     )
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value) // Sort by frequency, highest first
