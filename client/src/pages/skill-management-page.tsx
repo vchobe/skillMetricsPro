@@ -55,6 +55,7 @@ const skillTargetSchema = z.object({
   skillIds: z.array(z.number()),
   targetLevel: z.enum(["beginner", "intermediate", "expert"]),
   targetDate: z.string().optional(),
+  targetNumber: z.number().min(1).optional(),
   description: z.string().optional()
 });
 
@@ -77,6 +78,7 @@ type SkillTarget = {
   skillIds: number[];
   targetLevel: string;
   targetDate?: string;
+  targetNumber?: number;
   description?: string;
   assignedUsers?: number[];
 };
@@ -115,6 +117,7 @@ export default function SkillManagementPage() {
       skillIds: [],
       targetLevel: "intermediate",
       targetDate: undefined,
+      targetNumber: undefined,
       description: ""
     }
   });
