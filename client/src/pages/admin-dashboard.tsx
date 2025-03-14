@@ -1266,6 +1266,13 @@ export default function AdminDashboard() {
             </div>
           </div>
         </footer>
+        
+        {/* User Profile Dialog */}
+        <UserProfileDialog 
+          userId={selectedUserId}
+          isOpen={profileDialogOpen}
+          onClose={() => setProfileDialogOpen(false)}
+        />
       </div>
     </div>
   );
