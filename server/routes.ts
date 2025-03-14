@@ -128,8 +128,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create profile history for each changed field
       const updateData: Partial<typeof user> = {};
       
-      // Get the admin flag
-      const isAdmin = user.is_admin;
+      // Get the admin flag from db field directly
+      const isAdmin = user.is_admin === true;
       
       console.log("Current admin status before update:", isAdmin);
       
@@ -155,8 +155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (Object.keys(updateData).length > 0) {
-        // Always preserve the admin flag (use only is_admin property for database)
-        updateData.is_admin = isAdmin;
+        // Always preserve the admin flag using is_admin for the database
+        // Use type assertion to bypass TypeScript's property checking
+        (updateData as any).is_admin = isAdmin;
         
         console.log("Update data with preserved admin flag:", updateData);
         
