@@ -91,15 +91,7 @@ export class PostgresStorage implements IStorage {
     this.sessionStore = new PostgresSessionStore({
       pool: pool as any, // Type conversion needed due to differences between pg Pool and neon Pool
       createTableIfMissing: true,
-      tableName: 'session', // Explicitly name the session table
-      createTableSql: `
-        CREATE TABLE IF NOT EXISTS "session" (
-          "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY,
-          "sess" json NOT NULL,
-          "expire" timestamp(6) NOT NULL
-        )
-        WITH (OIDS=FALSE)
-      `
+      tableName: 'session' // Explicitly name the session table
     });
   }
 
