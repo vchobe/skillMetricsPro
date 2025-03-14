@@ -148,17 +148,14 @@ export default function ProfilePage() {
     }
   });
   
-  // Password change mutation (simplified, would need server implementation)
+  // Password change mutation
   const changePasswordMutation = useMutation({
     mutationFn: async (data: PasswordValues) => {
-      // This would need a corresponding API endpoint in the server
-      // For now, we're just mocking the API call for demo purposes
-      console.log("Would change password with:", data);
-      
-      // Simulate API call
-      return new Promise<void>((resolve) => {
-        setTimeout(() => resolve(), 1000);
+      const res = await apiRequest("POST", "/api/user/change-password", {
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
       });
+      return await res.json();
     },
     onSuccess: () => {
       toast({

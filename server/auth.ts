@@ -268,6 +268,44 @@ export function setupAuth(app: Express) {
       res.sendStatus(200);
     });
   });
+  
+  // Change password endpoint
+  app.post("/api/user/change-password", async (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in to change your password" });
+    }
+    
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      
+      // Get user from database
+      const user = await storage.getUser(req.user!.id);
+      if (!user || !user.password) {
+        return res.status(400).json({ message: "User account error" });
+      }
+      
+      // Verify current password
+      const isCurrentPasswordValid = await comparePasswords(currentPassword, user.password);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Hash new password
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update password in database
+      await storage.updateUserPassword(user.id, hashedPassword);
+      
+      console.log(`Password changed successfully for user: ${user.email}`);
+      res.status(200).json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Password change error:", error);
+      next(error);
+    }
+  });
 
   app.get("/api/user", async (req, res) => {
     console.log("GET /api/user - Authentication status:", req.isAuthenticated());
