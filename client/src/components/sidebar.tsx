@@ -194,50 +194,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 }`}>
                   <BarChart4 className="h-5 w-5" />
                   {(isOpen || !isMobile) && (
-                    <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Dashboard</span>
-                  )}
-                </Link>
-                <Link href="/admin?tab=skill-history" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin" && window.location.search.includes("tab=skill-history")
-                    ? "bg-gray-900 text-white" 
-                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                }`}>
-                  <Clock className="h-5 w-5" />
-                  {(isOpen || !isMobile) && (
-                    <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill History</span>
-                  )}
-                </Link>
-                <Link href="/admin?tab=certifications" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin" && window.location.search.includes("tab=certifications") 
-                    ? "bg-gray-900 text-white" 
-                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                }`}>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path>
-                    <path d="m9 12 2 2 4-4"></path>
-                  </svg>
-                  {(isOpen || !isMobile) && (
-                    <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Certifications</span>
-                  )}
-                </Link>
-                <Link href="/admin?tab=users" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin" && window.location.search.includes("tab=users") 
-                    ? "bg-gray-900 text-white" 
-                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                }`}>
-                  <UsersRound className="h-5 w-5" />
-                  {(isOpen || !isMobile) && (
-                    <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>User Management</span>
-                  )}
-                </Link>
-                <Link href="/admin?tab=skills" className={`flex items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin" && window.location.search.includes("tab=skills") 
-                    ? "bg-gray-900 text-white" 
-                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                }`}>
-                  <Brain className="h-5 w-5" />
-                  {(isOpen || !isMobile) && (
-                    <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill Management</span>
+                    <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Admin Dashboard</span>
                   )}
                 </Link>
               </div>
