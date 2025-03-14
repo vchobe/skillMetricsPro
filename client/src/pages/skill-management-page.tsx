@@ -54,7 +54,7 @@ const skillTargetSchema = z.object({
   name: z.string().optional(),
   skillIds: z.array(z.number()),
   targetLevel: z.enum(["beginner", "intermediate", "expert"]),
-  targetDate: z.string().optional(),
+  targetDate: z.string().default(""),
   targetNumber: z.number().min(1).optional(),
   description: z.string().optional()
 });
@@ -134,7 +134,7 @@ export default function SkillManagementPage() {
       name: "",
       skillIds: [],
       targetLevel: "intermediate",
-      targetDate: undefined,
+      targetDate: "",
       targetNumber: undefined,
       description: ""
     }
