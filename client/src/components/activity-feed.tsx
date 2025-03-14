@@ -67,7 +67,7 @@ export default function ActivityFeed({ activities, skills, showAll }: ActivityFe
     }
     
     // For updates, base color on skill category
-    if (skill) {
+    if (skill && skill.category) {
       switch (skill.category.toLowerCase()) {
         case "programming":
           return "bg-indigo-500";

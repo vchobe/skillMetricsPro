@@ -92,6 +92,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching user skills", error });
     }
   });
+  
+  // Get a specific user's skill history by userId
+  app.get("/api/users/:userId/skills/history", ensureAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get skill history for the specified user
+      const skillHistory = await storage.getUserSkillHistory(userId);
+      res.json(skillHistory);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching user skill history", error });
+    }
+  });
 
   app.patch("/api/user/profile", ensureAuth, async (req, res) => {
     try {

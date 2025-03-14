@@ -66,20 +66,20 @@ export default function UserProfilePage() {
   
   // Get skill history
   const { data: skillHistory, isLoading: isLoadingHistory } = useQuery({
-    queryKey: [`/api/user/skills/history`],
-    enabled: !!userId && userId === currentUser?.id?.toString()
+    queryKey: [`/api/users/${userId}/skills/history`],
+    enabled: !!userId
   });
   
   // Format skill history for activity feed
   const activityItems = skillHistory && Array.isArray(skillHistory) 
     ? skillHistory.map((history: any) => ({
         id: history.id,
-        type: history.previousLevel ? "update" : "add",
-        skillId: history.skillId,
-        previousLevel: history.previousLevel,
-        newLevel: history.newLevel,
-        date: history.createdAt,
-        note: history.changeNote
+        type: history.previousLevel ? "update" as const : "add" as const,
+        skillId: history.skillId || history.skill_id,
+        previousLevel: history.previousLevel || history.previous_level,
+        newLevel: history.newLevel || history.new_level,
+        date: history.createdAt || history.created_at,
+        note: history.changeNote || history.change_note
       })) 
     : [];
   
