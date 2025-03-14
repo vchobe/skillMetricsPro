@@ -16,6 +16,7 @@ interface Activity {
   id: number;
   type: "update" | "add";
   skillId: number;
+  userId: number;
   previousLevel: string | null;
   newLevel: string;
   date: Date | string;
@@ -37,6 +38,7 @@ import {
 } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  ArrowLeft,
   Download,
   Loader2,
   UserCircle,
@@ -88,6 +90,7 @@ export default function UserProfilePage() {
         id: history.id,
         type: history.previousLevel || history.previous_level ? "update" : "add",
         skillId: history.skillId || history.skill_id,
+        userId: history.userId || history.user_id || parseInt(userId!),
         previousLevel: history.previousLevel || history.previous_level,
         newLevel: history.newLevel || history.new_level,
         date: history.createdAt || history.created_at,
@@ -222,9 +225,18 @@ export default function UserProfilePage() {
         />
         
         <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Admin Export Button */}
+          {/* Admin Buttons */}
           {isAdmin && (
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-between mb-4">
+              <Link href="/admin">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Admin Dashboard
+                </Button>
+              </Link>
               <Button 
                 variant="outline" 
                 className="flex items-center gap-2"
