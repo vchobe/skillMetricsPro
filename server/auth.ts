@@ -88,6 +88,24 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      
+      // Ensure the admin flag is available under both property names (snake_case and camelCase)
+      if (user) {
+        // Handle the user object with dynamically added properties safely
+        const userObj = user as any;
+        
+        // Get the admin status, prioritizing is_admin (from database) if available
+        const isAdminValue = userObj.is_admin !== undefined ? userObj.is_admin : false;
+        
+        // Make sure it's consistently available in both formats
+        if (typeof isAdminValue === 'boolean' || 
+            typeof isAdminValue === 'string') {
+          userObj.isAdmin = isAdminValue;
+          userObj.is_admin = isAdminValue;
+          console.log(`Passport deserialize: Ensured admin status (${isAdminValue}) is available under both properties for user ${userObj.email}`);
+        }
+      }
+      
       done(null, user);
     } catch (error) {
       done(error);
@@ -196,13 +214,13 @@ export function setupAuth(app: Express) {
 
       console.log("POST /api/login - Validation succeeded. Parsed data:", parsedData.data);
       
-      passport.authenticate("local", (err, user, info) => {
-        console.log("POST /api/login - Passport auth result:", { err, user: user?.email, info });
+      passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
+        console.log("POST /api/login - Passport auth result:", { err, user: user ? user.email : null, info });
         
         if (err) return next(err);
         if (!user) return res.status(401).json({ message: "Invalid email address" });
 
-        req.login(user, (err) => {
+        req.login(user, (err: any) => {
           if (err) {
             console.log("POST /api/login - Login error:", err);
             return next(err);

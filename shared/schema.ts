@@ -145,7 +145,10 @@ export const insertEndorsementSchema = createInsertSchema(endorsements).pick({
 });
 
 // Export types
-export type User = typeof users.$inferSelect;
+export type User = typeof users.$inferSelect & {
+  // Additional runtime properties that might be added during processing
+  isAdmin?: boolean;
+};
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
 

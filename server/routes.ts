@@ -15,9 +15,17 @@ import {
 function isUserAdmin(user: any): boolean {
   if (!user) return false;
   
-  // Check both camelCase and snake_case properties since the property name 
-  // might change during conversion between storage and session
-  const adminValue = user.isAdmin !== undefined ? user.isAdmin : user.is_admin;
+  // Convert any user object to have consistent properties
+  const userObj = user as {
+    is_admin?: boolean | string;
+    isAdmin?: boolean | string;
+  };
+  
+  // Check both camelCase and snake_case properties
+  const adminValue = 
+    userObj.isAdmin !== undefined ? userObj.isAdmin : 
+    userObj.is_admin !== undefined ? userObj.is_admin : 
+    false;
   
   // Handle different formats PostgreSQL might return
   if (adminValue === true) return true;
