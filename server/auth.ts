@@ -74,9 +74,25 @@ export function setupAuth(app: Express) {
           }
           console.log(`User found: ${user.email}`);
           
-          // Since we're using email-only auth for this app, we don't check the password
-          // In a real app, you would verify the password here
-          return done(null, user);
+          // Check if the password is valid
+          if (!user.password) {
+            console.log(`User ${user.email} has no password set`);
+            return done(null, false, { message: 'Invalid credentials' });
+          }
+          
+          try {
+            const isValid = await comparePasswords(password, user.password);
+            if (!isValid) {
+              console.log(`Invalid password for user: ${user.email}`);
+              return done(null, false, { message: 'Invalid credentials' });
+            }
+            
+            console.log(`Password validated successfully for user: ${user.email}`);
+            return done(null, user);
+          } catch (err) {
+            console.error(`Password validation error for ${user.email}:`, err);
+            return done(null, false, { message: 'Invalid credentials' });
+          }
         } catch (error) {
           console.error(`Login error: ${error}`);
           return done(error);
@@ -225,7 +241,7 @@ export function setupAuth(app: Express) {
         console.log("POST /api/login - Passport auth result:", { err, user: user ? user.email : null, info });
         
         if (err) return next(err);
-        if (!user) return res.status(401).json({ message: "Invalid email address" });
+        if (!user) return res.status(401).json({ message: "Invalid email or password" });
 
         req.login(user, (err: any) => {
           if (err) {
