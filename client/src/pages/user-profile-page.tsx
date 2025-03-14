@@ -471,9 +471,9 @@ export default function UserProfilePage() {
                                         <div className="font-medium text-amber-800">
                                           {skill.certification}
                                         </div>
-                                        {skill.credly_link && (
+                                        {skill.credlyLink && (
                                           <a 
-                                            href={skill.credly_link} 
+                                            href={skill.credlyLink} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
                                             className="text-blue-600 hover:underline flex items-center mt-1 text-xs"
@@ -482,14 +482,14 @@ export default function UserProfilePage() {
                                             View Credential
                                           </a>
                                         )}
-                                        {skill.certification_date && (
+                                        {skill.certificationDate && (
                                           <div className="mt-1 text-xs text-gray-600">
-                                            Earned: {formatDate(skill.certification_date, "MMM yyyy")}
+                                            Earned: {formatDate(skill.certificationDate, "MMM yyyy")}
                                           </div>
                                         )}
-                                        {skill.expiration_date && (
+                                        {skill.expirationDate && (
                                           <div className="text-xs text-gray-600">
-                                            Expires: {formatDate(skill.expiration_date, "MMM yyyy")}
+                                            Expires: {formatDate(skill.expirationDate, "MMM yyyy")}
                                           </div>
                                         )}
                                       </div>

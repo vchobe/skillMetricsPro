@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
+import ActivityFeed from "@/components/activity-feed";
 import { formatDate } from "@/lib/date-utils";
 import {
   BarChart3,
@@ -25,8 +26,25 @@ import {
   SortDesc,
   Trophy,
   Users,
-  Filter
+  Filter,
+  Calendar,
+  FileText,
+  BarChart,
+  LineChart,
+  Activity
 } from "lucide-react";
+
+// Define Activity interface for proper typing
+interface ActivityItem {
+  id: number;
+  type: "update" | "add";
+  skillId: number;
+  userId: number;
+  previousLevel: string | null;
+  newLevel: string;
+  date: Date | string;
+  note?: string;
+}
 
 // Type definitions
 type SortField = "username" | "email" | "totalSkills" | "expertSkills" | "certifications" | "createdAt";
@@ -70,6 +88,11 @@ export default function OrgDashboard() {
   // Get all skills across organization
   const { data: allSkills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
     queryKey: ["/api/all-skills"],
+  });
+  
+  // Get all skill history across organization
+  const { data: skillHistoryData, isLoading: isLoadingHistory } = useQuery<any[]>({
+    queryKey: ["/api/admin/skill-history"],
   });
   
   // Extract all unique skill categories
@@ -254,7 +277,7 @@ export default function OrgDashboard() {
           ) : (
             <>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
                   <TabsTrigger value="overview" className="flex items-center gap-2">
                     <BarChart3 className="h-4 w-4" />
                     <span className="hidden sm:inline">Overview</span>
@@ -266,6 +289,10 @@ export default function OrgDashboard() {
                   <TabsTrigger value="directory" className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
                     <span className="hidden sm:inline">Directory</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="activity" className="flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    <span className="hidden sm:inline">Activity</span>
                   </TabsTrigger>
                 </TabsList>
                 
