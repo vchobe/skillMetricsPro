@@ -92,6 +92,15 @@ export default function SkillManagementPage() {
   const [editingTemplate, setEditingTemplate] = useState<SkillTemplate | null>(null);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showTargetDialog, setShowTargetDialog] = useState(false);
+  const [targetFormData, setTargetFormData] = useState({
+    id: null,
+    name: '',
+    skillIds: [],
+    targetLevel: 'beginner',
+    targetDate: undefined,
+    targetNumber: undefined,
+    description: ''
+  });
   
   // Check if user is admin
   const isAdmin = user?.is_admin;
@@ -992,7 +1001,16 @@ export default function SkillManagementPage() {
                                         variant="outline" 
                                         size="sm"
                                         onClick={() => {
-                                          // View details functionality would go here
+                                          setTargetFormData({
+                                            id: target.id,
+                                            name: target.name || '',
+                                            skillIds: target.skillIds || [],
+                                            targetLevel: target.targetLevel || 'beginner',
+                                            targetDate: target.targetDate ? new Date(target.targetDate) : undefined,
+                                            targetNumber: target.targetNumber || undefined,
+                                            description: target.description || ''
+                                          });
+                                          setShowTargetDialog(true);
                                         }}
                                       >
                                         View Details
