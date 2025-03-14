@@ -98,8 +98,8 @@ export default function SkillManagementPage() {
     name: string;
     skillIds: number[];
     targetLevel: string;
-    targetDate: Date | undefined;
-    targetNumber: number | undefined;
+    targetDate: string | undefined;
+    targetNumber: number | string | undefined;
     description: string;
   }>({
     id: null,
@@ -1120,8 +1120,8 @@ export default function SkillManagementPage() {
                                             name: target.name || '',
                                             skillIds: target.skillIds || [],
                                             targetLevel: skillLevel,
-                                            targetDate: target.targetDate || undefined,
-                                            targetNumber: target.targetNumber !== undefined ? target.targetNumber : undefined,
+                                            targetDate: target.targetDate || '',
+                                            targetNumber: target.targetNumber !== undefined && target.targetNumber !== null ? target.targetNumber : undefined,
                                             description: target.description || ''
                                           });
                                           setTargetFormData({
