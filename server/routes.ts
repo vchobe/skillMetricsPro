@@ -528,9 +528,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { skillIds, assignedUsers, ...targetData } = req.body;
       
+      // Since name field might be missing, create a default name based on selected skills level
       // Create the target
       const target = await storage.createSkillTarget({
-        name: targetData.name,
+        name: targetData.name || `Target: ${targetData.targetLevel} level`, // Default name if not provided
         description: targetData.description,
         targetLevel: targetData.targetLevel,
         targetDate: targetData.targetDate

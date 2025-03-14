@@ -51,6 +51,7 @@ type SkillTemplateValues = z.infer<typeof skillTemplateSchema>;
 
 // Define the form schema for setting skill targets
 const skillTargetSchema = z.object({
+  name: z.string().optional(),
   skillIds: z.array(z.number()),
   targetLevel: z.enum(["beginner", "intermediate", "expert"]),
   targetDate: z.string().optional(),
@@ -109,6 +110,7 @@ export default function SkillManagementPage() {
   const targetForm = useForm<SkillTargetValues>({
     resolver: zodResolver(skillTargetSchema),
     defaultValues: {
+      name: "",
       skillIds: [],
       targetLevel: "intermediate",
       targetDate: undefined,
