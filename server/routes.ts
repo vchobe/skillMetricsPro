@@ -128,12 +128,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create profile history for each changed field
       const updateData: Partial<typeof user> = {};
       
-      // Preserve the admin flag
-      const isAdmin = user.is_admin;
+      // Explicitly get the admin flag (handling both camelCase and snake_case)
+      const isAdmin = user.isAdmin !== undefined ? user.isAdmin : user.is_admin;
+      
+      console.log("Current admin status before update:", isAdmin);
       
       // Track changes for history
       for (const [key, value] of Object.entries(req.body)) {
-        if (key in user && key !== 'id' && key !== 'password' && user[key as keyof typeof user] !== value) {
+        if (key in user && key !== 'id' && key !== 'password' && key !== 'isAdmin' && key !== 'is_admin' && user[key as keyof typeof user] !== value) {
           const oldValue = user[key as keyof typeof user]?.toString() || '';
           const newValue = value?.toString() || '';
           
@@ -153,11 +155,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (Object.keys(updateData).length > 0) {
-        // Always preserve the admin flag
-        const updatedUser = await storage.updateUser(userId, {
-          ...updateData,
-          is_admin: isAdmin // Explicitly keep the admin flag unchanged
-        });
+        // Always preserve the admin flag (handle both property names)
+        updateData.is_admin = isAdmin;
+        updateData.isAdmin = isAdmin;
+        
+        console.log("Update data with preserved admin flag:", updateData);
+        
+        const updatedUser = await storage.updateUser(userId, updateData);
         const { password, ...userWithoutPassword } = updatedUser;
         res.json(userWithoutPassword);
       } else {
