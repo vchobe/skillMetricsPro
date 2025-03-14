@@ -98,7 +98,7 @@ export default function SkillManagementPage() {
     name: string;
     skillIds: number[];
     targetLevel: string;
-    targetDate: string | undefined;
+    targetDate: string;
     targetNumber: number | string | undefined;
     description: string;
   }>({
@@ -106,7 +106,7 @@ export default function SkillManagementPage() {
     name: '',
     skillIds: [],
     targetLevel: 'beginner',
-    targetDate: undefined,
+    targetDate: "",
     targetNumber: undefined,
     description: ''
   });
@@ -275,7 +275,7 @@ export default function SkillManagementPage() {
         name: "",
         skillIds: [],
         targetLevel: "intermediate",
-        targetDate: undefined,
+        targetDate: "",
         targetNumber: undefined,
         description: ""
       });
@@ -310,7 +310,7 @@ export default function SkillManagementPage() {
         name: "",
         skillIds: [],
         targetLevel: "intermediate",
-        targetDate: undefined,
+        targetDate: "",
         targetNumber: undefined,
         description: ""
       });
@@ -400,7 +400,7 @@ export default function SkillManagementPage() {
         name: "",
         skillIds: [],
         targetLevel: "intermediate" as const, // Use const assertion to fix type issue
-        targetDate: undefined,
+        targetDate: "",
         targetNumber: undefined,
         description: ""
       });
@@ -410,7 +410,7 @@ export default function SkillManagementPage() {
         name: '',
         skillIds: [],
         targetLevel: 'beginner',
-        targetDate: undefined,
+        targetDate: "",
         targetNumber: undefined,
         description: ''
       });
