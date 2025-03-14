@@ -241,6 +241,77 @@ export default function AdminDashboard() {
     { name: "Other", value: 10 }
   ];
   
+  // Calculate skill gap metrics
+  const skillGapAnalysis = useMemo(() => {
+    if (!skills || !skillTargets) return [];
+    
+    // Group skills by category
+    const skillsByCategory = skills.reduce((acc, skill) => {
+      const category = skill.category || "Uncategorized";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(skill);
+      return acc;
+    }, {} as Record<string, Skill[]>);
+    
+    // Helper function to convert skill level to numeric value
+    const levelToValue = (level: string): number => {
+      switch(level.toLowerCase()) {
+        case 'beginner': return 33;
+        case 'intermediate': return 66;
+        case 'expert': return 100;
+        default: return 0;
+      }
+    };
+    
+    // Create gap analysis data structure
+    return Object.entries(skillsByCategory).map(([category, categorySkills]) => {
+      // Find targets that match skills in this category
+      const relevantTargets = skillTargets.filter(target => 
+        target.skillIds.some(id => categorySkills.some(skill => skill.id === id))
+      );
+      
+      // If no targets defined for this category, skip
+      if (relevantTargets.length === 0) return null;
+      
+      // Calculate current level (average of all skills in category)
+      const currentLevelValue = categorySkills.reduce((sum, skill) => 
+        sum + levelToValue(skill.level), 0) / categorySkills.length;
+      
+      // Calculate target level from relevant targets
+      const targetLevelValue = relevantTargets.reduce((sum, target) => 
+        sum + levelToValue(target.targetLevel), 0) / relevantTargets.length;
+      
+      // Calculate gap
+      const gap = Math.max(0, targetLevelValue - currentLevelValue);
+      
+      // Count employees needing skill improvement
+      const employeesNeedingImprovement = users?.filter(user => {
+        const userSkills = skills.filter(s => s.userId === user.id || (s as any).user_id === user.id);
+        const userCategorySkills = userSkills.filter(s => s.category === category);
+        
+        // If user has no skills in this category, they need improvement
+        if (userCategorySkills.length === 0) return true;
+        
+        // Calculate user's average level in this category
+        const userAvgLevel = userCategorySkills.reduce((sum, skill) => 
+          sum + levelToValue(skill.level), 0) / userCategorySkills.length;
+          
+        // If user's level is below target, they need improvement
+        return userAvgLevel < targetLevelValue;
+      }).length || 0;
+      
+      return {
+        category,
+        currentLevel: Math.round(currentLevelValue),
+        targetLevel: Math.round(targetLevelValue),
+        gap: Math.round(gap),
+        employeesNeedingImprovement
+      };
+    }).filter(Boolean); // Remove null entries
+  }, [skills, skillTargets, users]);
+  
   // Department skills data (mock)
   const departmentSkillsData = [
     { department: "Engineering", skill: "JavaScript", proficiency: 85, level: "expert" },
@@ -390,6 +461,53 @@ export default function AdminDashboard() {
     toast({
       title: "Export successful",
       description: "Certification data has been exported to CSV",
+      variant: "default"
+    });
+  };
+  
+  // CSV Export function for skill gap analysis
+  const exportSkillGapCSV = () => {
+    if (!skillGapAnalysis || skillGapAnalysis.length === 0) {
+      toast({
+        title: "Export failed",
+        description: "No skill gap data available to export",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create CSV content
+    const headers = ["Skill Category", "Current Level (%)", "Target Level (%)", "Gap (%)", "Employees Needing Improvement"];
+    const rows = skillGapAnalysis.map(gap => [
+      gap.category,
+      gap.currentLevel,
+      gap.targetLevel,
+      gap.gap,
+      gap.employeesNeedingImprovement
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    
+    // Create a Blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    // Set up hidden link for download
+    if (skillGapExportRef.current) {
+      skillGapExportRef.current.href = url;
+      skillGapExportRef.current.download = `skill_gap_analysis_${new Date().toISOString().split('T')[0]}.csv`;
+      skillGapExportRef.current.click();
+    }
+    
+    // Clean up
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    toast({
+      title: "Export successful",
+      description: "Skill gap analysis data has been exported to CSV",
       variant: "default"
     });
   };
