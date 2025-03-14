@@ -1139,7 +1139,7 @@ export default function AdminDashboard() {
                     <CardTitle>Certification Report</CardTitle>
                     <CardDescription>Overview of certified skills across the organization</CardDescription>
                   </div>
-                  <div className="mt-4 md:mt-0 flex gap-2">
+                  <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
                     <Button 
                       variant="outline"
                       onClick={exportCertificationsCSV}
@@ -1155,17 +1155,149 @@ export default function AdminDashboard() {
                     <a ref={csvExportRef} className="hidden"></a>
                   </div>
                 </CardHeader>
+                
+                <div className="px-6 py-4 border-b">
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative w-full md:w-64">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <input
+                        placeholder="Search certifications..."
+                        className="pl-8 h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={certSearchQuery}
+                        onChange={(e) => setCertSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <Select 
+                      value={certCategoryFilter} 
+                      onValueChange={setCertCategoryFilter}
+                    >
+                      <SelectTrigger className="w-full md:w-[180px] h-10">
+                        <SelectValue placeholder="Filter by category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {/* Generate category items from certification data */}
+                        {certificationReport && Array.from(
+                          new Set(
+                            certificationReport.flatMap(report => 
+                              report.certifications.map(cert => cert.category)
+                            ).filter(Boolean)
+                          )
+                        ).map(category => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
                 <CardContent className="px-0">
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certifications</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acquired</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expires</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                            onClick={() => {
+                              if (certSortField === "username") {
+                                setCertSortDirection(certSortDirection === "asc" ? "desc" : "asc");
+                              } else {
+                                setCertSortField("username");
+                                setCertSortDirection("asc");
+                              }
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <span>User</span>
+                              {certSortField === "username" && (
+                                <ArrowUpDown className={`ml-1 h-4 w-4 ${certSortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
+                              )}
+                            </div>
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                            onClick={() => {
+                              if (certSortField === "name") {
+                                setCertSortDirection(certSortDirection === "asc" ? "desc" : "asc");
+                              } else {
+                                setCertSortField("name");
+                                setCertSortDirection("asc");
+                              }
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <span>Certifications</span>
+                              {certSortField === "name" && (
+                                <ArrowUpDown className={`ml-1 h-4 w-4 ${certSortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
+                              )}
+                            </div>
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                            onClick={() => {
+                              if (certSortField === "category") {
+                                setCertSortDirection(certSortDirection === "asc" ? "desc" : "asc");
+                              } else {
+                                setCertSortField("category");
+                                setCertSortDirection("asc");
+                              }
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <span>Category</span>
+                              {certSortField === "category" && (
+                                <ArrowUpDown className={`ml-1 h-4 w-4 ${certSortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
+                              )}
+                            </div>
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                            onClick={() => {
+                              if (certSortField === "level") {
+                                setCertSortDirection(certSortDirection === "asc" ? "desc" : "asc");
+                              } else {
+                                setCertSortField("level");
+                                setCertSortDirection("asc");
+                              }
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <span>Level</span>
+                              {certSortField === "level" && (
+                                <ArrowUpDown className={`ml-1 h-4 w-4 ${certSortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
+                              )}
+                            </div>
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                            onClick={() => {
+                              if (certSortField === "acquired") {
+                                setCertSortDirection(certSortDirection === "asc" ? "desc" : "asc");
+                              } else {
+                                setCertSortField("acquired");
+                                setCertSortDirection("asc");
+                              }
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <span>Acquired</span>
+                              {certSortField === "acquired" && (
+                                <ArrowUpDown className={`ml-1 h-4 w-4 ${certSortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
+                              )}
+                            </div>
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                            onClick={() => {
+                              if (certSortField === "expires") {
+                                setCertSortDirection(certSortDirection === "asc" ? "desc" : "asc");
+                              } else {
+                                setCertSortField("expires");
+                                setCertSortDirection("asc");
+                              }
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <span>Expires</span>
+                              {certSortField === "expires" && (
+                                <ArrowUpDown className={`ml-1 h-4 w-4 ${certSortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
+                              )}
+                            </div>
+                          </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
@@ -1179,62 +1311,177 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ) : certificationReport && certificationReport.length > 0 ? (
-                          certificationReport.flatMap(report => 
-                            report.certifications.map((cert, certIndex) => (
-                              <tr key={`${report.user.id}-${cert.skillId}`}>
-                                {certIndex === 0 && (
-                                  <td className="px-6 py-4 whitespace-nowrap" rowSpan={report.certifications.length}>
-                                    <div className="flex items-center">
-                                      <Avatar className="h-8 w-8">
-                                        <AvatarFallback className="bg-indigo-600 text-white">
-                                          {report.user.username?.[0]?.toUpperCase() || "U"}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-900">
-                                          {report.user.username || report.user.email?.split('@')[0] || `User ${report.user.id}`}
+                          (() => {
+                            // Process the certification data
+                            const processedRows: React.ReactNode[] = [];
+                            
+                            // Flatten certifications with user information
+                            const flatCertifications = certificationReport.flatMap(report => 
+                              report.certifications.map(cert => ({
+                                user: report.user,
+                                cert
+                              }))
+                            );
+                            
+                            // Filter certifications
+                            const filteredCerts = flatCertifications.filter(item => {
+                              // Category filter
+                              if (certCategoryFilter !== 'all' && item.cert.category !== certCategoryFilter) {
+                                return false;
+                              }
+                              
+                              // Search filter
+                              if (certSearchQuery) {
+                                const searchLower = certSearchQuery.toLowerCase();
+                                return (
+                                  (item.cert.name?.toLowerCase().includes(searchLower) || false) ||
+                                  (item.cert.category?.toLowerCase().includes(searchLower) || false) ||
+                                  (item.user.username?.toLowerCase().includes(searchLower) || false) ||
+                                  (item.user.email?.toLowerCase().includes(searchLower) || false)
+                                );
+                              }
+                              return true;
+                            });
+                            
+                            // Sort the filtered certifications
+                            const sortedCerts = [...filteredCerts].sort((a, b) => {
+                              if (certSortField === "username") {
+                                const aValue = a.user.username || a.user.email || "";
+                                const bValue = b.user.username || b.user.email || "";
+                                return certSortDirection === "asc" 
+                                  ? aValue.localeCompare(bValue)
+                                  : bValue.localeCompare(aValue);
+                              }
+                              else if (certSortField === "name") {
+                                const aValue = a.cert.name || "";
+                                const bValue = b.cert.name || "";
+                                return certSortDirection === "asc" 
+                                  ? aValue.localeCompare(bValue)
+                                  : bValue.localeCompare(aValue);
+                              }
+                              else if (certSortField === "category") {
+                                const aValue = a.cert.category || "";
+                                const bValue = b.cert.category || "";
+                                return certSortDirection === "asc" 
+                                  ? aValue.localeCompare(bValue)
+                                  : bValue.localeCompare(aValue);
+                              }
+                              else if (certSortField === "level") {
+                                const levelValue = {
+                                  "beginner": 1,
+                                  "intermediate": 2,
+                                  "expert": 3
+                                };
+                                const aValue = levelValue[a.cert.level as keyof typeof levelValue] || 0;
+                                const bValue = levelValue[b.cert.level as keyof typeof levelValue] || 0;
+                                return certSortDirection === "asc" 
+                                  ? aValue - bValue
+                                  : bValue - aValue;
+                              }
+                              else if (certSortField === "acquired") {
+                                const aDate = a.cert.acquiredFormatted ? new Date(a.cert.acquiredFormatted).getTime() : 0;
+                                const bDate = b.cert.acquiredFormatted ? new Date(b.cert.acquiredFormatted).getTime() : 0;
+                                return certSortDirection === "asc" 
+                                  ? aDate - bDate
+                                  : bDate - aDate;
+                              }
+                              else if (certSortField === "expires") {
+                                const aDate = a.cert.expirationFormatted ? new Date(a.cert.expirationFormatted).getTime() : Infinity;
+                                const bDate = b.cert.expirationFormatted ? new Date(b.cert.expirationFormatted).getTime() : Infinity;
+                                return certSortDirection === "asc" 
+                                  ? aDate - bDate
+                                  : bDate - aDate;
+                              }
+                              // Default sort by name asc
+                              return (a.cert.name || "").localeCompare(b.cert.name || "");
+                            });
+                            
+                            // Group by user for row spanning
+                            const userGroups = new Map<number, {
+                              user: User,
+                              certifications: any[]
+                            }>();
+                            
+                            sortedCerts.forEach(item => {
+                              const userId = item.user.id;
+                              if (!userGroups.has(userId)) {
+                                userGroups.set(userId, {
+                                  user: item.user,
+                                  certifications: []
+                                });
+                              }
+                              userGroups.get(userId)!.certifications.push(item.cert);
+                            });
+                            
+                            // Create table rows
+                            Array.from(userGroups.values()).forEach(group => {
+                              group.certifications.forEach((cert, certIndex) => {
+                                processedRows.push(
+                                  <tr key={`${group.user.id}-${cert.skillId || certIndex}`}>
+                                    {certIndex === 0 && (
+                                      <td className="px-6 py-4 whitespace-nowrap" rowSpan={group.certifications.length}>
+                                        <div className="flex items-center">
+                                          <Avatar className="h-8 w-8">
+                                            <AvatarFallback className="bg-indigo-600 text-white">
+                                              {group.user.username?.[0]?.toUpperCase() || "U"}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div className="ml-4">
+                                            <div className="text-sm font-medium text-gray-900">
+                                              {group.user.username || group.user.email?.split('@')[0] || `User ${group.user.id}`}
+                                            </div>
+                                            <div className="text-sm text-gray-500">{group.user.email}</div>
+                                          </div>
                                         </div>
-                                        <div className="text-sm text-gray-500">{report.user.email}</div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                )}
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm font-medium text-gray-900">{cert.name}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-gray-500">{cert.category}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <SkillLevelBadge level={cert.level} size="sm" />
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {cert.acquiredFormatted ? 
-                                    format(new Date(cert.acquiredFormatted), "MMM dd, yyyy") : 
-                                    "Not specified"
-                                  }
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {!cert.expirationFormatted ? (
-                                    "No expiration"
-                                  ) : (
-                                    <span className={cert.isExpired ? "text-red-500 font-medium" : ""}>
-                                      {format(new Date(cert.expirationFormatted), "MMM dd, yyyy")}
-                                      {cert.isExpired && " (Expired)"}
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                  <Button size="sm" variant="outline">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                                    </svg>
-                                    Verify
-                                  </Button>
+                                      </td>
+                                    )}
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                      <div className="text-sm font-medium text-gray-900">{cert.name}</div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                      <div className="text-sm text-gray-500">{cert.category}</div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                      <SkillLevelBadge level={cert.level} size="sm" />
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {cert.acquiredFormatted ? 
+                                        format(new Date(cert.acquiredFormatted), "MMM dd, yyyy") : 
+                                        "Not specified"
+                                      }
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {!cert.expirationFormatted ? (
+                                        "No expiration"
+                                      ) : (
+                                        <span className={cert.isExpired ? "text-red-500 font-medium" : ""}>
+                                          {format(new Date(cert.expirationFormatted), "MMM dd, yyyy")}
+                                          {cert.isExpired && " (Expired)"}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                      <Button size="sm" variant="outline">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                        </svg>
+                                        Verify
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                            });
+                            
+                            // Return the processed rows
+                            return processedRows.length > 0 ? processedRows : (
+                              <tr>
+                                <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                                  No matching certifications found
                                 </td>
                               </tr>
-                            ))
-                          )
+                            );
+                          })()
                         ) : (
                           <tr>
                             <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
