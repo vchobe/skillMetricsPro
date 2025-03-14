@@ -332,13 +332,23 @@ export default function SkillManagementPage() {
   skillTemplates.forEach(t => categorySet.add(t.category));
   const categories = Array.from(categorySet);
   
-  // Group skills by category for selection in target form
+  // Group skills by category for selection in target form, and deduplicate by name and category
   const skillsByCategory = allSkills.reduce((acc, skill) => {
     const category = skill.category || 'Other';
     if (!acc[category]) {
       acc[category] = [];
     }
-    acc[category].push(skill);
+    
+    // Check if a skill with the same name already exists in this category
+    const existingSkill = acc[category].find(s => 
+      s.name.toLowerCase() === skill.name.toLowerCase()
+    );
+    
+    // Only add if this skill name doesn't already exist in this category
+    if (!existingSkill) {
+      acc[category].push(skill);
+    }
+    
     return acc;
   }, {} as Record<string, Skill[]>);
   
