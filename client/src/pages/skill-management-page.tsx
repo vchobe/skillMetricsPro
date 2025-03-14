@@ -926,7 +926,7 @@ export default function SkillManagementPage() {
                                         type="number"
                                         min="1"
                                         placeholder="Number of employees to reach this level"
-                                        value={field.value || ''}
+                                        value={field.value === undefined || field.value === null ? '' : field.value}
                                         onChange={(e) => {
                                           const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
                                           field.onChange(value);
@@ -1070,7 +1070,7 @@ export default function SkillManagementPage() {
                                             skillIds: target.skillIds || [],
                                             targetLevel: skillLevel,
                                             targetDate: target.targetDate || undefined,
-                                            targetNumber: target.targetNumber || undefined,
+                                            targetNumber: target.targetNumber !== undefined ? target.targetNumber : undefined,
                                             description: target.description || ''
                                           });
                                           setTargetFormData({
@@ -1079,7 +1079,7 @@ export default function SkillManagementPage() {
                                             skillIds: target.skillIds || [],
                                             targetLevel: target.targetLevel || 'beginner',
                                             targetDate: target.targetDate ? new Date(target.targetDate) : undefined,
-                                            targetNumber: target.targetNumber || undefined,
+                                            targetNumber: target.targetNumber !== undefined ? target.targetNumber : undefined,
                                             description: target.description || ''
                                           });
                                           setShowTargetDialog(true);
