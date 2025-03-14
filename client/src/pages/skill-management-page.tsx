@@ -1116,11 +1116,25 @@ export default function SkillManagementPage() {
                                                            ? target.targetLevel 
                                                            : "beginner" as const;
                                           
+                                          console.log("Target data:", target);
+                                          console.log("Target date:", target.targetDate);
+                                          
+                                          // Format the date to YYYY-MM-DD for HTML date input
+                                          let formattedDate = '';
+                                          if (target.targetDate) {
+                                            const date = new Date(target.targetDate);
+                                            // Check if it's a valid date
+                                            if (!isNaN(date.getTime())) {
+                                              formattedDate = date.toISOString().split('T')[0];
+                                              console.log("Formatted date:", formattedDate);
+                                            }
+                                          }
+                                          
                                           targetForm.reset({
                                             name: target.name || '',
                                             skillIds: target.skillIds || [],
                                             targetLevel: skillLevel,
-                                            targetDate: target.targetDate || '',
+                                            targetDate: formattedDate,
                                             targetNumber: target.targetNumber !== undefined && target.targetNumber !== null ? target.targetNumber : undefined,
                                             description: target.description || ''
                                           });
@@ -1129,7 +1143,7 @@ export default function SkillManagementPage() {
                                             name: target.name || '',
                                             skillIds: target.skillIds || [],
                                             targetLevel: target.targetLevel || 'beginner',
-                                            targetDate: target.targetDate || '',
+                                            targetDate: formattedDate,
                                             targetNumber: target.targetNumber !== undefined && target.targetNumber !== null ? target.targetNumber : '',
                                             description: target.description || ''
                                           });
