@@ -108,15 +108,16 @@ export default function ProfilePage() {
   // Update form values when user data changes
   useEffect(() => {
     if (user) {
+      console.log("User data for profile form:", user);
       profileForm.reset({
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
         project: user.project || "",
         role: user.role || "",
         location: user.location || "",
       });
     }
-  }, [user]);
+  }, [user, profileForm]);
   
   // Update profile mutation
   const updateProfileMutation = useMutation({
