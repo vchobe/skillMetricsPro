@@ -1011,6 +1011,15 @@ export default function AdminDashboard() {
             </TabsContent>
             
             <TabsContent value="skill-history">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
               <Card className="mb-6">
                 <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
                   <div>
@@ -1337,9 +1346,19 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+              </motion.div>
             </TabsContent>
             
             <TabsContent value="certifications">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
               <Card className="mb-6">
                 <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
                   <div>
@@ -1752,9 +1771,19 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+              </motion.div>
             </TabsContent>
             
             <TabsContent value="users">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
               <Card className="mb-6">
                 <CardHeader className="flex flex-col sm:flex-row justify-between sm:items-center">
                   <div>
@@ -2035,6 +2064,7 @@ export default function AdminDashboard() {
                 <h3 className="text-lg font-medium text-gray-900 mb-4 px-1">Danger Zone</h3>
                 <AdminUserActions />
               </div>
+              </motion.div>
             </TabsContent>
           </Tabs>
         </div>
