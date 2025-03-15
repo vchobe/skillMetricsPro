@@ -37,10 +37,12 @@ interface ActivityFeedProps {
 
 export default function ActivityFeed({ activities, skills, showAll, isPersonal = true, users = [] }: ActivityFeedProps) {
   // Fetch skill details by ID if needed
-  // Fetch all skills to ensure we have complete skill data, especially for cross-user references
-  const { data: allSkills } = useQuery<Skill[]>({
-    queryKey: ["/api/skills/all"],
-    // Always fetch all skills to ensure we have complete data
+  // Fetch skills by their IDs directly
+  const activitySkillIds = activities.map(activity => activity.skillId);
+  
+  // Use the regular /api/skills endpoint since it should contain all needed user skills
+  const { data: allSkills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
+    queryKey: ["/api/all-skills"],
     enabled: true
   });
   
@@ -108,6 +110,17 @@ export default function ActivityFeed({ activities, skills, showAll, isPersonal =
   
   // Displayed activities (all or limited)
   const displayedActivities = showAll ? activities : activities.slice(0, 3);
+  
+  // Loading state
+  if (isLoadingSkills) {
+    return (
+      <div className="flow-root">
+        <div className="flex justify-center py-4">
+          <Clock className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="flow-root">
