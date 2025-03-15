@@ -549,11 +549,11 @@ export default function HomePage() {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target Name</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Progress</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skill Category</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Level</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target Level</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gap</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action Required</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -579,31 +579,45 @@ export default function HomePage() {
                                     style={{ width: `${target.progress}%` }}
                                   ></div>
                                 </div>
-                                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                  <span>{target.acquiredSkills}/{target.totalTargetSkills} skills</span>
-                                  <span>{target.progress}%</span>
+                                <span className="text-xs text-gray-500">{target.progress}%</span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                  <div className="bg-indigo-300 h-2.5 rounded-full" style={{ width: `100%` }}></div>
+                                </div>
+                                <div className="flex items-center mt-1">
+                                  <span className="text-xs text-gray-500 mr-2">100%</span>
+                                  <SkillLevelBadge level={target.targetLevel} size="sm" />
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <SkillLevelBadge level={target.targetLevel} size="sm" />
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                {target.dueDate ? (
-                                  <span className={`text-sm ${new Date(target.dueDate) < new Date() ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                                    {new Date(target.dueDate).toLocaleDateString()}
+                                {target.skillGap === 0 ? (
+                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    On Target
+                                  </span>
+                                ) : target.skillGap > 15 ? (
+                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                    {100 - target.progress}%
                                   </span>
                                 ) : (
-                                  <span className="text-sm text-gray-500">Ongoing</span>
+                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    {100 - target.progress}%
+                                  </span>
                                 )}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
+                                {target.dueDate && (
+                                  <div className="text-xs text-gray-500 mb-1">
+                                    Due: {new Date(target.dueDate).toLocaleDateString()}
+                                  </div>
+                                )}
                                 <Link href="/skills">
                                   <Button 
                                     variant={target.skillGap > 0 ? "default" : "outline"} 
                                     size="sm"
                                     className={target.skillGap > 0 ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all duration-300" : ""}
                                   >
-                                    {target.skillGap > 0 ? 'Fill Skill Gap' : 'View Skills'}
+                                    {target.skillGap > 0 ? 'Fill Skill Gap' : 'Skills Complete'}
                                   </Button>
                                 </Link>
                               </td>
