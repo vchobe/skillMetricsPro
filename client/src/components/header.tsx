@@ -11,6 +11,8 @@ import {
   Brain
 } from "lucide-react";
 import NotificationDropdown from "./notification-dropdown";
+// Import the logo directly as a module
+import atyetiLogo from "../assets/Atyeti_logo.png";
 import { 
   Dialog,
   DialogContent,
@@ -67,9 +69,8 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
             <span className="sr-only">Toggle sidebar</span>
           </Button>
           <div className="flex items-center">
-            <h1 className="text-xl font-bold bg-gradient-to-br from-indigo-600 to-purple-700 text-transparent bg-clip-text">Atyeti Skill Metrics</h1>
-            <span className="mx-2 text-gray-400 hidden md:inline">|</span>
-            <span className="md:ml-0 ml-2 text-lg font-semibold text-gray-900">{title}</span>
+            <img src={atyetiLogo} alt="Atyeti Logo" className="atyeti-logo mr-3" />
+            <h1 className="text-lg font-semibold text-gray-900">Skill Metrics - {title}</h1>
           </div>
         </div>
         
