@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { motion } from "framer-motion";
 import { 
   LayoutDashboard, 
   Brain, 
@@ -28,6 +29,20 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
   const [location, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Animation variants for nav items
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      x: 0,
+      transition: {
+        delay: i * 0.1,
+        duration: 0.4,
+        ease: "easeOut"
+      }
+    })
+  };
 
   // Check if on mobile screen
   useEffect(() => {
@@ -67,9 +82,14 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
         <div className="px-4 py-5 flex justify-between items-center border-b border-gray-700">
           <div className={`flex items-center ${!isOpen ? "lg:justify-center lg:w-full" : ""}`}>
             {(isOpen || !isMobile) && (
-              <span className={`font-semibold text-xl tracking-tight ${!isOpen && "lg:hidden"}`}>
+              <motion.span 
+                className={`font-semibold text-xl tracking-tight ${!isOpen && "lg:hidden"}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              >
                 Skill Metrics
-              </span>
+              </motion.span>
             )}
           </div>
           {!isMobile && (
@@ -96,82 +116,131 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
         
         <div className="flex flex-col flex-grow p-4 overflow-auto">
           <div className="space-y-2">
-            <Link href="/" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-              currentPath === "/" 
-                ? "bg-gray-900 text-white" 
-                : "text-gray-300 hover:bg-gray-700 hover:text-white"
-            }`}>
-              <LayoutDashboard className="h-5 w-5" />
-              {(isOpen || !isMobile) && (
-                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Dashboard</span>
-              )}
-            </Link>
+            <motion.div
+              custom={0}
+              initial="hidden"
+              animate="visible"
+              variants={itemVariants}
+            >
+              <Link href="/" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <LayoutDashboard className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Dashboard</span>
+                )}
+              </Link>
+            </motion.div>
             
-            <Link href="/skills" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-              currentPath === "/skills" 
-                ? "bg-gray-900 text-white" 
-                : "text-gray-300 hover:bg-gray-700 hover:text-white"
-            }`}>
-              <Brain className="h-5 w-5" />
-              {(isOpen || !isMobile) && (
-                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>My Skills</span>
-              )}
-            </Link>
+            <motion.div
+              custom={1}
+              initial="hidden"
+              animate="visible"
+              variants={itemVariants}
+            >
+              <Link href="/skills" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/skills" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <Brain className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>My Skills</span>
+                )}
+              </Link>
+            </motion.div>
             
-            <Link href="/organization" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-              currentPath === "/organization" 
-                ? "bg-gray-900 text-white" 
-                : "text-gray-300 hover:bg-gray-700 hover:text-white"
-            }`}>
-              <BarChart4 className="h-5 w-5" />
-              {(isOpen || !isMobile) && (
-                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Organization</span>
-              )}
-            </Link>
+            <motion.div
+              custom={2}
+              initial="hidden"
+              animate="visible"
+              variants={itemVariants}
+            >
+              <Link href="/organization" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/organization" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <BarChart4 className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Organization</span>
+                )}
+              </Link>
+            </motion.div>
             
-            <Link href="/leaderboard" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-              currentPath === "/leaderboard" 
-                ? "bg-gray-900 text-white" 
-                : "text-gray-300 hover:bg-gray-700 hover:text-white"
-            }`}>
-              <Trophy className="h-5 w-5" />
-              {(isOpen || !isMobile) && (
-                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Leaderboard</span>
-              )}
-            </Link>
+            <motion.div
+              custom={3}
+              initial="hidden"
+              animate="visible"
+              variants={itemVariants}
+            >
+              <Link href="/leaderboard" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/leaderboard" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <Trophy className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Leaderboard</span>
+                )}
+              </Link>
+            </motion.div>
             
-            <Link href="/users" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-              currentPath === "/users" 
-                ? "bg-gray-900 text-white" 
-                : "text-gray-300 hover:bg-gray-700 hover:text-white"
-            }`}>
-              <UsersRound className="h-5 w-5" />
-              {(isOpen || !isMobile) && (
-                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Users</span>
-              )}
-            </Link>
+            <motion.div
+              custom={4}
+              initial="hidden"
+              animate="visible"
+              variants={itemVariants}
+            >
+              <Link href="/users" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/users" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <UsersRound className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Users</span>
+                )}
+              </Link>
+            </motion.div>
             
-            <Link href="/history" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-              currentPath === "/history" 
-                ? "bg-gray-900 text-white" 
-                : "text-gray-300 hover:bg-gray-700 hover:text-white"
-            }`}>
-              <Clock className="h-5 w-5" />
-              {(isOpen || !isMobile) && (
-                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill History</span>
-              )}
-            </Link>
+            <motion.div
+              custom={5}
+              initial="hidden"
+              animate="visible"
+              variants={itemVariants}
+            >
+              <Link href="/history" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/history" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <Clock className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill History</span>
+                )}
+              </Link>
+            </motion.div>
             
-            <Link href="/profile" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-              currentPath === "/profile" 
-                ? "bg-gray-900 text-white" 
-                : "text-gray-300 hover:bg-gray-700 hover:text-white"
-            }`}>
-              <UserCircle className="h-5 w-5" />
-              {(isOpen || !isMobile) && (
-                <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Profile</span>
-              )}
-            </Link>
+            <motion.div
+              custom={6}
+              initial="hidden"
+              animate="visible"
+              variants={itemVariants}
+            >
+              <Link href="/profile" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/profile" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <UserCircle className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Profile</span>
+                )}
+              </Link>
+            </motion.div>
           </div>
 
           {/* Admin Section - Only visible to admins - check both property formats */}
@@ -183,32 +252,39 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 </h3>
               )}
               <div className="mt-2 space-y-2">
-                <a 
-                  href="#" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // Preserve current tab state in URL, or default to dashboard
-                    const params = new URLSearchParams(window.location.search);
-                    const tab = params.get("tab");
-                    const adminUrl = tab && ["users", "skill-history", "certifications"].includes(tab) 
-                      ? `/admin?tab=${tab}` 
-                      : "/admin";
-                    
-                    // Update URL and navigate to the proper tab
-                    window.history.pushState({}, "", adminUrl);
-                    setLocation(adminUrl);
-                  }}
-                  className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-                    currentPath === "/admin" 
-                      ? "bg-gray-900 text-white" 
-                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}
+                <motion.div
+                  custom={7}
+                  initial="hidden"
+                  animate="visible"
+                  variants={itemVariants}
                 >
-                  <BarChart4 className="h-5 w-5" />
-                  {(isOpen || !isMobile) && (
-                    <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Admin Dashboard</span>
-                  )}
-                </a>
+                  <a 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // Preserve current tab state in URL, or default to dashboard
+                      const params = new URLSearchParams(window.location.search);
+                      const tab = params.get("tab");
+                      const adminUrl = tab && ["users", "skill-history", "certifications"].includes(tab) 
+                        ? `/admin?tab=${tab}` 
+                        : "/admin";
+                      
+                      // Update URL and navigate to the proper tab
+                      window.history.pushState({}, "", adminUrl);
+                      setLocation(adminUrl);
+                    }}
+                    className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                      currentPath === "/admin" 
+                        ? "bg-gray-900 text-white" 
+                        : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                    }`}
+                  >
+                    <BarChart4 className="h-5 w-5" />
+                    {(isOpen || !isMobile) && (
+                      <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Admin Dashboard</span>
+                    )}
+                  </a>
+                </motion.div>
               </div>
             </div>
           )}
