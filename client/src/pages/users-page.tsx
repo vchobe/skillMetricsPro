@@ -586,22 +586,17 @@ export default function UsersPage() {
                               {formatDate(user.createdAt, "MMM dd, yyyy")}
                             </TableCell>
                             <TableCell className="text-right">
-                              {user?.isAdmin === true ? (
-                                <Link href={`/users/${user.id}`}>
-                                  <Button variant="outline" size="sm">View Profile</Button>
-                                </Link>
-                              ) : (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedUserId(user.id);
-                                    setIsProfileDialogOpen(true);
-                                  }}
-                                >
-                                  View Profile
-                                </Button>
-                              )}
+                              {/* Always use dialog for non-admin users */}
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUserId(user.id);
+                                  setIsProfileDialogOpen(true);
+                                }}
+                              >
+                                View Profile
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))
