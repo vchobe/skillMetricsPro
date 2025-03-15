@@ -140,7 +140,10 @@ export default function AdminDashboard() {
     
     // This function ensures both state and URL are in sync
     const updateActiveTab = (newTab: string) => {
-      setActiveTab(newTab);
+      if (newTab !== activeTab) {
+        setActiveTab(newTab);
+      }
+
       const newUrl = newTab === "dashboard" ? "/admin" : `/admin?tab=${newTab}`;
       if (window.location.pathname + window.location.search !== newUrl) {
         // Use window.history to update URL without causing navigation
@@ -154,7 +157,7 @@ export default function AdminDashboard() {
       // Default to dashboard if no valid tab is specified
       updateActiveTab("dashboard");
     }
-  }, []);
+  }, [location, activeTab]); // Listen for location changes too
   
   // Get all users
   const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({

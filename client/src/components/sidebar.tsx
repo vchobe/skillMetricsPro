@@ -183,16 +183,32 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 </h3>
               )}
               <div className="mt-2 space-y-2">
-                <Link href="/admin" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-                  currentPath === "/admin" 
-                    ? "bg-gray-900 text-white" 
-                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                }`}>
+                <a 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // Preserve current tab state in URL, or default to dashboard
+                    const params = new URLSearchParams(window.location.search);
+                    const tab = params.get("tab");
+                    const adminUrl = tab && ["users", "skill-history", "certifications"].includes(tab) 
+                      ? `/admin?tab=${tab}` 
+                      : "/admin";
+                    
+                    // Update URL and navigate to the proper tab
+                    window.history.pushState({}, "", adminUrl);
+                    setLocation(adminUrl);
+                  }}
+                  className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                    currentPath === "/admin" 
+                      ? "bg-gray-900 text-white" 
+                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                  }`}
+                >
                   <BarChart4 className="h-5 w-5" />
                   {(isOpen || !isMobile) && (
                     <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Admin Dashboard</span>
                   )}
-                </Link>
+                </a>
               </div>
             </div>
           )}
