@@ -37,7 +37,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: Omit<User, 'password'>) => {
+      // Set the user data in query cache
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Update session ID to force remounting admin components
+      const newSessionId = Date.now().toString();
+      localStorage.setItem("sessionId", newSessionId);
+      
+      // Trigger a storage event so other components can detect the change
+      window.dispatchEvent(new Event('storage'));
+      
       toast({
         title: "Login successful",
         description: "You have been successfully logged in.",
@@ -79,7 +88,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Clear the user data
       queryClient.setQueryData(["/api/user"], null);
+      
+      // Reset the entire query cache to ensure no stale data persists between sessions
+      queryClient.resetQueries();
+      queryClient.clear();
+      
+      // Clear session ID to signal user change to components
+      localStorage.removeItem("sessionId");
+      
+      // Trigger storage event to notify components of the change
+      window.dispatchEvent(new Event('storage'));
+      
       toast({
         title: "Logged out",
         description: "You have been successfully logged out.",
