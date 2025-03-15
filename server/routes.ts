@@ -8,7 +8,10 @@ import {
   insertSkillHistorySchema,
   insertProfileHistorySchema,
   insertEndorsementSchema,
-  insertNotificationSchema
+  insertNotificationSchema,
+  Skill,
+  insertSkillTargetSchema,
+  insertSkillTemplateSchema
 } from "@shared/schema";
 
 // Direct database check for admin status

@@ -28,6 +28,28 @@ export default function HomePage() {
     queryKey: ["/api/user/skills/history"],
   });
   
+  // Define the SkillTarget type
+  type SkillTarget = {
+    id: number;
+    name: string;
+    description?: string;
+    targetLevel: string;
+    targetDate?: string;
+    dueDate?: string;
+    skillIds: number[];
+    targetSkills: Skill[];
+    progress: number;
+    acquiredSkills: number;
+    totalTargetSkills: number;
+    skillGap: number;
+    isCompleted: boolean;
+  };
+  
+  // Get user skill targets for gap analysis
+  const { data: skillTargets = [], isLoading: isLoadingTargets } = useQuery<SkillTarget[]>({
+    queryKey: ["/api/user/skill-targets"],
+  });
+  
   // Background gradient style based on skills
   const [backgroundStyle, setBackgroundStyle] = useState<string>("from-indigo-500 via-purple-500 to-pink-500");
   
@@ -120,7 +142,7 @@ export default function HomePage() {
       }
     }).slice(0, 3) : [];
   
-  const isLoading = isLoadingSkills || isLoadingHistory;
+  const isLoading = isLoadingSkills || isLoadingHistory || isLoadingTargets;
   
   return (
     <div className="min-h-screen flex">
@@ -371,6 +393,72 @@ export default function HomePage() {
                   </div>
                 )}
               </Card>
+              
+              {skillTargets.length > 0 && (
+                <Card className="mt-8">
+                  <CardHeader className="border-b border-gray-200">
+                    <CardTitle>Skill Gap Analysis</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {skillTargets.map((target) => (
+                        <div key={target.id} className="bg-gray-50 rounded-lg p-5">
+                          <div className="flex flex-col sm:flex-row justify-between mb-4">
+                            <div>
+                              <h3 className="text-lg font-medium text-gray-900">{target.name || `Skills Target ${target.id}`}</h3>
+                              {target.description && (
+                                <p className="text-sm text-gray-500 mt-1">{target.description}</p>
+                              )}
+                            </div>
+                            <div className="mt-2 sm:mt-0">
+                              {target.dueDate ? (
+                                <span className={`text-sm ${new Date(target.dueDate) < new Date() ? 'text-red-600' : 'text-gray-500'}`}>
+                                  Due: {new Date(target.dueDate).toLocaleDateString()}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-gray-500">Ongoing</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <div className="flex justify-between mb-2 text-sm">
+                              <span>Target Level: <SkillLevelBadge level={target.targetLevel} size="sm" /></span>
+                              <span>Progress: <strong>{target.progress}%</strong></span>
+                            </div>
+                            <div className="h-2 w-full bg-gray-200 rounded-full">
+                              <div 
+                                className={`h-2 rounded-full ${
+                                  target.progress >= 100 
+                                    ? 'bg-green-500' 
+                                    : target.progress >= 50 
+                                      ? 'bg-amber-500' 
+                                      : 'bg-red-500'
+                                }`} 
+                                style={{ width: `${target.progress}%` }}
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-sm">
+                            <div>
+                              <span className="text-green-600 font-medium">{target.acquiredSkills} skills acquired</span>
+                              {target.skillGap > 0 && (
+                                <span className="text-red-600 font-medium ml-3">{target.skillGap} skills remaining</span>
+                              )}
+                            </div>
+                            <Link href="/skills">
+                              <Button variant="outline" size="sm">
+                                {target.isCompleted ? 'View Skills' : 'Fill Skill Gap'}
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
         </div>
