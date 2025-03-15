@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { motion } from "framer-motion";
 import { 
   LayoutDashboard, 
   Brain, 
@@ -30,20 +29,6 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
   const { user, logoutMutation } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
   
-  // Animation variants for nav items
-  const itemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: (i: number) => ({
-      opacity: 1,
-      x: 0,
-      transition: {
-        delay: i * 0.1,
-        duration: 0.4,
-        ease: "easeOut"
-      }
-    })
-  };
-
   // Check if on mobile screen
   useEffect(() => {
     const checkMobile = () => {
@@ -82,14 +67,9 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
         <div className="px-4 py-5 flex justify-between items-center border-b border-gray-700">
           <div className={`flex items-center ${!isOpen ? "lg:justify-center lg:w-full" : ""}`}>
             {(isOpen || !isMobile) && (
-              <motion.span 
-                className={`font-semibold text-xl tracking-tight ${!isOpen && "lg:hidden"}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              >
+              <span className={`font-semibold text-xl tracking-tight ${!isOpen && "lg:hidden"}`}>
                 Skill Metrics
-              </motion.span>
+              </span>
             )}
           </div>
           {!isMobile && (
@@ -116,12 +96,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
         
         <div className="flex flex-col flex-grow p-4 overflow-auto">
           <div className="space-y-2">
-            <motion.div
-              custom={0}
-              initial="hidden"
-              animate="visible"
-              variants={itemVariants}
-            >
+            <div>
               <Link href="/" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
                 currentPath === "/" 
                   ? "bg-gray-900 text-white" 
@@ -132,14 +107,9 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Dashboard</span>
                 )}
               </Link>
-            </motion.div>
+            </div>
             
-            <motion.div
-              custom={1}
-              initial="hidden"
-              animate="visible"
-              variants={itemVariants}
-            >
+            <div>
               <Link href="/skills" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
                 currentPath === "/skills" 
                   ? "bg-gray-900 text-white" 
@@ -150,14 +120,9 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>My Skills</span>
                 )}
               </Link>
-            </motion.div>
+            </div>
             
-            <motion.div
-              custom={2}
-              initial="hidden"
-              animate="visible"
-              variants={itemVariants}
-            >
+            <div>
               <Link href="/organization" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
                 currentPath === "/organization" 
                   ? "bg-gray-900 text-white" 
@@ -168,14 +133,9 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Organization</span>
                 )}
               </Link>
-            </motion.div>
+            </div>
             
-            <motion.div
-              custom={3}
-              initial="hidden"
-              animate="visible"
-              variants={itemVariants}
-            >
+            <div>
               <Link href="/leaderboard" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
                 currentPath === "/leaderboard" 
                   ? "bg-gray-900 text-white" 
@@ -186,14 +146,9 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Leaderboard</span>
                 )}
               </Link>
-            </motion.div>
+            </div>
             
-            <motion.div
-              custom={4}
-              initial="hidden"
-              animate="visible"
-              variants={itemVariants}
-            >
+            <div>
               <Link href="/users" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
                 currentPath === "/users" 
                   ? "bg-gray-900 text-white" 
@@ -204,14 +159,9 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Users</span>
                 )}
               </Link>
-            </motion.div>
+            </div>
             
-            <motion.div
-              custom={5}
-              initial="hidden"
-              animate="visible"
-              variants={itemVariants}
-            >
+            <div>
               <Link href="/history" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
                 currentPath === "/history" 
                   ? "bg-gray-900 text-white" 
@@ -222,14 +172,9 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill History</span>
                 )}
               </Link>
-            </motion.div>
+            </div>
             
-            <motion.div
-              custom={6}
-              initial="hidden"
-              animate="visible"
-              variants={itemVariants}
-            >
+            <div>
               <Link href="/profile" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
                 currentPath === "/profile" 
                   ? "bg-gray-900 text-white" 
@@ -240,7 +185,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Profile</span>
                 )}
               </Link>
-            </motion.div>
+            </div>
           </div>
 
           {/* Admin Section - Only visible to admins - check both property formats */}
@@ -252,12 +197,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 </h3>
               )}
               <div className="mt-2 space-y-2">
-                <motion.div
-                  custom={7}
-                  initial="hidden"
-                  animate="visible"
-                  variants={itemVariants}
-                >
+                <div>
                   <a 
                     href="#" 
                     onClick={(e) => {
@@ -284,7 +224,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                       <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Admin Dashboard</span>
                     )}
                   </a>
-                </motion.div>
+                </div>
               </div>
             </div>
           )}
