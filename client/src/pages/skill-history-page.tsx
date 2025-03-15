@@ -170,13 +170,16 @@ export default function SkillHistoryPage() {
                         id: entry.id,
                         type: entry.previousLevel ? "update" : "add",
                         skillId: entry.skillId,
+                        userId: entry.userId,
                         previousLevel: entry.previousLevel,
                         newLevel: entry.newLevel,
-                        date: entry.updatedAt,
+                        date: entry.createdAt || entry.updatedAt,
                         note: entry.changeNote
                       }))} 
                       skills={skills || []}
                       showAll={true}
+                      isPersonal={false}
+                      users={allUsers || []}
                     />
                   ) : (
                     <div className="text-center p-12 bg-gray-50 rounded-md">
@@ -217,13 +220,16 @@ export default function SkillHistoryPage() {
                         id: entry.id,
                         type: "update",
                         skillId: entry.skillId,
+                        userId: entry.userId,
                         previousLevel: entry.previousLevel,
                         newLevel: entry.newLevel,
-                        date: entry.updatedAt,
+                        date: entry.createdAt || entry.updatedAt,
                         note: entry.changeNote
                       }))} 
                       skills={skills || []}
                       showAll={true}
+                      isPersonal={false}
+                      users={allUsers || []}
                     />
                   ) : (
                     <div className="text-center p-12 bg-gray-50 rounded-md">
@@ -259,13 +265,16 @@ export default function SkillHistoryPage() {
                         id: entry.id,
                         type: "add",
                         skillId: entry.skillId,
+                        userId: entry.userId,
                         previousLevel: null,
                         newLevel: entry.newLevel,
-                        date: entry.updatedAt,
+                        date: entry.createdAt || entry.updatedAt,
                         note: entry.changeNote
                       }))} 
                       skills={skills || []}
                       showAll={true}
+                      isPersonal={false}
+                      users={allUsers || []}
                     />
                   ) : (
                     <div className="text-center p-12 bg-gray-50 rounded-md">
@@ -358,7 +367,7 @@ export default function SkillHistoryPage() {
                             {filteredHistory.slice(0, 3).map((entry) => (
                               <li key={entry.id} className="text-sm">
                                 <span className="text-gray-700">
-                                  {format(new Date(entry.updatedAt), "MMM dd, yyyy")}:
+                                  {format(new Date(entry.createdAt || entry.updatedAt), "MMM dd, yyyy")}:
                                 </span> {" "}
                                 {entry.previousLevel ? (
                                   <span>
