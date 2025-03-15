@@ -11,3 +11,10 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Custom component classes */
+@layer components {
+  .atyeti-logo {
+    @apply h-28 w-auto object-contain;
+  }
+}

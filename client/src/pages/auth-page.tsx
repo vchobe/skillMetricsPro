@@ -273,7 +273,7 @@ export default function AuthPage() {
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-4">Employee Skill Metrics</h1>
               <div className="mb-6 p-4 inline-block bg-white rounded-md">
-                <img src={atyetiLogo} alt="Atyeti Logo" className="h-20 w-auto object-contain" />
+                <img src={atyetiLogo} alt="Atyeti Logo" className="atyeti-logo" />
               </div>
               <p className="text-xl mb-6">Track, manage, and showcase your professional skills</p>
               <ul className="text-left space-y-2 mb-8">
