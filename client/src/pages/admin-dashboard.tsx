@@ -553,7 +553,8 @@ export default function AdminDashboard() {
               setTimeout(() => {
                 // Update URL to reflect selected tab (this allows for bookmarking and sharing specific tabs)
                 const newUrl = value === "dashboard" ? "/admin" : `/admin?tab=${value}`;
-                setLocation(newUrl);
+                // Use replace:true to avoid adding to browser history and prevent navigation issues
+                setLocation(newUrl, { replace: true });
               }, 0);
             }}
           >
@@ -636,7 +637,7 @@ export default function AdminDashboard() {
                           variant="link" 
                           onClick={() => {
                             setActiveTab("users");
-                            setTimeout(() => setLocation("/admin?tab=users"), 0);
+                            setTimeout(() => setLocation("/admin?tab=users", { replace: true }), 0);
                           }} 
                           className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500"
                         >
@@ -700,7 +701,7 @@ export default function AdminDashboard() {
                           variant="link" 
                           onClick={() => {
                             setActiveTab("certifications");
-                            setTimeout(() => setLocation("/admin?tab=certifications"), 0);
+                            setTimeout(() => setLocation("/admin?tab=certifications", { replace: true }), 0);
                           }}
                           className="p-0 h-auto font-medium text-green-600 hover:text-green-500"
                         >
@@ -837,7 +838,7 @@ export default function AdminDashboard() {
                         variant="link" 
                         onClick={() => {
                           setActiveTab("skill-history");
-                          setTimeout(() => setLocation("/admin?tab=skill-history"), 0);
+                          setTimeout(() => setLocation("/admin?tab=skill-history", { replace: true }), 0);
                         }}
                         className="p-0 h-auto font-medium text-indigo-600 hover:text-indigo-900"
                       >
