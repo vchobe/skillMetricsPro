@@ -703,7 +703,7 @@ export default function AdminDashboard() {
                           variant="link" 
                           onClick={() => {
                             setActiveTab("certifications");
-                            setTimeout(() => setLocation("/admin?tab=certifications", { replace: true }), 0);
+                            setTimeout(() => setLocation("/admin/certifications", { replace: true }), 0);
                           }}
                           className="p-0 h-auto font-medium text-green-600 hover:text-green-500"
                         >
@@ -840,7 +840,7 @@ export default function AdminDashboard() {
                         variant="link" 
                         onClick={() => {
                           setActiveTab("skill-history");
-                          setTimeout(() => setLocation("/admin?tab=skill-history", { replace: true }), 0);
+                          setTimeout(() => setLocation("/admin/skill-history", { replace: true }), 0);
                         }}
                         className="p-0 h-auto font-medium text-indigo-600 hover:text-indigo-900"
                       >
