@@ -640,8 +640,8 @@ export default function AdminDashboard() {
                         <Button 
                           variant="link" 
                           onClick={() => {
+                            // Just update the state without changing the URL
                             setActiveTab("users");
-                            setTimeout(() => setLocation("/admin/users", { replace: true }), 0);
                           }} 
                           className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500"
                         >
@@ -704,8 +704,8 @@ export default function AdminDashboard() {
                         <Button 
                           variant="link" 
                           onClick={() => {
+                            // Just update the state without changing the URL
                             setActiveTab("certifications");
-                            setTimeout(() => setLocation("/admin/certifications", { replace: true }), 0);
                           }}
                           className="p-0 h-auto font-medium text-green-600 hover:text-green-500"
                         >
@@ -841,8 +841,8 @@ export default function AdminDashboard() {
                       <Button 
                         variant="link" 
                         onClick={() => {
+                          // Just update the state without changing the URL
                           setActiveTab("skill-history");
-                          setTimeout(() => setLocation("/admin/skill-history", { replace: true }), 0);
                         }}
                         className="p-0 h-auto font-medium text-indigo-600 hover:text-indigo-900"
                       >
