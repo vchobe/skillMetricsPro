@@ -440,6 +440,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching all skills", error });
     }
   });
+  
+  // Get all skills (for activity feed)
+  app.get("/api/skills/all", ensureAuth, async (req, res) => {
+    try {
+      const skills = await storage.getAllSkills();
+      res.json(skills);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching all skills", error });
+    }
+  });
 
   // Admin routes
   app.get("/api/admin/users", ensureAdmin, async (req, res) => {

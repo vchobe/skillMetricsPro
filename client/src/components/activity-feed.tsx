@@ -36,9 +36,23 @@ interface ActivityFeedProps {
 }
 
 export default function ActivityFeed({ activities, skills, showAll, isPersonal = true, users = [] }: ActivityFeedProps) {
-  // Get skill details by ID
+  // Fetch skill details by ID if needed
+  const { data: allSkills } = useQuery<Skill[]>({
+    queryKey: ["/api/skills/all"],
+    enabled: skills.length > 0 && skills.some(skill => !skills.find(s => s.id === skill.id))
+  });
+  
+  // Get skill details by ID - look in our passed skills array first, then try allSkills if available
   const getSkill = (skillId: number) => {
-    return skills.find(skill => skill.id === skillId);
+    const localSkill = skills.find(skill => skill.id === skillId);
+    if (localSkill) return localSkill;
+    
+    // Try looking in all skills data if available
+    if (allSkills && allSkills.length > 0) {
+      return allSkills.find(skill => skill.id === skillId);
+    }
+    
+    return undefined;
   };
   
   // Get icon based on skill category
