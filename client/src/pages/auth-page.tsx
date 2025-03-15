@@ -271,10 +271,10 @@ export default function AuthPage() {
           {/* Right side - Hero content */}
           <div className="w-full md:w-1/2 bg-gradient-to-br from-indigo-600 to-purple-700 p-8 text-white flex flex-col justify-center items-center">
             <div className="text-center">
-              <div className="mb-4 p-4 inline-block bg-white rounded-md">
+              <div className="mb-2 p-3 inline-block bg-white rounded-md overflow-hidden">
                 <img src={atyetiLogo} alt="Atyeti Logo" className="atyeti-logo" />
               </div>
-              <h1 className="text-3xl font-bold mb-6">Skill Metrics</h1>
+              <h1 className="text-3xl font-bold mb-4">Skill Metrics</h1>
               <p className="text-xl mb-6">Track, manage, and showcase your professional skills</p>
               <ul className="text-left space-y-2 mb-8">
                 <li className="flex items-center">
