@@ -45,30 +45,79 @@ export default function HomePage() {
     isCompleted: boolean;
   };
   
-  // Try to get admin skill targets for global view first
+  // Get global skill targets for skill gap analysis
   const { 
-    data: adminSkillTargets = [], 
-    isLoading: isLoadingAdminTargets, 
-    isError: adminTargetsError 
+    data: globalSkillTargets = [], 
+    isLoading: isLoadingGlobalTargets, 
+    isError: globalTargetsError 
   } = useQuery<SkillTarget[]>({
-    queryKey: ["/api/admin/skill-targets"],
+    queryKey: ["/api/skill-targets"],
     retry: 1,
     // Using onSuccess/onError in a function to avoid LSP errors
     gcTime: 0
   });
   
-  // Fallback to user-specific targets if admin endpoint fails
+  // Get user-specific skill targets
   const { 
     data: userSkillTargets = [], 
     isLoading: isLoadingUserTargets 
   } = useQuery<SkillTarget[]>({
-    queryKey: ["/api/user/skill-targets"],
-    enabled: adminTargetsError // Only run this query if the admin query failed
+    queryKey: ["/api/user/skill-targets"]
   });
   
-  // Use admin targets if available, otherwise fallback to user targets
-  const skillTargets = adminTargetsError ? userSkillTargets : adminSkillTargets;
-  const isLoadingTargets = isLoadingAdminTargets || (adminTargetsError && isLoadingUserTargets);
+  // Process global targets to add required properties like user targets
+  const processedGlobalTargets = useMemo(() => {
+    if (!globalSkillTargets || !skills) return [];
+    
+    return globalSkillTargets.map(target => {
+      // Find skills that match the target requirements
+      const targetSkillIds = target.skillIds || [];
+      
+      // Get user's current skills that match these skill IDs
+      const matchingSkills = skills.filter(userSkill => {
+        // Check if any of the user's skills match the target skills
+        return targetSkillIds.some(targetSkillId => {
+          const targetSkill = allSkills?.find(s => s.id === targetSkillId);
+          if (!targetSkill) return false;
+          
+          // Check if names match
+          const nameMatch = userSkill.name.toLowerCase() === targetSkill.name.toLowerCase();
+          
+          // For level-based targets, also check if level matches or exceeds
+          if (target.targetLevel && nameMatch) {
+            const levelOrder = { beginner: 1, intermediate: 2, expert: 3 };
+            const userLevel = levelOrder[userSkill.level as keyof typeof levelOrder] || 0;
+            const targetLevel = levelOrder[target.targetLevel as keyof typeof levelOrder] || 0;
+            return userLevel >= targetLevel;
+          }
+          
+          return nameMatch;
+        });
+      });
+      
+      // Calculate progress metrics
+      const totalTargetSkills = targetSkillIds.length;
+      const acquiredSkills = matchingSkills.length;
+      const progress = totalTargetSkills > 0 ? Math.round((acquiredSkills / totalTargetSkills) * 100) : 0;
+      
+      return {
+        ...target,
+        progress,
+        acquiredSkills,
+        totalTargetSkills,
+        skillGap: totalTargetSkills - acquiredSkills,
+        dueDate: target.targetDate ? new Date(target.targetDate).toISOString() : null,
+        isCompleted: progress === 100
+      };
+    });
+  }, [globalSkillTargets, skills, allSkills]);
+  
+  // Combine user-specific targets with processed global targets
+  const skillTargets = globalTargetsError ? 
+    userSkillTargets : 
+    [...processedGlobalTargets, ...userSkillTargets];
+  
+  const isLoadingTargets = isLoadingGlobalTargets || isLoadingUserTargets;
   
   // Background gradient style based on skills
   const [backgroundStyle, setBackgroundStyle] = useState<string>("from-indigo-500 via-purple-500 to-pink-500");
