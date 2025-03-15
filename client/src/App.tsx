@@ -24,28 +24,21 @@ import NotFound from "@/pages/not-found";
 const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
   // Get current user session ID from localStorage to force remount on user changes only
   const [userId, setUserId] = useState<string>("");
+  const { user } = useAuth(); // Use the useAuth hook to detect user changes
   
   useEffect(() => {
-    // Get current user ID from localStorage
-    const userJson = localStorage.getItem("currentUser");
-    let currentUserId = "guest";
-    
-    if (userJson) {
-      try {
-        const userData = JSON.parse(userJson);
-        currentUserId = userData.id || userData.email || "guest";
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-      }
+    // Update user ID whenever the authenticated user changes
+    if (user) {
+      const currentUserId = String(user.id) || user.email || "authenticated";
+      setUserId(currentUserId);
+    } else {
+      setUserId("guest");
     }
-    
-    // Only update if user ID changed (not on every route change)
-    setUserId(currentUserId);
-    
-  }, []);
+  }, [user]); // This dependency array ensures the effect runs when the user changes
   
-  // Use the userId as key to remount only when user changes
-  return <Component key={userId} />;
+  // Use both userId and admin status as key to remount on user/role changes
+  const adminStatus = user?.is_admin ? "admin" : "regular";
+  return <Component key={`${userId}-${adminStatus}`} />;
 };
 
 function Router() {
