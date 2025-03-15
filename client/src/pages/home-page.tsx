@@ -394,71 +394,116 @@ export default function HomePage() {
                 )}
               </Card>
               
-              {skillTargets && skillTargets.length > 0 && (
-                <Card className="mt-8">
-                  <CardHeader className="border-b border-gray-200">
-                    <CardTitle>Skill Gap Analysis</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {skillTargets.map((target: SkillTarget) => (
-                        <div key={target.id} className="bg-gray-50 rounded-lg p-5">
-                          <div className="flex flex-col sm:flex-row justify-between mb-4">
-                            <div>
-                              <h3 className="text-lg font-medium text-gray-900">{target.name || `Skills Target ${target.id}`}</h3>
-                              {target.description && (
-                                <p className="text-sm text-gray-500 mt-1">{target.description}</p>
-                              )}
-                            </div>
-                            <div className="mt-2 sm:mt-0">
-                              {target.dueDate ? (
-                                <span className={`text-sm ${new Date(target.dueDate) < new Date() ? 'text-red-600' : 'text-gray-500'}`}>
-                                  Due: {new Date(target.dueDate).toLocaleDateString()}
-                                </span>
-                              ) : (
-                                <span className="text-sm text-gray-500">Ongoing</span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="mb-3">
-                            <div className="flex justify-between mb-2 text-sm">
-                              <span>Target Level: <SkillLevelBadge level={target.targetLevel} size="sm" /></span>
-                              <span>Progress: <strong>{target.progress}%</strong></span>
-                            </div>
-                            <div className="h-2 w-full bg-gray-200 rounded-full">
-                              <div 
-                                className={`h-2 rounded-full ${
-                                  target.progress >= 100 
-                                    ? 'bg-green-500' 
-                                    : target.progress >= 50 
-                                      ? 'bg-amber-500' 
-                                      : 'bg-red-500'
-                                }`} 
-                                style={{ width: `${target.progress}%` }}
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center justify-between text-sm">
-                            <div>
-                              <span className="text-green-600 font-medium">{target.acquiredSkills} skills acquired</span>
-                              {target.skillGap > 0 && (
-                                <span className="text-red-600 font-medium ml-3">{target.skillGap} skills remaining</span>
-                              )}
-                            </div>
-                            <Link href="/skills">
-                              <Button variant="outline" size="sm">
-                                {target.isCompleted ? 'View Skills' : 'Fill Skill Gap'}
-                              </Button>
-                            </Link>
-                          </div>
-                        </div>
-                      ))}
+              <Card className="mt-8">
+                <CardHeader className="flex flex-col md:flex-row justify-between md:items-center border-b border-gray-200">
+                  <CardTitle>Skill Gap Analysis</CardTitle>
+                  <Link href="/skills">
+                    <Button className="mt-4 md:mt-0" variant="outline">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add New Skills
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent className="px-0">
+                  {isLoadingTargets ? (
+                    <div className="p-8 flex justify-center items-center">
+                      <div className="flex items-center">
+                        <svg className="animate-spin h-5 w-5 mr-3 text-indigo-500" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Loading skill gap data...</span>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  ) : skillTargets.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <div className="mx-auto w-24 h-24 flex items-center justify-center rounded-full bg-gray-100 mb-4">
+                        <Award className="h-12 w-12 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-1">No skill targets assigned</h3>
+                      <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
+                        Skill targets help you track progress toward specific career goals and identify areas for improvement.
+                      </p>
+                      {user?.isAdmin && (
+                        <Link href="/skill-management">
+                          <Button>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Skill Targets
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target Name</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Progress</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target Level</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {skillTargets.map((target) => (
+                            <tr key={target.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">{target.name || `Skills Target ${target.id}`}</div>
+                                {target.description && (
+                                  <div className="text-xs text-gray-500 mt-1">{target.description}</div>
+                                )}
+                                {target.totalTargetSkills > 0 && (
+                                  <div className="text-xs text-gray-500">{target.totalTargetSkills} skill{target.totalTargetSkills !== 1 ? 's' : ''}</div>
+                                )}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                  <div 
+                                    className={`h-2.5 rounded-full ${
+                                      target.progress >= 80 ? 'bg-green-500' : 
+                                      target.progress >= 50 ? 'bg-blue-500' : 
+                                      target.progress >= 30 ? 'bg-yellow-500' : 'bg-red-500'
+                                    }`} 
+                                    style={{ width: `${target.progress}%` }}
+                                  ></div>
+                                </div>
+                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                  <span>{target.acquiredSkills}/{target.totalTargetSkills} skills</span>
+                                  <span>{target.progress}%</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <SkillLevelBadge level={target.targetLevel} size="sm" />
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {target.dueDate ? (
+                                  <span className={`text-sm ${new Date(target.dueDate) < new Date() ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                                    {new Date(target.dueDate).toLocaleDateString()}
+                                  </span>
+                                ) : (
+                                  <span className="text-sm text-gray-500">Ongoing</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Link href="/skills">
+                                  <Button 
+                                    variant={target.skillGap > 0 ? "default" : "outline"} 
+                                    size="sm"
+                                    className={target.skillGap > 0 ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all duration-300" : ""}
+                                  >
+                                    {target.skillGap > 0 ? 'Fill Skill Gap' : 'View Skills'}
+                                  </Button>
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </>
           )}
         </div>
