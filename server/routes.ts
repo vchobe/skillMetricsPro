@@ -686,6 +686,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Endpoint to get skill targets for the current user
+  // Get all skill targets - accessible to all users (global skill gap analysis)
+  app.get("/api/skill-targets", ensureAuth, async (req, res) => {
+    try {
+      // Get all skill targets
+      const allTargets = await storage.getAllSkillTargets();
+      
+      // Enhance targets with skill IDs
+      const enhancedTargets = await Promise.all(
+        allTargets.map(async (target) => {
+          const skillIds = await storage.getSkillTargetSkills(target.id);
+          return {
+            ...target,
+            skillIds
+          };
+        })
+      );
+      
+      res.json(enhancedTargets);
+    } catch (error) {
+      console.error("Error fetching global skill targets:", error);
+      res.status(500).json({ message: "Error fetching global skill targets", error });
+    }
+  });
+  
   app.get("/api/user/skill-targets", ensureAuth, async (req, res) => {
     try {
       // Get all skill targets

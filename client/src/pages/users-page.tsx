@@ -70,7 +70,7 @@ export default function UsersPage() {
   
   // Fetch all skills to get user skill data and categories
   const { data: allSkills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
-    queryKey: ["/api/admin/skills"],
+    queryKey: ["/api/skills"],
   });
   
   // Extract all unique skill categories
