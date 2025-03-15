@@ -63,13 +63,13 @@ function Router() {
       <ProtectedRoute path="/organization" component={OrgDashboard} />
       <ProtectedRoute path="/leaderboard" component={LeaderboardPage} />
       <ProtectedRoute 
-        path="/admin" 
-        component={() => <AdminWrapper Component={AdminDashboard} />} 
+        path="/admin/skills" 
+        component={() => <AdminWrapper Component={SkillManagementPage} />} 
         adminOnly={true} 
       />
       <ProtectedRoute 
-        path="/admin/skills" 
-        component={() => <AdminWrapper Component={SkillManagementPage} />} 
+        path="/admin/:tab?" 
+        component={() => <AdminWrapper Component={AdminDashboard} />} 
         adminOnly={true} 
       />
       <Route path="/auth" component={AuthPage} />

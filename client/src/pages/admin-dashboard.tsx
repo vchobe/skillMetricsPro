@@ -136,14 +136,16 @@ export default function AdminDashboard() {
   
   // Check for URL tab parameter and set active tab
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab");
+    // Get the tab from URL path parameter instead of query parameter
+    const currentPath = window.location.pathname;
+    const pathParts = currentPath.split('/');
+    const tab = pathParts[2]; // /admin/tab format
     
     // Only update tab from URL, don't modify URL here
     if (tab === "users" || tab === "skill-history" || tab === "certifications") {
       setActiveTab(tab);
-    } else if (window.location.pathname === "/admin") {
-      // Default to dashboard if no valid tab is specified
+    } else if (currentPath === "/admin" || currentPath.startsWith("/admin/")) {
+      // Default to dashboard if no valid tab is specified or we're on admin root
       setActiveTab("dashboard");
     }
   }, [location]); // Only listen for location changes
@@ -552,7 +554,7 @@ export default function AdminDashboard() {
               // Use a setTimeout to avoid race condition with state updates
               setTimeout(() => {
                 // Update URL to reflect selected tab (this allows for bookmarking and sharing specific tabs)
-                const newUrl = value === "dashboard" ? "/admin" : `/admin?tab=${value}`;
+                const newUrl = value === "dashboard" ? "/admin" : `/admin/${value}`;
                 // Use replace:true to avoid adding to browser history and prevent navigation issues
                 setLocation(newUrl, { replace: true });
               }, 0);
@@ -637,7 +639,7 @@ export default function AdminDashboard() {
                           variant="link" 
                           onClick={() => {
                             setActiveTab("users");
-                            setTimeout(() => setLocation("/admin?tab=users", { replace: true }), 0);
+                            setTimeout(() => setLocation("/admin/users", { replace: true }), 0);
                           }} 
                           className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500"
                         >
