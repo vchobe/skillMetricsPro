@@ -134,21 +134,30 @@ export default function AdminDashboard() {
     }
   }, [user, setLocation]);
   
-  // Check for URL tab parameter and set active tab
+  // Initialize tab from URL on first render only
+  // We use a ref to ensure this only runs on initial render
+  const initialRenderCompleted = useRef(false);
+  
   useEffect(() => {
-    // Get the tab from URL path parameter instead of query parameter
+    // Skip if already initialized
+    if (initialRenderCompleted.current) return;
+    
+    // Get the tab from URL path parameter
     const currentPath = window.location.pathname;
     const pathParts = currentPath.split('/');
     const tab = pathParts[2]; // /admin/tab format
     
-    // Only update tab from URL, don't modify URL here
+    // Only initialize tab from URL, don't modify URL here
     if (tab === "users" || tab === "skill-history" || tab === "certifications") {
       setActiveTab(tab);
     } else if (currentPath === "/admin" || currentPath.startsWith("/admin/")) {
-      // Default to dashboard if no valid tab is specified or we're on admin root
+      // Default to dashboard if no valid tab is specified
       setActiveTab("dashboard");
     }
-  }, [location]); // Only listen for location changes
+    
+    // Mark initialization as completed
+    initialRenderCompleted.current = true;
+  }, []); // Empty dependency array means this only runs once
   
   // Get all users
   const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
@@ -548,16 +557,9 @@ export default function AdminDashboard() {
             defaultValue="dashboard"
             value={activeTab} 
             onValueChange={(value) => {
-              // Update active tab first
+              // Just update the active tab state, without changing the URL
+              // This prevents unnecessary re-renders caused by location changes
               setActiveTab(value);
-              
-              // Use a setTimeout to avoid race condition with state updates
-              setTimeout(() => {
-                // Update URL to reflect selected tab (this allows for bookmarking and sharing specific tabs)
-                const newUrl = value === "dashboard" ? "/admin" : `/admin/${value}`;
-                // Use replace:true to avoid adding to browser history and prevent navigation issues
-                setLocation(newUrl, { replace: true });
-              }, 0);
             }}
           >
             <motion.div

@@ -20,34 +20,32 @@ import SkillManagementPage from "@/pages/skill-management-page";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 
-// This wrapper ensures admin components get fully remounted on user change
+// This wrapper ensures admin components get fully remounted on user change but not on tab changes
 const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
-  // Get current user session ID from localStorage to force remount on change
-  const [sessionId, setSessionId] = useState<string>("guest");
+  // Get current user session ID from localStorage to force remount on user changes only
+  const [userId, setUserId] = useState<string>("");
   
   useEffect(() => {
-    // Check for user session changes
-    const checkSession = () => {
-      const currentSession = localStorage.getItem("sessionId") || "guest";
-      if (currentSession !== sessionId) {
-        setSessionId(currentSession);
+    // Get current user ID from localStorage
+    const userJson = localStorage.getItem("currentUser");
+    let currentUserId = "guest";
+    
+    if (userJson) {
+      try {
+        const userData = JSON.parse(userJson);
+        currentUserId = userData.id || userData.email || "guest";
+      } catch (e) {
+        console.error("Error parsing user data:", e);
       }
-    };
+    }
     
-    // Create a new session ID on mount
-    const newSessionId = Date.now().toString();
-    localStorage.setItem("sessionId", newSessionId);
-    setSessionId(newSessionId);
+    // Only update if user ID changed (not on every route change)
+    setUserId(currentUserId);
     
-    // Set up event listener for storage changes
-    window.addEventListener("storage", checkSession);
-    
-    return () => {
-      window.removeEventListener("storage", checkSession);
-    };
   }, []);
   
-  return <Component key={sessionId} />;
+  // Use the userId as key to remount only when user changes
+  return <Component key={userId} />;
 };
 
 function Router() {
