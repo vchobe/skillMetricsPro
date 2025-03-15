@@ -16,8 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-// Import the logo directly as a module
-import atyetiLogo from "../assets/Atyeti_logo.png";
+// No need for logo import in sidebar
 
 interface SidebarProps {
   isOpen: boolean;

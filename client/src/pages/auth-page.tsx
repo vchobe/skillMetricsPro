@@ -272,12 +272,8 @@ export default function AuthPage() {
           <div className="w-full md:w-1/2 bg-gradient-to-br from-indigo-600 to-purple-700 p-8 text-white flex flex-col justify-center items-center">
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-4">Employee Skill Metrics</h1>
-              <div className="mb-6 rounded-full bg-white/10 p-4 inline-block">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                  <path d="M2 17l10 5 10-5"></path>
-                  <path d="M2 12l10 5 10-5"></path>
-                </svg>
+              <div className="mb-6 p-4 inline-block bg-white rounded-md">
+                <img src={atyetiLogo} alt="Atyeti Logo" className="h-20 w-auto object-contain" />
               </div>
               <p className="text-xl mb-6">Track, manage, and showcase your professional skills</p>
               <ul className="text-left space-y-2 mb-8">
