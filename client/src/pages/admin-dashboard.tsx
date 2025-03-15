@@ -1730,7 +1730,6 @@ export default function AdminDashboard() {
             </TabsContent>
             
             <TabsContent value="users">
-              <AdminUserActions />
               <Card className="mb-6">
                 <CardHeader className="flex flex-col sm:flex-row justify-between sm:items-center">
                   <div>
@@ -2004,6 +2003,12 @@ export default function AdminDashboard() {
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+              
+              {/* Danger Zone - Moved to bottom of Users section and made collapsible */}
+              <div className="mt-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4 px-1">Danger Zone</h3>
+                <AdminUserActions />
               </div>
             </TabsContent>
           </Tabs>
