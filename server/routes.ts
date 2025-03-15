@@ -462,6 +462,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Public endpoint for skill templates - available to all authenticated users
+  app.get("/api/skill-templates", ensureAuth, async (req, res) => {
+    try {
+      const templates = await storage.getAllSkillTemplates();
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching skill templates", error });
+    }
+  });
+  
   app.post("/api/admin/skill-templates", ensureAdmin, async (req, res) => {
     try {
       const newTemplate = await storage.createSkillTemplate(req.body);
@@ -643,6 +653,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting skill target", error });
+    }
+  });
+  
+  // Endpoint to get skill targets for the current user
+  app.get("/api/user/skill-targets", ensureAuth, async (req, res) => {
+    try {
+      // Get all skill targets
+      const allTargets = await storage.getAllSkillTargets();
+      
+      // Filter targets that are assigned to the current user
+      const userTargets = await Promise.all(
+        allTargets.map(async (target) => {
+          const userIds = await storage.getSkillTargetUsers(target.id);
+          
+          // If this target is assigned to the current user
+          if (userIds.includes(req.user!.id)) {
+            const skillIds = await storage.getSkillTargetSkills(target.id);
+            
+            // Get the user's current skills
+            const userSkills = await storage.getUserSkills(req.user!.id);
+            
+            // Get the target skills
+            const targetSkillsPromises = skillIds.map(skillId => storage.getSkill(skillId));
+            const targetSkillsResults = await Promise.all(targetSkillsPromises);
+            
+            // Filter out undefined results
+            const targetSkills = targetSkillsResults.filter(skill => skill !== undefined) as Skill[];
+            
+            // Find skills that match the target level
+            const matchingSkills = userSkills.filter(userSkill => {
+              // Check if the user has this skill
+              const hasMatchingSkill = targetSkills.some(targetSkill => 
+                targetSkill.name === userSkill.name ||
+                targetSkill.id === userSkill.id
+              );
+              
+              // For level-based targets, also check if the level matches or exceeds
+              if (target.targetLevel && hasMatchingSkill) {
+                const levelOrder = { beginner: 1, intermediate: 2, expert: 3 };
+                const userLevel = levelOrder[userSkill.level as keyof typeof levelOrder] || 0;
+                const targetLevel = levelOrder[target.targetLevel as keyof typeof levelOrder] || 0;
+                
+                return userLevel >= targetLevel;
+              }
+              
+              return hasMatchingSkill;
+            });
+            
+            // Calculate gap and progress
+            const totalTargetSkills = skillIds.length;
+            const acquiredSkills = matchingSkills.length;
+            const progress = totalTargetSkills > 0 ? Math.round((acquiredSkills / totalTargetSkills) * 100) : 0;
+            
+            // Create the response object
+            return {
+              ...target,
+              skillIds,
+              targetSkills,
+              progress,
+              acquiredSkills,
+              totalTargetSkills,
+              skillGap: totalTargetSkills - acquiredSkills,
+              dueDate: target.targetDate ? new Date(target.targetDate).toISOString() : null,
+              isCompleted: progress === 100
+            };
+          }
+          return null;
+        })
+      );
+      
+      // Filter out null values
+      const validUserTargets = userTargets.filter(target => target !== null);
+      
+      res.json(validUserTargets);
+    } catch (error) {
+      console.error("Error fetching user skill targets:", error);
+      res.status(500).json({ message: "Error fetching user skill targets", error });
     }
   });
   

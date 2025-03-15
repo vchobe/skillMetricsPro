@@ -92,9 +92,9 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
     queryKey: ["/api/skills"],
   });
   
-  // Get skill templates
+  // Get skill templates from public endpoint
   const { data: skillTemplates = [] } = useQuery<SkillTemplate[]>({
-    queryKey: ["/api/admin/skill-templates"],
+    queryKey: ["/api/skill-templates"],
   });
   
   // Populate suggestions based on existing skills

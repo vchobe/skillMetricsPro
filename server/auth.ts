@@ -242,17 +242,16 @@ export function setupAuth(app: Express) {
       ============================================
       `);
 
-      req.login(user, (err) => {
-        if (err) {
-          console.log("POST /api/register - Login error:", err);
-          return next(err);
-        }
-        
-        console.log("POST /api/register - User logged in successfully");
-        
-        // Remove password from response
-        const { password, ...userWithoutPassword } = user;
-        res.status(201).json(userWithoutPassword);
+      // Skip automatic login after registration
+      console.log("POST /api/register - User created but not automatically logged in");
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+      
+      // Send registration success response
+      res.status(201).json({ 
+        message: "Registration successful. An email with login credentials has been sent to your email address.", 
+        user: userWithoutPassword 
       });
     } catch (error) {
       console.log("POST /api/register - Exception:", error);
