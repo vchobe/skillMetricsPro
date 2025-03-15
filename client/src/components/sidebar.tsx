@@ -67,8 +67,8 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
         <div className="px-4 py-5 flex justify-between items-center border-b border-gray-700">
           <div className={`flex items-center ${!isOpen ? "lg:justify-center lg:w-full" : ""}`}>
             {(isOpen || !isMobile) && (
-              <span className={`font-semibold text-xl tracking-tight ${!isOpen && "lg:hidden"} bg-gradient-to-br from-indigo-600 to-purple-700 text-transparent bg-clip-text`}>
-                Atyeti Skill Metrics
+              <span className={`font-semibold text-xl tracking-tight ${!isOpen && "lg:hidden"}`}>
+                Skill Metrics
               </span>
             )}
           </div>

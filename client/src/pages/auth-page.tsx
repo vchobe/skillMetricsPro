@@ -333,7 +333,7 @@ export default function AuthPage() {
             >
               <div className="text-center">
                 <motion.h1 
-                  className="text-4xl font-bold mb-4"
+                  className="text-4xl font-bold mb-4 bg-gradient-to-br from-indigo-600 to-purple-700 text-transparent bg-clip-text"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5, duration: 0.3 }}
