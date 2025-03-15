@@ -465,10 +465,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the dedicated storage method to delete the user and all related records
       await storage.deleteUser(user.id);
       
-      if (result.rowCount === 0) {
-        return res.status(500).json({ message: "Error deleting user" });
-      }
-      
       res.status(200).json({ message: `User ${email} deleted successfully`, userId: user.id });
     } catch (error) {
       console.error("Error deleting user:", error);
