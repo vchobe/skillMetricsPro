@@ -26,6 +26,7 @@ export interface IStorage {
   updateUser(id: number, data: Partial<User>): Promise<User>;
   updateUserPassword(id: number, hashedPassword: string): Promise<void>;
   getAllUsers(): Promise<User[]>;
+  deleteUser(id: number): Promise<void>;
   
   // Skill operations
   getUserSkills(userId: number): Promise<Skill[]>;
@@ -275,6 +276,55 @@ export class PostgresStorage implements IStorage {
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting all users:", error);
+      throw error;
+    }
+  }
+  
+  async deleteUser(id: number): Promise<void> {
+    try {
+      // Delete related records first to maintain referential integrity
+      
+      // 1. Delete user's skills and associated histories
+      const userSkills = await this.getUserSkills(id);
+      for (const skill of userSkills) {
+        await this.deleteSkill(skill.id);
+      }
+      
+      // 2. Remove user from skill targets
+      const allTargets = await this.getAllSkillTargets();
+      for (const target of allTargets) {
+        const userIds = await this.getSkillTargetUsers(target.id);
+        if (userIds.includes(id)) {
+          await this.removeUserFromTarget(target.id, id);
+        }
+      }
+      
+      // 3. Delete profile histories
+      await pool.query('DELETE FROM profile_histories WHERE user_id = $1', [id]);
+      
+      // 4. Delete skill histories
+      await pool.query('DELETE FROM skill_histories WHERE user_id = $1', [id]);
+      
+      // 5. Delete notifications
+      await pool.query('DELETE FROM notifications WHERE user_id = $1', [id]);
+      
+      // 6. Delete endorsements given by this user
+      await pool.query('DELETE FROM endorsements WHERE endorser_id = $1', [id]);
+      
+      // 7. Delete endorsements received by this user's skills
+      await pool.query(
+        'DELETE FROM endorsements WHERE skill_id IN (SELECT id FROM skills WHERE user_id = $1)',
+        [id]
+      );
+      
+      // 8. Finally, delete the user
+      const result = await pool.query('DELETE FROM users WHERE id = $1', [id]);
+      
+      if (result.rowCount === 0) {
+        throw new Error("User not found");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
       throw error;
     }
   }

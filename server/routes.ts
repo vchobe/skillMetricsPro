@@ -462,23 +462,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: `User with email ${email} not found` });
       }
       
-      // Delete the user's skills first
-      const userSkills = await storage.getUserSkills(user.id);
-      for (const skill of userSkills) {
-        await storage.deleteSkill(skill.id);
-      }
-      
-      // Delete user from skill targets
-      const allTargets = await storage.getAllSkillTargets();
-      for (const target of allTargets) {
-        const userIds = await storage.getSkillTargetUsers(target.id);
-        if (userIds.includes(user.id)) {
-          await storage.removeUserFromTarget(target.id, user.id);
-        }
-      }
-      
-      // Delete the user (through a direct database query since there's no dedicated user deletion method in storage)
-      const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [user.id]);
+      // Use the dedicated storage method to delete the user and all related records
+      await storage.deleteUser(user.id);
       
       if (result.rowCount === 0) {
         return res.status(500).json({ message: "Error deleting user" });
