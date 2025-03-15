@@ -445,6 +445,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching users", error });
     }
   });
+  
+  // Delete user by email
+  app.delete("/api/admin/users/delete-by-email", ensureAdmin, async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email address is required" });
+      }
+      
+      // Find the user by email
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(404).json({ message: `User with email ${email} not found` });
+      }
+      
+      // Delete the user's skills first
+      const userSkills = await storage.getUserSkills(user.id);
+      for (const skill of userSkills) {
+        await storage.deleteSkill(skill.id);
+      }
+      
+      // Delete user from skill targets
+      const allTargets = await storage.getAllSkillTargets();
+      for (const target of allTargets) {
+        const userIds = await storage.getSkillTargetUsers(target.id);
+        if (userIds.includes(user.id)) {
+          await storage.removeUserFromTarget(target.id, user.id);
+        }
+      }
+      
+      // Delete the user (through a direct database query since there's no dedicated user deletion method in storage)
+      const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [user.id]);
+      
+      if (result.rowCount === 0) {
+        return res.status(500).json({ message: "Error deleting user" });
+      }
+      
+      res.status(200).json({ message: `User ${email} deleted successfully`, userId: user.id });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Error deleting user", error });
+    }
+  });
 
   app.get("/api/admin/skills", ensureAdmin, async (req, res) => {
     try {

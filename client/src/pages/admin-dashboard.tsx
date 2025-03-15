@@ -89,6 +89,7 @@ import SkillLevelBadge from "@/components/skill-level-badge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "@/components/ui/alert-circle";
+import AdminUserActions from "@/components/admin-user-actions";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
