@@ -1,84 +1,17 @@
-import nodemailer from 'nodemailer';
 import { getPasswordResetEmailContent } from './email-templates';
+import Mailjet from 'node-mailjet';
 
-// Create a transporter using SMTP
-/**
- * Creates and tests an email transporter with the given configuration
- * Improved to handle Gmail's specific authentication requirements
- */
-const createTransporter = () => {
-  const isGmail = process.env.EMAIL_HOST?.includes('gmail');
-  const isSecure = process.env.EMAIL_PORT === '465';
-  
-  // Gmail-specific configuration
-  const transporterConfig = {
-    host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT),
-    secure: isSecure,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    // Gmail-specific settings
-    ...(isGmail ? {
-      requireTLS: true,
-      tls: {
-        rejectUnauthorized: false,
-        ciphers: 'SSLv3'
-      },
-      debug: true, // Enable debugging to see detailed logs
-      logger: true,
-      // Override authentication for OAuth2 if implementing in the future
-      // authMethod: 'PLAIN' // Force PLAIN authentication
-    } : {})
-  };
-  
-  console.log(`Creating email transporter with host: ${process.env.EMAIL_HOST}, port: ${process.env.EMAIL_PORT}, secure: ${isSecure}`);
-  
-  return nodemailer.createTransport(transporterConfig);
-};
-
-// Create transporter only when needed to prevent connection timeouts
-let transporter: nodemailer.Transporter | null = null;
-
-// Log email configuration (without password)
-console.log('Email configuration:', {
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  user: process.env.EMAIL_USER?.substring(0, 3) + '***@' + 
-        (process.env.EMAIL_USER?.split('@')[1] || 'unknown'),
-  secure: process.env.EMAIL_PORT === '465'
+// Initialize Mailjet client
+const mailjet = new Mailjet({
+  apiKey: process.env.MAILJET_API_KEY || 'your-api-key',
+  apiSecret: process.env.MAILJET_SECRET_KEY || 'your-secret-key'
 });
 
 // Verify email configuration on startup
-if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || 
-    !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.warn('Missing email configuration. Email functionality will be limited.');
+if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+  console.warn('Missing Mailjet configuration. Email functionality will be limited.');
 } else {
-  // Verify SMTP connection on startup (disabled to prevent connection issues)
-  /*
-  try {
-    const tempTransporter = createTransporter();
-    tempTransporter.verify((error) => {
-      if (error) {
-        console.error('Email verification failed:', error);
-        console.log('Fallback mechanism will be used for email operations');
-      } else {
-        console.log('Email server connection verified successfully');
-      }
-    });
-  } catch (error) {
-    console.error('Failed to create email transporter for verification:', error);
-  }
-  */
-  
-  // Gmail-specific recommendations
-  if (process.env.EMAIL_HOST?.includes('gmail')) {
-    console.log('Gmail SMTP detected. Make sure you:');
-    console.log('1. Have enabled "Less secure app access" or');
-    console.log('2. Created an App Password if using 2FA');
-    console.log('3. Allowed access at https://accounts.google.com/DisplayUnlockCaptcha');
-  }
+  console.log('Mailjet configuration found. Email service is ready.');
 }
 
 /**
