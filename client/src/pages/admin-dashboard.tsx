@@ -139,26 +139,14 @@ export default function AdminDashboard() {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
     
-    // This function ensures both state and URL are in sync
-    const updateActiveTab = (newTab: string) => {
-      if (newTab !== activeTab) {
-        setActiveTab(newTab);
-      }
-
-      const newUrl = newTab === "dashboard" ? "/admin" : `/admin?tab=${newTab}`;
-      if (window.location.pathname + window.location.search !== newUrl) {
-        // Use setLocation to update URL with wouter instead of window.history
-        setLocation(newUrl);
-      }
-    };
-    
+    // Only update tab from URL, don't modify URL here
     if (tab === "users" || tab === "skill-history" || tab === "certifications") {
-      updateActiveTab(tab);
-    } else {
+      setActiveTab(tab);
+    } else if (window.location.pathname === "/admin") {
       // Default to dashboard if no valid tab is specified
-      updateActiveTab("dashboard");
+      setActiveTab("dashboard");
     }
-  }, [location, activeTab]); // Listen for location changes too
+  }, [location]); // Only listen for location changes
   
   // Get all users
   const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
@@ -558,11 +546,15 @@ export default function AdminDashboard() {
             defaultValue="dashboard"
             value={activeTab} 
             onValueChange={(value) => {
-              // Force refresh of all components by setting active tab
+              // Update active tab first
               setActiveTab(value);
-              // Update URL to reflect selected tab (this allows for bookmarking and sharing specific tabs)
-              const newUrl = value === "dashboard" ? "/admin" : `/admin?tab=${value}`;
-              setLocation(newUrl);
+              
+              // Use a setTimeout to avoid race condition with state updates
+              setTimeout(() => {
+                // Update URL to reflect selected tab (this allows for bookmarking and sharing specific tabs)
+                const newUrl = value === "dashboard" ? "/admin" : `/admin?tab=${value}`;
+                setLocation(newUrl);
+              }, 0);
             }}
           >
             <motion.div
@@ -640,7 +632,14 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-gray-50 px-5 py-3">
                       <div className="text-sm">
-                        <Button variant="link" onClick={() => {setLocation("/admin?tab=users"); setActiveTab("users");}} className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500">
+                        <Button 
+                          variant="link" 
+                          onClick={() => {
+                            setActiveTab("users");
+                            setTimeout(() => setLocation("/admin?tab=users"), 0);
+                          }} 
+                          className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500"
+                        >
                           View all
                         </Button>
                       </div>
