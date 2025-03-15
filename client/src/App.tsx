@@ -3,7 +3,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
 import HomePage from "@/pages/home-page";
@@ -22,23 +22,43 @@ import NotFound from "@/pages/not-found";
 
 // This wrapper ensures admin components get fully remounted on user change but not on tab changes
 const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
-  // Get current user session ID from localStorage to force remount on user changes only
-  const [userId, setUserId] = useState<string>("");
+  // Use a reference to sessionId from localStorage to force remount on user changes only
+  const [sessionId, setSessionId] = useState<string>(() => localStorage.getItem("sessionId") || "initial");
   const { user } = useAuth(); // Use the useAuth hook to detect user changes
   
+  // Listen for storage events (login/logout)
   useEffect(() => {
-    // Update user ID whenever the authenticated user changes
-    if (user) {
-      const currentUserId = String(user.id) || user.email || "authenticated";
-      setUserId(currentUserId);
-    } else {
-      setUserId("guest");
-    }
-  }, [user]); // This dependency array ensures the effect runs when the user changes
+    // Function to update session ID state
+    const updateSessionId = () => {
+      const newId = localStorage.getItem("sessionId") || "guest";
+      setSessionId(newId);
+    };
+
+    // Listen for storage events (triggered in useAuth on login/logout)
+    window.addEventListener('storage', updateSessionId);
+    return () => window.removeEventListener('storage', updateSessionId);
+  }, []);
   
-  // Use both userId and admin status as key to remount on user/role changes
-  const adminStatus = user?.is_admin ? "admin" : "regular";
-  return <Component key={`${userId}-${adminStatus}`} />;
+  // Also listen for direct user changes from useAuth
+  useEffect(() => {
+    if (user) {
+      const newId = localStorage.getItem("sessionId") || String(user.id) || "authenticated";
+      setSessionId(newId);
+    } else {
+      setSessionId("guest");
+    }
+  }, [user]);
+  
+  // Use both sessionId and admin status as the key to ensure proper remounting
+  // Check both is_admin and isAdmin properties as backend might use either
+  const isAdmin = user?.is_admin === true || user?.isAdmin === true;
+  const adminStatus = isAdmin ? "admin" : "regular";
+  
+  // Logging for debugging
+  console.log("User in AdminWrapper:", user);
+  console.log("Admin status:", adminStatus);
+  
+  return <Component key={`${sessionId}-${adminStatus}`} />;
 };
 
 function Router() {

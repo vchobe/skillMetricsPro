@@ -31,7 +31,11 @@ export function ProtectedRoute({
     );
   }
   
-  if (adminOnly && !user.is_admin) {
+  // Check both is_admin and isAdmin properties for admin access
+  const isAdmin = user.is_admin === true || user.isAdmin === true;
+  
+  if (adminOnly && !isAdmin) {
+    console.log("Access denied: User is not admin", user);
     return (
       <Route path={path}>
         <Redirect to="/" />
