@@ -394,14 +394,14 @@ export default function HomePage() {
                 )}
               </Card>
               
-              {skillTargets.length > 0 && (
+              {skillTargets && skillTargets.length > 0 && (
                 <Card className="mt-8">
                   <CardHeader className="border-b border-gray-200">
                     <CardTitle>Skill Gap Analysis</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      {skillTargets.map((target) => (
+                      {skillTargets.map((target: SkillTarget) => (
                         <div key={target.id} className="bg-gray-50 rounded-lg p-5">
                           <div className="flex flex-col sm:flex-row justify-between mb-4">
                             <div>
