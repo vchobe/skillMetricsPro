@@ -33,6 +33,11 @@ export default function HomePage() {
     queryKey: ["/api/org/skills/history"],
   });
   
+  // Get all users data for displaying user names in activity feed
+  const { data: allUsers, isLoading: isLoadingUsers } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+  });
+  
   // Get all skills data for skill target processing
   const { data: allSkills, isLoading: isLoadingAllSkills } = useQuery<Skill[]>({
     queryKey: ["/api/skills"],
@@ -242,7 +247,7 @@ export default function HomePage() {
       }
     }).slice(0, 3) : [];
   
-  const isLoading = isLoadingSkills || isLoadingUserHistory || isLoadingOrgHistory || isLoadingTargets || isLoadingAllSkills;
+  const isLoading = isLoadingSkills || isLoadingUserHistory || isLoadingOrgHistory || isLoadingTargets || isLoadingAllSkills || isLoadingUsers;
   
   return (
     <div className="min-h-screen flex">
@@ -388,7 +393,13 @@ export default function HomePage() {
                   </CardHeader>
                   <CardContent>
                     {recentActivity && recentActivity.length > 0 ? (
-                      <ActivityFeed activities={recentActivity} skills={skills || []} showAll={false} />
+                      <ActivityFeed 
+                        activities={recentActivity} 
+                        skills={skills || []} 
+                        showAll={false} 
+                        isPersonal={false} 
+                        users={allUsers || []} 
+                      />
                     ) : (
                       <div className="text-center p-6 bg-gray-50 rounded-md">
                         <div className="text-center p-6">

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Skill, SkillHistory } from "@shared/schema";
+import { Skill, SkillHistory, User } from "@shared/schema";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import ActivityFeed from "@/components/activity-feed";
@@ -29,10 +29,20 @@ export default function SkillHistoryPage() {
   });
   
   // Get user's skill history
-  const { data: history, isLoading: isLoadingHistory } = useQuery<SkillHistory[]>({
+  const { data: userHistory, isLoading: isLoadingUserHistory } = useQuery<SkillHistory[]>({
     queryKey: skillId 
       ? [`/api/skills/${skillId}/history`] 
       : ["/api/user/skills/history"],
+  });
+  
+  // Get organization-wide skill history (global activity)
+  const { data: orgHistory, isLoading: isLoadingOrgHistory } = useQuery<SkillHistory[]>({
+    queryKey: ["/api/org/skills/history"],
+  });
+  
+  // Get all users data for displaying user names in activity feed
+  const { data: allUsers, isLoading: isLoadingUsers } = useQuery<any[]>({
+    queryKey: ["/api/users"],
   });
   
   // Get the specific skill if skillId is provided
@@ -40,8 +50,29 @@ export default function SkillHistoryPage() {
     ? skills.find(skill => skill.id === skillId) 
     : null;
   
+  // Combine user and organization history data
+  const combinedHistory = useMemo(() => {
+    if (skillId) {
+      // For a specific skill, we already have its history from the userHistory query
+      return userHistory || [];
+    }
+    
+    // Otherwise, combine user and org-wide history
+    const combined = [
+      ...(userHistory || []),
+      ...(orgHistory || []).filter(entry => entry.userId !== allUsers?.find(u => u.email === window.location.pathname.includes("history") ? u.email : ''))
+    ];
+    
+    // Sort by date (most recent first)
+    return combined.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.updatedAt || 0);
+      const dateB = new Date(b.createdAt || b.updatedAt || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
+  }, [skillId, userHistory, orgHistory, allUsers]);
+
   // Filter history by tab and search term
-  const filteredHistory = history?.filter(entry => {
+  const filteredHistory = combinedHistory?.filter(entry => {
     const matchesTab = activeTab === "all" || 
                       (activeTab === "updates" && entry.previousLevel) ||
                       (activeTab === "new" && !entry.previousLevel);
@@ -57,7 +88,7 @@ export default function SkillHistoryPage() {
     return matchesTab && matchesSearch;
   });
   
-  const isLoading = isLoadingSkills || isLoadingHistory;
+  const isLoading = isLoadingSkills || isLoadingUserHistory || isLoadingOrgHistory || isLoadingUsers;
   
   return (
     <div className="min-h-screen flex">
