@@ -271,7 +271,7 @@ export default function AuthPage() {
           {/* Right side - Hero content */}
           <div className="w-full md:w-1/2 bg-gradient-to-br from-indigo-600 to-purple-700 p-8 text-white flex flex-col justify-center items-center">
             <div className="text-center">
-              <h1 className="text-3xl font-bold mb-4">Employee Skill Metrics</h1>
+              <h1 className="text-3xl font-bold mb-4">Atyeti SkillMetrics</h1>
               <div className="mb-6 p-4 inline-block bg-white rounded-md">
                 <img src={atyetiLogo} alt="Atyeti Logo" className="atyeti-logo" />
               </div>

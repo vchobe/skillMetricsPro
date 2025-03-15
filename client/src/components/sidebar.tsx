@@ -68,7 +68,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
           <div className={`flex items-center ${!isOpen ? "lg:justify-center lg:w-full" : ""}`}>
             {(isOpen || !isMobile) && (
               <span className={`font-semibold text-xl tracking-tight ${!isOpen && "lg:hidden"}`}>
-                SkillMetrics
+                Atyeti SkillMetrics
               </span>
             )}
           </div>
