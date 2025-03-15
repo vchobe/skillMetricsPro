@@ -698,7 +698,10 @@ export default function AdminDashboard() {
                       <div className="text-sm">
                         <Button 
                           variant="link" 
-                          onClick={() => {setLocation("/admin?tab=certifications"); setActiveTab("certifications");}}
+                          onClick={() => {
+                            setActiveTab("certifications");
+                            setTimeout(() => setLocation("/admin?tab=certifications"), 0);
+                          }}
                           className="p-0 h-auto font-medium text-green-600 hover:text-green-500"
                         >
                           View all
@@ -832,7 +835,10 @@ export default function AdminDashboard() {
                     <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                       <Button 
                         variant="link" 
-                        onClick={() => {setLocation("/admin?tab=skill-history"); setActiveTab("skill-history");}}
+                        onClick={() => {
+                          setActiveTab("skill-history");
+                          setTimeout(() => setLocation("/admin?tab=skill-history"), 0);
+                        }}
                         className="p-0 h-auto font-medium text-indigo-600 hover:text-indigo-900"
                       >
                         View all updates
