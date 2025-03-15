@@ -45,10 +45,30 @@ export default function HomePage() {
     isCompleted: boolean;
   };
   
-  // Get user skill targets for gap analysis
-  const { data: skillTargets = [], isLoading: isLoadingTargets } = useQuery<SkillTarget[]>({
-    queryKey: ["/api/user/skill-targets"],
+  // Try to get admin skill targets for global view first
+  const { 
+    data: adminSkillTargets = [], 
+    isLoading: isLoadingAdminTargets, 
+    isError: adminTargetsError 
+  } = useQuery<SkillTarget[]>({
+    queryKey: ["/api/admin/skill-targets"],
+    retry: 1,
+    // Using onSuccess/onError in a function to avoid LSP errors
+    gcTime: 0
   });
+  
+  // Fallback to user-specific targets if admin endpoint fails
+  const { 
+    data: userSkillTargets = [], 
+    isLoading: isLoadingUserTargets 
+  } = useQuery<SkillTarget[]>({
+    queryKey: ["/api/user/skill-targets"],
+    enabled: adminTargetsError // Only run this query if the admin query failed
+  });
+  
+  // Use admin targets if available, otherwise fallback to user targets
+  const skillTargets = adminTargetsError ? userSkillTargets : adminSkillTargets;
+  const isLoadingTargets = isLoadingAdminTargets || (adminTargetsError && isLoadingUserTargets);
   
   // Background gradient style based on skills
   const [backgroundStyle, setBackgroundStyle] = useState<string>("from-indigo-500 via-purple-500 to-pink-500");

@@ -147,8 +147,8 @@ export default function AdminDashboard() {
 
       const newUrl = newTab === "dashboard" ? "/admin" : `/admin?tab=${newTab}`;
       if (window.location.pathname + window.location.search !== newUrl) {
-        // Use window.history to update URL without causing navigation
-        window.history.pushState({}, "", newUrl);
+        // Use setLocation to update URL with wouter instead of window.history
+        setLocation(newUrl);
       }
     };
     
@@ -562,7 +562,7 @@ export default function AdminDashboard() {
               setActiveTab(value);
               // Update URL to reflect selected tab (this allows for bookmarking and sharing specific tabs)
               const newUrl = value === "dashboard" ? "/admin" : `/admin?tab=${value}`;
-              window.history.pushState({}, "", newUrl);
+              setLocation(newUrl);
             }}
           >
             <motion.div
@@ -640,7 +640,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-gray-50 px-5 py-3">
                       <div className="text-sm">
-                        <Button variant="link" onClick={() => {window.history.pushState({}, "", "/admin?tab=users"); setActiveTab("users");}} className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500">
+                        <Button variant="link" onClick={() => {setLocation("/admin?tab=users"); setActiveTab("users");}} className="p-0 h-auto font-medium text-purple-600 hover:text-purple-500">
                           View all
                         </Button>
                       </div>
@@ -699,7 +699,7 @@ export default function AdminDashboard() {
                       <div className="text-sm">
                         <Button 
                           variant="link" 
-                          onClick={() => {window.history.pushState({}, "", "/admin?tab=certifications"); setActiveTab("certifications");}}
+                          onClick={() => {setLocation("/admin?tab=certifications"); setActiveTab("certifications");}}
                           className="p-0 h-auto font-medium text-green-600 hover:text-green-500"
                         >
                           View all
@@ -833,7 +833,7 @@ export default function AdminDashboard() {
                     <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                       <Button 
                         variant="link" 
-                        onClick={() => {window.history.pushState({}, "", "/admin?tab=skill-history"); setActiveTab("skill-history");}}
+                        onClick={() => {setLocation("/admin?tab=skill-history"); setActiveTab("skill-history");}}
                         className="p-0 h-auto font-medium text-indigo-600 hover:text-indigo-900"
                       >
                         View all updates
