@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Skill, User, SkillHistory } from "@shared/schema";
 import { formatDate, DATE_FORMATS } from "@/lib/date-utils";
+import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import UserProfileDialog from "@/components/user-profile-dialog";
