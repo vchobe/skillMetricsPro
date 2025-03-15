@@ -587,7 +587,7 @@ export default function UsersPage() {
                             </TableCell>
                             <TableCell className="text-right">
                               {user?.isAdmin === true ? (
-                                <Link href={`/users/${tableUser.id}`}>
+                                <Link href={`/users/${user.id}`}>
                                   <Button variant="outline" size="sm">View Profile</Button>
                                 </Link>
                               ) : (
@@ -595,7 +595,7 @@ export default function UsersPage() {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => {
-                                    setSelectedUserId(tableUser.id);
+                                    setSelectedUserId(user.id);
                                     setIsProfileDialogOpen(true);
                                   }}
                                 >
