@@ -19,8 +19,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-// Import the logo directly as a module
-import atyetiLogo from "../assets/Atyeti_logo.png";
 
 const loginSchema = loginUserSchema;
 // Using the imported registerSchema
@@ -334,20 +332,13 @@ export default function AuthPage() {
               transition={{ delay: 0.3, duration: 0.4 }}
             >
               <div className="text-center">
-                <motion.div 
-                  className="mb-4 p-2 inline-block bg-white rounded-md overflow-hidden"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <img src={atyetiLogo} alt="Atyeti Logo" className="h-16" />
-                </motion.div>
                 <motion.h1 
-                  className="text-3xl font-bold mb-4"
+                  className="text-4xl font-bold mb-4"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5, duration: 0.3 }}
                 >
-                  Skill Metrics
+                  Atyeti Skill Metrics
                 </motion.h1>
                 <motion.p 
                   className="text-xl mb-6"
