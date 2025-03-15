@@ -37,9 +37,11 @@ interface ActivityFeedProps {
 
 export default function ActivityFeed({ activities, skills, showAll, isPersonal = true, users = [] }: ActivityFeedProps) {
   // Fetch skill details by ID if needed
+  // Fetch all skills to ensure we have complete skill data, especially for cross-user references
   const { data: allSkills } = useQuery<Skill[]>({
     queryKey: ["/api/skills/all"],
-    enabled: skills.length > 0 && skills.some(skill => !skills.find(s => s.id === skill.id))
+    // Always fetch all skills to ensure we have complete data
+    enabled: true
   });
   
   // Get skill details by ID - look in our passed skills array first, then try allSkills if available
