@@ -220,27 +220,20 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser(userData);
       console.log("POST /api/register - User created:", { ...user, password: "[REDACTED]" });
 
-      // In a real app, you would send an email with the password
-      // For demo purposes, we'll just log it to the console
-      console.log(`
-      ========== REGISTRATION CONFIRMATION ==========
-      To: ${user.email}
-      Subject: Your Employee Skill Metrics Account
-
-      Hello ${user.username},
-
-      Your account has been created successfully. 
-      Please use the following credentials to log in:
-
-      Email: ${user.email}
-      Password: ${generatedPassword}
-
-      Please change your password after logging in.
-
-      Best regards,
-      The Employee Skill Metrics Team
-      ============================================
-      `);
+      // Send registration email
+      try {
+        const { sendRegistrationEmail } = await import('./email');
+        await sendRegistrationEmail(user.email, user.username || 'User', generatedPassword);
+      } catch (error) {
+        console.error('Failed to send registration email:', error);
+        // Still log the password in case email fails
+        console.log(`
+        ========== BACKUP: REGISTRATION DETAILS ==========
+        Email: ${user.email}
+        Password: ${generatedPassword}
+        ===============================================
+        `);
+      }
 
       // Skip automatic login after registration
       console.log("POST /api/register - User created but not automatically logged in");
@@ -447,25 +440,19 @@ export function setupAuth(app: Express) {
       
       await storage.updateUserPassword(user.id, hashedPassword);
       
-      // In a real implementation, send an email with the temp password
-      console.log(`
-      ========== PASSWORD RESET CONFIRMATION ==========
-      To: ${user.email}
-      Subject: Your Password Has Been Reset
-      
-      Hello ${user.username},
-      
-      Your password has been reset successfully.
-      Please use the following temporary password to log in:
-      
-      Temporary Password: ${temporaryPassword}
-      
-      Please change your password immediately after logging in.
-      
-      Best regards,
-      The Employee Skill Metrics Team
-      ============================================
-      `);
+      try {
+        const { sendPasswordResetEmail } = await import('./email');
+        await sendPasswordResetEmail(user.email, user.username || 'User', temporaryPassword);
+      } catch (error) {
+        console.error('Failed to send password reset email:', error);
+        // Still log the password in case email fails
+        console.log(`
+        ========== BACKUP: PASSWORD RESET DETAILS ==========
+        Email: ${user.email}
+        Temporary Password: ${temporaryPassword}
+        ===============================================
+        `);
+      }
       
       res.status(200).json({ message: "If your email exists, a password reset link will be sent" });
     } catch (error) {
