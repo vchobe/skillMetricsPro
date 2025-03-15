@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -28,6 +28,11 @@ export default function HomePage() {
     queryKey: ["/api/user/skills/history"],
   });
   
+  // Get all skills data for skill target processing
+  const { data: allSkills, isLoading: isLoadingAllSkills } = useQuery<Skill[]>({
+    queryKey: ["/api/skills"],
+  });
+  
   // Define the SkillTarget type
   type SkillTarget = {
     id: number;
@@ -53,6 +58,7 @@ export default function HomePage() {
   } = useQuery<SkillTarget[]>({
     queryKey: ["/api/skill-targets"],
     retry: 1,
+    enabled: !!allSkills,
     // Using onSuccess/onError in a function to avoid LSP errors
     gcTime: 0
   });
@@ -62,7 +68,8 @@ export default function HomePage() {
     data: userSkillTargets = [], 
     isLoading: isLoadingUserTargets 
   } = useQuery<SkillTarget[]>({
-    queryKey: ["/api/user/skill-targets"]
+    queryKey: ["/api/user/skill-targets"],
+    enabled: !!skills // Only fetch when user skills are available
   });
   
   // Process global targets to add required properties like user targets
@@ -77,7 +84,7 @@ export default function HomePage() {
       const matchingSkills = skills.filter(userSkill => {
         // Check if any of the user's skills match the target skills
         return targetSkillIds.some(targetSkillId => {
-          const targetSkill = allSkills?.find(s => s.id === targetSkillId);
+          const targetSkill = allSkills?.find((s: Skill) => s.id === targetSkillId);
           if (!targetSkill) return false;
           
           // Check if names match
@@ -211,7 +218,7 @@ export default function HomePage() {
       }
     }).slice(0, 3) : [];
   
-  const isLoading = isLoadingSkills || isLoadingHistory || isLoadingTargets;
+  const isLoading = isLoadingSkills || isLoadingHistory || isLoadingTargets || isLoadingAllSkills;
   
   return (
     <div className="min-h-screen flex">
