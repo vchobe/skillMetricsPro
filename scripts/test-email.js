@@ -35,7 +35,7 @@ async function sendTestEmail(recipientEmail) {
       Messages: [
         {
           From: {
-            Email: "support@mailjet.com",
+            Email: "vinayak.chobe@atyeti.com",
             Name: "Skills Management"
           },
           To: [

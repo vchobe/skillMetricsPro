@@ -64,7 +64,7 @@ export async function sendRegistrationEmail(
           Messages: [
             {
               From: {
-                Email: "support@mailjet.com",
+                Email: "vinayak.chobe@atyeti.com",
                 Name: "Employee Skill Metrics"
               },
               To: [
@@ -115,7 +115,7 @@ export async function sendPasswordResetEmail(
           Messages: [
             {
               From: {
-                Email: "support@mailjet.com",
+                Email: "vinayak.chobe@atyeti.com",
                 Name: "Employee Skill Metrics"
               },
               To: [
