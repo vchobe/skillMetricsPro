@@ -57,11 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", userData);
       return await res.json();
     },
-    onSuccess: (user: Omit<User, 'password'>) => {
-      queryClient.setQueryData(["/api/user"], user);
+    onSuccess: (response) => {
+      // Don't set user data, since user shouldn't be logged in automatically
+      // Instead, just show a toast with the success message from the server
       toast({
         title: "Registration successful",
-        description: "Your account has been created successfully.",
+        description: "Please check your email for login credentials and then sign in.",
       });
     },
     onError: (error: Error) => {
