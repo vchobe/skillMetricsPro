@@ -720,6 +720,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // GET global skill gap analysis - for all users (not just admins)
+  app.get("/api/skill-gap-analysis", ensureAuth, async (req, res) => {
+    try {
+      const targets = await storage.getAllSkillTargets();
+      const skills = await storage.getAllSkills();
+      const users = await storage.getAllUsers();
+      
+      // Process targets to include skill IDs
+      const processedTargets = await Promise.all(
+        targets.map(async (target) => {
+          const skillIds = await storage.getSkillTargetSkills(target.id);
+          return { ...target, skillIds };
+        })
+      );
+      
+      // Calculate skill gap analysis similar to admin dashboard
+      const gapAnalysis = await Promise.all(processedTargets.map(async (target) => {
+        // Get skills that are part of this target
+        const targetSkills = skills.filter(s => 
+          target.skillIds.includes(s.id)
+        );
+        
+        if (targetSkills.length === 0) return null;
+        
+        // Calculate current average level across all users
+        const levelToValue = (level: string) => {
+          switch(level) {
+            case "beginner": return 33;
+            case "intermediate": return 66;
+            case "expert": return 100;
+            default: return 0;
+          }
+        };
+        
+        const targetLevelValue = levelToValue(target.targetLevel);
+        
+        // Calculate current level (average of all users who have these skills)
+        const levelData = targetSkills.map(skill => levelToValue(skill.level));
+        const currentLevelValue = levelData.length > 0 
+          ? Math.round(levelData.reduce((a, b) => a + b, 0 as number) / levelData.length) 
+          : 0;
+          
+        // Calculate gap
+        const gap = Math.max(0, targetLevelValue - currentLevelValue);
+        
+        // Count employees needing skill improvement
+        const employeesNeedingImprovement = users.filter(user => {
+          // Get the user's skills that match this target
+          const userTargetSkills = skills.filter(s => 
+            (s.userId === user.id) && 
+            target.skillIds.includes(s.id)
+          );
+          
+          // If user has no relevant skills, they need improvement
+          if (userTargetSkills.length === 0) return true;
+          
+          // Calculate user's average level for target skills
+          const userAvgLevel = userTargetSkills.reduce((sum, skill) => 
+            sum + levelToValue(skill.level), 0 as number) / userTargetSkills.length;
+            
+          // If user's level is below target, they need improvement
+          return userAvgLevel < targetLevelValue;
+        }).length || 0;
+        
+        return {
+          name: target.name || `Target ${target.id}`,
+          id: target.id,
+          targetSkillCount: targetSkills.length,
+          currentLevel: Math.round(currentLevelValue),
+          targetLevel: Math.round(targetLevelValue),
+          gap: Math.round(gap),
+          employeesNeedingImprovement
+        };
+      }));
+      
+      // Filter out null entries
+      const filteredAnalysis = gapAnalysis.filter(Boolean);
+      
+      res.json(filteredAnalysis);
+    } catch (error) {
+      console.error("Error calculating skill gap analysis:", error);
+      res.status(500).json({ message: "Error calculating skill gap analysis", error });
+    }
+  });
+
   app.get("/api/user/skill-targets", ensureAuth, async (req, res) => {
     try {
       // Get all skill targets

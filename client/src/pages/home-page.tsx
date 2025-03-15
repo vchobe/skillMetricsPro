@@ -81,6 +81,23 @@ export default function HomePage() {
     queryKey: ["/api/user/skill-targets"],
     enabled: !!skills // Only fetch when user skills are available
   });
+
+  // Get organization-wide skill gap analysis
+  const { 
+    data: orgSkillGapAnalysis = [], 
+    isLoading: isLoadingGapAnalysis 
+  } = useQuery<{
+    name: string;
+    id: number;
+    targetSkillCount: number;
+    currentLevel: number;
+    targetLevel: number;
+    gap: number;
+    employeesNeedingImprovement: number;
+  }[]>({
+    queryKey: ["/api/skill-gap-analysis"],
+    enabled: !!skills // Only fetch when user skills are available
+  });
   
   // Process global targets to add required properties like user targets
   const processedGlobalTargets = useMemo(() => {
@@ -611,8 +628,23 @@ export default function HomePage() {
                                 ) : (
                                   <>
                                     <div className="mb-2">
-                                      Training needed for {target.acquiredSkills < target.totalTargetSkills ? 
-                                        (target.totalTargetSkills - target.acquiredSkills) : 1} skill{(target.totalTargetSkills - target.acquiredSkills) !== 1 ? 's' : ''}
+                                      {/* Get organization-wide data from our endpoint */}
+                                      {orgSkillGapAnalysis && orgSkillGapAnalysis.some(gap => 
+                                        gap.id === target.id && (gap.employeesNeedingImprovement > 0)
+                                      ) ? (
+                                        <div>
+                                          {(() => {
+                                            const matchingGap = orgSkillGapAnalysis.find(gap => gap.id === target.id);
+                                            const employeeCount = matchingGap?.employeesNeedingImprovement || 0;
+                                            return `Training needed for ${employeeCount} employee${employeeCount !== 1 ? 's' : ''}`;
+                                          })()}
+                                        </div>
+                                      ) : (
+                                        <div>
+                                          Training needed for {target.acquiredSkills < target.totalTargetSkills ? 
+                                            (target.totalTargetSkills - target.acquiredSkills) : 1} skill{(target.totalTargetSkills - target.acquiredSkills) !== 1 ? 's' : ''}
+                                        </div>
+                                      )}
                                     </div>
                                     <Link href="/skills">
                                       <Button 
