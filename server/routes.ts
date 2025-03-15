@@ -405,6 +405,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching skill history", error });
     }
   });
+  
+  // Global organization-wide skill history (for all users to view global activity)
+  app.get("/api/org/skills/history", ensureAuth, async (req, res) => {
+    try {
+      const history = await storage.getAllSkillHistories();
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching global skill history", error });
+    }
+  });
 
   // All users directory (accessible to all authenticated users)
   app.get("/api/users", ensureAuth, async (req, res) => {

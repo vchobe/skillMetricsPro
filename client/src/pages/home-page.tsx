@@ -24,8 +24,13 @@ export default function HomePage() {
   });
   
   // Get user skill history
-  const { data: history, isLoading: isLoadingHistory } = useQuery<SkillHistory[]>({
+  const { data: userHistory, isLoading: isLoadingUserHistory } = useQuery<SkillHistory[]>({
     queryKey: ["/api/user/skills/history"],
+  });
+  
+  // Get organization-wide skill history (global activity)
+  const { data: orgHistory, isLoading: isLoadingOrgHistory } = useQuery<SkillHistory[]>({
+    queryKey: ["/api/org/skills/history"],
   });
   
   // Get all skills data for skill target processing
@@ -179,16 +184,35 @@ export default function HomePage() {
     { name: "Beginner", value: skillStats.beginnerSkills, percentage: skillStats.totalSkills ? Math.round((skillStats.beginnerSkills / skillStats.totalSkills) * 100) : 0 }
   ];
   
-  // Recent activity from skill history
-  const recentActivity = history?.slice(0, 3).map(entry => ({
-    id: entry.id,
-    type: entry.previousLevel ? "update" as const : "add" as const,
-    skillId: entry.skillId,
-    previousLevel: entry.previousLevel,
-    newLevel: entry.newLevel,
-    date: entry.createdAt,
-    userId: entry.userId
-  }));
+  // Recent activity from skill history (combine user-specific and org-wide activity)
+  const recentActivity = useMemo(() => {
+    // If no history data is available yet
+    if (!userHistory && !orgHistory) return [];
+    
+    // Combine user history and organization history
+    const combinedHistory = [
+      ...(userHistory || []),
+      ...(orgHistory || []).filter(entry => entry.userId !== user?.id) // Filter out duplicates from the current user
+    ];
+    
+    // Sort by date (most recent first)
+    const sortedHistory = combinedHistory.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    // Take the 3 most recent entries and map them to the activity format
+    return sortedHistory.slice(0, 3).map(entry => ({
+      id: entry.id,
+      type: entry.previousLevel ? "update" as const : "add" as const,
+      skillId: entry.skillId,
+      previousLevel: entry.previousLevel,
+      newLevel: entry.newLevel,
+      date: entry.createdAt,
+      userId: entry.userId
+    }));
+  }, [userHistory, orgHistory, user?.id]);
   
   // Top skills (highest level first, then most recently updated)
   const topSkills = skills ? 
@@ -218,7 +242,7 @@ export default function HomePage() {
       }
     }).slice(0, 3) : [];
   
-  const isLoading = isLoadingSkills || isLoadingHistory || isLoadingTargets || isLoadingAllSkills;
+  const isLoading = isLoadingSkills || isLoadingUserHistory || isLoadingOrgHistory || isLoadingTargets || isLoadingAllSkills;
   
   return (
     <div className="min-h-screen flex">
@@ -241,8 +265,8 @@ export default function HomePage() {
               <div className={`bg-gradient-to-br ${backgroundStyle} p-6 rounded-xl text-white mb-6`}>
                 <h2 className="text-2xl font-bold mb-2">Welcome back, {user?.firstName}!</h2>
                 <p className="opacity-90">
-                  {history && history.length > 0 
-                    ? `You've updated ${history.length} skills recently. Keep it up!` 
+                  {userHistory && userHistory.length > 0 
+                    ? `You've updated ${userHistory.length} skills recently. Keep it up!` 
                     : "Start by adding your professional skills to your profile."}
                 </p>
               </div>
