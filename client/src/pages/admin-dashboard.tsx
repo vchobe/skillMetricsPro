@@ -1726,6 +1726,7 @@ export default function AdminDashboard() {
             </TabsContent>
             
             <TabsContent value="users">
+              <AdminUserActions />
               <Card className="mb-6">
                 <CardHeader className="flex flex-col sm:flex-row justify-between sm:items-center">
                   <div>

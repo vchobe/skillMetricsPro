@@ -26,7 +26,7 @@ export default function AdminUserActions() {
       toast({
         title: "User deleted successfully",
         description: `User ${email} has been removed from the system.`,
-        variant: "success",
+        variant: "default",
       });
       setEmail("");
       setIsConfirming(false);
