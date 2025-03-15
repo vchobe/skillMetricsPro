@@ -226,13 +226,9 @@ export function setupAuth(app: Express) {
         await sendRegistrationEmail(user.email, user.username || 'User', generatedPassword);
       } catch (error) {
         console.error('Failed to send registration email:', error);
-        // Still log the password in case email fails
-        console.log(`
-        ========== BACKUP: REGISTRATION DETAILS ==========
-        Email: ${user.email}
-        Password: ${generatedPassword}
-        ===============================================
-        `);
+        // Use fallback mechanism for logging credentials
+        const { logRegistrationDetails } = await import('./email-fallback');
+        logRegistrationDetails(user.email, user.username || 'User', generatedPassword);
       }
 
       // Skip automatic login after registration
@@ -445,13 +441,9 @@ export function setupAuth(app: Express) {
         await sendPasswordResetEmail(user.email, user.username || 'User', temporaryPassword);
       } catch (error) {
         console.error('Failed to send password reset email:', error);
-        // Still log the password in case email fails
-        console.log(`
-        ========== BACKUP: PASSWORD RESET DETAILS ==========
-        Email: ${user.email}
-        Temporary Password: ${temporaryPassword}
-        ===============================================
-        `);
+        // Use fallback mechanism for logging reset details
+        const { logPasswordResetDetails } = await import('./email-fallback');
+        logPasswordResetDetails(user.email, user.username || 'User', temporaryPassword);
       }
       
       res.status(200).json({ message: "If your email exists, a password reset link will be sent" });

@@ -2,24 +2,43 @@ import nodemailer from 'nodemailer';
 import { getPasswordResetEmailContent } from './email-templates';
 
 // Create a transporter using SMTP
-const transporter = nodemailer.createTransport({
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: Number(process.env.EMAIL_PORT),
+    secure: process.env.EMAIL_PORT === '465', // true for 465, false for other ports
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    // Additional security options for Gmail
+    ...(process.env.EMAIL_HOST?.includes('gmail') ? {
+      requireTLS: true,
+      tls: {
+        // Do not fail on invalid certs
+        rejectUnauthorized: false
+      }
+    } : {})
+  });
+};
+
+// Create transporter only when needed to prevent connection timeouts
+let transporter: nodemailer.Transporter | null = null;
+
+// Log email configuration (without password)
+console.log('Email configuration:', {
   host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT),
-  secure: process.env.EMAIL_PORT === '465', // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+  port: process.env.EMAIL_PORT,
+  user: process.env.EMAIL_USER?.substring(0, 3) + '***@' + 
+        (process.env.EMAIL_USER?.split('@')[1] || 'unknown'),
+  secure: process.env.EMAIL_PORT === '465'
 });
 
-// Verify transporter connection
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('SMTP connection error:', error);
-  } else {
-    console.log('SMTP server is ready to send emails');
-  }
-});
+// Check email configuration on startup
+if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || 
+    !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  console.warn('Missing email configuration. Email functionality will be limited.');
+}
 
 export async function sendRegistrationEmail(
   to: string,
@@ -27,6 +46,20 @@ export async function sendRegistrationEmail(
   password: string
 ): Promise<void> {
   try {
+    // Create a transporter for this operation
+    if (!transporter) {
+      try {
+        transporter = createTransporter();
+      } catch (error) {
+        console.error('Failed to create email transporter:', error);
+        throw new Error('Email service configuration error');
+      }
+    }
+    
+    if (!transporter) {
+      throw new Error('Failed to initialize email transporter');
+    }
+    
     const emailContent = `
       Hello ${username},
 
@@ -76,6 +109,20 @@ export async function sendPasswordResetEmail(
   temporaryPassword: string
 ): Promise<void> {
   try {
+    // Create a transporter for this operation
+    if (!transporter) {
+      try {
+        transporter = createTransporter();
+      } catch (error) {
+        console.error('Failed to create email transporter:', error);
+        throw new Error('Email service configuration error');
+      }
+    }
+    
+    if (!transporter) {
+      throw new Error('Failed to initialize email transporter');
+    }
+    
     const { text, html } = getPasswordResetEmailContent(username, temporaryPassword);
 
     await transporter.sendMail({
