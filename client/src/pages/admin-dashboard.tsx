@@ -565,40 +565,63 @@ export default function AdminDashboard() {
               window.history.pushState({}, "", newUrl);
             }}
           >
-            <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger 
-                value="dashboard" 
-                className="flex items-center gap-2"
-              >
-                <BarChart4 className="h-4 w-4" />
-                <span>Dashboard</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="skill-history" 
-                className="flex items-center gap-2"
-              >
-                <History className="h-4 w-4" />
-                <span>Skill History</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="certifications" 
-                className="flex items-center gap-2"
-              >
-                <Award className="h-4 w-4" />
-                <span>Certifications</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="users" 
-                className="flex items-center gap-2"
-              >
-                <Users className="h-4 w-4" />
-                <span>User Management</span>
-              </TabsTrigger>
-            </TabsList>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <TabsList className="grid w-full grid-cols-4 mb-6">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="dashboard" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <BarChart4 className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="skill-history" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <History className="h-4 w-4" />
+                    <span>Skill History</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="certifications" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <Award className="h-4 w-4" />
+                    <span>Certifications</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="users" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>User Management</span>
+                  </TabsTrigger>
+                </motion.div>
+              </TabsList>
+            </motion.div>
             
             <TabsContent value="dashboard">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                  <Card>
                   <CardContent className="p-0">
                     <div className="p-5">
                       <div className="flex items-center">
@@ -984,6 +1007,7 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+              </motion.div>
             </TabsContent>
             
             <TabsContent value="skill-history">
