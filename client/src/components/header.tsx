@@ -70,7 +70,7 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
           </Button>
           <div className="flex items-center">
             <img src={atyetiLogo} alt="Atyeti Logo" className="atyeti-logo mr-3" />
-            <h1 className="text-lg font-semibold text-gray-900">Atyeti SkillMetrics - {title}</h1>
+            <h1 className="text-lg font-semibold text-gray-900">Skill Metrics - {title}</h1>
           </div>
         </div>
         

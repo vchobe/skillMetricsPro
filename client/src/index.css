@@ -15,6 +15,6 @@
 /* Custom component classes */
 @layer components {
   .atyeti-logo {
-    @apply h-36 w-auto object-contain;
+    @apply h-20 w-auto object-contain;
   }
 }
