@@ -6,6 +6,8 @@ import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import UserProfileDialog from "@/components/user-profile-dialog";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   Table, 
   TableBody, 
@@ -62,6 +64,9 @@ export default function UsersPage() {
   const [certificationFilter, setCertificationFilter] = useState<boolean | undefined>();
   const [skillCategoryFilter, setSkillCategoryFilter] = useState<string | undefined>();
   const [skillCategories, setSkillCategories] = useState<string[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const { user } = useAuth();
   
   // Fetch all users
   const { data: users, isLoading: isLoadingUsers } = useQuery<Omit<User, 'password'>[]>({
@@ -581,9 +586,22 @@ export default function UsersPage() {
                               {formatDate(user.createdAt, "MMM dd, yyyy")}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Link href={`/users/${user.id}`}>
-                                <Button variant="outline" size="sm">View Profile</Button>
-                              </Link>
+                              {user?.isAdmin === true ? (
+                                <Link href={`/users/${tableUser.id}`}>
+                                  <Button variant="outline" size="sm">View Profile</Button>
+                                </Link>
+                              ) : (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedUserId(tableUser.id);
+                                    setIsProfileDialogOpen(true);
+                                  }}
+                                >
+                                  View Profile
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))
@@ -596,6 +614,16 @@ export default function UsersPage() {
           </Card>
         </div>
       </div>
+      
+      {/* User Profile Dialog */}
+      <UserProfileDialog 
+        userId={selectedUserId} 
+        isOpen={isProfileDialogOpen} 
+        onClose={() => {
+          setIsProfileDialogOpen(false);
+          setSelectedUserId(null);
+        }}
+      />
     </div>
   );
 }
