@@ -27,6 +27,8 @@ export default function AuthPage() {
   const [location, setLocation] = useLocation();
   const { user, loginMutation, registerMutation, resetPasswordMutation, isLoading } = useAuth();
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
   
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -56,12 +58,23 @@ export default function AuthPage() {
 
   const onRegisterSubmit = (values: z.infer<typeof registerSchema>) => {
     // Just pass the email, the server will generate a password and send it to the email
-    registerMutation.mutate(values);
+    setRegisteredEmail(values.email);
+    registerMutation.mutate(values, {
+      onSuccess: () => {
+        setRegistrationSuccess(true);
+        registerForm.reset();
+      }
+    });
   };
   
   const onForgotPasswordSubmit = (values: { email: string }) => {
     resetPasswordMutation.mutate(values);
   };
+  
+  // Reset registration success state when changing tabs
+  useEffect(() => {
+    setRegistrationSuccess(false);
+  }, [activeTab]);
   
   // Redirect if user is already logged in
   useEffect(() => {
@@ -149,38 +162,65 @@ export default function AuthPage() {
                 </TabsContent>
                 
                 <TabsContent value="register">
-                  <Form {...registerForm}>
-                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                      <FormField
-                        control={registerForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="john.doe@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="text-sm text-gray-600 mb-2">
-                        A password will be generated and sent to your email address.
+                  {registrationSuccess ? (
+                    <div className="space-y-4 p-4 border border-green-200 rounded-md bg-green-50">
+                      <div className="flex items-center text-green-700 mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <h3 className="text-lg font-semibold">Registration Successful!</h3>
                       </div>
-                      
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={registerMutation.isPending}
-                      >
-                        {registerMutation.isPending ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : null}
-                        Register
-                      </Button>
-                    </form>
-                  </Form>
+                      <p className="text-gray-700">
+                        An email has been sent to <span className="font-medium">{registeredEmail}</span> with your login credentials.
+                      </p>
+                      <p className="text-gray-700">
+                        Please check your inbox (and spam folder) for an email from the Employee Skill Metrics Team.
+                      </p>
+                      <div className="mt-4">
+                        <Button 
+                          onClick={() => setActiveTab("login")} 
+                          className="w-full"
+                        >
+                          Go to Login
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Form {...registerForm}>
+                      <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                        <FormField
+                          control={registerForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="john.doe@atyeti.com" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <div className="text-sm text-gray-600 mb-2">
+                          A password will be generated and sent to your email address.
+                          <br />
+                          <span className="font-semibold">Note:</span> Only @atyeti.com email addresses are allowed.
+                        </div>
+                        
+                        <Button 
+                          type="submit" 
+                          className="w-full" 
+                          disabled={registerMutation.isPending}
+                        >
+                          {registerMutation.isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
+                          Register
+                        </Button>
+                      </form>
+                    </Form>
+                  )}
                 </TabsContent>
               </Tabs>
             ) : (
