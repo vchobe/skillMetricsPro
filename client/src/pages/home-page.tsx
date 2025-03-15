@@ -605,21 +605,31 @@ export default function HomePage() {
                                   </span>
                                 )}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                {target.dueDate && (
-                                  <div className="text-xs text-gray-500 mb-1">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {target.skillGap === 0 ? (
+                                  'No action needed'
+                                ) : (
+                                  <>
+                                    <div className="mb-2">
+                                      Training needed for {target.acquiredSkills < target.totalTargetSkills ? 
+                                        (target.totalTargetSkills - target.acquiredSkills) : 1} skill{(target.totalTargetSkills - target.acquiredSkills) !== 1 ? 's' : ''}
+                                    </div>
+                                    <Link href="/skills">
+                                      <Button 
+                                        variant="default" 
+                                        size="sm"
+                                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all duration-300"
+                                      >
+                                        Fill Skill Gap
+                                      </Button>
+                                    </Link>
+                                  </>
+                                )}
+                                {target.dueDate && target.skillGap > 0 && (
+                                  <div className={`text-xs mt-2 ${new Date(target.dueDate) < new Date() ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
                                     Due: {new Date(target.dueDate).toLocaleDateString()}
                                   </div>
                                 )}
-                                <Link href="/skills">
-                                  <Button 
-                                    variant={target.skillGap > 0 ? "default" : "outline"} 
-                                    size="sm"
-                                    className={target.skillGap > 0 ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all duration-300" : ""}
-                                  >
-                                    {target.skillGap > 0 ? 'Fill Skill Gap' : 'Skills Complete'}
-                                  </Button>
-                                </Link>
                               </td>
                             </tr>
                           ))}
