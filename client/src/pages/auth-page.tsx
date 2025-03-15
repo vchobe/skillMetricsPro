@@ -18,6 +18,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+// Import the logo directly as a module
+import atyetiLogo from "../assets/Atyeti_logo.png";
 
 const loginSchema = loginUserSchema;
 // Using the imported registerSchema

@@ -67,9 +67,8 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
       >
         <div className="px-4 py-5 flex justify-between items-center border-b border-gray-700">
           <div className={`flex items-center ${!isOpen ? "lg:justify-center lg:w-full" : ""}`}>
-            <img src={atyetiLogo} alt="Atyeti Logo" className="h-10 w-auto object-contain bg-white rounded-sm p-1" />
             {(isOpen || !isMobile) && (
-              <span className={`font-semibold text-xl tracking-tight ml-2 ${!isOpen && "lg:hidden"}`}>
+              <span className={`font-semibold text-xl tracking-tight ${!isOpen && "lg:hidden"}`}>
                 SkillMetrics
               </span>
             )}
