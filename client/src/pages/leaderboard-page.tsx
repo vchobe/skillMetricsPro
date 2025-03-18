@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { Skill, User } from "@shared/schema";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
+import UserProfileDialog from "@/components/user-profile-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,6 +43,8 @@ export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState("overall");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   
   // Fetch all users
   const { data: users, isLoading: isLoadingUsers } = useQuery<Omit<User, 'password'>[]>({
