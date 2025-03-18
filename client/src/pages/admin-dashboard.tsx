@@ -4,6 +4,29 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Skill, User, SkillHistory } from "@shared/schema";
 import { formatDate, DATE_FORMATS } from "@/lib/date-utils";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+// Template form schema
+const templateSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  category: z.string().min(1, "Category is required"),
+  description: z.string().optional(),
+  isRecommended: z.boolean().default(false),
+  targetLevel: z.string().optional(),
+  targetDate: z.string().optional(),
+});
+
+// Target form schema
+const targetSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  targetLevel: z.string().min(1, "Target level is required"),
+  targetDate: z.string().optional(),
+  targetNumber: z.number().optional(),
+  skillIds: z.array(z.number()).min(1, "At least one skill must be selected").optional(),
+});
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
@@ -117,6 +140,69 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Form for skill templates
+  const templateForm = useForm<z.infer<typeof templateSchema>>({
+    resolver: zodResolver(templateSchema),
+    defaultValues: {
+      name: "",
+      category: "",
+      description: "",
+      isRecommended: false,
+      targetLevel: undefined,
+      targetDate: undefined
+    }
+  });
+  
+  // Form for skill targets
+  const targetForm = useForm<z.infer<typeof targetSchema>>({
+    resolver: zodResolver(targetSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      targetLevel: "beginner",
+      targetDate: undefined,
+      targetNumber: undefined,
+      skillIds: []
+    }
+  });
+  
+  // Submit handlers
+  const onSubmitTemplate = (data: z.infer<typeof templateSchema>) => {
+    // Handle template submission
+    console.log("Template data:", data);
+    
+    // Here you would integrate with your API to save the template
+    toast({
+      title: editingTemplate?.id ? "Template updated" : "Template created",
+      description: `The skill template has been ${editingTemplate?.id ? "updated" : "created"} successfully.`
+    });
+    
+    setShowTemplateDialog(false);
+    setEditingTemplate(null);
+  };
+  
+  const onSubmitTarget = (data: z.infer<typeof targetSchema>) => {
+    // Handle target submission
+    console.log("Target data:", data);
+    
+    // Here you would integrate with your API to save the target
+    toast({
+      title: targetFormData.id ? "Target updated" : "Target created",
+      description: `The skill target has been ${targetFormData.id ? "updated" : "created"} successfully.`
+    });
+    
+    setShowTargetDialog(false);
+    setTargetFormData({
+      id: null,
+      name: '',
+      skillIds: [],
+      targetLevel: 'beginner',
+      targetDate: "",
+      targetNumber: undefined,
+      description: ''
+    });
+  };
   const [activeTab, setActiveTab] = useState("dashboard");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [skillCategoryFilter, setSkillCategoryFilter] = useState("all");
@@ -2435,7 +2521,7 @@ export default function AdminDashboard() {
                               targetLevel: targetFormData.targetLevel,
                               targetDate: targetFormData.targetDate,
                               targetNumber: targetFormData.targetNumber,
-                              skillIds: [...new Set(targetFormData.skillIds)], // Remove duplicates
+                              skillIds: Array.from(new Set(targetFormData.skillIds)), // Remove duplicates
                             };
                             
                             // Check if editing existing target or creating new
