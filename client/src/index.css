@@ -17,4 +17,12 @@
   .atyeti-logo {
     @apply h-14 w-auto object-contain object-center max-w-full;
   }
+  
+  .scrollable-container {
+    @apply overflow-x-auto overflow-y-auto max-h-[60vh];
+  }
+  
+  .scrollable-dialog {
+    @apply max-h-[80vh] overflow-y-auto;
+  }
 }

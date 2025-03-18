@@ -870,7 +870,7 @@ export default function AdminDashboard() {
                     <CardTitle>Recent Skill Updates</CardTitle>
                   </CardHeader>
                   <CardContent className="px-0">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto scrollable-container">
                       <table className="w-full">
                         <thead className="bg-gray-50">
                           <tr>
@@ -1004,7 +1004,7 @@ export default function AdminDashboard() {
                   </Button>
                 </CardHeader>
                 <CardContent className="px-0">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto scrollable-container">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
@@ -1235,7 +1235,7 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="px-0">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto scrollable-container">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
@@ -1506,7 +1506,7 @@ export default function AdminDashboard() {
                 </div>
                 
                 <CardContent className="px-0">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto scrollable-container">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
@@ -1918,7 +1918,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto scrollable-container">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -1988,7 +1988,7 @@ export default function AdminDashboard() {
 
                 {/* Template Dialog */}
                 <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-                  <DialogContent className="sm:max-w-[575px] max-h-[80vh] overflow-y-auto">
+                  <DialogContent className="sm:max-w-[575px] scrollable-dialog">
                     <DialogHeader>
                       <DialogTitle>{editingTemplate ? "Edit Skill Template" : "Create Skill Template"}</DialogTitle>
                       <DialogDescription>
@@ -2191,7 +2191,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto scrollable-container">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -2280,7 +2280,7 @@ export default function AdminDashboard() {
 
                 {/* Target Dialog */}
                 <Dialog open={showTargetDialog} onOpenChange={setShowTargetDialog}>
-                  <DialogContent className="sm:max-w-[575px] max-h-[80vh] overflow-y-auto">
+                  <DialogContent className="sm:max-w-[575px] scrollable-dialog">
                     <DialogHeader>
                       <DialogTitle>{targetFormData.id ? "Edit Skill Target" : "Create Skill Target"}</DialogTitle>
                       <DialogDescription>
@@ -2368,7 +2368,7 @@ export default function AdminDashboard() {
                           </Label>
                           <div className="col-span-3">
                             {skills && (
-                              <div className="p-4 border rounded-md max-h-64 overflow-y-auto">
+                              <div className="p-4 border rounded-md max-h-64 overflow-y-auto overflow-x-auto">
                                 <div className="space-y-2">
                                   {skills.map(skill => (
                                     <div key={skill.id} className="flex items-center">
@@ -2497,7 +2497,7 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="px-0">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto scrollable-container">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
