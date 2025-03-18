@@ -169,26 +169,33 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
     }
   }, [skill, skillId, isOpen, user, form]);
   
-  // Add skill mutation
+  // Add skill mutation - Submit to pending approval
   const addSkillMutation = useMutation({
     mutationFn: async (data: SkillFormValues) => {
-      const res = await apiRequest("POST", "/api/skills", data);
+      // Changed to use the pending skills endpoint that requires admin approval
+      const res = await apiRequest("POST", "/api/skills/pending", {
+        ...data,
+        status: "pending",
+        is_update: false,
+        submitted_at: new Date().toISOString()
+      });
       return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/skills"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/skills/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/pending-skills"] });
       
       toast({
-        title: "Skill Added",
-        description: `${form.getValues("name")} has been added to your skills.`,
+        title: "Skill Submitted",
+        description: `${form.getValues("name")} has been submitted for approval. You'll be notified once it's approved.`,
       });
       
       onClose();
     },
     onError: (error: Error) => {
       toast({
-        title: "Error Adding Skill",
+        title: "Error Submitting Skill",
         description: error.message,
         variant: "destructive",
       });
@@ -199,9 +206,15 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
   const updateSkillMutation = useMutation({
     mutationFn: async (data: SkillFormValues) => {
       const { userId, changeNote, ...updateData } = data;
-      const res = await apiRequest("PATCH", `/api/skills/${skillId}`, {
+      
+      // Submit updates to pending skills endpoint instead of directly updating
+      const res = await apiRequest("POST", "/api/skills/pending", {
         ...updateData,
-        changeNote: changeNote || `Updated ${data.name}`
+        skillId: skillId, // Reference to existing skill
+        status: "pending",
+        is_update: true, // Mark as an update, not a new skill
+        submitted_at: new Date().toISOString(),
+        notes: changeNote || `Updated ${data.name}` // Store change notes in the notes field
       });
       return await res.json();
     },
@@ -210,17 +223,18 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
       queryClient.invalidateQueries({ queryKey: [`/api/skills/${skillId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/skills/${skillId}/history`] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/skills/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/pending-skills"] });
       
       toast({
-        title: "Skill Updated",
-        description: `${form.getValues("name")} has been updated successfully.`,
+        title: "Update Submitted",
+        description: `Your changes to ${form.getValues("name")} have been submitted for approval.`,
       });
       
       onClose();
     },
     onError: (error: Error) => {
       toast({
-        title: "Error Updating Skill",
+        title: "Error Submitting Update",
         description: error.message,
         variant: "destructive",
       });
