@@ -161,7 +161,23 @@ export default function NotificationDropdown() {
                     <div className="flex flex-col gap-1 w-full">
                       <div className="font-medium">{notification.content}</div>
                       <div className="text-xs text-muted-foreground flex justify-between w-full">
-                        <span>{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</span>
+                        <span>
+                          {notification.createdAt 
+                            ? (() => {
+                                try {
+                                  const date = new Date(notification.createdAt);
+                                  // Verify the date is valid before formatting
+                                  return !isNaN(date.getTime())
+                                    ? formatDistanceToNow(date, { addSuffix: true })
+                                    : "Recently";
+                                } catch (error) {
+                                  console.error("Invalid date format:", error);
+                                  return "Recently";
+                                }
+                              })()
+                            : "Recently"
+                          }
+                        </span>
                         {!notification.isRead && <span className="text-primary">New</span>}
                       </div>
                     </div>
