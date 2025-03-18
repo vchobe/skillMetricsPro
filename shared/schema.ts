@@ -2,6 +2,9 @@ import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, date } from
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Approval status enum
+export const approvalStatusEnum = pgEnum("approval_status", ["pending", "approved", "rejected"]);
+
 // Users schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -230,3 +233,41 @@ export type InsertSkillTemplate = z.infer<typeof insertSkillTemplateSchema>;
 
 export type SkillTarget = typeof skillTargets.$inferSelect;
 export type InsertSkillTarget = z.infer<typeof insertSkillTargetSchema>;
+
+// Pending Skill Updates schema
+export const pendingSkillUpdates = pgTable("pending_skill_updates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  skillId: integer("skill_id"), // Null for new skills
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  level: skillLevelEnum("level").notNull(),
+  certification: text("certification"),
+  credlyLink: text("credly_link"),
+  notes: text("notes"),
+  certificationDate: timestamp("certification_date"),
+  expirationDate: timestamp("expiration_date"),
+  status: approvalStatusEnum("status").default("pending").notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: integer("reviewed_by"),
+  reviewNotes: text("review_notes"),
+  isUpdate: boolean("is_update").default(false).notNull(), // true for updates, false for new skills
+});
+
+export const insertPendingSkillUpdateSchema = createInsertSchema(pendingSkillUpdates).pick({
+  userId: true,
+  skillId: true,
+  name: true,
+  category: true,
+  level: true,
+  certification: true,
+  credlyLink: true,
+  notes: true,
+  certificationDate: true,
+  expirationDate: true,
+  isUpdate: true,
+});
+
+export type PendingSkillUpdate = typeof pendingSkillUpdates.$inferSelect;
+export type InsertPendingSkillUpdate = z.infer<typeof insertPendingSkillUpdateSchema>;
