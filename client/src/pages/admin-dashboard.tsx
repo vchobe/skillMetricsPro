@@ -351,6 +351,39 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/skill-templates"],
   });
   
+  // Get pending skill updates
+  const { data: pendingSkills = [], isLoading: isLoadingPendingSkills } = useQuery<{
+    user: {
+      id: number;
+      username: string;
+      email: string;
+      firstName?: string;
+      lastName?: string;
+      role?: string;
+    },
+    pendingSkills: Array<{
+      id: number;
+      userId: number;
+      skillId?: number;
+      name: string;
+      category: string;
+      level: string;
+      certification?: string;
+      credly_link?: string;
+      notes?: string;
+      certification_date?: string;
+      expiration_date?: string;
+      status: string;
+      submitted_at: string;
+      reviewed_at?: string;
+      reviewed_by?: number;
+      review_notes?: string;
+      is_update: boolean;
+    }>
+  }[]>({
+    queryKey: ["/api/admin/pending-skills"],
+  });
+  
   // Calculate stats
   const stats = {
     totalUsers: users?.length || 0,
