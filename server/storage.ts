@@ -5,7 +5,8 @@ import {
   Endorsement, InsertEndorsement,
   Notification, InsertNotification,
   SkillTemplate, InsertSkillTemplate,
-  SkillTarget, InsertSkillTarget
+  SkillTarget, InsertSkillTarget,
+  PendingSkillUpdate, InsertPendingSkillUpdate
 } from "@shared/schema";
 import session from "express-session";
 import { Store } from "express-session";
@@ -78,6 +79,14 @@ export interface IStorage {
   getSkillTargetUsers(targetId: number): Promise<number[]>;
   addUserToTarget(targetId: number, userId: number): Promise<void>;
   removeUserFromTarget(targetId: number, userId: number): Promise<void>;
+  
+  // Pending Skill Updates operations
+  getPendingSkillUpdates(): Promise<PendingSkillUpdate[]>;
+  getPendingSkillUpdatesByUser(userId: number): Promise<PendingSkillUpdate[]>;
+  getPendingSkillUpdate(id: number): Promise<PendingSkillUpdate | undefined>;
+  createPendingSkillUpdate(update: InsertPendingSkillUpdate): Promise<PendingSkillUpdate>;
+  approvePendingSkillUpdate(id: number, reviewerId: number, notes?: string): Promise<Skill>;
+  rejectPendingSkillUpdate(id: number, reviewerId: number, notes?: string): Promise<void>;
   
   // Session store
   sessionStore: Store;
@@ -1013,6 +1022,231 @@ export class PostgresStorage implements IStorage {
       );
     } catch (error) {
       console.error("Error removing user from target:", error);
+      throw error;
+    }
+  }
+
+  // Pending Skill Updates operations
+  async getPendingSkillUpdates(): Promise<PendingSkillUpdate[]> {
+    try {
+      const result = await pool.query(
+        `SELECT p.*, u.email as user_email, u.username as username
+         FROM pending_skill_updates p
+         JOIN users u ON p.user_id = u.id
+         WHERE p.status = 'pending'
+         ORDER BY p.submitted_at DESC`
+      );
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting pending skill updates:", error);
+      throw error;
+    }
+  }
+
+  async getPendingSkillUpdatesByUser(userId: number): Promise<PendingSkillUpdate[]> {
+    try {
+      const result = await pool.query(
+        `SELECT * FROM pending_skill_updates
+         WHERE user_id = $1
+         ORDER BY submitted_at DESC`,
+        [userId]
+      );
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting pending skill updates by user:", error);
+      throw error;
+    }
+  }
+
+  async getPendingSkillUpdate(id: number): Promise<PendingSkillUpdate | undefined> {
+    try {
+      const result = await pool.query(
+        `SELECT p.*, u.email as user_email, u.username as username
+         FROM pending_skill_updates p
+         JOIN users u ON p.user_id = u.id
+         WHERE p.id = $1`,
+        [id]
+      );
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting pending skill update:", error);
+      throw error;
+    }
+  }
+
+  async createPendingSkillUpdate(update: InsertPendingSkillUpdate): Promise<PendingSkillUpdate> {
+    try {
+      const result = await pool.query(
+        `INSERT INTO pending_skill_updates (
+          user_id, skill_id, name, category, level, certification, credly_link, 
+          notes, certification_date, expiration_date, is_update
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING *`,
+        [
+          update.userId,
+          update.skillId || null,
+          update.name,
+          update.category,
+          update.level,
+          update.certification || '',
+          update.credlyLink || '',
+          update.notes || '',
+          update.certificationDate || null,
+          update.expirationDate || null,
+          update.isUpdate || false
+        ]
+      );
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error creating pending skill update:", error);
+      throw error;
+    }
+  }
+
+  async approvePendingSkillUpdate(id: number, reviewerId: number, notes?: string): Promise<Skill> {
+    try {
+      // Start a transaction
+      await pool.query('BEGIN');
+
+      // First, get the pending update
+      const pendingResult = await pool.query(
+        'SELECT * FROM pending_skill_updates WHERE id = $1',
+        [id]
+      );
+      
+      if (pendingResult.rows.length === 0) {
+        await pool.query('ROLLBACK');
+        throw new Error('Pending skill update not found');
+      }
+      
+      const pendingUpdate = this.snakeToCamel(pendingResult.rows[0]) as PendingSkillUpdate;
+      
+      let skill: Skill;
+      let previousLevel: string | null = null;
+      
+      // Handle skill creation or update based on isUpdate flag
+      if (pendingUpdate.isUpdate && pendingUpdate.skillId) {
+        // Get the existing skill to capture its current level
+        const existingSkill = await this.getSkill(pendingUpdate.skillId);
+        
+        if (!existingSkill) {
+          await pool.query('ROLLBACK');
+          throw new Error('Skill to update not found');
+        }
+        
+        previousLevel = existingSkill.level;
+        
+        // Update the existing skill
+        skill = await this.updateSkill(pendingUpdate.skillId, {
+          name: pendingUpdate.name,
+          category: pendingUpdate.category,
+          level: pendingUpdate.level,
+          certification: pendingUpdate.certification,
+          credlyLink: pendingUpdate.credlyLink,
+          notes: pendingUpdate.notes,
+          certificationDate: pendingUpdate.certificationDate,
+          expirationDate: pendingUpdate.expirationDate
+        });
+      } else {
+        // Create a new skill
+        skill = await this.createSkill({
+          userId: pendingUpdate.userId,
+          name: pendingUpdate.name,
+          category: pendingUpdate.category,
+          level: pendingUpdate.level,
+          certification: pendingUpdate.certification,
+          credlyLink: pendingUpdate.credlyLink,
+          notes: pendingUpdate.notes,
+          certificationDate: pendingUpdate.certificationDate,
+          expirationDate: pendingUpdate.expirationDate
+        });
+      }
+      
+      // Create a skill history entry for tracking
+      await this.createSkillHistory({
+        skillId: skill.id,
+        userId: pendingUpdate.userId,
+        previousLevel: previousLevel,
+        newLevel: pendingUpdate.level,
+        changeNote: `Approved by admin (ID: ${reviewerId})${notes ? ': ' + notes : ''}`
+      });
+      
+      // Create a notification for the user
+      await this.createNotification({
+        userId: pendingUpdate.userId,
+        type: 'achievement',
+        content: `Your skill "${pendingUpdate.name}" has been approved!`,
+        relatedSkillId: skill.id,
+        relatedUserId: reviewerId
+      });
+      
+      // Update the pending update status
+      await pool.query(
+        `UPDATE pending_skill_updates SET 
+         status = 'approved', 
+         reviewed_at = CURRENT_TIMESTAMP, 
+         reviewed_by = $1,
+         review_notes = $2
+         WHERE id = $3`,
+        [reviewerId, notes || null, id]
+      );
+      
+      // Commit the transaction
+      await pool.query('COMMIT');
+      
+      return skill;
+    } catch (error) {
+      // Roll back the transaction on error
+      await pool.query('ROLLBACK');
+      console.error("Error approving pending skill update:", error);
+      throw error;
+    }
+  }
+
+  async rejectPendingSkillUpdate(id: number, reviewerId: number, notes?: string): Promise<void> {
+    try {
+      // Start a transaction
+      await pool.query('BEGIN');
+      
+      // Get the pending update to be rejected
+      const pendingResult = await pool.query(
+        'SELECT * FROM pending_skill_updates WHERE id = $1',
+        [id]
+      );
+      
+      if (pendingResult.rows.length === 0) {
+        await pool.query('ROLLBACK');
+        throw new Error('Pending skill update not found');
+      }
+      
+      const pendingUpdate = this.snakeToCamel(pendingResult.rows[0]) as PendingSkillUpdate;
+      
+      // Update the pending update status
+      await pool.query(
+        `UPDATE pending_skill_updates SET 
+         status = 'rejected', 
+         reviewed_at = CURRENT_TIMESTAMP, 
+         reviewed_by = $1,
+         review_notes = $2
+         WHERE id = $3`,
+        [reviewerId, notes || null, id]
+      );
+      
+      // Create a notification for the user
+      await this.createNotification({
+        userId: pendingUpdate.userId,
+        type: 'achievement', // Reusing achievement type for now
+        content: `Your skill "${pendingUpdate.name}" was not approved. ${notes || 'No reason provided.'}`,
+        relatedUserId: reviewerId
+      });
+      
+      // Commit the transaction
+      await pool.query('COMMIT');
+    } catch (error) {
+      // Roll back the transaction on error
+      await pool.query('ROLLBACK');
+      console.error("Error rejecting pending skill update:", error);
       throw error;
     }
   }
