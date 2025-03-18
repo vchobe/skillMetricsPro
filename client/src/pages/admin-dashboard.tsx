@@ -3139,10 +3139,28 @@ export default function AdminDashboard() {
                                           </td>
                                           <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-500">
-                                              {new Date(skill.submitted_at).toLocaleDateString()}
+                                              {(() => {
+                                                try {
+                                                  const date = new Date(skill.submitted_at);
+                                                  return !isNaN(date.getTime()) 
+                                                    ? date.toLocaleDateString() 
+                                                    : "Date not available";
+                                                } catch (error) {
+                                                  return "Date not available";
+                                                }
+                                              })()}
                                             </div>
                                             <div className="text-xs text-gray-400">
-                                              {new Date(skill.submitted_at).toLocaleTimeString()}
+                                              {(() => {
+                                                try {
+                                                  const date = new Date(skill.submitted_at);
+                                                  return !isNaN(date.getTime()) 
+                                                    ? date.toLocaleTimeString() 
+                                                    : "";
+                                                } catch (error) {
+                                                  return "";
+                                                }
+                                              })()}
                                             </div>
                                           </td>
                                           <td className="px-6 py-4 whitespace-nowrap">
