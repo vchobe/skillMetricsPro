@@ -1308,6 +1308,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Pending Skill Updates routes (Approval system)
+  app.post("/api/skills/pending", ensureAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const pendingSkillData = insertPendingSkillUpdateSchema.parse(req.body);
+      
+      // Set the user ID from the authenticated user
+      pendingSkillData.userId = userId;
+      
+      // Create the pending skill update
+      const pendingUpdate = await storage.createPendingSkillUpdate(pendingSkillData);
+      res.status(201).json(pendingUpdate);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating pending skill update", error });
+    }
+  });
+
+  app.get("/api/user/pending-skills", ensureAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const pendingUpdates = await storage.getPendingSkillUpdatesByUser(userId);
+      res.json(pendingUpdates);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching pending skill updates", error });
+    }
+  });
+
+  // Admin approval routes
+  app.get("/api/admin/pending-skills", ensureAdmin, async (req, res) => {
+    try {
+      // Get all pending skill updates
+      const pendingUpdates = await storage.getPendingSkillUpdates();
+      
+      // Group by user for easier review
+      const pendingByUser: Record<number, Array<any>> = {};
+      
+      for (const update of pendingUpdates) {
+        if (!pendingByUser[update.userId]) {
+          pendingByUser[update.userId] = [];
+        }
+        pendingByUser[update.userId].push(update);
+      }
+      
+      // Get user info for each group
+      const result = await Promise.all(
+        Object.entries(pendingByUser).map(async ([userIdStr, updates]) => {
+          const userId = parseInt(userIdStr);
+          const user = await storage.getUser(userId);
+          return {
+            user: user ? {
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              role: user.role
+            } : { id: userId, username: `User ${userId}`, email: "Unknown" },
+            pendingSkills: updates
+          };
+        })
+      );
+      
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching pending skill updates", error });
+    }
+  });
+
+  app.post("/api/admin/pending-skills/:id/approve", ensureAdmin, async (req, res) => {
+    try {
+      const updateId = parseInt(req.params.id);
+      const reviewerId = req.user!.id;
+      const { notes } = req.body;
+      
+      // Approve the pending skill update
+      const approvedSkill = await storage.approvePendingSkillUpdate(updateId, reviewerId, notes);
+      
+      // Create a notification for the user
+      await storage.createNotification({
+        userId: approvedSkill.userId,
+        type: "achievement",
+        content: `Your skill ${approvedSkill.name} has been approved`,
+        relatedSkillId: approvedSkill.id
+      });
+      
+      res.json(approvedSkill);
+    } catch (error) {
+      res.status(500).json({ message: "Error approving skill update", error });
+    }
+  });
+
+  app.post("/api/admin/pending-skills/:id/reject", ensureAdmin, async (req, res) => {
+    try {
+      const updateId = parseInt(req.params.id);
+      const reviewerId = req.user!.id;
+      const { notes } = req.body;
+      
+      // Get the pending update before rejection for notification
+      const pendingUpdate = await storage.getPendingSkillUpdate(updateId);
+      
+      if (!pendingUpdate) {
+        return res.status(404).json({ message: "Pending skill update not found" });
+      }
+      
+      // Reject the pending skill update
+      await storage.rejectPendingSkillUpdate(updateId, reviewerId, notes);
+      
+      // Create a notification for the user
+      await storage.createNotification({
+        userId: pendingUpdate.userId,
+        type: "achievement",
+        content: `Your skill ${pendingUpdate.name} has been rejected. Please review the feedback.`,
+        relatedSkillId: pendingUpdate.skillId
+      });
+      
+      res.status(200).json({ message: "Skill update rejected successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Error rejecting skill update", error });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;
