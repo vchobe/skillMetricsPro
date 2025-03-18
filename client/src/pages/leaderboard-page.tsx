@@ -249,7 +249,7 @@ export default function LeaderboardPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto scrollable-container">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -368,7 +368,7 @@ export default function LeaderboardPage() {
                         <CardDescription>Employees with the most expertise in {category}</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto scrollable-container">
                           <Table>
                             <TableHeader>
                               <TableRow>

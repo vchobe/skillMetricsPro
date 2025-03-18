@@ -259,7 +259,7 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg scrollable-dialog">
         <DialogHeader>
           <DialogTitle>{skillId ? "Edit Skill" : "Add New Skill"}</DialogTitle>
         </DialogHeader>

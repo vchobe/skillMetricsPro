@@ -527,7 +527,7 @@ export default function SkillManagementPage() {
                             Add Template
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
+                        <DialogContent className="sm:max-w-[500px] scrollable-dialog">
                           <DialogHeader>
                             <DialogTitle>
                               {editingTemplate ? "Edit Skill Template" : "Add Skill Template"}
@@ -824,7 +824,7 @@ export default function SkillManagementPage() {
                             Set Target
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
+                        <DialogContent className="sm:max-w-[500px] scrollable-dialog">
                           <DialogHeader>
                             <DialogTitle>
                               {targetFormData.id ? 'View Skill Target' : 'Create Skill Target'}

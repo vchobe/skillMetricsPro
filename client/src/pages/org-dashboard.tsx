@@ -509,7 +509,7 @@ export default function OrgDashboard() {
                       <CardDescription>Employees with the most expert skills and certifications</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto scrollable-container">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -828,7 +828,7 @@ export default function OrgDashboard() {
                       </div>
                       
                       {/* Users table */}
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto scrollable-container">
                         <Table>
                           <TableHeader>
                             <TableRow>
