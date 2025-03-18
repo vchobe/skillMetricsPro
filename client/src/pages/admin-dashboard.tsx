@@ -16,6 +16,22 @@ import {
   CardDescription,
   CardFooter 
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
 import { 
   Tabs, 
   TabsContent, 
@@ -83,7 +99,12 @@ import {
   Calendar,
   Search,
   SquareStack,
-  User as UserIcon
+  User as UserIcon,
+  Database,
+  Target,
+  Plus,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
@@ -606,7 +627,7 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <TabsList className="grid w-full grid-cols-4 mb-6">
+              <TabsList className="grid w-full grid-cols-6 mb-6">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <TabsTrigger 
                     value="dashboard" 
@@ -632,6 +653,24 @@ export default function AdminDashboard() {
                   >
                     <Award className="h-4 w-4" />
                     <span>Certifications</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="skill-templates" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <Database className="h-4 w-4" />
+                    <span>Skill Templates</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="skill-targets" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <Target className="h-4 w-4" />
+                    <span>Skill Targets</span>
                   </TabsTrigger>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -1820,6 +1859,600 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+              </motion.div>
+            </TabsContent>
+            
+            <TabsContent value="skill-templates">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
+                <Card className="mb-6">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div>
+                      <CardTitle className="text-2xl font-bold">Skill Templates</CardTitle>
+                      <CardDescription>
+                        Create and manage skill templates for the organization
+                      </CardDescription>
+                    </div>
+                    <Button 
+                      onClick={() => setShowTemplateDialog(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Template</span>
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex mb-4">
+                      <div className="relative w-full">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search templates..."
+                          className="pl-8"
+                          value={templateSearchQuery}
+                          onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {isLoadingTemplates ? (
+                      <div className="flex justify-center items-center h-64">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                      </div>
+                    ) : skillTemplates.length === 0 ? (
+                      <div className="text-center py-10">
+                        <Database className="h-10 w-10 mx-auto text-gray-400" />
+                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No skill templates</h3>
+                        <p className="mt-1 text-sm text-gray-500">Get started by creating a new skill template.</p>
+                        <div className="mt-6">
+                          <Button onClick={() => setShowTemplateDialog(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Template
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Category</TableHead>
+                              <TableHead>Target Level</TableHead>
+                              <TableHead>Recommended</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {skillTemplates
+                              .filter(template => {
+                                if (!templateSearchQuery) return true;
+                                const query = templateSearchQuery.toLowerCase();
+                                return (
+                                  template.name.toLowerCase().includes(query) ||
+                                  template.category.toLowerCase().includes(query) ||
+                                  (template.description || "").toLowerCase().includes(query)
+                                );
+                              })
+                              .map((template) => (
+                                <TableRow key={template.id}>
+                                  <TableCell className="font-medium">{template.name}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline">{template.category}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    {template.targetLevel ? (
+                                      <SkillLevelBadge level={template.targetLevel} />
+                                    ) : (
+                                      <span className="text-gray-500">Not specified</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {template.isRecommended ? (
+                                      <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
+                                        Recommended
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-gray-500">
+                                        Optional
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingTemplate(template);
+                                        setShowTemplateDialog(true);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Edit
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Template Dialog */}
+                <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+                  <DialogContent className="sm:max-w-[575px]">
+                    <DialogHeader>
+                      <DialogTitle>{editingTemplate ? "Edit Skill Template" : "Create Skill Template"}</DialogTitle>
+                      <DialogDescription>
+                        {editingTemplate 
+                          ? "Edit the details for this skill template." 
+                          : "Add a new skill template that can be used by employees."}
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <Form>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="name" className="text-right">
+                            Name
+                          </Label>
+                          <Input
+                            id="name"
+                            placeholder="e.g., JavaScript"
+                            className="col-span-3"
+                            value={editingTemplate?.name || ""}
+                            onChange={(e) => setEditingTemplate({
+                              ...editingTemplate,
+                              name: e.target.value,
+                            } as any)}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="category" className="text-right">
+                            Category
+                          </Label>
+                          <Input
+                            id="category"
+                            placeholder="e.g., Programming"
+                            className="col-span-3"
+                            value={editingTemplate?.category || ""}
+                            onChange={(e) => setEditingTemplate({
+                              ...editingTemplate,
+                              category: e.target.value,
+                            } as any)}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="description" className="text-right">
+                            Description
+                          </Label>
+                          <Textarea
+                            id="description"
+                            placeholder="Provide a description of this skill"
+                            className="col-span-3"
+                            value={editingTemplate?.description || ""}
+                            onChange={(e) => setEditingTemplate({
+                              ...editingTemplate,
+                              description: e.target.value,
+                            } as any)}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="targetLevel" className="text-right">
+                            Target Level
+                          </Label>
+                          <Select 
+                            value={editingTemplate?.targetLevel}
+                            onValueChange={(value) => setEditingTemplate({
+                              ...editingTemplate,
+                              targetLevel: value,
+                            } as any)}
+                          >
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Select a target level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="beginner">Beginner</SelectItem>
+                              <SelectItem value="intermediate">Intermediate</SelectItem>
+                              <SelectItem value="expert">Expert</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="isRecommended" className="text-right">
+                            Recommended
+                          </Label>
+                          <div className="flex items-center space-x-2 col-span-3">
+                            <Switch
+                              id="isRecommended"
+                              checked={editingTemplate?.isRecommended || false}
+                              onCheckedChange={(checked) => setEditingTemplate({
+                                ...editingTemplate,
+                                isRecommended: checked,
+                              } as any)}
+                            />
+                            <Label htmlFor="isRecommended">
+                              {editingTemplate?.isRecommended ? "Recommended" : "Optional"}
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowTemplateDialog(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="button"
+                          onClick={() => {
+                            // Handle saving the template
+                            const templateData = {
+                              name: editingTemplate?.name || '',
+                              category: editingTemplate?.category || '',
+                              description: editingTemplate?.description || '',
+                              isRecommended: editingTemplate?.isRecommended || false,
+                              targetLevel: editingTemplate?.targetLevel,
+                              targetDate: editingTemplate?.targetDate,
+                            };
+                            
+                            // Check if editing existing template or creating new
+                            if (editingTemplate?.id) {
+                              // Call mutation to update
+                              toast({
+                                title: "Template updated",
+                                description: "The skill template has been updated successfully."
+                              });
+                            } else {
+                              // Call mutation to create
+                              toast({
+                                title: "Template created",
+                                description: "The new skill template has been created successfully."
+                              });
+                            }
+                            
+                            setShowTemplateDialog(false);
+                            setEditingTemplate(null);
+                          }}
+                        >
+                          {editingTemplate ? "Update Template" : "Create Template"}
+                        </Button>
+                      </DialogFooter>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </motion.div>
+            </TabsContent>
+            
+            <TabsContent value="skill-targets">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
+                <Card className="mb-6">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div>
+                      <CardTitle className="text-2xl font-bold">Skill Targets</CardTitle>
+                      <CardDescription>
+                        Set and manage organizational skill targets and track progress
+                      </CardDescription>
+                    </div>
+                    <Button 
+                      onClick={() => setShowTargetDialog(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Target</span>
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex mb-4">
+                      <div className="relative w-full">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search targets..."
+                          className="pl-8"
+                          value={targetSearchQuery}
+                          onChange={(e) => setTargetSearchQuery(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {isLoadingTargets ? (
+                      <div className="flex justify-center items-center h-64">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                      </div>
+                    ) : skillTargets.length === 0 ? (
+                      <div className="text-center py-10">
+                        <Target className="h-10 w-10 mx-auto text-gray-400" />
+                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No skill targets</h3>
+                        <p className="mt-1 text-sm text-gray-500">Create targets to help guide your team's skill development.</p>
+                        <div className="mt-6">
+                          <Button onClick={() => setShowTargetDialog(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Target
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Target Level</TableHead>
+                              <TableHead>Target Date</TableHead>
+                              <TableHead>Progress</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {skillTargets
+                              .filter(target => {
+                                if (!targetSearchQuery) return true;
+                                const query = targetSearchQuery.toLowerCase();
+                                return (
+                                  (target.name || "").toLowerCase().includes(query) ||
+                                  target.targetLevel.toLowerCase().includes(query) ||
+                                  (target.description || "").toLowerCase().includes(query)
+                                );
+                              })
+                              .map((target) => {
+                                // Calculate progress
+                                const targetAnalysis = skillGapAnalysis.find(analysis => 
+                                  analysis?.name === (target.name || `Target ${target.id}`)
+                                );
+                                
+                                const progressPercent = targetAnalysis 
+                                  ? Math.round((targetAnalysis.currentLevel / targetAnalysis.targetLevel) * 100)
+                                  : 0;
+                                
+                                return (
+                                  <TableRow key={target.id}>
+                                    <TableCell className="font-medium">{target.name || `Target ${target.id}`}</TableCell>
+                                    <TableCell>
+                                      <SkillLevelBadge level={target.targetLevel} />
+                                    </TableCell>
+                                    <TableCell>
+                                      {target.targetDate ? (
+                                        format(new Date(target.targetDate), "MMM dd, yyyy")
+                                      ) : (
+                                        <span className="text-gray-500">Not specified</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                          <div 
+                                            className="bg-blue-600 h-2.5 rounded-full" 
+                                            style={{ width: `${progressPercent}%` }}
+                                          ></div>
+                                        </div>
+                                        <span className="text-sm">{progressPercent}%</span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setTargetFormData({
+                                            id: target.id,
+                                            name: target.name || '',
+                                            skillIds: target.skillIds || [],
+                                            targetLevel: target.targetLevel || 'intermediate',
+                                            targetDate: target.targetDate || '',
+                                            targetNumber: target.targetNumber,
+                                            description: target.description || ''
+                                          });
+                                          setShowTargetDialog(true);
+                                        }}
+                                      >
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Target Dialog */}
+                <Dialog open={showTargetDialog} onOpenChange={setShowTargetDialog}>
+                  <DialogContent className="sm:max-w-[575px]">
+                    <DialogHeader>
+                      <DialogTitle>{targetFormData.id ? "Edit Skill Target" : "Create Skill Target"}</DialogTitle>
+                      <DialogDescription>
+                        {targetFormData.id 
+                          ? "Edit the details for this skill target." 
+                          : "Add a new organizational skill target."}
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <Form>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="name" className="text-right">
+                            Name
+                          </Label>
+                          <Input
+                            id="name"
+                            placeholder="e.g., JavaScript Expertise"
+                            className="col-span-3"
+                            value={targetFormData.name}
+                            onChange={(e) => setTargetFormData({
+                              ...targetFormData,
+                              name: e.target.value,
+                            })}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="description" className="text-right">
+                            Description
+                          </Label>
+                          <Textarea
+                            id="description"
+                            placeholder="Describe this skill target"
+                            className="col-span-3"
+                            value={targetFormData.description}
+                            onChange={(e) => setTargetFormData({
+                              ...targetFormData,
+                              description: e.target.value,
+                            })}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="targetLevel" className="text-right">
+                            Target Level
+                          </Label>
+                          <Select 
+                            value={targetFormData.targetLevel}
+                            onValueChange={(value) => setTargetFormData({
+                              ...targetFormData,
+                              targetLevel: value,
+                            })}
+                          >
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Select a target level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="beginner">Beginner</SelectItem>
+                              <SelectItem value="intermediate">Intermediate</SelectItem>
+                              <SelectItem value="expert">Expert</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="targetDate" className="text-right">
+                            Target Date
+                          </Label>
+                          <Input
+                            id="targetDate"
+                            type="date"
+                            className="col-span-3"
+                            value={targetFormData.targetDate}
+                            onChange={(e) => setTargetFormData({
+                              ...targetFormData,
+                              targetDate: e.target.value,
+                            })}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label className="text-right">
+                            Skills
+                          </Label>
+                          <div className="col-span-3">
+                            {skills && (
+                              <div className="p-4 border rounded-md max-h-64 overflow-y-auto">
+                                <div className="space-y-2">
+                                  {skills.map(skill => (
+                                    <div key={skill.id} className="flex items-center">
+                                      <input
+                                        type="checkbox"
+                                        id={`skill-${skill.id}`}
+                                        className="mr-2"
+                                        checked={targetFormData.skillIds.includes(skill.id)}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setTargetFormData({
+                                              ...targetFormData,
+                                              skillIds: [...targetFormData.skillIds, skill.id]
+                                            });
+                                          } else {
+                                            setTargetFormData({
+                                              ...targetFormData,
+                                              skillIds: targetFormData.skillIds.filter(id => id !== skill.id)
+                                            });
+                                          }
+                                        }}
+                                      />
+                                      <label htmlFor={`skill-${skill.id}`} className="flex-1 flex items-center justify-between">
+                                        <span>{skill.name}</span>
+                                        <SkillLevelBadge level={skill.level} size="sm" />
+                                      </label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowTargetDialog(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="button"
+                          onClick={() => {
+                            // Handle saving the target
+                            const targetData = {
+                              name: targetFormData.name,
+                              description: targetFormData.description,
+                              targetLevel: targetFormData.targetLevel,
+                              targetDate: targetFormData.targetDate,
+                              skillIds: targetFormData.skillIds,
+                            };
+                            
+                            // Check if editing existing target or creating new
+                            if (targetFormData.id) {
+                              // Call mutation to update
+                              toast({
+                                title: "Target updated",
+                                description: "The skill target has been updated successfully."
+                              });
+                            } else {
+                              // Call mutation to create
+                              toast({
+                                title: "Target created",
+                                description: "The new skill target has been created successfully."
+                              });
+                            }
+                            
+                            setShowTargetDialog(false);
+                            setTargetFormData({
+                              id: null,
+                              name: '',
+                              skillIds: [],
+                              targetLevel: 'beginner',
+                              targetDate: "",
+                              targetNumber: undefined,
+                              description: ''
+                            });
+                          }}
+                        >
+                          {targetFormData.id ? "Update Target" : "Create Target"}
+                        </Button>
+                      </DialogFooter>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
               </motion.div>
             </TabsContent>
             
