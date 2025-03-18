@@ -1988,7 +1988,7 @@ export default function AdminDashboard() {
 
                 {/* Template Dialog */}
                 <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-                  <DialogContent className="sm:max-w-[575px]">
+                  <DialogContent className="sm:max-w-[575px] max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>{editingTemplate ? "Edit Skill Template" : "Create Skill Template"}</DialogTitle>
                       <DialogDescription>
@@ -2280,7 +2280,7 @@ export default function AdminDashboard() {
 
                 {/* Target Dialog */}
                 <Dialog open={showTargetDialog} onOpenChange={setShowTargetDialog}>
-                  <DialogContent className="sm:max-w-[575px]">
+                  <DialogContent className="sm:max-w-[575px] max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>{targetFormData.id ? "Edit Skill Target" : "Create Skill Target"}</DialogTitle>
                       <DialogDescription>
