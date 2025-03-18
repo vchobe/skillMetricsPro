@@ -105,6 +105,32 @@ export default function AdminDashboard() {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   
+  // Skill templates state
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
+  const [templateSearchQuery, setTemplateSearchQuery] = useState("");
+  
+  // Skill targets state
+  const [showTargetDialog, setShowTargetDialog] = useState(false);
+  const [targetSearchQuery, setTargetSearchQuery] = useState("");
+  const [targetFormData, setTargetFormData] = useState<{
+    id: number | null;
+    name: string;
+    skillIds: number[];
+    targetLevel: string;
+    targetDate: string;
+    targetNumber: number | string | undefined;
+    description: string;
+  }>({
+    id: null,
+    name: '',
+    skillIds: [],
+    targetLevel: 'beginner',
+    targetDate: "",
+    targetNumber: undefined,
+    description: ''
+  });
+  
   // User Management tab - sorting and filtering state
   const [sortField, setSortField] = useState<string>("username");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -203,6 +229,19 @@ export default function AdminDashboard() {
     assignedUsers?: number[];
   }[]>({
     queryKey: ["/api/admin/skill-targets"],
+  });
+  
+  // Get skill templates
+  const { data: skillTemplates = [], isLoading: isLoadingTemplates } = useQuery<{
+    id: number;
+    name: string;
+    category: string;
+    description?: string;
+    isRecommended: boolean;
+    targetLevel?: string;
+    targetDate?: string;
+  }[]>({
+    queryKey: ["/api/admin/skill-templates"],
   });
   
   // Calculate stats
