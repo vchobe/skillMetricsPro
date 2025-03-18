@@ -317,9 +317,16 @@ export default function LeaderboardPage() {
                                     <div className="font-bold">{user.totalSkills}</div>
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    <Link href={`/users/${user.id}`}>
-                                      <Button variant="outline" size="sm">View Profile</Button>
-                                    </Link>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedUserId(user.id);
+                                        setProfileDialogOpen(true);
+                                      }}
+                                    >
+                                      View Profile
+                                    </Button>
                                   </TableCell>
                                 </TableRow>
                               ))
@@ -379,27 +386,20 @@ export default function LeaderboardPage() {
                                 <TableHead>Employee</TableHead>
                                 <TableHead className="text-center">Expert Skills</TableHead>
                                 <TableHead className="text-center">Certifications</TableHead>
-                                <TableHead className="text-center">Total Skills</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {categoryLeaders.map((user, index) => (
-                                <TableRow key={user.id} className={index < 3 ? "bg-amber-50" : ""}>
+                                <TableRow key={user.id}>
                                   <TableCell>
-                                    {index === 0 ? (
-                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-400 text-white font-bold">
-                                        <Trophy className="h-4 w-4" />
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-800 font-bold">
-                                        {index + 1}
-                                      </div>
-                                    )}
+                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white font-bold">
+                                      {index + 1}
+                                    </div>
                                   </TableCell>
                                   <TableCell>
                                     <div className="flex items-center">
-                                      <Avatar className="h-10 w-10 mr-3">
+                                      <Avatar className="h-8 w-8 mr-3">
                                         <AvatarImage src="" alt={user.username} />
                                         <AvatarFallback className="bg-primary/10 text-primary">
                                           {user.username?.[0] || user.email?.[0] || '?'}
@@ -417,13 +417,17 @@ export default function LeaderboardPage() {
                                   <TableCell className="text-center">
                                     <div className="font-bold">{user.certifications}</div>
                                   </TableCell>
-                                  <TableCell className="text-center">
-                                    <div className="font-bold">{user.totalSkills}</div>
-                                  </TableCell>
                                   <TableCell className="text-right">
-                                    <Link href={`/users/${user.id}`}>
-                                      <Button variant="outline" size="sm">View Profile</Button>
-                                    </Link>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedUserId(user.id);
+                                        setProfileDialogOpen(true);
+                                      }}
+                                    >
+                                      View Profile
+                                    </Button>
                                   </TableCell>
                                 </TableRow>
                               ))}
@@ -439,6 +443,13 @@ export default function LeaderboardPage() {
           )}
         </div>
       </div>
+      
+      {/* User Profile Dialog */}
+      <UserProfileDialog 
+        userId={selectedUserId} 
+        isOpen={profileDialogOpen} 
+        onClose={() => setProfileDialogOpen(false)} 
+      />
     </div>
   );
 }
