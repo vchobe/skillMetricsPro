@@ -127,7 +127,12 @@ import {
   Target,
   Plus,
   Edit,
-  Trash2
+  Trash2,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  ThumbsUp,
+  ThumbsDown
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
@@ -746,7 +751,7 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <TabsList className="grid w-full grid-cols-6 mb-6">
+              <TabsList className="grid w-full grid-cols-7 mb-6">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <TabsTrigger 
                     value="dashboard" 
@@ -799,6 +804,20 @@ export default function AdminDashboard() {
                   >
                     <Users className="h-4 w-4" />
                     <span>User Management</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="approvals" 
+                    className="flex items-center gap-2 w-full relative"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Pending Approvals</span>
+                    {pendingSkills && pendingSkills.length > 0 && (
+                      <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                        {pendingSkills.reduce((acc, group) => acc + group.pendingSkills.length, 0)}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 </motion.div>
               </TabsList>

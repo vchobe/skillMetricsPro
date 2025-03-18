@@ -9,6 +9,7 @@ import {
   insertProfileHistorySchema,
   insertEndorsementSchema,
   insertNotificationSchema,
+  insertPendingSkillUpdateSchema,
   Skill,
   insertSkillTargetSchema,
   insertSkillTemplateSchema
