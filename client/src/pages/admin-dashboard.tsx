@@ -61,6 +61,17 @@ import {
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { 
   Select, 
   SelectContent, 
@@ -545,6 +556,76 @@ export default function AdminDashboard() {
   // Get user by ID
   const getUserById = (userId: number) => {
     return users?.find(u => u.id === userId);
+  };
+  
+  // Handlers for approving and rejecting pending skill updates
+  const approveMutation = useQuery({
+    queryKey: ["/api/admin/pending-skills"], // This is just for invalidation
+    enabled: false, // Don't run automatically
+  });
+  
+  const rejectMutation = useQuery({
+    queryKey: ["/api/admin/pending-skills"], // This is just for invalidation
+    enabled: false, // Don't run automatically
+  });
+  
+  const handleApproveSkill = async (skillId: number) => {
+    try {
+      await fetch(`/api/admin/pending-skills/${skillId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reviewerId: user?.id })
+      });
+      
+      toast({
+        title: "Skill approved",
+        description: "The skill update has been approved and applied.",
+        variant: "default"
+      });
+      
+      // Force refetch of pending skills
+      approveMutation.refetch();
+    } catch (error) {
+      console.error("Error approving skill:", error);
+      toast({
+        title: "Error",
+        description: "Failed to approve skill update. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleRejectSkill = async (skillId: number) => {
+    try {
+      await fetch(`/api/admin/pending-skills/${skillId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          reviewerId: user?.id,
+          notes: "Rejected by administrator" // Could add a dialog to capture notes
+        })
+      });
+      
+      toast({
+        title: "Skill rejected",
+        description: "The skill update has been rejected.",
+        variant: "default"
+      });
+      
+      // Force refetch of pending skills
+      rejectMutation.refetch();
+    } catch (error) {
+      console.error("Error rejecting skill:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reject skill update. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   // Apply filters and sorting to users
@@ -2902,6 +2983,185 @@ export default function AdminDashboard() {
                 <h3 className="text-lg font-medium text-gray-900 mb-4 px-1">Danger Zone</h3>
                 <AdminUserActions />
               </div>
+              </motion.div>
+            </TabsContent>
+            
+            <TabsContent value="approvals">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
+                <Card className="mb-8">
+                  <CardHeader className="flex flex-row justify-between items-center">
+                    <div>
+                      <CardTitle>Pending Skill Approvals</CardTitle>
+                      <CardDescription>Review and approve or reject skill updates submitted by users</CardDescription>
+                    </div>
+                    {pendingSkills && pendingSkills.length === 0 && (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                        All caught up
+                      </Badge>
+                    )}
+                    {pendingSkills && pendingSkills.length > 0 && (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                        <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                        {pendingSkills.reduce((acc, group) => acc + group.pendingSkills.length, 0)} pending approval{pendingSkills.reduce((acc, group) => acc + group.pendingSkills.length, 0) > 1 ? 's' : ''}
+                      </Badge>
+                    )}
+                  </CardHeader>
+                  
+                  <CardContent>
+                    {isLoadingPendingSkills ? (
+                      <div className="flex justify-center items-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+                      </div>
+                    ) : pendingSkills && pendingSkills.length === 0 ? (
+                      <div className="text-center py-12 bg-gray-50 rounded-lg">
+                        <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+                        <h3 className="mt-4 text-lg font-medium text-gray-900">No pending approvals</h3>
+                        <p className="mt-2 text-sm text-gray-500">
+                          All skill updates have been reviewed. Check back later for new submissions.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-8">
+                        {pendingSkills?.map((userGroup, groupIndex) => (
+                          <Accordion type="single" collapsible className="mb-6" key={groupIndex}>
+                            <AccordionItem value={`user-${userGroup.user.id}`} className="border border-gray-200 rounded-lg shadow-sm">
+                              <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                                <div className="flex items-center w-full">
+                                  <Avatar className="h-10 w-10 mr-4">
+                                    <AvatarFallback className="bg-indigo-600 text-white">
+                                      {userGroup.user.firstName?.[0] || userGroup.user.username?.[0]}
+                                      {userGroup.user.lastName?.[0]}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1">
+                                    <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                                      {userGroup.user.firstName} {userGroup.user.lastName}
+                                      <Badge variant="outline" className="ml-3 bg-amber-50 border-amber-200 text-amber-700">
+                                        {userGroup.pendingSkills.length} pending
+                                      </Badge>
+                                    </h3>
+                                    <p className="text-sm text-gray-500">{userGroup.user.email} • {userGroup.user.role || "Employee"}</p>
+                                  </div>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="px-0">
+                                <div className="border-t border-gray-200 overflow-x-auto">
+                                  <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                      <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skill</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certification</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                      {userGroup.pendingSkills.map((skill, skillIndex) => (
+                                        <tr key={skillIndex}>
+                                          <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-medium text-gray-900">{skill.name}</div>
+                                            {skill.notes && (
+                                              <Popover>
+                                                <PopoverTrigger asChild>
+                                                  <Button variant="link" className="h-auto p-0 text-xs text-muted-foreground">
+                                                    View notes
+                                                  </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-80">
+                                                  <div className="text-sm">
+                                                    <h4 className="font-medium mb-2">Submission Notes</h4>
+                                                    <p className="text-gray-700">{skill.notes}</p>
+                                                  </div>
+                                                </PopoverContent>
+                                              </Popover>
+                                            )}
+                                          </td>
+                                          <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">{skill.category}</div>
+                                          </td>
+                                          <td className="px-6 py-4 whitespace-nowrap">
+                                            <SkillLevelBadge level={skill.level} />
+                                          </td>
+                                          <td className="px-6 py-4 whitespace-nowrap">
+                                            {skill.certification ? (
+                                              <div>
+                                                <div className="text-sm text-gray-900">{skill.certification}</div>
+                                                {skill.credly_link && (
+                                                  <a href={skill.credly_link} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:text-indigo-900">
+                                                    View credential
+                                                  </a>
+                                                )}
+                                                {skill.certification_date && (
+                                                  <div className="text-xs text-gray-500">
+                                                    {new Date(skill.certification_date).toLocaleDateString()}
+                                                    {skill.expiration_date && ` - ${new Date(skill.expiration_date).toLocaleDateString()}`}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <span className="text-gray-500 text-sm">None</span>
+                                            )}
+                                          </td>
+                                          <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-500">
+                                              {new Date(skill.submitted_at).toLocaleDateString()}
+                                            </div>
+                                            <div className="text-xs text-gray-400">
+                                              {new Date(skill.submitted_at).toLocaleTimeString()}
+                                            </div>
+                                          </td>
+                                          <td className="px-6 py-4 whitespace-nowrap">
+                                            <Badge variant={skill.is_update ? "outline" : "default"} className={skill.is_update ? "bg-blue-50 text-blue-700 border-blue-200" : ""}>
+                                              {skill.is_update ? "Update" : "New"}
+                                            </Badge>
+                                          </td>
+                                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div className="flex space-x-2">
+                                              <Button 
+                                                onClick={() => handleApproveSkill(skill.id)} 
+                                                size="sm"
+                                                variant="outline"
+                                                className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800"
+                                              >
+                                                <ThumbsUp className="h-3.5 w-3.5 mr-1" />
+                                                Approve
+                                              </Button>
+                                              <Button 
+                                                onClick={() => handleRejectSkill(skill.id)} 
+                                                size="sm"
+                                                variant="outline"
+                                                className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:text-red-800"
+                                              >
+                                                <ThumbsDown className="h-3.5 w-3.5 mr-1" />
+                                                Reject
+                                              </Button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </motion.div>
             </TabsContent>
           </Tabs>
