@@ -2363,6 +2363,23 @@ export default function AdminDashboard() {
                         </div>
                         
                         <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="targetNumber" className="text-right">
+                            Target Number
+                          </Label>
+                          <Input
+                            id="targetNumber"
+                            type="number"
+                            className="col-span-3"
+                            placeholder="e.g., 5 skills"
+                            value={targetFormData.targetNumber || ""}
+                            onChange={(e) => setTargetFormData({
+                              ...targetFormData,
+                              targetNumber: e.target.value ? parseInt(e.target.value) : undefined,
+                            })}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-4 items-center gap-4">
                           <Label className="text-right">
                             Skills
                           </Label>
@@ -2417,7 +2434,8 @@ export default function AdminDashboard() {
                               description: targetFormData.description,
                               targetLevel: targetFormData.targetLevel,
                               targetDate: targetFormData.targetDate,
-                              skillIds: targetFormData.skillIds,
+                              targetNumber: targetFormData.targetNumber,
+                              skillIds: [...new Set(targetFormData.skillIds)], // Remove duplicates
                             };
                             
                             // Check if editing existing target or creating new
