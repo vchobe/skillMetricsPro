@@ -2084,7 +2084,7 @@ export default function AdminDashboard() {
                       </DialogDescription>
                     </DialogHeader>
                     
-                    <Form>
+                    <div>
                       <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="name" className="text-right">
@@ -2215,7 +2215,7 @@ export default function AdminDashboard() {
                           {editingTemplate ? "Update Template" : "Create Template"}
                         </Button>
                       </DialogFooter>
-                    </Form>
+                    </div>
                   </DialogContent>
                 </Dialog>
               </motion.div>
@@ -2376,7 +2376,7 @@ export default function AdminDashboard() {
                       </DialogDescription>
                     </DialogHeader>
                     
-                    <Form>
+                    <div>
                       <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="name" className="text-right">
@@ -2554,7 +2554,7 @@ export default function AdminDashboard() {
                           {targetFormData.id ? "Update Target" : "Create Target"}
                         </Button>
                       </DialogFooter>
-                    </Form>
+                    </div>
                   </DialogContent>
                 </Dialog>
               </motion.div>
