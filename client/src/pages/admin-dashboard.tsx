@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Skill, User, SkillHistory } from "@shared/schema";
@@ -7,6 +7,7 @@ import { formatDate, DATE_FORMATS } from "@/lib/date-utils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { queryClient } from "@/lib/queryClient";
 
 // Template form schema
 const templateSchema = z.object({
@@ -559,19 +560,9 @@ export default function AdminDashboard() {
   };
   
   // Handlers for approving and rejecting pending skill updates
-  const approveMutation = useQuery({
-    queryKey: ["/api/admin/pending-skills"], // This is just for invalidation
-    enabled: false, // Don't run automatically
-  });
-  
-  const rejectMutation = useQuery({
-    queryKey: ["/api/admin/pending-skills"], // This is just for invalidation
-    enabled: false, // Don't run automatically
-  });
-  
-  const handleApproveSkill = async (skillId: number) => {
-    try {
-      await fetch(`/api/admin/pending-skills/${skillId}/approve`, {
+  const approveMutation = useMutation({
+    mutationFn: async (skillId: number) => {
+      const res = await fetch(`/api/admin/pending-skills/${skillId}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -579,53 +570,85 @@ export default function AdminDashboard() {
         body: JSON.stringify({ reviewerId: user?.id })
       });
       
-      toast({
-        title: "Skill approved",
-        description: "The skill update has been approved and applied.",
-        variant: "default"
-      });
+      if (!res.ok) {
+        throw new Error("Failed to approve skill");
+      }
       
-      // Force refetch of pending skills
-      approveMutation.refetch();
-    } catch (error) {
-      console.error("Error approving skill:", error);
-      toast({
-        title: "Error",
-        description: "Failed to approve skill update. Please try again.",
-        variant: "destructive"
-      });
+      return res.json();
+    },
+    onSuccess: () => {
+      // Invalidate pending skills query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-skills"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
     }
-  };
+  });
   
-  const handleRejectSkill = async (skillId: number) => {
-    try {
-      await fetch(`/api/admin/pending-skills/${skillId}/reject`, {
+  const rejectMutation = useMutation({
+    mutationFn: async ({ skillId, notes }: { skillId: number, notes?: string }) => {
+      const res = await fetch(`/api/admin/pending-skills/${skillId}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
           reviewerId: user?.id,
-          notes: "Rejected by administrator" // Could add a dialog to capture notes
+          notes: notes || "Rejected by administrator"
         })
       });
       
-      toast({
-        title: "Skill rejected",
-        description: "The skill update has been rejected.",
-        variant: "default"
-      });
+      if (!res.ok) {
+        throw new Error("Failed to reject skill");
+      }
       
-      // Force refetch of pending skills
-      rejectMutation.refetch();
-    } catch (error) {
-      console.error("Error rejecting skill:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reject skill update. Please try again.",
-        variant: "destructive"
-      });
+      return res.json();
+    },
+    onSuccess: () => {
+      // Invalidate pending skills query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-skills"] });
     }
+  });
+  
+  const handleApproveSkill = async (skillId: number) => {
+    approveMutation.mutate(skillId, {
+      onSuccess: () => {
+        toast({
+          title: "Skill approved",
+          description: "The skill update has been approved and applied.",
+          variant: "default"
+        });
+      },
+      onError: (error) => {
+        console.error("Error approving skill:", error);
+        toast({
+          title: "Error",
+          description: "Failed to approve skill update. Please try again.",
+          variant: "destructive"
+        });
+      }
+    });
+  };
+  
+  const handleRejectSkill = async (skillId: number) => {
+    rejectMutation.mutate({ 
+      skillId, 
+      notes: "Rejected by administrator" // Could add a dialog to capture notes
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Skill rejected",
+          description: "The skill update has been rejected.",
+          variant: "default"
+        });
+      },
+      onError: (error) => {
+        console.error("Error rejecting skill:", error);
+        toast({
+          title: "Error",
+          description: "Failed to reject skill update. Please try again.",
+          variant: "destructive"
+        });
+      }
+    });
   };
   
   // Apply filters and sorting to users
