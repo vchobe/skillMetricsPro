@@ -124,7 +124,7 @@ export default function AddSkillsPage() {
     }
   }, [allSkills, user]);
 
-  // For navigation - useState pattern for location
+  // For navigation
   const [, setLocation] = useLocation();
 
   // Submit multiple skills mutation
@@ -158,7 +158,7 @@ export default function AddSkillsPage() {
       setSelectedSkills({});
       
       // Navigate back to skills page
-      navigate("/skills");
+      setLocation("/skills");
     },
     onError: (error) => {
       toast({
@@ -208,7 +208,7 @@ export default function AddSkillsPage() {
       setCustomSkill({ level: "beginner" });
       
       // Navigate back to skills page
-      navigate("/skills");
+      setLocation("/skills");
     },
     onError: (error) => {
       toast({
