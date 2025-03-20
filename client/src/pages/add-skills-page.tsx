@@ -139,21 +139,12 @@ export default function AddSkillsPage() {
     }
   }, [allSkills, user]);
   
-  // On component mount, pre-mark all tabs as visited
+  // On component mount, initialize with all tabs NOT visited
+  // We're removing the auto-marking of tabs as visited to make users visit each tab
   useEffect(() => {
-    console.log("Initializing tab visit state");
-    // Mark all main tabs as visited
-    markTabVisited('technical');
-    markTabVisited('functional');
-    markTabVisited('other');
-    
-    // Mark all technical sub-tabs as visited
-    markTabVisited('programming');
-    markTabVisited('frontend');
-    markTabVisited('database');
-    markTabVisited('data');
-    markTabVisited('cloud');
-    markTabVisited('devops');
+    console.log("Initializing tab visit state to empty (no tabs visited)");
+    // Tabs will start with no visits and users will need to click on each tab
+    // The visitedTabs state is already initialized with all values as false
   }, []);
 
   // For navigation
@@ -451,16 +442,8 @@ export default function AddSkillsPage() {
                 onValueChange={(value) => {
                   setActiveTab(value);
                   markTabVisited(value);
-                  
-                  // If technical tab is selected, mark all technical subtabs as visited
-                  if (value === 'technical') {
-                    markTabVisited('programming');
-                    markTabVisited('frontend');
-                    markTabVisited('database');
-                    markTabVisited('data');
-                    markTabVisited('cloud');
-                    markTabVisited('devops');
-                  }
+                  // We've removed the auto-marking of technical subtabs
+                  // Users now need to visit each technical subtab individually
                 }} 
                 className="w-full"
               >
