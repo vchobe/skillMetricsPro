@@ -329,7 +329,7 @@ export default function AddSkillsPage() {
     if (!allTabsVisited()) {
       toast({
         title: "Please review all categories",
-        description: "Please visit ALL main tabs and ALL technical sub-tabs before submitting.",
+        description: "Please visit ALL main tabs, ALL technical sub-tabs, and ALL functional sub-tabs before submitting.",
         variant: "destructive",
       });
       return;
@@ -401,7 +401,7 @@ export default function AddSkillsPage() {
     if (!allTabsVisited()) {
       toast({
         title: "Please review all categories",
-        description: "Please visit ALL main tabs and ALL technical sub-tabs before submitting.",
+        description: "Please visit ALL main tabs, ALL technical sub-tabs, and ALL functional sub-tabs before submitting.",
         variant: "destructive",
       });
       return;
