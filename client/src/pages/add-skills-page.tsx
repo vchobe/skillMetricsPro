@@ -7,7 +7,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -124,6 +124,9 @@ export default function AddSkillsPage() {
     }
   }, [allSkills, user]);
 
+  // For navigation - useState pattern for location
+  const [, setLocation] = useLocation();
+
   // Submit multiple skills mutation
   const submitSkillsMutation = useMutation({
     mutationFn: async (skills: SkillEntry[]) => {
@@ -153,6 +156,9 @@ export default function AddSkillsPage() {
       
       // Reset selections
       setSelectedSkills({});
+      
+      // Navigate back to skills page
+      navigate("/skills");
     },
     onError: (error) => {
       toast({
@@ -200,6 +206,9 @@ export default function AddSkillsPage() {
       
       // Reset custom skill form
       setCustomSkill({ level: "beginner" });
+      
+      // Navigate back to skills page
+      navigate("/skills");
     },
     onError: (error) => {
       toast({
