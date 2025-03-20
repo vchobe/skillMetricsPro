@@ -510,6 +510,7 @@ export default function SkillManagementPage() {
                   </TabsTrigger>
                 </TabsList>
                 
+                
                 {/* Skill Templates Tab */}
                 <TabsContent value="templates">
                   <Card>
