@@ -498,61 +498,55 @@ export default function SkillManagementPage() {
             <>
               <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 rounded-xl text-white mb-6">
                 <h2 className="text-2xl font-bold mb-2">Skill Management</h2>
-                <p className="opacity-90">Manage all skill templates and learning targets for your organization.</p>
+                <p className="opacity-90">
+                  Create and manage organizational skills, templates, and targets
+                </p>
               </div>
               
-              <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2 mb-8">
-                  <TabsTrigger value="templates" className="text-center">
-                    <Database className="h-4 w-4 mr-2" />
-                    Skill Templates
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="templates" className="flex items-center gap-2">
+                    <Brain className="h-4 w-4" />
+                    <span>Skill Templates</span>
                   </TabsTrigger>
-                  <TabsTrigger value="targets" className="text-center">
-                    <Target className="h-4 w-4 mr-2" />
-                    Skill Targets
+                  <TabsTrigger value="targets" className="flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    <span>Skill Targets</span>
                   </TabsTrigger>
                 </TabsList>
                 
+                
+                {/* Skill Templates Tab */}
                 <TabsContent value="templates">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                       <div>
                         <CardTitle>Skill Templates</CardTitle>
                         <CardDescription>
-                          Define standard skills and categorize them for your organization
+                          Create and manage recommended skills for your organization
                         </CardDescription>
                       </div>
                       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
                         <DialogTrigger asChild>
-                          <Button 
-                            onClick={() => {
-                              setEditingTemplate(null);
-                              templateForm.reset({
-                                name: "",
-                                category: "",
-                                description: "",
-                                isRecommended: false,
-                                targetLevel: undefined,
-                                targetDate: undefined
-                              });
-                            }}
-                          >
+                          <Button onClick={() => setEditingTemplate(null)}>
                             <Plus className="h-4 w-4 mr-2" />
                             Add Template
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="sm:max-w-[500px] scrollable-dialog">
                           <DialogHeader>
-                            <DialogTitle>{editingTemplate ? 'Edit Skill Template' : 'Create Skill Template'}</DialogTitle>
+                            <DialogTitle>
+                              {editingTemplate ? "Edit Skill Template" : "Add Skill Template"}
+                            </DialogTitle>
                             <DialogDescription>
                               {editingTemplate 
-                                ? 'Update this skill template information.'
-                                : 'Add a new skill template to your organization catalog.'}
+                                ? "Update this skill template for your organization" 
+                                : "Create a new skill template for your organization"}
                             </DialogDescription>
                           </DialogHeader>
                           
                           <Form {...templateForm}>
-                            <form onSubmit={templateForm.handleSubmit(onTemplateSubmit)} className="space-y-4 mt-4">
+                            <form onSubmit={templateForm.handleSubmit(onTemplateSubmit)} className="space-y-4">
                               <FormField
                                 control={templateForm.control}
                                 name="name"
@@ -560,7 +554,7 @@ export default function SkillManagementPage() {
                                   <FormItem>
                                     <FormLabel>Name</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="e.g. JavaScript" {...field} />
+                                      <Input placeholder="React.js" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -574,8 +568,41 @@ export default function SkillManagementPage() {
                                   <FormItem>
                                     <FormLabel>Category</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="e.g. Programming Languages" {...field} />
+                                      <Select 
+                                        value={field.value} 
+                                        onValueChange={field.onChange}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {categories.length > 0 ? (
+                                            categories.map(category => (
+                                              <SelectItem key={category} value={category}>
+                                                {category}
+                                              </SelectItem>
+                                            ))
+                                          ) : (
+                                            <>
+                                              <SelectItem value="Programming">Programming</SelectItem>
+                                              <SelectItem value="Database">Database</SelectItem>
+                                              <SelectItem value="Cloud">Cloud</SelectItem>
+                                              <SelectItem value="DevOps">DevOps</SelectItem>
+                                              <SelectItem value="Design">Design</SelectItem>
+                                              <SelectItem value="Other">Other</SelectItem>
+                                            </>
+                                          )}
+                                          {field.value && field.value.trim() !== "" && (
+                                            <SelectItem value={field.value}>
+                                              {field.value || "Custom Category"}
+                                            </SelectItem>
+                                          )}
+                                        </SelectContent>
+                                      </Select>
                                     </FormControl>
+                                    <FormDescription>
+                                      Or type a new category
+                                    </FormDescription>
                                     <FormMessage />
                                   </FormItem>
                                 )}
@@ -586,9 +613,12 @@ export default function SkillManagementPage() {
                                 name="description"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Description (Optional)</FormLabel>
+                                    <FormLabel>Description</FormLabel>
                                     <FormControl>
-                                      <Textarea placeholder="Describe this skill..." {...field} />
+                                      <Textarea 
+                                        placeholder="A JavaScript library for building user interfaces"
+                                        {...field} 
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -601,9 +631,9 @@ export default function SkillManagementPage() {
                                 render={({ field }) => (
                                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                                     <div className="space-y-0.5">
-                                      <FormLabel>Recommended Skill</FormLabel>
+                                      <FormLabel className="text-base">Recommended Skill</FormLabel>
                                       <FormDescription>
-                                        Mark this skill as recommended for all employees
+                                        Mark this skill as recommended for employees
                                       </FormDescription>
                                     </div>
                                     <FormControl>
@@ -621,23 +651,25 @@ export default function SkillManagementPage() {
                                 name="targetLevel"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Target Level (Optional)</FormLabel>
-                                    <Select 
-                                      onValueChange={field.onChange} 
-                                      defaultValue={field.value as string}
-                                      value={field.value as string}
-                                    >
-                                      <FormControl>
+                                    <FormLabel>Target Level</FormLabel>
+                                    <FormControl>
+                                      <Select 
+                                        value={field.value} 
+                                        onValueChange={field.onChange}
+                                      >
                                         <SelectTrigger>
-                                          <SelectValue placeholder="Select a target level" />
+                                          <SelectValue placeholder="Select target level (optional)" />
                                         </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent>
-                                        <SelectItem value="beginner">Beginner</SelectItem>
-                                        <SelectItem value="intermediate">Intermediate</SelectItem>
-                                        <SelectItem value="expert">Expert</SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                        <SelectContent>
+                                          <SelectItem value="beginner">Beginner</SelectItem>
+                                          <SelectItem value="intermediate">Intermediate</SelectItem>
+                                          <SelectItem value="expert">Expert</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </FormControl>
+                                    <FormDescription>
+                                      Recommended proficiency level for this skill
+                                    </FormDescription>
                                     <FormMessage />
                                   </FormItem>
                                 )}
@@ -648,21 +680,34 @@ export default function SkillManagementPage() {
                                 name="targetDate"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Target Date (Optional)</FormLabel>
+                                    <FormLabel>Target Date</FormLabel>
                                     <FormControl>
                                       <Input type="date" {...field} />
                                     </FormControl>
+                                    <FormDescription>
+                                      Optional target date for achieving this skill
+                                    </FormDescription>
                                     <FormMessage />
                                   </FormItem>
                                 )}
                               />
                               
                               <DialogFooter>
-                                <Button type="submit" disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}>
+                                <Button 
+                                  variant="outline" 
+                                  type="button" 
+                                  onClick={() => setShowTemplateDialog(false)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button 
+                                  type="submit" 
+                                  disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}
+                                >
                                   {(createTemplateMutation.isPending || updateTemplateMutation.isPending) && (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                   )}
-                                  {editingTemplate ? 'Update Template' : 'Create Template'}
+                                  {editingTemplate ? "Update" : "Create"}
                                 </Button>
                               </DialogFooter>
                             </form>
@@ -671,71 +716,81 @@ export default function SkillManagementPage() {
                       </Dialog>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center space-x-2 pb-4">
-                        <div className="relative flex-1">
-                          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Search templates..."
-                            className="pl-8"
+                      {/* Search */}
+                      <div className="mb-6">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input 
+                            placeholder="Search templates..." 
+                            className="pl-10"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                           />
                         </div>
-                        <Button variant="outline" size="icon">
-                          <Filter className="h-4 w-4" />
-                        </Button>
                       </div>
                       
-                      <div className="rounded-md border">
+                      {/* Templates Table */}
+                      <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>Name</TableHead>
                               <TableHead>Category</TableHead>
+                              <TableHead>Status</TableHead>
                               <TableHead>Target Level</TableHead>
-                              <TableHead>Recommended</TableHead>
+                              <TableHead>Target Date</TableHead>
                               <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {filteredTemplates.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                  No templates found.
+                                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                  No skill templates found. Create your first template.
                                 </TableCell>
                               </TableRow>
                             ) : (
                               filteredTemplates.map((template) => (
                                 <TableRow key={template.id}>
                                   <TableCell className="font-medium">{template.name}</TableCell>
+                                  <TableCell>{template.category}</TableCell>
                                   <TableCell>
-                                    <Badge variant="outline">{template.category}</Badge>
+                                    {template.isRecommended ? (
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                        <Check className="h-3 w-3 mr-1" />
+                                        Recommended
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                                        Optional
+                                      </Badge>
+                                    )}
                                   </TableCell>
                                   <TableCell>
                                     {template.targetLevel ? (
-                                      <SkillLevelBadge level={template.targetLevel} />
+                                      <SkillLevelBadge level={template.targetLevel} size="sm" />
                                     ) : (
-                                      <span className="text-muted-foreground text-sm">Not set</span>
+                                      <span className="text-gray-500">-</span>
                                     )}
                                   </TableCell>
                                   <TableCell>
-                                    {template.isRecommended ? (
-                                      <Badge className="bg-green-500">Recommended</Badge>
+                                    {template.targetDate ? (
+                                      <span>{new Date(template.targetDate).toLocaleDateString()}</span>
                                     ) : (
-                                      <span className="text-muted-foreground text-sm">No</span>
+                                      <span className="text-gray-500">-</span>
                                     )}
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
+                                    <div className="flex justify-end space-x-2">
                                       <Button 
-                                        variant="ghost" 
+                                        variant="outline" 
                                         size="sm"
                                         onClick={() => handleEditTemplate(template)}
                                       >
                                         <Edit className="h-4 w-4" />
                                       </Button>
                                       <Button 
-                                        variant="ghost" 
+                                        variant="outline" 
                                         size="sm"
                                         className="text-red-600 hover:text-red-700"
                                         onClick={() => {
@@ -757,83 +812,169 @@ export default function SkillManagementPage() {
                   </Card>
                 </TabsContent>
                 
+                {/* Skill Targets Tab */}
                 <TabsContent value="targets">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                       <div>
                         <CardTitle>Skill Targets</CardTitle>
                         <CardDescription>
-                          Set learning objectives for individuals or teams
+                          Set organization-wide targets for skills and track progress
                         </CardDescription>
                       </div>
                       <Dialog open={showTargetDialog} onOpenChange={setShowTargetDialog}>
                         <DialogTrigger asChild>
                           <Button>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Target
+                            <Target className="h-4 w-4 mr-2" />
+                            Set Target
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
+                        <DialogContent className="sm:max-w-[500px] scrollable-dialog">
                           <DialogHeader>
-                            <DialogTitle>{targetFormData.id ? 'Edit Skill Target' : 'Create Skill Target'}</DialogTitle>
+                            <DialogTitle>
+                              {targetFormData.id ? 'View Skill Target' : 'Create Skill Target'}
+                            </DialogTitle>
                             <DialogDescription>
                               {targetFormData.id 
-                                ? 'Update this skill target.'
-                                : 'Define learning objectives for individuals or teams.'}
+                                ? 'View details for this skill target' 
+                                : 'Set a target level for specific skills across the organization'}
                             </DialogDescription>
                           </DialogHeader>
                           
                           <Form {...targetForm}>
-                            <form onSubmit={targetForm.handleSubmit(onTargetSubmit)} className="space-y-4 mt-4">
+                            <form onSubmit={targetForm.handleSubmit(onTargetSubmit)} className="space-y-4">
                               <FormField
                                 control={targetForm.control}
                                 name="name"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Target Name (Optional)</FormLabel>
+                                    <FormLabel>Target Name</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="e.g. Backend Developer Path" {...field} />
+                                      <Input 
+                                        placeholder="Q2 Expert React Target" 
+                                        {...field} 
+                                        readOnly={!!targetFormData.id} 
+                                      />
                                     </FormControl>
+                                    <FormDescription>
+                                      Name for this skill target
+                                    </FormDescription>
                                     <FormMessage />
                                   </FormItem>
                                 )}
                               />
                               
+                              {/* Template Selector - Only shown when creating new target */}
+                              {!targetFormData.id && (
+                                <div className="mb-4">
+                                  <h3 className="text-base font-medium mb-2">Use Template</h3>
+                                  <p className="text-sm text-gray-500 mb-3">
+                                    Optionally select a template to pre-fill skill details
+                                  </p>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {skillTemplates.map(template => (
+                                      <div 
+                                        key={template.id}
+                                        className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                                        onClick={() => {
+                                          // Pre-fill form with template values
+                                          targetForm.setValue('name', `${template.name} Target`);
+                                          targetForm.setValue('targetLevel', 
+                                            (template.targetLevel as "beginner" | "intermediate" | "expert") || 'intermediate');
+                                          if (template.targetDate) {
+                                            const date = new Date(template.targetDate);
+                                            if (!isNaN(date.getTime())) {
+                                              targetForm.setValue('targetDate', date.toISOString().split('T')[0]);
+                                            }
+                                          }
+                                          targetForm.setValue('description', template.description || '');
+                                          
+                                          // Select the associated skills if available
+                                          const matchingSkills = allSkills.filter(
+                                            skill => skill.name?.toLowerCase() === template.name?.toLowerCase() || 
+                                                    skill.category?.toLowerCase() === template.category?.toLowerCase()
+                                          ).map(skill => skill.id);
+                                          
+                                          if (matchingSkills.length > 0) {
+                                            targetForm.setValue('skillIds', matchingSkills);
+                                          }
+                                          
+                                          // Show feedback toast
+                                          toast({
+                                            title: "Template Applied",
+                                            description: `Applied template "${template.name}" to this target`
+                                          });
+                                        }}
+                                      >
+                                        <div className="flex justify-between items-start">
+                                          <div>
+                                            <span className="font-medium">{template.name}</span>
+                                            <p className="text-xs text-gray-500">{template.category}</p>
+                                          </div>
+                                          {template.isRecommended && (
+                                            <Badge className="bg-green-100 text-green-800 border-green-200">
+                                              Recommended
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        {template.description && (
+                                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{template.description}</p>
+                                        )}
+                                        {template.targetLevel && (
+                                          <div className="mt-2 flex items-center">
+                                            <span className="text-xs text-gray-500 mr-2">Target Level:</span>
+                                            <SkillLevelBadge level={template.targetLevel} size="sm" />
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            
                               <FormField
                                 control={targetForm.control}
                                 name="skillIds"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Required Skills</FormLabel>
-                                    <div className="border rounded-md p-4 space-y-4">
-                                      <FormDescription>
-                                        Select skills that should be part of this target
-                                      </FormDescription>
+                                    <FormLabel>Skills</FormLabel>
+                                    <FormDescription>
+                                      Select skills to set targets for
+                                    </FormDescription>
+                                    <div className="border rounded-md p-4 max-h-60 overflow-y-auto">
                                       {Object.entries(skillsByCategory).map(([category, skills]) => (
-                                        <div key={category} className="space-y-2">
-                                          <h4 className="text-sm font-semibold">{category}</h4>
-                                          <div className="flex flex-wrap gap-2">
-                                            {skills.map((skill) => (
-                                              <Badge
-                                                key={skill.id}
-                                                variant={field.value.includes(skill.id) ? "default" : "outline"}
-                                                className={`cursor-pointer ${
-                                                  field.value.includes(skill.id) 
-                                                    ? "bg-primary" 
-                                                    : "hover:bg-primary/10"
-                                                }`}
-                                                onClick={() => {
-                                                  const newValue = field.value.includes(skill.id)
-                                                    ? field.value.filter(id => id !== skill.id)
-                                                    : [...field.value, skill.id];
-                                                  field.onChange(newValue);
-                                                }}
-                                              >
-                                                {skill.name}
-                                                {field.value.includes(skill.id) && (
-                                                  <Check className="ml-1 h-3 w-3" />
-                                                )}
-                                              </Badge>
+                                        <div key={category} className="mb-4">
+                                          <h4 className="text-sm font-medium mb-2">{category}</h4>
+                                          <div className="space-y-2">
+                                            {skills.map(skill => (
+                                              <div key={skill.id} className="flex items-center">
+                                                <input
+                                                  type="checkbox"
+                                                  id={`skill-${skill.id}`}
+                                                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                  value={skill.id}
+                                                  checked={field.value.includes(skill.id)}
+                                                  onChange={(e) => {
+                                                    // Only allow changes if not in view mode
+                                                    if (!targetFormData.id) {
+                                                      const checked = e.target.checked;
+                                                      const id = Number(e.target.value);
+                                                      if (checked) {
+                                                        field.onChange([...field.value, id]);
+                                                      } else {
+                                                        field.onChange(field.value.filter(v => v !== id));
+                                                      }
+                                                    }
+                                                  }}
+                                                  readOnly={!!targetFormData.id}
+                                                />
+                                                <label 
+                                                  htmlFor={`skill-${skill.id}`}
+                                                  className="ml-2 text-sm text-gray-900"
+                                                >
+                                                  {skill.name}
+                                                </label>
+                                              </div>
                                             ))}
                                           </div>
                                         </div>
@@ -850,80 +991,92 @@ export default function SkillManagementPage() {
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Target Level</FormLabel>
-                                    <Select 
-                                      onValueChange={field.onChange} 
-                                      defaultValue={field.value}
-                                      value={field.value}
-                                    >
-                                      <FormControl>
+                                    <FormControl>
+                                      <Select 
+                                        value={field.value} 
+                                        onValueChange={field.onChange}
+                                        disabled={!!targetFormData.id}
+                                      >
                                         <SelectTrigger>
-                                          <SelectValue placeholder="Select a target level" />
+                                          <SelectValue placeholder="Select target level" />
                                         </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent>
-                                        <SelectItem value="beginner">Beginner</SelectItem>
-                                        <SelectItem value="intermediate">Intermediate</SelectItem>
-                                        <SelectItem value="expert">Expert</SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                        <SelectContent>
+                                          <SelectItem value="beginner">Beginner</SelectItem>
+                                          <SelectItem value="intermediate">Intermediate</SelectItem>
+                                          <SelectItem value="expert">Expert</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </FormControl>
+                                    <FormDescription>
+                                      Target proficiency level for selected skills
+                                    </FormDescription>
                                     <FormMessage />
                                   </FormItem>
                                 )}
                               />
                               
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField
-                                  control={targetForm.control}
-                                  name="targetDate"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Target Date (Optional)</FormLabel>
-                                      <FormControl>
-                                        <Input type="date" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                <FormField
-                                  control={targetForm.control}
-                                  name="targetNumber"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Target Number (Optional)</FormLabel>
-                                      <FormControl>
-                                        <Input 
-                                          type="number" 
-                                          min="1"
-                                          placeholder="Minimum skills required" 
-                                          {...field}
-                                          value={field.value || ""}
-                                          onChange={e => {
-                                            const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
-                                            field.onChange(value);
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <FormDescription>
-                                        Minimum number of skills required from the selection
-                                      </FormDescription>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
+                              <FormField
+                                control={targetForm.control}
+                                name="targetDate"
+                                render={({ field: { value, onChange, ...fieldProps } }) => (
+                                  <FormItem>
+                                    <FormLabel>Target Date</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="date" 
+                                        value={value || ''}
+                                        onChange={onChange}
+                                        readOnly={!!targetFormData.id}
+                                        {...fieldProps}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Target date for achieving this skill level
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={targetForm.control}
+                                name="targetNumber"
+                                render={({ field: { value, onChange, ...fieldProps } }) => (
+                                  <FormItem>
+                                    <FormLabel>Target Number</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min="1"
+                                        placeholder="Number of employees to reach this level"
+                                        value={value === undefined || value === null ? '' : value}
+                                        onChange={(e) => {
+                                          const newValue = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                                          onChange(newValue);
+                                        }}
+                                        readOnly={!!targetFormData.id}
+                                        {...fieldProps}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Number of employees targeted to achieve this skill level
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
                               
                               <FormField
                                 control={targetForm.control}
                                 name="description"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Description (Optional)</FormLabel>
+                                    <FormLabel>Description</FormLabel>
                                     <FormControl>
                                       <Textarea 
-                                        placeholder="Describe the purpose of this skill target..." 
+                                        placeholder="Rationale for this skill target"
                                         {...field} 
+                                        readOnly={!!targetFormData.id}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -932,12 +1085,31 @@ export default function SkillManagementPage() {
                               />
                               
                               <DialogFooter>
-                                <Button type="submit" disabled={createTargetMutation.isPending || updateTargetMutation.isPending}>
-                                  {(createTargetMutation.isPending || updateTargetMutation.isPending) && (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  )}
-                                  {targetFormData.id ? 'Update Target' : 'Create Target'}
+                                <Button 
+                                  variant="outline" 
+                                  type="button" 
+                                  onClick={() => setShowTargetDialog(false)}
+                                >
+                                  Cancel
                                 </Button>
+                                {targetFormData.id ? (
+                                  <Button 
+                                    type="button" 
+                                    onClick={() => setShowTargetDialog(false)}
+                                  >
+                                    Close
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    type="submit" 
+                                    disabled={createTargetMutation.isPending}
+                                  >
+                                    {createTargetMutation.isPending && (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    )}
+                                    Set Target
+                                  </Button>
+                                )}
                               </DialogFooter>
                             </form>
                           </Form>
@@ -945,78 +1117,98 @@ export default function SkillManagementPage() {
                       </Dialog>
                     </CardHeader>
                     <CardContent>
-                      <div className="rounded-md border">
+                      {/* Targets Table */}
+                      <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Name</TableHead>
-                              <TableHead>Skills</TableHead>
+                              <TableHead>Target</TableHead>
                               <TableHead>Target Level</TableHead>
                               <TableHead>Target Date</TableHead>
+                              <TableHead>Target Number</TableHead>
+                              <TableHead>Progress</TableHead>
                               <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {skillTargets.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                  No skill targets found.
+                                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                  No skill targets set. Create your first target.
                                 </TableCell>
                               </TableRow>
                             ) : (
                               skillTargets.map((target) => (
                                 <TableRow key={target.id}>
-                                  <TableCell className="font-medium">
-                                    {target.name || `Target #${target.id}`}
-                                  </TableCell>
                                   <TableCell>
-                                    <div className="flex flex-wrap gap-1">
-                                      {target.skillIds.length > 0 ? (
-                                        <>
-                                          <Badge variant="outline" className="bg-primary/10">
-                                            {target.skillIds.length} skills
-                                          </Badge>
-                                          {target.targetNumber && (
-                                            <Badge variant="outline" className="bg-amber-500/10 text-amber-700">
-                                              Min: {target.targetNumber}
-                                            </Badge>
-                                          )}
-                                        </>
-                                      ) : (
-                                        <span className="text-muted-foreground text-sm">None</span>
-                                      )}
+                                    <div className="font-medium">
+                                      {target.name || target.description || `Skills Target #${target.id}`}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {target.skillIds.length} skills included
                                     </div>
                                   </TableCell>
                                   <TableCell>
-                                    <SkillLevelBadge level={target.targetLevel} />
+                                    <SkillLevelBadge level={target.targetLevel} size="sm" />
                                   </TableCell>
                                   <TableCell>
                                     {target.targetDate ? (
-                                      <Badge variant="outline" className="bg-indigo-500/10 text-indigo-700">
-                                        {new Date(target.targetDate).toLocaleDateString()}
-                                      </Badge>
+                                      <span>{new Date(target.targetDate).toLocaleDateString()}</span>
                                     ) : (
-                                      <span className="text-muted-foreground text-sm">Not set</span>
+                                      <span className="text-gray-500">Ongoing</span>
                                     )}
                                   </TableCell>
+                                  <TableCell>
+                                    {target.targetNumber ? (
+                                      <span className="font-medium">{target.targetNumber}</span>
+                                    ) : (
+                                      <span className="text-gray-500">Not specified</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center space-x-2">
+                                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div 
+                                          className="bg-green-600 h-2.5 rounded-full" 
+                                          style={{ width: '25%' }}
+                                        ></div>
+                                      </div>
+                                      <span className="text-sm">25%</span>
+                                    </div>
+                                  </TableCell>
                                   <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
+                                    <div className="flex justify-end space-x-2">
                                       <Button 
                                         variant="outline" 
                                         size="sm"
                                         onClick={() => {
-                                          // Format the target date in YYYY-MM-DD format for the date input
-                                          const formattedDate = target.targetDate 
-                                            ? new Date(target.targetDate).toISOString().split('T')[0]
-                                            : "";
-                                            
-                                          // Update the form with the target data
+                                          // Use type assertions to enforce proper skill target type
+                                          const skillLevel = (target.targetLevel === "beginner" || 
+                                                             target.targetLevel === "intermediate" || 
+                                                             target.targetLevel === "expert") 
+                                                           ? target.targetLevel 
+                                                           : "beginner" as const;
+                                          
+                                          console.log("Target data:", target);
+                                          console.log("Target date:", target.targetDate);
+                                          
+                                          // Format the date to YYYY-MM-DD for HTML date input
+                                          let formattedDate = '';
+                                          if (target.targetDate) {
+                                            const date = new Date(target.targetDate);
+                                            // Check if it's a valid date
+                                            if (!isNaN(date.getTime())) {
+                                              formattedDate = date.toISOString().split('T')[0];
+                                              console.log("Formatted date:", formattedDate);
+                                            }
+                                          }
+                                          
                                           targetForm.reset({
                                             name: target.name || '',
                                             skillIds: target.skillIds || [],
-                                            targetLevel: target.targetLevel || 'beginner',
+                                            targetLevel: skillLevel,
                                             targetDate: formattedDate,
-                                            targetNumber: target.targetNumber,
+                                            targetNumber: target.targetNumber !== undefined && target.targetNumber !== null ? target.targetNumber : undefined,
                                             description: target.description || ''
                                           });
                                           setTargetFormData({
@@ -1060,60 +1252,66 @@ export default function SkillManagementPage() {
           )}
         </div>
       </div>
-
-      {/* Delete Template Confirmation Dialog */}
-      <AlertDialog open={showDeleteTemplateDialog} onOpenChange={setShowDeleteTemplateDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the skill template.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={() => {
-                if (deleteTemplateId) {
-                  deleteTemplateMutation.mutate(deleteTemplateId);
-                  setDeleteTemplateId(null);
-                }
-                setShowDeleteTemplateDialog(false);
-              }}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Delete Target Confirmation Dialog */}
-      <AlertDialog open={showDeleteTargetDialog} onOpenChange={setShowDeleteTargetDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the skill target.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={() => {
-                if (deleteTargetId) {
-                  deleteTargetMutation.mutate(deleteTargetId);
-                  setDeleteTargetId(null);
-                }
-                setShowDeleteTargetDialog(false);
-              }}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
+    
+    {/* Delete Template Confirmation Dialog */}
+    <AlertDialog 
+      open={showDeleteTemplateDialog} 
+      onOpenChange={setShowDeleteTemplateDialog}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the skill template.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-red-600 hover:bg-red-700"
+            onClick={() => {
+              if (deleteTemplateId) {
+                deleteTemplateMutation.mutate(deleteTemplateId);
+                setDeleteTemplateId(null);
+              }
+              setShowDeleteTemplateDialog(false);
+            }}
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    
+    {/* Delete Target Confirmation Dialog */}
+    <AlertDialog 
+      open={showDeleteTargetDialog} 
+      onOpenChange={setShowDeleteTargetDialog}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the skill target.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-red-600 hover:bg-red-700"
+            onClick={() => {
+              if (deleteTargetId) {
+                deleteTargetMutation.mutate(deleteTargetId);
+                setDeleteTargetId(null);
+              }
+              setShowDeleteTargetDialog(false);
+            }}
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
