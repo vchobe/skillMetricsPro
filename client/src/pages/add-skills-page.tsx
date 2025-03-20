@@ -70,6 +70,10 @@ export default function AddSkillsPage() {
   // Process skill templates when loaded
   useEffect(() => {
     if (skillTemplates.length > 0) {
+      // Debug: Log unique categories to help with mapping
+      const categories = new Set(skillTemplates.map(t => t.category));
+      console.log("Available categories:", Array.from(categories));
+      
       // Convert templates to skill entries
       const entries: SkillEntry[] = skillTemplates.map(template => ({
         userId: user?.id || 0,
