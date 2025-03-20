@@ -1030,15 +1030,20 @@ export default function AddSkillsPage() {
                 <TabsContent value="functional">
                   <div className="mt-4">
                     <div className="mb-6">
-                      <Tabs defaultValue="marketing">
+                      <Tabs 
+                        defaultValue="marketing"
+                        onValueChange={(value) => markTabVisited(value)}
+                      >
                         <TabsList className="mb-4">
                           <TabsTrigger value="marketing">
                             <PieChart className="h-4 w-4 mr-1" />
                             Marketing
+                            {visitedTabs.marketing && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                           <TabsTrigger value="design">
                             <Paintbrush className="h-4 w-4 mr-1" />
                             Design
+                            {visitedTabs.design && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                           <TabsTrigger value="communication">
                             <MessageSquare className="h-4 w-4 mr-1" />
