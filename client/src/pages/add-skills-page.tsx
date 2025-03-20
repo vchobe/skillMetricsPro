@@ -21,6 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormLabel } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import { 
@@ -1287,16 +1289,97 @@ export default function AddSkillsPage() {
                 
                 {/* Other Tab Content */}
                 <TabsContent value="other">
-                  <div className="flex flex-col items-center justify-center py-12 mt-4">
-                    <p className="text-muted-foreground mb-4">
-                      Need to add a skill that's not listed in the templates?
-                    </p>
-                    <Link href="/skills">
-                      <Button className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        <span>Custom Skill Form</span>
-                      </Button>
-                    </Link>
+                  <div className="mt-4">
+                    <Card className="mb-4">
+                      <CardHeader>
+                        <CardTitle>Custom Skills</CardTitle>
+                        <CardDescription>
+                          Add skills that are not available in the predefined categories
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="max-h-[500px] overflow-y-auto p-4 border rounded-md">
+                          <div className="flex flex-col gap-4">
+                            {/* Custom skill form fields */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <FormLabel htmlFor="customSkillName">Skill Name</FormLabel>
+                                <Input
+                                  id="customSkillName"
+                                  placeholder="Enter skill name"
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <FormLabel htmlFor="customSkillCategory">Category</FormLabel>
+                                <Select>
+                                  <SelectTrigger id="customSkillCategory" className="mt-1">
+                                    <SelectValue placeholder="Select category" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="programming">Programming</SelectItem>
+                                    <SelectItem value="ui">UI/Front End</SelectItem>
+                                    <SelectItem value="database">Database</SelectItem>
+                                    <SelectItem value="cloud">Cloud</SelectItem>
+                                    <SelectItem value="data">Data Science</SelectItem>
+                                    <SelectItem value="devops">DevOps</SelectItem>
+                                    <SelectItem value="security">Security</SelectItem>
+                                    <SelectItem value="marketing">Marketing</SelectItem>
+                                    <SelectItem value="design">Design</SelectItem>
+                                    <SelectItem value="communication">Communication</SelectItem>
+                                    <SelectItem value="project">Project Management</SelectItem>
+                                    <SelectItem value="leadership">Leadership</SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <div>
+                              <FormLabel htmlFor="customSkillLevel">Skill Level</FormLabel>
+                              <Select>
+                                <SelectTrigger id="customSkillLevel" className="mt-1">
+                                  <SelectValue placeholder="Select level" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="beginner">Beginner</SelectItem>
+                                  <SelectItem value="intermediate">Intermediate</SelectItem>
+                                  <SelectItem value="expert">Expert</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <FormLabel htmlFor="customCertification">Certification (Optional)</FormLabel>
+                              <Input
+                                id="customCertification"
+                                placeholder="Certification name"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <FormLabel htmlFor="customCertLink">Certification Link (Optional)</FormLabel>
+                              <Input
+                                id="customCertLink"
+                                placeholder="https://www.example.com/certification"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <FormLabel htmlFor="customNotes">Notes (Optional)</FormLabel>
+                              <Textarea
+                                id="customNotes"
+                                placeholder="Additional notes about this skill"
+                                className="mt-1"
+                              />
+                            </div>
+                            
+                            <Button className="w-full mt-4">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Submit Custom Skill for Approval
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </TabsContent>
               </Tabs>
