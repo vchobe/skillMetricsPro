@@ -1014,7 +1014,9 @@ export default function SkillManagementPage() {
                                           targetForm.reset({
                                             name: target.name || '',
                                             skillIds: target.skillIds || [],
-                                            targetLevel: target.targetLevel || 'beginner',
+                                            targetLevel: (target.targetLevel === 'beginner' || target.targetLevel === 'intermediate' || target.targetLevel === 'expert') 
+                                              ? target.targetLevel 
+                                              : 'beginner',
                                             targetDate: formattedDate,
                                             targetNumber: target.targetNumber,
                                             description: target.description || ''
@@ -1023,7 +1025,9 @@ export default function SkillManagementPage() {
                                             id: target.id,
                                             name: target.name || '',
                                             skillIds: target.skillIds || [],
-                                            targetLevel: target.targetLevel || 'beginner',
+                                            targetLevel: (target.targetLevel === 'beginner' || target.targetLevel === 'intermediate' || target.targetLevel === 'expert') 
+                                              ? target.targetLevel 
+                                              : 'beginner',
                                             targetDate: formattedDate,
                                             targetNumber: target.targetNumber !== undefined && target.targetNumber !== null ? target.targetNumber : '',
                                             description: target.description || ''
