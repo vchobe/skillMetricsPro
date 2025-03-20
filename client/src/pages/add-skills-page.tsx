@@ -37,13 +37,13 @@ const skillSubmitSchema = insertSkillSchema.extend({
 
 // Categories displayed in each tab
 const TECHNICAL_CATEGORIES = [
-  { id: "programming", label: "Programming Languages", icon: <Code className="h-4 w-4" /> },
-  { id: "ui", label: "Front End Technology", icon: <Code className="h-4 w-4" /> },
-  { id: "database", label: "Database", icon: <Database className="h-4 w-4" /> },
-  { id: "data", label: "Data", icon: <Database className="h-4 w-4" /> },
-  { id: "aiml", label: "AI/ML", icon: <Brain className="h-4 w-4" /> },
-  { id: "cloud", label: "Cloud", icon: <Cloud className="h-4 w-4" /> },
-  { id: "testing", label: "Testing", icon: <TestTube className="h-4 w-4" /> },
+  { id: "Programming", label: "Programming Languages", icon: <Code className="h-4 w-4" /> },
+  { id: "UI", label: "Front End Technology", icon: <Code className="h-4 w-4" /> },
+  { id: "Database", label: "Database", icon: <Database className="h-4 w-4" /> },
+  { id: "Data", label: "Data", icon: <Database className="h-4 w-4" /> },
+  { id: "AI/ML", label: "AI/ML", icon: <Brain className="h-4 w-4" /> },
+  { id: "Cloud", label: "Cloud", icon: <Cloud className="h-4 w-4" /> },
+  { id: "Testing", label: "Testing", icon: <TestTube className="h-4 w-4" /> },
 ];
 
 type SkillEntry = z.infer<typeof skillSubmitSchema>;
@@ -53,7 +53,7 @@ export default function AddSkillsPage() {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("technical");
-  const [activeTechnicalCategory, setActiveTechnicalCategory] = useState<string>("programming");
+  const [activeTechnicalCategory, setActiveTechnicalCategory] = useState<string>("Programming");
   const [skillsList, setSkillsList] = useState<SkillEntry[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<Record<string, boolean>>({});
 
@@ -140,11 +140,11 @@ export default function AddSkillsPage() {
   const getFilteredSkills = () => {
     if (activeTab === "technical") {
       return skillsList.filter(skill => 
-        skill.category.toLowerCase() === activeTechnicalCategory.toLowerCase()
+        skill.category === activeTechnicalCategory
       );
     } else if (activeTab === "functional") {
       return skillsList.filter(skill => 
-        skill.category.toLowerCase() === "functional"
+        skill.category === "Functional"
       );
     }
     return [];
@@ -368,7 +368,7 @@ export default function AddSkillsPage() {
                         </TableHeader>
                         <TableBody>
                           {skillsList.filter(skill => 
-                            skill.category.toLowerCase() === "functional"
+                            skill.category === "Functional"
                           ).length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
@@ -377,7 +377,7 @@ export default function AddSkillsPage() {
                             </TableRow>
                           ) : (
                             skillsList.filter(skill => 
-                              skill.category.toLowerCase() === "functional"
+                              skill.category === "Functional"
                             ).map((skill, index) => {
                               const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
                               const isSelected = selectedSkills[skill.name] || false;
