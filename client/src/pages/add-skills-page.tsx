@@ -78,6 +78,12 @@ export default function AddSkillsPage() {
     // Technical sub-tabs
     programming: false,
     frontend: false,
+    // Functional sub-tabs
+    marketing: false,
+    design: false,
+    communication: false, 
+    project: false,
+    leadership: false,
     database: false,
     data: false, 
     cloud: false,
@@ -296,7 +302,23 @@ export default function AddSkillsPage() {
       devops: visitedTabs.devops
     });
     
-    const result = mainTabsVisited && techSubTabsVisited;
+    // All functional sub-tabs must be visited
+    const functionalSubTabsVisited = 
+      visitedTabs.marketing && 
+      visitedTabs.design && 
+      visitedTabs.communication && 
+      visitedTabs.project && 
+      visitedTabs.leadership;
+    
+    console.log("Functional sub-tabs visited:", functionalSubTabsVisited, {
+      marketing: visitedTabs.marketing,
+      design: visitedTabs.design,
+      communication: visitedTabs.communication,
+      project: visitedTabs.project,
+      leadership: visitedTabs.leadership
+    });
+    
+    const result = mainTabsVisited && techSubTabsVisited && functionalSubTabsVisited;
     console.log("All tabs visited check result:", result);
     return result;
   };
@@ -1048,14 +1070,17 @@ export default function AddSkillsPage() {
                           <TabsTrigger value="communication">
                             <MessageSquare className="h-4 w-4 mr-1" />
                             Communication
+                            {visitedTabs.communication && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                           <TabsTrigger value="project">
                             <Server className="h-4 w-4 mr-1" />
                             Project Management
+                            {visitedTabs.project && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                           <TabsTrigger value="leadership">
                             <Users className="h-4 w-4 mr-1" />
                             Leadership
+                            {visitedTabs.leadership && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                         </TabsList>
                         
