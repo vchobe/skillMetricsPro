@@ -1385,7 +1385,7 @@ export default function AddSkillsPage() {
                             {/* Custom skill form fields */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
-                                <FormLabel htmlFor="customSkillName">Skill Name</FormLabel>
+                                <label htmlFor="customSkillName" className="text-sm font-medium">Skill Name</label>
                                 <Input
                                   id="customSkillName"
                                   placeholder="Enter skill name"
@@ -1395,7 +1395,7 @@ export default function AddSkillsPage() {
                                 />
                               </div>
                               <div>
-                                <FormLabel htmlFor="customSkillCategory">Category</FormLabel>
+                                <label htmlFor="customSkillCategory" className="text-sm font-medium">Category</label>
                                 <Select 
                                   value={customSkill?.category || ""} 
                                   onValueChange={(value) => setCustomSkill(prev => ({ ...prev, category: value }))}
@@ -1422,7 +1422,7 @@ export default function AddSkillsPage() {
                               </div>
                             </div>
                             <div>
-                              <FormLabel htmlFor="customSkillLevel">Skill Level</FormLabel>
+                              <label htmlFor="customSkillLevel" className="text-sm font-medium">Skill Level</label>
                               <Select 
                                 value={customSkill?.level || "beginner"}
                                 onValueChange={(value) => setCustomSkill(prev => ({ ...prev, level: value as "beginner" | "intermediate" | "expert" }))}
@@ -1438,7 +1438,7 @@ export default function AddSkillsPage() {
                               </Select>
                             </div>
                             <div>
-                              <FormLabel htmlFor="customCertification">Certification (Optional)</FormLabel>
+                              <label htmlFor="customCertification" className="text-sm font-medium">Certification (Optional)</label>
                               <Input
                                 id="customCertification"
                                 placeholder="Certification name"
@@ -1448,7 +1448,7 @@ export default function AddSkillsPage() {
                               />
                             </div>
                             <div>
-                              <FormLabel htmlFor="customCertLink">Certification Link (Optional)</FormLabel>
+                              <label htmlFor="customCertLink" className="text-sm font-medium">Certification Link (Optional)</label>
                               <Input
                                 id="customCertLink"
                                 placeholder="https://www.example.com/certification"
@@ -1458,7 +1458,7 @@ export default function AddSkillsPage() {
                               />
                             </div>
                             <div>
-                              <FormLabel htmlFor="customNotes">Notes (Optional)</FormLabel>
+                              <label htmlFor="customNotes" className="text-sm font-medium">Notes (Optional)</label>
                               <Textarea
                                 id="customNotes"
                                 placeholder="Additional notes about this skill"
