@@ -36,14 +36,9 @@ const skillSubmitSchema = insertSkillSchema.extend({
 });
 
 // Categories displayed in each tab
+// Based on database logs, currently there is only Programming category available
 const TECHNICAL_CATEGORIES = [
   { id: "Programming", label: "Programming Languages", icon: <Code className="h-4 w-4" /> },
-  { id: "UI", label: "Front End Technology", icon: <Code className="h-4 w-4" /> },
-  { id: "Database", label: "Database", icon: <Database className="h-4 w-4" /> },
-  { id: "Data", label: "Data", icon: <Database className="h-4 w-4" /> },
-  { id: "AI/ML", label: "AI/ML", icon: <Brain className="h-4 w-4" /> },
-  { id: "Cloud", label: "Cloud", icon: <Cloud className="h-4 w-4" /> },
-  { id: "Testing", label: "Testing", icon: <TestTube className="h-4 w-4" /> },
 ];
 
 type SkillEntry = z.infer<typeof skillSubmitSchema>;
@@ -141,12 +136,13 @@ export default function AddSkillsPage() {
   };
 
   // Filter skill templates by category
+  // Currently, there's only 'Programming' category available
   const getFilteredSkills = () => {
     if (activeTab === "technical") {
-      return skillsList.filter(skill => 
-        skill.category === activeTechnicalCategory
-      );
+      // Show all skills in the Programming category
+      return skillsList;
     } else if (activeTab === "functional") {
+      // Currently no functional skills, but keeping the structure for future expansion
       return skillsList.filter(skill => 
         skill.category === "Functional"
       );
@@ -248,28 +244,14 @@ export default function AddSkillsPage() {
                 
                 {/* Technical Tab Content */}
                 <TabsContent value="technical">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
-                    {/* Category selection sidebar */}
-                    <div className="space-y-2">
-                      <h3 className="font-medium mb-2">Categories</h3>
-                      {TECHNICAL_CATEGORIES.map(category => (
-                        <button 
-                          key={category.id}
-                          onClick={() => setActiveTechnicalCategory(category.id)}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-md w-full text-left transition-colors ${
-                            activeTechnicalCategory === category.id 
-                              ? 'bg-primary text-white'
-                              : 'hover:bg-gray-100'
-                          }`}
-                        >
-                          {category.icon}
-                          <span>{category.label}</span>
-                        </button>
-                      ))}
+                  <div className="mt-4">
+                    <div className="mb-4 flex items-center">
+                      <Code className="h-5 w-5 mr-2" />
+                      <h3 className="font-medium">Programming Languages</h3>
                     </div>
                     
                     {/* Skills table */}
-                    <div className="md:col-span-3">
+                    <div>
                       <div className="rounded-md border">
                         <Table>
                           <TableHeader>
