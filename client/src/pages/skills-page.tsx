@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Skill } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
@@ -162,16 +162,24 @@ export default function SkillsPage() {
           <div className={`bg-gradient-to-br ${backgroundStyle} p-6 rounded-xl text-white mb-6`}>
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">My Skills</h2>
-              <Button 
-                onClick={() => {
-                  setEditingSkillId(null);
-                  setIsAddModalOpen(true);
-                }}
-                className="bg-white text-indigo-600 hover:bg-indigo-50"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Skill
-              </Button>
+              <div className="flex gap-3">
+                <Link href="/skills/add">
+                  <Button className="bg-white text-indigo-600 hover:bg-indigo-50">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Skills from Categories
+                  </Button>
+                </Link>
+                <Button 
+                  onClick={() => {
+                    setEditingSkillId(null);
+                    setIsAddModalOpen(true);
+                  }}
+                  className="bg-white text-indigo-600 hover:bg-indigo-50"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Custom Skill
+                </Button>
+              </div>
             </div>
           </div>
 

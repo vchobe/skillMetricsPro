@@ -504,12 +504,20 @@ export default function HomePage() {
                     <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
                       Start building your skill profile by adding skills you've acquired throughout your career
                     </p>
-                    <Link href="/skills">
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Your First Skill
-                      </Button>
-                    </Link>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Link href="/skills/add">
+                        <Button className="w-full sm:w-auto">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Skills from Categories
+                        </Button>
+                      </Link>
+                      <Link href="/skills">
+                        <Button variant="outline" className="w-full sm:w-auto">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Custom Skill
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 )}
                 {topSkills && topSkills.length > 0 && (
@@ -525,12 +533,20 @@ export default function HomePage() {
               <Card className="mt-8">
                 <CardHeader className="flex flex-col md:flex-row justify-between md:items-center border-b border-gray-200">
                   <CardTitle>Skill Gap Analysis</CardTitle>
-                  <Link href="/skills">
-                    <Button className="mt-4 md:mt-0" variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add New Skills
-                    </Button>
-                  </Link>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Link href="/skills/add">
+                      <Button className="mt-4 md:mt-0">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Skills from Categories
+                      </Button>
+                    </Link>
+                    <Link href="/skills">
+                      <Button className="mt-4 md:mt-0" variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Custom Skill
+                      </Button>
+                    </Link>
+                  </div>
                 </CardHeader>
                 <CardContent className="px-0">
                   {isLoadingTargets ? (
