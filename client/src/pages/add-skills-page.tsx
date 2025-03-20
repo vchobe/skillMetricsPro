@@ -285,6 +285,33 @@ export default function AddSkillsPage() {
     );
   };
 
+  // Handle submission of custom skill
+  const handleSubmitCustomSkill = () => {
+    if (!customSkill.name || !customSkill.category || !customSkill.level) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields for the custom skill.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const existingSkill = userSkills.find(
+      skill => skill.name.toLowerCase() === customSkill.name?.toLowerCase()
+    );
+
+    if (existingSkill) {
+      toast({
+        title: "Skill already exists",
+        description: "You already have this skill in your profile.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    customSubmitMutation.mutate(customSkill);
+  };
+
   // Check if a skill is already added by the user
   const isSkillAlreadyAdded = (skillName: string) => {
     return userSkills.some(skill => skill.name.toLowerCase() === skillName.toLowerCase());
