@@ -10,6 +10,7 @@ import HomePage from "@/pages/home-page";
 import SkillsPage from "@/pages/skills-page";
 import SkillDetailPage from "@/pages/skill-detail-page";
 import SkillHistoryPage from "@/pages/skill-history-page";
+import AddSkillsPage from "@/pages/add-skills-page";
 import ProfilePage from "@/pages/profile-page";
 import UserProfilePage from "@/pages/user-profile-page";
 import UsersPage from "@/pages/users-page";
@@ -66,6 +67,7 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/skills" component={SkillsPage} />
+      <ProtectedRoute path="/skills/add" component={AddSkillsPage} />
       <ProtectedRoute path="/skills/:id" component={SkillDetailPage} />
       <ProtectedRoute path="/history" component={SkillHistoryPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
