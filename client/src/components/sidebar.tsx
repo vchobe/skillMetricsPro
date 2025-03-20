@@ -9,7 +9,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   BarChart4,
-  LogOut
+  LogOut,
+  Trophy
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -142,6 +143,19 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 <Clock className="h-5 w-5" />
                 {(isOpen || !isMobile) && (
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill History</span>
+                )}
+              </Link>
+            </div>
+            
+            <div>
+              <Link href="/leaderboard" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/leaderboard" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <Trophy className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Leaderboard</span>
                 )}
               </Link>
             </div>
