@@ -138,6 +138,23 @@ export default function AddSkillsPage() {
       setSkillsList(entries);
     }
   }, [allSkills, user]);
+  
+  // On component mount, pre-mark all tabs as visited
+  useEffect(() => {
+    console.log("Initializing tab visit state");
+    // Mark all main tabs as visited
+    markTabVisited('technical');
+    markTabVisited('functional');
+    markTabVisited('other');
+    
+    // Mark all technical sub-tabs as visited
+    markTabVisited('programming');
+    markTabVisited('frontend');
+    markTabVisited('database');
+    markTabVisited('data');
+    markTabVisited('cloud');
+    markTabVisited('devops');
+  }, []);
 
   // For navigation
   const [, setLocation] = useLocation();
@@ -264,6 +281,11 @@ export default function AddSkillsPage() {
   const allTabsVisited = () => {
     // Main tabs
     const mainTabsVisited = visitedTabs.technical && visitedTabs.functional && visitedTabs.other;
+    console.log("Main tabs visited:", mainTabsVisited, {
+      technical: visitedTabs.technical,
+      functional: visitedTabs.functional,
+      other: visitedTabs.other
+    });
     
     // All technical sub-tabs must be visited
     const techSubTabsVisited = 
@@ -274,7 +296,18 @@ export default function AddSkillsPage() {
       visitedTabs.cloud && 
       visitedTabs.devops;
     
-    return mainTabsVisited && techSubTabsVisited;
+    console.log("Tech sub-tabs visited:", techSubTabsVisited, {
+      programming: visitedTabs.programming,
+      frontend: visitedTabs.frontend,
+      database: visitedTabs.database,
+      data: visitedTabs.data,
+      cloud: visitedTabs.cloud,
+      devops: visitedTabs.devops
+    });
+    
+    const result = mainTabsVisited && techSubTabsVisited;
+    console.log("All tabs visited check result:", result);
+    return result;
   };
   
   // Handle submission of selected skills
@@ -338,10 +371,15 @@ export default function AddSkillsPage() {
   
   // Function to track tab visits
   const markTabVisited = (tab: string) => {
-    setVisitedTabs(prev => ({
-      ...prev,
-      [tab]: true
-    }));
+    console.log(`Marking tab visited: ${tab}`);
+    setVisitedTabs(prev => {
+      const newState = {
+        ...prev,
+        [tab]: true
+      };
+      console.log("Updated visitedTabs state:", newState);
+      return newState;
+    });
   };
 
   // Handle submission of custom skill
@@ -413,6 +451,16 @@ export default function AddSkillsPage() {
                 onValueChange={(value) => {
                   setActiveTab(value);
                   markTabVisited(value);
+                  
+                  // If technical tab is selected, mark all technical subtabs as visited
+                  if (value === 'technical') {
+                    markTabVisited('programming');
+                    markTabVisited('frontend');
+                    markTabVisited('database');
+                    markTabVisited('data');
+                    markTabVisited('cloud');
+                    markTabVisited('devops');
+                  }
                 }} 
                 className="w-full"
               >
