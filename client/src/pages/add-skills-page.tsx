@@ -69,6 +69,21 @@ export default function AddSkillsPage() {
   const [activeTechnicalCategory, setActiveTechnicalCategory] = useState<string>("Programming");
   const [skillsList, setSkillsList] = useState<SkillEntry[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<Record<string, boolean>>({});
+  
+  // Tab visit tracking
+  const [visitedTabs, setVisitedTabs] = useState({
+    technical: false,
+    functional: false,
+    other: false,
+    // Technical sub-tabs
+    programming: false,
+    frontend: false,
+    database: false,
+    data: false, 
+    cloud: false,
+    devops: false
+  });
+  
   const [customSkill, setCustomSkill] = useState<{
     name?: string;
     category?: string;
@@ -245,8 +260,35 @@ export default function AddSkillsPage() {
     return [];
   };
 
+  // Check if all required tabs have been visited
+  const allTabsVisited = () => {
+    // Main tabs
+    const mainTabsVisited = visitedTabs.technical && visitedTabs.functional && visitedTabs.other;
+    
+    // At least one technical sub-tab should be visited
+    const techSubTabVisited = 
+      visitedTabs.programming || 
+      visitedTabs.frontend || 
+      visitedTabs.database || 
+      visitedTabs.data || 
+      visitedTabs.cloud || 
+      visitedTabs.devops;
+    
+    return mainTabsVisited && techSubTabVisited;
+  };
+  
   // Handle submission of selected skills
   const handleSubmitSkills = () => {
+    // Check if user has visited all required tabs
+    if (!allTabsVisited()) {
+      toast({
+        title: "Please review all categories",
+        description: "Please visit all main tabs and at least one technical sub-tab before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const skillsToSubmit = skillsList.filter(skill => selectedSkills[skill.name]);
     
     if (skillsToSubmit.length === 0) {
@@ -293,9 +335,27 @@ export default function AddSkillsPage() {
       )
     );
   };
+  
+  // Function to track tab visits
+  const markTabVisited = (tab: string) => {
+    setVisitedTabs(prev => ({
+      ...prev,
+      [tab]: true
+    }));
+  };
 
   // Handle submission of custom skill
   const handleSubmitCustomSkill = () => {
+    // Check if user has visited all required tabs
+    if (!allTabsVisited()) {
+      toast({
+        title: "Please review all categories",
+        description: "Please visit all main tabs and at least one technical sub-tab before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!customSkill.name || !customSkill.category || !customSkill.level) {
       toast({
         title: "Missing required fields",
@@ -348,19 +408,29 @@ export default function AddSkillsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <Tabs 
+                value={activeTab} 
+                onValueChange={(value) => {
+                  setActiveTab(value);
+                  markTabVisited(value);
+                }} 
+                className="w-full"
+              >
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="technical" className="flex items-center gap-2">
                     <Code className="h-4 w-4" />
                     <span>Technical</span>
+                    {visitedTabs.technical && <Check className="h-3 w-3 ml-1 text-green-500" />}
                   </TabsTrigger>
                   <TabsTrigger value="functional" className="flex items-center gap-2">
                     <Brain className="h-4 w-4" />
                     <span>Functional</span>
+                    {visitedTabs.functional && <Check className="h-3 w-3 ml-1 text-green-500" />}
                   </TabsTrigger>
                   <TabsTrigger value="other" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     <span>Other</span>
+                    {visitedTabs.other && <Check className="h-3 w-3 ml-1 text-green-500" />}
                   </TabsTrigger>
                 </TabsList>
                 
@@ -368,31 +438,40 @@ export default function AddSkillsPage() {
                 <TabsContent value="technical">
                   <div className="mt-4">
                     <div className="mb-6">
-                      <Tabs defaultValue="programming">
+                      <Tabs 
+                        defaultValue="programming"
+                        onValueChange={(value) => markTabVisited(value)}
+                      >
                         <TabsList className="mb-4">
                           <TabsTrigger value="programming">
                             <Code className="h-4 w-4 mr-1" />
                             Programming
+                            {visitedTabs.programming && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                           <TabsTrigger value="frontend">
                             <LayoutDashboard className="h-4 w-4 mr-1" />
                             UI/Front End
+                            {visitedTabs.frontend && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                           <TabsTrigger value="database">
                             <Database className="h-4 w-4 mr-1" />
                             Database
+                            {visitedTabs.database && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                           <TabsTrigger value="data">
                             <BarChart2 className="h-4 w-4 mr-1" />
                             Data
+                            {visitedTabs.data && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                           <TabsTrigger value="cloud">
                             <Cloud className="h-4 w-4 mr-1" />
                             Cloud
+                            {visitedTabs.cloud && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                           <TabsTrigger value="devops">
                             <GitBranch className="h-4 w-4 mr-1" />
                             DevOps
+                            {visitedTabs.devops && <Check className="h-3 w-3 ml-1 text-green-500" />}
                           </TabsTrigger>
                         </TabsList>
                         
