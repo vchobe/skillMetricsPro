@@ -69,6 +69,14 @@ export default function AddSkillsPage() {
   const [activeTechnicalCategory, setActiveTechnicalCategory] = useState<string>("Programming");
   const [skillsList, setSkillsList] = useState<SkillEntry[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<Record<string, boolean>>({});
+  const [customSkill, setCustomSkill] = useState<{
+    name?: string;
+    category?: string;
+    level?: "beginner" | "intermediate" | "expert";
+    certification?: string;
+    credlyLink?: string;
+    notes?: string;
+  }>({ level: "beginner" });
 
   // Get all skills (including those from other users)
   const { data: allSkills = [], isLoading: isLoadingAllSkills } = useQuery<Skill[]>({
@@ -150,6 +158,53 @@ export default function AddSkillsPage() {
       toast({
         title: "Error submitting skills",
         description: error.message || "There was an error submitting your skills. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Submit custom skill mutation
+  const customSubmitMutation = useMutation({
+    mutationFn: async (skill: typeof customSkill) => {
+      if (!skill.name || !skill.category || !skill.level) {
+        throw new Error("Please fill all required fields");
+      }
+      
+      const skillData = {
+        userId: user?.id || 0,
+        name: skill.name,
+        category: skill.category,
+        level: skill.level,
+        certification: skill.certification || "",
+        credlyLink: skill.credlyLink || "",
+        notes: skill.notes || "",
+        changeNote: "Custom skill addition",
+        status: "pending",
+        is_update: false,
+        submitted_at: new Date().toISOString()
+      };
+      
+      const res = await apiRequest("POST", "/api/skills/pending", skillData);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/skills"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/skills/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/pending-skills"] });
+      
+      toast({
+        title: "Custom skill submitted",
+        description: "Your custom skill has been submitted and is pending approval.",
+        variant: "default",
+      });
+      
+      // Reset custom skill form
+      setCustomSkill({ level: "beginner" });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error submitting custom skill",
+        description: error.message || "There was an error submitting your custom skill. Please try again.",
         variant: "destructive",
       });
     },
@@ -1308,35 +1363,43 @@ export default function AddSkillsPage() {
                                   id="customSkillName"
                                   placeholder="Enter skill name"
                                   className="mt-1"
+                                  value={customSkill?.name || ""}
+                                  onChange={(e) => setCustomSkill(prev => ({ ...prev, name: e.target.value }))}
                                 />
                               </div>
                               <div>
                                 <FormLabel htmlFor="customSkillCategory">Category</FormLabel>
-                                <Select>
+                                <Select 
+                                  value={customSkill?.category || ""} 
+                                  onValueChange={(value) => setCustomSkill(prev => ({ ...prev, category: value }))}
+                                >
                                   <SelectTrigger id="customSkillCategory" className="mt-1">
                                     <SelectValue placeholder="Select category" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="programming">Programming</SelectItem>
-                                    <SelectItem value="ui">UI/Front End</SelectItem>
-                                    <SelectItem value="database">Database</SelectItem>
-                                    <SelectItem value="cloud">Cloud</SelectItem>
-                                    <SelectItem value="data">Data Science</SelectItem>
-                                    <SelectItem value="devops">DevOps</SelectItem>
-                                    <SelectItem value="security">Security</SelectItem>
-                                    <SelectItem value="marketing">Marketing</SelectItem>
-                                    <SelectItem value="design">Design</SelectItem>
-                                    <SelectItem value="communication">Communication</SelectItem>
-                                    <SelectItem value="project">Project Management</SelectItem>
-                                    <SelectItem value="leadership">Leadership</SelectItem>
-                                    <SelectItem value="other">Other</SelectItem>
+                                    <SelectItem value="Programming">Programming</SelectItem>
+                                    <SelectItem value="UI">UI/Front End</SelectItem>
+                                    <SelectItem value="Database">Database</SelectItem>
+                                    <SelectItem value="Cloud">Cloud</SelectItem>
+                                    <SelectItem value="Data Science">Data Science</SelectItem>
+                                    <SelectItem value="DevOps">DevOps</SelectItem>
+                                    <SelectItem value="Security">Security</SelectItem>
+                                    <SelectItem value="Marketing">Marketing</SelectItem>
+                                    <SelectItem value="Design">Design</SelectItem>
+                                    <SelectItem value="Communication">Communication</SelectItem>
+                                    <SelectItem value="Project Management">Project Management</SelectItem>
+                                    <SelectItem value="Leadership">Leadership</SelectItem>
+                                    <SelectItem value="Other">Other</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
                             </div>
                             <div>
                               <FormLabel htmlFor="customSkillLevel">Skill Level</FormLabel>
-                              <Select>
+                              <Select 
+                                value={customSkill?.level || "beginner"}
+                                onValueChange={(value) => setCustomSkill(prev => ({ ...prev, level: value as "beginner" | "intermediate" | "expert" }))}
+                              >
                                 <SelectTrigger id="customSkillLevel" className="mt-1">
                                   <SelectValue placeholder="Select level" />
                                 </SelectTrigger>
@@ -1353,6 +1416,8 @@ export default function AddSkillsPage() {
                                 id="customCertification"
                                 placeholder="Certification name"
                                 className="mt-1"
+                                value={customSkill?.certification || ""}
+                                onChange={(e) => setCustomSkill(prev => ({ ...prev, certification: e.target.value }))}
                               />
                             </div>
                             <div>
@@ -1361,6 +1426,8 @@ export default function AddSkillsPage() {
                                 id="customCertLink"
                                 placeholder="https://www.example.com/certification"
                                 className="mt-1"
+                                value={customSkill?.credlyLink || ""}
+                                onChange={(e) => setCustomSkill(prev => ({ ...prev, credlyLink: e.target.value }))}
                               />
                             </div>
                             <div>
@@ -1369,11 +1436,21 @@ export default function AddSkillsPage() {
                                 id="customNotes"
                                 placeholder="Additional notes about this skill"
                                 className="mt-1"
+                                value={customSkill?.notes || ""}
+                                onChange={(e) => setCustomSkill(prev => ({ ...prev, notes: e.target.value }))}
                               />
                             </div>
                             
-                            <Button className="w-full mt-4">
-                              <Plus className="h-4 w-4 mr-2" />
+                            <Button 
+                              className="w-full mt-4" 
+                              onClick={handleSubmitCustomSkill}
+                              disabled={!customSkill?.name || !customSkill?.category || customSubmitMutation.isPending}
+                            >
+                              {customSubmitMutation.isPending ? (
+                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-opacity-20 border-t-white"></div>
+                              ) : (
+                                <Plus className="h-4 w-4 mr-2" />
+                              )}
                               Submit Custom Skill for Approval
                             </Button>
                           </div>

@@ -166,19 +166,9 @@ export default function SkillsPage() {
                 <Link href="/skills/add">
                   <Button className="bg-white text-indigo-600 hover:bg-indigo-50">
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Skills from Categories
+                    Add Skills
                   </Button>
                 </Link>
-                <Button 
-                  onClick={() => {
-                    setEditingSkillId(null);
-                    setIsAddModalOpen(true);
-                  }}
-                  className="bg-white text-indigo-600 hover:bg-indigo-50"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Custom Skill
-                </Button>
               </div>
             </div>
           </div>
@@ -262,10 +252,12 @@ export default function SkillsPage() {
                   : "Start building your skill profile by adding skills you've acquired"}
               </p>
               {!(searchTerm || levelFilter !== "all" || categoryFilter !== "all") && (
-                <Button onClick={() => setIsAddModalOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Skill
-                </Button>
+                <Link href="/skills/add">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Skill
+                  </Button>
+                </Link>
               )}
               {(searchTerm || levelFilter || categoryFilter) && (
                 <Button 
