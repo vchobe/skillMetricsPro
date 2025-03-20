@@ -265,16 +265,16 @@ export default function AddSkillsPage() {
     // Main tabs
     const mainTabsVisited = visitedTabs.technical && visitedTabs.functional && visitedTabs.other;
     
-    // At least one technical sub-tab should be visited
-    const techSubTabVisited = 
-      visitedTabs.programming || 
-      visitedTabs.frontend || 
-      visitedTabs.database || 
-      visitedTabs.data || 
-      visitedTabs.cloud || 
+    // All technical sub-tabs must be visited
+    const techSubTabsVisited = 
+      visitedTabs.programming && 
+      visitedTabs.frontend && 
+      visitedTabs.database && 
+      visitedTabs.data && 
+      visitedTabs.cloud && 
       visitedTabs.devops;
     
-    return mainTabsVisited && techSubTabVisited;
+    return mainTabsVisited && techSubTabsVisited;
   };
   
   // Handle submission of selected skills
@@ -283,7 +283,7 @@ export default function AddSkillsPage() {
     if (!allTabsVisited()) {
       toast({
         title: "Please review all categories",
-        description: "Please visit all main tabs and at least one technical sub-tab before submitting.",
+        description: "Please visit ALL main tabs and ALL technical sub-tabs before submitting.",
         variant: "destructive",
       });
       return;
@@ -350,7 +350,7 @@ export default function AddSkillsPage() {
     if (!allTabsVisited()) {
       toast({
         title: "Please review all categories",
-        description: "Please visit all main tabs and at least one technical sub-tab before submitting.",
+        description: "Please visit ALL main tabs and ALL technical sub-tabs before submitting.",
         variant: "destructive",
       });
       return;
