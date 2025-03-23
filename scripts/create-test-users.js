@@ -1,6 +1,11 @@
-import { pool } from '../server/db.ts';
+import pg from 'pg';
 import { scrypt, randomBytes } from 'crypto';
 import { promisify } from 'util';
+
+const { Pool } = pg;
+const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL 
+});
 
 const scryptAsync = promisify(scrypt);
 
@@ -57,7 +62,7 @@ async function createTestUsers() {
 
       // Insert user
       const userResult = await pool.query(
-        `INSERT INTO users (username, email, password, "firstName", "lastName", is_admin) 
+        `INSERT INTO users (username, email, password, first_name, last_name, is_admin) 
          VALUES ($1, $2, $3, $4, $5, $6) 
          RETURNING id`,
         [username, email, password, firstName, lastName, is_admin]
@@ -77,23 +82,25 @@ async function createTestUsers() {
         const lastUpdated = getRandomDate(new Date(2023, 0, 1), new Date());
         
         // Insert skill
+        const credlyLink = isCertification ? `https://www.credly.com/badges/${name.toLowerCase().replace(/\s/g, '-')}` : null;
+        const certification = isCertification ? `${name} Certification` : null;
+        
         const skillResult = await pool.query(
           `INSERT INTO skills (
-            user_id, name, description, category, level, years_of_experience, 
-            certification, certification_link, last_updated, endorsement_count
+            user_id, name, category, level, last_updated, 
+            certification, credly_link, notes, endorsement_count
           ) 
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
           RETURNING id`,
           [
             userId, 
             name, 
-            `Experience with ${name}`, 
             category, 
             level, 
-            Math.floor(Math.random() * 10) + 1,
-            isCertification,
-            isCertification ? `https://cert.example.com/${name.toLowerCase().replace(/\s/g, '-')}` : null,
             lastUpdated,
+            certification,
+            credlyLink,
+            `Experience with ${name}`,
             Math.floor(Math.random() * 5)
           ]
         );
@@ -104,7 +111,7 @@ async function createTestUsers() {
         // Create skill history entry
         await pool.query(
           `INSERT INTO skill_histories (
-            skill_id, user_id, previous_level, new_level, date, note
+            skill_id, user_id, previous_level, new_level, created_at, change_note
           ) 
           VALUES ($1, $2, $3, $4, $5, $6)`,
           [
