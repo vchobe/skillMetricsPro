@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
-import { getQueryFn } from "../lib/queryClient";
+import { getQueryFn, apiRequest } from "../lib/queryClient";
 import { formatDate, DATE_FORMATS } from "../lib/date-utils";
+import { useToast } from "../hooks/use-toast";
 
 import Header from "../components/header";
 import Sidebar from "../components/sidebar";
@@ -11,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
+import { ScrollArea } from "../components/ui/scroll-area";
 import {
   ChevronLeft,
   Building2,
@@ -24,6 +27,9 @@ import {
   Users,
   CircleCheck,
   CircleAlert,
+  Plus,
+  Check,
+  Link as LinkIcon,
 } from "lucide-react";
 
 type Client = {
@@ -54,7 +60,11 @@ export default function ClientDetailPage() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const [isOpen, setIsOpen] = useState(true);
+  const [showLinkProjectDialog, setShowLinkProjectDialog] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const clientId = parseInt(params.id);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Fetch client details
   const { data: client, isLoading: clientLoading } = useQuery<Client>({
@@ -74,6 +84,47 @@ export default function ClientDetailPage() {
       url: `/api/clients/${clientId}/projects`,
     }),
     enabled: !isNaN(clientId),
+  });
+  
+  // Fetch all available projects for linking
+  const { data: availableProjects = [], isLoading: loadingAvailableProjects } = useQuery<Project[]>({
+    queryKey: ["all-projects"],
+    queryFn: getQueryFn({
+      on401: "throw",
+      url: "/api/projects",
+    }),
+    enabled: showLinkProjectDialog,
+  });
+  
+  // Mutation for linking a project to this client
+  const linkProjectMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await apiRequest(
+        "PUT",
+        `/api/projects/${projectId}`,
+        { clientId }
+      );
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Project linked successfully",
+        description: "The project has been assigned to this client.",
+        variant: "default",
+      });
+      setShowLinkProjectDialog(false);
+      setSelectedProjectId(null);
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["client-projects", clientId] });
+      queryClient.invalidateQueries({ queryKey: ["all-projects"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to link project",
+        description: error.message || "An error occurred. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
   
   // Get status color
@@ -443,6 +494,15 @@ export default function ClientDetailPage() {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
+                    onClick={() => setShowLinkProjectDialog(true)}
+                  >
+                    <LinkIcon className="h-4 w-4 mr-2" />
+                    Link Existing Project
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
                     onClick={() => setLocation(`/project-management?tab=clients&edit=${client.id}`)}
                   >
                     <Edit className="h-4 w-4 mr-2" />
@@ -463,6 +523,90 @@ export default function ClientDetailPage() {
           </div>
         </div>
       </div>
+      
+      {/* Link Existing Project Dialog */}
+      <Dialog open={showLinkProjectDialog} onOpenChange={setShowLinkProjectDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Link Existing Project to {client?.name}</DialogTitle>
+          </DialogHeader>
+          
+          {loadingAvailableProjects ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+          ) : availableProjects.filter(p => !p.clientId || p.clientId === 0).length === 0 ? (
+            <div className="text-center p-8 text-gray-500">
+              <Briefcase className="h-12 w-12 mx-auto opacity-50 mb-4" />
+              <p className="mb-2">No unassigned projects available</p>
+              <p className="text-sm">All projects are already assigned to clients.</p>
+            </div>
+          ) : (
+            <>
+              <ScrollArea className="h-[300px] rounded-md border p-4">
+                {availableProjects
+                  .filter(p => !p.clientId || p.clientId === 0)
+                  .map(project => (
+                    <div 
+                      key={project.id}
+                      className={`p-4 mb-2 rounded-md flex items-center justify-between cursor-pointer border ${
+                        selectedProjectId === project.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setSelectedProjectId(project.id)}
+                    >
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          {selectedProjectId === project.id ? (
+                            <Check className="h-5 w-5 text-indigo-600" />
+                          ) : (
+                            <Briefcase className="h-5 w-5 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <h4 className="text-sm font-medium">{project.name}</h4>
+                          <div className="flex items-center space-x-2">
+                            <Badge className={getStatusColor(project.status)}>
+                              {project.status.replace("_", " ").charAt(0).toUpperCase() + project.status.replace("_", " ").slice(1)}
+                            </Badge>
+                            <span className="text-xs text-gray-500">
+                              Created: {formatDate(project.createdAt, DATE_FORMATS.DISPLAY_SHORT)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                }
+              </ScrollArea>
+              
+              <div className="flex justify-end gap-3 mt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowLinkProjectDialog(false);
+                    setSelectedProjectId(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  disabled={!selectedProjectId || linkProjectMutation.isPending}
+                  onClick={() => selectedProjectId && linkProjectMutation.mutate(selectedProjectId)}
+                >
+                  {linkProjectMutation.isPending ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                      Linking...
+                    </>
+                  ) : (
+                    "Link Project"
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
