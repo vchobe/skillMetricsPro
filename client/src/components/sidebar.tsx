@@ -11,7 +11,10 @@ import {
   BarChart4,
   UsersRound,
   LogOut,
-  Trophy
+  Trophy,
+  Briefcase,
+  Building2,
+  FolderKanban
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -109,6 +112,13 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
               </Link>
             </div>
             
+            {/* Skills Section */}
+            {(isOpen || !isMobile) && (
+              <h3 className={`px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${!isOpen && "lg:hidden"}`}>
+                Skills
+              </h3>
+            )}
+            
             <div>
               <Link href="/skills" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
                 currentPath === "/skills" 
@@ -118,19 +128,6 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 <Brain className="h-5 w-5" />
                 {(isOpen || !isMobile) && (
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>My Skills</span>
-                )}
-              </Link>
-            </div>
-            
-            <div>
-              <Link href="/organization" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-                currentPath === "/organization" 
-                  ? "bg-gray-900 text-white" 
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}>
-                <BarChart4 className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Organization</span>
                 )}
               </Link>
             </div>
@@ -149,19 +146,6 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
             </div>
             
             <div>
-              <Link href="/users" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-                currentPath === "/users" 
-                  ? "bg-gray-900 text-white" 
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}>
-                <UsersRound className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Users</span>
-                )}
-              </Link>
-            </div>
-            
-            <div>
               <Link href="/history" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
                 currentPath === "/history" 
                   ? "bg-gray-900 text-white" 
@@ -170,6 +154,72 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 <Clock className="h-5 w-5" />
                 {(isOpen || !isMobile) && (
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill History</span>
+                )}
+              </Link>
+            </div>
+            
+            {/* Projects Section */}
+            {(isOpen || !isMobile) && (
+              <h3 className={`px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${!isOpen && "lg:hidden"}`}>
+                Projects
+              </h3>
+            )}
+            
+            <div>
+              <Link href="/projects" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/projects" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <Briefcase className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>My Projects</span>
+                )}
+              </Link>
+            </div>
+            
+            <div>
+              <Link href="/clients" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/clients" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <Building2 className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Clients</span>
+                )}
+              </Link>
+            </div>
+            
+            {/* Organization Section */}
+            {(isOpen || !isMobile) && (
+              <h3 className={`px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${!isOpen && "lg:hidden"}`}>
+                Organization
+              </h3>
+            )}
+            
+            <div>
+              <Link href="/organization" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/organization" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <BarChart4 className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Dashboard</span>
+                )}
+              </Link>
+            </div>
+            
+            <div>
+              <Link href="/users" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/users" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <UsersRound className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Users</span>
                 )}
               </Link>
             </div>
@@ -224,6 +274,19 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                       <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Admin Dashboard</span>
                     )}
                   </a>
+                </div>
+                
+                <div>
+                  <Link href="/project-management" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                    currentPath === "/project-management" 
+                      ? "bg-gray-900 text-white" 
+                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                  }`}>
+                    <FolderKanban className="h-5 w-5" />
+                    {(isOpen || !isMobile) && (
+                      <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Project Management</span>
+                    )}
+                  </Link>
                 </div>
               </div>
             </div>
