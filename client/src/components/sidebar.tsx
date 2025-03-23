@@ -4,12 +4,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { 
   LayoutDashboard, 
   Brain, 
-  Clock, 
   UserCircle, 
   BarChart4,
   UsersRound,
   LogOut,
-  Trophy,
   Briefcase,
   Building2,
   FolderKanban
@@ -70,28 +68,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
               }`}>
                 <Brain className="h-5 w-5" />
                 <span className="ml-3">My Skills</span>
-              </Link>
-            </div>
-            
-            <div>
-              <Link href="/leaderboard" className={`flex items-center px-4 py-3 rounded-md ${
-                currentPath === "/leaderboard" 
-                  ? "bg-gray-900 text-white" 
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}>
-                <Trophy className="h-5 w-5" />
-                <span className="ml-3">Leaderboard</span>
-              </Link>
-            </div>
-            
-            <div>
-              <Link href="/history" className={`flex items-center px-4 py-3 rounded-md ${
-                currentPath === "/history" 
-                  ? "bg-gray-900 text-white" 
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}>
-                <Clock className="h-5 w-5" />
-                <span className="ml-3">Skill History</span>
               </Link>
             </div>
             
