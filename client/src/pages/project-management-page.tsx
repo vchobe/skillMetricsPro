@@ -393,11 +393,13 @@ export default function ProjectManagementPage() {
   // Create project mutation
   const createProjectMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
+      console.log("Original dates:", {startDate: data.startDate, endDate: data.endDate});
       const formattedData = {
         ...data,
         startDate: data.startDate ? standardizeDate(data.startDate) : null,
         endDate: data.endDate ? standardizeDate(data.endDate) : null,
       };
+      console.log("Formatted data to send:", formattedData);
       return apiRequest("POST", "/api/projects", formattedData);
     },
     onSuccess: () => {
