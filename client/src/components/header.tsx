@@ -56,18 +56,9 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
   }).slice(0, 5);
   
   return (
-    <header className="bg-white shadow-sm z-10 sticky top-0">
-      <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+    <header className="bg-white shadow-sm z-10 sticky top-0 ml-64">
+      <div className="py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
         <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleSidebar} 
-            className="lg:hidden mr-2"
-          >
-            <MenuIcon className="h-5 w-5" />
-            <span className="sr-only">Toggle sidebar</span>
-          </Button>
           <div className="flex items-center">
             <img src={atyetiLogo} alt="Atyeti Logo" className="atyeti-logo mr-3" />
             <h1 className="text-lg font-semibold text-gray-900">Skill Metrics - {title}</h1>
