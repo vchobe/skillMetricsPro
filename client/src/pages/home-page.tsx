@@ -621,9 +621,9 @@ export default function HomePage() {
                                 <div className="flex items-center">
                                   <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                                   <span>
-                                    {project.startDate ? formatDate(project.startDate, DATE_FORMATS.SHORT) : 'TBD'} 
+                                    {project.startDate ? formatDate(project.startDate, DATE_FORMATS.DISPLAY_SHORT) : 'TBD'} 
                                     {' - '}
-                                    {project.endDate ? formatDate(project.endDate, DATE_FORMATS.SHORT) : 'Ongoing'}
+                                    {project.endDate ? formatDate(project.endDate, DATE_FORMATS.DISPLAY_SHORT) : 'Ongoing'}
                                   </span>
                                 </div>
                               </td>
