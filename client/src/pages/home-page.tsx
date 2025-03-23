@@ -29,6 +29,7 @@ import { formatRelativeTime, parseDate, formatDate, DATE_FORMATS } from "@/lib/d
 export default function HomePage() {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isAdmin = user?.isAdmin || user?.is_admin;
   
   // Get user skills
   const { data: skills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
@@ -57,7 +58,7 @@ export default function HomePage() {
   
   // Get user's projects (both current and past)
   const { data: userProjects = [], isLoading: isLoadingProjects } = useQuery<any[]>({
-    queryKey: ["/api/projects"],
+    queryKey: [isAdmin ? `/api/users/${user?.id}/projects` : "/api/projects"],
   });
   
   // Define the SkillTarget type

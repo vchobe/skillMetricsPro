@@ -717,11 +717,157 @@ export default function ProjectManagementPage() {
               Back to {projectId ? "Project Details" : editProjectId ? "Project Details" : editClientId ? "Client Details" : "Projects"}
             </Button>
             
-            <h1 className="text-2xl font-bold">
-              {projectId ? "Manage Project Resources and Skills" : 
-               editProjectId ? "Edit Project" : 
-               editClientId ? "Edit Client" : "Project Management"}
-            </h1>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <h1 className="text-2xl font-bold">
+                {projectId ? "Manage Project Resources and Skills" : 
+                editProjectId ? "Edit Project" : 
+                editClientId ? "Edit Client" : "Project Management"}
+              </h1>
+              
+              {!projectId && !editProjectId && !editClientId && isAdmin && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className="flex items-center gap-2 mt-2 md:mt-0"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Project
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[725px]">
+                    <DialogHeader>
+                      <DialogTitle>Create New Project</DialogTitle>
+                    </DialogHeader>
+                    
+                    <Form {...projectForm}>
+                      <form onSubmit={projectForm.handleSubmit(onProjectSubmit)} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            control={projectForm.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Project Name *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Enter project name" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={projectForm.control}
+                            name="clientId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Client *</FormLabel>
+                                <Select 
+                                  onValueChange={(value) => field.onChange(parseInt(value))} 
+                                  defaultValue={field.value.toString()}
+                                  value={field.value.toString()}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a client" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {!clientId && <SelectItem value="0">Select a client</SelectItem>}
+                                    {managementData?.clients?.map((client) => (
+                                      <SelectItem key={client.id} value={client.id.toString()}>
+                                        {client.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={projectForm.control}
+                            name="status"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Status *</FormLabel>
+                                <Select 
+                                  onValueChange={field.onChange} 
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="planning">Planning</SelectItem>
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="on_hold">On Hold</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={projectForm.control}
+                            name="location"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Location</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Project location" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <FormField
+                          control={projectForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Add project description..." 
+                                  className="min-h-[100px]" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <div className="flex justify-end gap-3">
+                          <Button 
+                            type="submit" 
+                            disabled={createProjectMutation.isPending}
+                          >
+                            {createProjectMutation.isPending ? (
+                              <>
+                                <span className="animate-spin mr-2">◌</span>
+                                Creating...
+                              </>
+                            ) : (
+                              "Create Project"
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </div>
           
           <Tabs defaultValue={initialTab} className="space-y-6">
