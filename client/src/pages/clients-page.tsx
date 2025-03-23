@@ -72,10 +72,10 @@ export default function ClientsPage() {
   // If not admin, show access denied
   if (!isAdmin) {
     return (
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
         <Sidebar currentPath="/clients" />
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 ml-64 flex flex-col overflow-hidden">
           <Header 
             title="Clients" 
             toggleSidebar={() => {}} 
@@ -100,10 +100,10 @@ export default function ClientsPage() {
   }
   
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
       <Sidebar currentPath="/clients" />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 ml-64 flex flex-col overflow-hidden">
         <Header 
           title="Clients" 
           toggleSidebar={() => {}} 

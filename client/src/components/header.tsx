@@ -56,7 +56,7 @@ export default function Header({ title, toggleSidebar, isSidebarOpen }: HeaderPr
   }).slice(0, 5);
   
   return (
-    <header className="bg-white shadow-sm z-10 sticky top-0 ml-64">
+    <header className="bg-white shadow-sm z-10 sticky top-0">
       <div className="py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
         <div className="flex items-center">
           <div className="flex items-center">
