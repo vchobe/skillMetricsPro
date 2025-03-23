@@ -70,7 +70,6 @@ type ProjectSkill = {
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const [isOpen, setIsOpen] = useState(true);
   const projectId = parseInt(params.id);
   
   // Fetch project details
