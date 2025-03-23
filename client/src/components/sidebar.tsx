@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { 
@@ -6,8 +6,6 @@ import {
   Brain, 
   Clock, 
   UserCircle, 
-  ChevronLeft, 
-  ChevronRight,
   BarChart4,
   UsersRound,
   LogOut,
@@ -17,34 +15,15 @@ import {
   FolderKanban
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 // No need for logo import in sidebar
 
 interface SidebarProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
   currentPath: string;
 }
 
-export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps) {
+export default function Sidebar({ currentPath }: SidebarProps) {
   const [location, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
-  const [isMobile, setIsMobile] = useState(false);
-  
-  // Check if on mobile screen
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-    
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    
-    return () => {
-      window.removeEventListener("resize", checkMobile);
-    };
-  }, []);
   
   // Handle logout
   const handleLogout = () => {
@@ -68,7 +47,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
         <div className="flex flex-col flex-grow p-4 overflow-auto">
           <div className="space-y-2">
             <div>
-              <Link href="/" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+              <Link href="/" className={`flex items-center px-4 py-3 rounded-md ${
                 currentPath === "/" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"

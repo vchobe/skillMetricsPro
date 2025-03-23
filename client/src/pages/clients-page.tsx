@@ -27,7 +27,7 @@ type Client = {
 
 export default function ClientsPage() {
   const [, setLocation] = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Fixed sidebar, no need for open/closed state
   const [searchQuery, setSearchQuery] = useState("");
   const { user } = useAuth();
   const isAdmin = user?.is_admin || user?.isAdmin;
@@ -73,17 +73,13 @@ export default function ClientsPage() {
   if (!isAdmin) {
     return (
       <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          setIsOpen={setIsSidebarOpen} 
-          currentPath="/clients" 
-        />
+        <Sidebar currentPath="/clients" />
         
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header 
             title="Clients" 
-            toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
-            isSidebarOpen={isSidebarOpen} 
+            toggleSidebar={() => {}} 
+            isSidebarOpen={false} 
           />
           
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
@@ -105,11 +101,7 @@ export default function ClientsPage() {
   
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
-        currentPath="/clients" 
-      />
+      <Sidebar currentPath="/clients" />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
