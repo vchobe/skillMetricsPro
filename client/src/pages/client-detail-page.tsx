@@ -183,18 +183,14 @@ export default function ClientDetailPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Sidebar wrapper with lower z-index */}
-      <div className="z-10 relative">
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          setIsOpen={setIsSidebarOpen} 
-          currentPath="/clients" 
-        />
-      </div>
+    <div className="min-h-screen flex">
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        setIsOpen={setIsSidebarOpen} 
+        currentPath="/clients" 
+      />
       
-      {/* Main content with higher z-index */}
-      <div className="flex-1 flex flex-col overflow-hidden relative z-40">
+      <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <Header 
           title="Client Details" 
           toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
