@@ -506,11 +506,7 @@ export default function ProjectManagementPage() {
         ...rest,
         assignedDate: standardizeDate(rest.assignedDate),
       };
-      return apiRequest({
-        url: `/api/projects/${projectId}/resources`,
-        method: "POST",
-        data: formattedData,
-      });
+      return apiRequest("POST", `/api/projects/${projectId}/resources`, formattedData);
     },
     onSuccess: () => {
       refetchResources();
@@ -533,10 +529,7 @@ export default function ProjectManagementPage() {
   // Remove resource from project mutation
   const removeResourceMutation = useMutation({
     mutationFn: async ({ projectId, resourceId }: { projectId: number, resourceId: number }) => {
-      return apiRequest({
-        url: `/api/projects/${projectId}/resources/${resourceId}`,
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/projects/${projectId}/resources/${resourceId}`);
     },
     onSuccess: () => {
       refetchResources();
@@ -558,11 +551,7 @@ export default function ProjectManagementPage() {
   const addSkillMutation = useMutation({
     mutationFn: async (data: ProjectSkillFormValues & { projectId: number }) => {
       const { projectId, ...rest } = data;
-      return apiRequest({
-        url: `/api/projects/${projectId}/skills`,
-        method: "POST",
-        data: rest,
-      });
+      return apiRequest("POST", `/api/projects/${projectId}/skills`, rest);
     },
     onSuccess: () => {
       refetchSkills();
