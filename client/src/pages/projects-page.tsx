@@ -31,7 +31,6 @@ type Project = {
 
 export default function ProjectsPage() {
   const [, setLocation] = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const { user } = useAuth();
@@ -78,18 +77,14 @@ export default function ProjectsPage() {
   };
   
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
-        currentPath="/projects" 
-      />
+    <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
+      <Sidebar currentPath="/projects" />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 ml-64 flex flex-col overflow-hidden">
         <Header 
           title="Projects" 
-          toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
-          isSidebarOpen={isSidebarOpen} 
+          toggleSidebar={() => {}} 
+          isSidebarOpen={false} 
         />
         
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
