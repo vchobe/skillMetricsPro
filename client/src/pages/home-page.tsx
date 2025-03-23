@@ -6,13 +6,25 @@ import { Skill, SkillHistory } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Brain, Award, Medal, Plus, ChevronRight } from "lucide-react";
+import { 
+  Loader2, 
+  Brain, 
+  Award, 
+  Medal, 
+  Plus, 
+  ChevronRight, 
+  Briefcase, 
+  Calendar, 
+  Building2, 
+  CheckCircle2,
+  CircleDashed
+} from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import SkillChart from "@/components/skill-chart";
 import ActivityFeed from "@/components/activity-feed";
 import SkillLevelBadge from "@/components/skill-level-badge";
-import { formatRelativeTime, parseDate } from "@/lib/date-utils";
+import { formatRelativeTime, parseDate, formatDate, DATE_FORMATS } from "@/lib/date-utils";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -41,6 +53,11 @@ export default function HomePage() {
   // Get all skills data for skill target processing
   const { data: allSkills, isLoading: isLoadingAllSkills } = useQuery<Skill[]>({
     queryKey: ["/api/skills"],
+  });
+  
+  // Get user's projects (both current and past)
+  const { data: userProjects = [], isLoading: isLoadingProjects } = useQuery<any[]>({
+    queryKey: ["/api/projects"],
   });
   
   // Define the SkillTarget type
@@ -264,7 +281,7 @@ export default function HomePage() {
       }
     }).slice(0, 3) : [];
   
-  const isLoading = isLoadingSkills || isLoadingUserHistory || isLoadingOrgHistory || isLoadingTargets || isLoadingAllSkills || isLoadingUsers;
+  const isLoading = isLoadingSkills || isLoadingUserHistory || isLoadingOrgHistory || isLoadingTargets || isLoadingAllSkills || isLoadingUsers || isLoadingProjects;
   
   return (
     <div className="min-h-screen flex">
@@ -522,6 +539,109 @@ export default function HomePage() {
                 )}
               </Card>
               
+              {/* Projects Section */}
+              <Card className="mt-8">
+                <CardHeader className="flex flex-col md:flex-row justify-between md:items-center border-b border-gray-200">
+                  <CardTitle>Projects</CardTitle>
+                  <Link href="/projects">
+                    <Button className="mt-4 md:mt-0" variant="outline">
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                      View All Projects
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent className="px-0">
+                  {isLoadingProjects ? (
+                    <div className="p-8 flex justify-center items-center">
+                      <div className="flex items-center">
+                        <svg className="animate-spin h-5 w-5 mr-3 text-indigo-500" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Loading projects...</span>
+                      </div>
+                    </div>
+                  ) : userProjects.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <div className="mx-auto w-24 h-24 flex items-center justify-center rounded-full bg-gray-100 mb-4">
+                        <Briefcase className="h-12 w-12 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-1">No projects assigned</h3>
+                      <p className="text-sm text-gray-500 max-w-md mx-auto mb-4">
+                        When you're assigned to projects, they will appear here. Projects help track your contributions and experience.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timeline</th>
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {userProjects.map((project) => (
+                            <tr key={project.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-md bg-blue-100 text-blue-600">
+                                    <Briefcase className="h-5 w-5" />
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">{project.name}</div>
+                                    <div className="text-sm text-gray-500">{project.location || 'Remote'}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <Building2 className="h-4 w-4 text-gray-400 mr-2" />
+                                  <span className="text-sm text-gray-900">{project.clientName}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                  ${project.status === 'active' ? 'bg-green-100 text-green-800' : 
+                                    project.status === 'planning' ? 'bg-blue-100 text-blue-800' :
+                                    project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800' :
+                                    project.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+                                    'bg-red-100 text-red-800'}`}>
+                                  {project.status === 'active' ? 'Active' : 
+                                   project.status === 'planning' ? 'Planning' :
+                                   project.status === 'on_hold' ? 'On Hold' :
+                                   project.status === 'completed' ? 'Completed' :
+                                   'Cancelled'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div className="flex items-center">
+                                  <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                                  <span>
+                                    {project.startDate ? formatDate(project.startDate, DATE_FORMATS.SHORT) : 'TBD'} 
+                                    {' - '}
+                                    {project.endDate ? formatDate(project.endDate, DATE_FORMATS.SHORT) : 'Ongoing'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <Link href={`/projects/${project.id}`} className="text-indigo-600 hover:text-indigo-900">
+                                  View Details
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Skill Gap Analysis */}
               <Card className="mt-8">
                 <CardHeader className="flex flex-col md:flex-row justify-between md:items-center border-b border-gray-200">
                   <CardTitle>Skill Gap Analysis</CardTitle>
