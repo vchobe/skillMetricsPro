@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { pool } from "./db";
+import * as schema from "@shared/schema";
 import {
   insertSkillSchema,
   insertSkillHistorySchema,
@@ -58,6 +59,14 @@ function isUserAdmin(user: any): boolean {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Import project-related schemas for validation
+  const { 
+    insertClientSchema, 
+    insertProjectSchema, 
+    insertProjectResourceSchema,
+    insertProjectSkillSchema,
+    insertProjectResourceHistorySchema
+  } = schema;
   // Set up authentication routes
   setupAuth(app);
   
@@ -1427,6 +1436,327 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: "Skill update rejected successfully" });
     } catch (error) {
       res.status(500).json({ message: "Error rejecting skill update", error });
+    }
+  });
+
+  /*
+   * Project Management Routes
+   */
+
+  // Client routes
+  app.get("/api/clients", ensureAuth, async (req, res) => {
+    try {
+      const clients = await storage.getAllClients();
+      res.json(clients);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching clients", error });
+    }
+  });
+
+  app.get("/api/clients/:id", ensureAuth, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+      const client = await storage.getClient(clientId);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      res.json(client);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching client", error });
+    }
+  });
+
+  app.post("/api/clients", ensureAdmin, async (req, res) => {
+    try {
+      const parsedData = insertClientSchema.safeParse(req.body);
+      
+      if (!parsedData.success) {
+        return res.status(400).json({
+          message: "Invalid client data",
+          errors: parsedData.error.format()
+        });
+      }
+      
+      const client = await storage.createClient(parsedData.data);
+      res.status(201).json(client);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating client", error });
+    }
+  });
+
+  app.patch("/api/clients/:id", ensureAdmin, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+      const client = await storage.getClient(clientId);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      const updatedClient = await storage.updateClient(clientId, req.body);
+      res.json(updatedClient);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating client", error });
+    }
+  });
+
+  app.delete("/api/clients/:id", ensureAdmin, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+      const client = await storage.getClient(clientId);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      await storage.deleteClient(clientId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting client", error });
+    }
+  });
+
+  // Project routes
+  app.get("/api/projects", ensureAuth, async (req, res) => {
+    try {
+      const projects = await storage.getAllProjects();
+      res.json(projects);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching projects", error });
+    }
+  });
+
+  app.get("/api/projects/:id", ensureAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      res.json(project);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching project", error });
+    }
+  });
+
+  app.post("/api/projects", ensureAdmin, async (req, res) => {
+    try {
+      const parsedData = insertProjectSchema.safeParse(req.body);
+      
+      if (!parsedData.success) {
+        return res.status(400).json({
+          message: "Invalid project data",
+          errors: parsedData.error.format()
+        });
+      }
+      
+      const project = await storage.createProject(parsedData.data);
+      res.status(201).json(project);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating project", error });
+    }
+  });
+
+  app.patch("/api/projects/:id", ensureAdmin, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const updatedProject = await storage.updateProject(projectId, req.body);
+      res.json(updatedProject);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating project", error });
+    }
+  });
+
+  app.delete("/api/projects/:id", ensureAdmin, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      await storage.deleteProject(projectId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting project", error });
+    }
+  });
+
+  // Project Resources routes
+  app.get("/api/projects/:id/resources", ensureAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const resources = await storage.getProjectResources(projectId);
+      res.json(resources);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching project resources", error });
+    }
+  });
+
+  app.post("/api/projects/:id/resources", ensureAdmin, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const parsedData = insertProjectResourceSchema.safeParse({
+        ...req.body,
+        projectId
+      });
+      
+      if (!parsedData.success) {
+        return res.status(400).json({
+          message: "Invalid resource data",
+          errors: parsedData.error.format()
+        });
+      }
+      
+      const resource = await storage.createProjectResource(parsedData.data);
+      
+      // Create resource history entry
+      await storage.createProjectResourceHistory({
+        projectId,
+        userId: parsedData.data.userId,
+        action: "added",
+        newRole: parsedData.data.role,
+        newAllocation: parsedData.data.allocation,
+        performedById: req.user!.id,
+        note: "Added to project"
+      });
+      
+      res.status(201).json(resource);
+    } catch (error) {
+      res.status(500).json({ message: "Error adding resource to project", error });
+    }
+  });
+
+  app.delete("/api/projects/resources/:id", ensureAdmin, async (req, res) => {
+    try {
+      const resourceId = parseInt(req.params.id);
+      const resource = await storage.getProjectResource(resourceId);
+      
+      if (!resource) {
+        return res.status(404).json({ message: "Resource not found" });
+      }
+      
+      // Create resource history entry before deleting
+      await storage.createProjectResourceHistory({
+        projectId: resource.projectId,
+        userId: resource.userId,
+        action: "removed",
+        previousRole: resource.role,
+        previousAllocation: resource.allocation,
+        performedById: req.user!.id,
+        note: "Removed from project"
+      });
+      
+      await storage.deleteProjectResource(resourceId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error removing resource from project", error });
+    }
+  });
+
+  // Project Skills routes
+  app.get("/api/projects/:id/skills", ensureAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const skills = await storage.getProjectSkills(projectId);
+      res.json(skills);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching project skills", error });
+    }
+  });
+
+  app.post("/api/projects/:id/skills", ensureAdmin, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const parsedData = insertProjectSkillSchema.safeParse({
+        ...req.body,
+        projectId
+      });
+      
+      if (!parsedData.success) {
+        return res.status(400).json({
+          message: "Invalid skill data",
+          errors: parsedData.error.format()
+        });
+      }
+      
+      const projectSkill = await storage.createProjectSkill(parsedData.data);
+      res.status(201).json(projectSkill);
+    } catch (error) {
+      res.status(500).json({ message: "Error adding skill to project", error });
+    }
+  });
+
+  app.delete("/api/projects/skills/:id", ensureAdmin, async (req, res) => {
+    try {
+      const projectSkillId = parseInt(req.params.id);
+      
+      await storage.deleteProjectSkill(projectSkillId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error removing skill from project", error });
+    }
+  });
+
+  // Project Resource History routes
+  app.get("/api/projects/:id/resource-history", ensureAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const history = await storage.getProjectResourceHistory(projectId);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching project resource history", error });
+    }
+  });
+
+  // Get user's project history
+  app.get("/api/user/projects/history", ensureAuth, async (req, res) => {
+    try {
+      const history = await storage.getUserProjectHistory(req.user!.id);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching user project history", error });
     }
   });
 

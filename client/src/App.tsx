@@ -18,6 +18,9 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import OrgDashboard from "@/pages/org-dashboard";
 import LeaderboardPage from "@/pages/leaderboard-page";
 import SkillManagementPage from "@/pages/skill-management-page";
+import ProjectsPage from "@/pages/projects-page";
+import ProjectDetailPage from "@/pages/project-detail-page";
+import ClientsPage from "@/pages/clients-page";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 
@@ -75,6 +78,9 @@ function Router() {
       <ProtectedRoute path="/users/:userId" component={UserProfilePage} />
       <ProtectedRoute path="/organization" component={OrgDashboard} />
       <ProtectedRoute path="/leaderboard" component={LeaderboardPage} />
+      <ProtectedRoute path="/projects/:id" component={ProjectDetailPage} />
+      <ProtectedRoute path="/projects" component={ProjectsPage} />
+      <ProtectedRoute path="/clients" component={ClientsPage} />
       <ProtectedRoute 
         path="/admin/skills" 
         component={() => <AdminWrapper Component={SkillManagementPage} />} 
