@@ -133,61 +133,51 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
             </div>
             
             <div>
-              <Link href="/clients" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+              <Link href="/clients" className={`flex items-center px-4 py-3 rounded-md ${
                 currentPath === "/clients" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <Building2 className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Clients</span>
-                )}
+                <span className="ml-3">Clients</span>
               </Link>
             </div>
             
             {/* Organization Section */}
-            {(isOpen || !isMobile) && (
-              <h3 className={`px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${!isOpen && "lg:hidden"}`}>
-                Organization
-              </h3>
-            )}
+            <h3 className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Organization
+            </h3>
             
             <div>
-              <Link href="/organization" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+              <Link href="/organization" className={`flex items-center px-4 py-3 rounded-md ${
                 currentPath === "/organization" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <BarChart4 className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Dashboard</span>
-                )}
+                <span className="ml-3">Dashboard</span>
               </Link>
             </div>
             
             <div>
-              <Link href="/users" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+              <Link href="/users" className={`flex items-center px-4 py-3 rounded-md ${
                 currentPath === "/users" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <UsersRound className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Users</span>
-                )}
+                <span className="ml-3">Users</span>
               </Link>
             </div>
             
             <div>
-              <Link href="/profile" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+              <Link href="/profile" className={`flex items-center px-4 py-3 rounded-md ${
                 currentPath === "/profile" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <UserCircle className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Profile</span>
-                )}
+                <span className="ml-3">Profile</span>
               </Link>
             </div>
           </div>
@@ -195,11 +185,9 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
           {/* Admin Section - Only visible to admins - check both property formats */}
           {(user?.is_admin || user?.isAdmin) && (
             <div className="mt-8">
-              {(isOpen || !isMobile) && (
-                <h3 className={`px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider ${!isOpen && "lg:hidden"}`}>
-                  Admin
-                </h3>
-              )}
+              <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Admin
+              </h3>
               <div className="mt-2 space-y-2">
                 <div>
                   <a 
@@ -217,29 +205,25 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                       window.history.pushState({}, "", adminUrl);
                       setLocation(adminUrl);
                     }}
-                    className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                    className={`flex items-center px-4 py-3 rounded-md ${
                       currentPath === "/admin" 
                         ? "bg-gray-900 text-white" 
                         : "text-gray-300 hover:bg-gray-700 hover:text-white"
                     }`}
                   >
                     <BarChart4 className="h-5 w-5" />
-                    {(isOpen || !isMobile) && (
-                      <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Admin Dashboard</span>
-                    )}
+                    <span className="ml-3">Admin Dashboard</span>
                   </a>
                 </div>
                 
                 <div>
-                  <Link href="/project-management" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                  <Link href="/project-management" className={`flex items-center px-4 py-3 rounded-md ${
                     currentPath === "/project-management" 
                       ? "bg-gray-900 text-white" 
                       : "text-gray-300 hover:bg-gray-700 hover:text-white"
                   }`}>
                     <FolderKanban className="h-5 w-5" />
-                    {(isOpen || !isMobile) && (
-                      <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Project Management</span>
-                    )}
+                    <span className="ml-3">Project Management</span>
                   </Link>
                 </div>
               </div>
@@ -248,41 +232,24 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
         </div>
         
         <div className="p-4 border-t border-gray-700">
-          {(isOpen || !isMobile) ? (
-            <div className="flex items-center">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="" alt={`${user?.firstName} ${user?.lastName}`} />
-                <AvatarFallback className="bg-indigo-600 text-white">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div className={`ml-3 ${!isOpen && "lg:hidden"}`}>
-                <p className="text-sm font-medium text-white">{user?.firstName} {user?.lastName}</p>
-                <button 
-                  onClick={handleLogout}
-                  className="text-xs text-gray-400 hover:text-white flex items-center mt-1"
-                >
-                  <LogOut className="h-3 w-3 mr-1" />
-                  Sign out
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="" alt={`${user?.firstName} ${user?.lastName}`} />
-                <AvatarFallback className="bg-indigo-600 text-white">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </AvatarFallback>
-              </Avatar>
+          <div className="flex items-center">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="" alt={`${user?.firstName} ${user?.lastName}`} />
+              <AvatarFallback className="bg-indigo-600 text-white">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-white">{user?.firstName} {user?.lastName}</p>
               <button 
                 onClick={handleLogout}
-                className="text-xs text-gray-400 hover:text-white flex items-center mt-2"
+                className="text-xs text-gray-400 hover:text-white flex items-center mt-1"
               >
-                <LogOut className="h-3 w-3" />
+                <LogOut className="h-3 w-3 mr-1" />
+                Sign out
               </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </>
