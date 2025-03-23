@@ -5,6 +5,7 @@ import { format, parseISO, isValid, formatDistanceToNow, parse } from "date-fns"
  */
 export const DATE_FORMATS = {
   DISPLAY: "MMM dd, yyyy",
+  DISPLAY_SHORT: "MMM dd", // Short display format without year
   ISO: "yyyy-MM-dd",
   DATETIME: "MMM dd, yyyy HH:mm",
   TIME: "HH:mm",

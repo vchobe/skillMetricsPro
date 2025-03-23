@@ -1308,6 +1308,313 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Project Management Routes
+  
+  // Client Routes
+  app.get("/api/clients", ensureAdmin, async (req, res) => {
+    try {
+      const clients = await storage.getAllClients();
+      res.json(clients);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching clients", error });
+    }
+  });
+
+  app.get("/api/clients/:id", ensureAdmin, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+      const client = await storage.getClient(clientId);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      res.json(client);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching client", error });
+    }
+  });
+
+  app.post("/api/clients", ensureAdmin, async (req, res) => {
+    try {
+      const clientData = req.body;
+      const client = await storage.createClient(clientData);
+      res.status(201).json(client);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating client", error });
+    }
+  });
+
+  app.put("/api/clients/:id", ensureAdmin, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+      const clientData = req.body;
+      const client = await storage.updateClient(clientId, clientData);
+      res.json(client);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating client", error });
+    }
+  });
+
+  app.delete("/api/clients/:id", ensureAdmin, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+      await storage.deleteClient(clientId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting client", error });
+    }
+  });
+
+  app.get("/api/clients/:id/projects", ensureAdmin, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+      const projects = await storage.getClientProjects(clientId);
+      res.json(projects);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching client projects", error });
+    }
+  });
+
+  app.get("/api/clients/project-counts", ensureAdmin, async (req, res) => {
+    try {
+      const clients = await storage.getAllClients();
+      const result: Record<number, number> = {};
+      
+      for (const client of clients) {
+        const projects = await storage.getClientProjects(client.id);
+        result[client.id] = projects.length;
+      }
+      
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching project counts", error });
+    }
+  });
+
+  // Project Routes
+  app.get("/api/projects", ensureAuth, async (req, res) => {
+    try {
+      // Admins see all projects, regular users see only their projects
+      const isAdmin = isUserAdmin(req.user!);
+      const projects = isAdmin 
+        ? await storage.getAllProjects()
+        : await storage.getUserProjects(req.user!.id);
+      
+      res.json(projects);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching projects", error });
+    }
+  });
+
+  app.get("/api/projects/:id", ensureAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Check if user has access to the project
+      const isAdmin = isUserAdmin(req.user!);
+      if (!isAdmin) {
+        const userProjects = await storage.getUserProjects(req.user!.id);
+        const userHasAccess = userProjects.some(p => p.id === projectId);
+        
+        if (!userHasAccess) {
+          return res.status(403).json({ message: "You don't have access to this project" });
+        }
+      }
+      
+      res.json(project);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching project", error });
+    }
+  });
+
+  app.post("/api/projects", ensureAdmin, async (req, res) => {
+    try {
+      const projectData = req.body;
+      const project = await storage.createProject(projectData);
+      res.status(201).json(project);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating project", error });
+    }
+  });
+
+  app.put("/api/projects/:id", ensureAdmin, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const projectData = req.body;
+      const project = await storage.updateProject(projectId, projectData);
+      res.json(project);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating project", error });
+    }
+  });
+
+  app.delete("/api/projects/:id", ensureAdmin, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      await storage.deleteProject(projectId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting project", error });
+    }
+  });
+
+  app.get("/api/users/:userId/projects", ensureAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Only admins can see other users' projects
+      if (userId !== req.user!.id && !isUserAdmin(req.user!)) {
+        return res.status(403).json({ message: "You don't have permission to view this user's projects" });
+      }
+      
+      const projects = await storage.getUserProjects(userId);
+      res.json(projects);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching user projects", error });
+    }
+  });
+
+  // Project Resources Routes
+  app.get("/api/projects/:id/resources", ensureAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Check if user has access to the project
+      const isAdmin = isUserAdmin(req.user!);
+      if (!isAdmin) {
+        const userProjects = await storage.getUserProjects(req.user!.id);
+        const userHasAccess = userProjects.some(p => p.id === projectId);
+        
+        if (!userHasAccess) {
+          return res.status(403).json({ message: "You don't have access to this project" });
+        }
+      }
+      
+      const resources = await storage.getProjectResources(projectId);
+      res.json(resources);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching project resources", error });
+    }
+  });
+
+  app.post("/api/projects/:id/resources", ensureAdmin, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const resourceData = {
+        ...req.body,
+        projectId
+      };
+      
+      const resource = await storage.createProjectResource(resourceData);
+      res.status(201).json(resource);
+    } catch (error) {
+      res.status(500).json({ message: "Error adding resource to project", error });
+    }
+  });
+
+  app.put("/api/projects/:projectId/resources/:resourceId", ensureAdmin, async (req, res) => {
+    try {
+      const resourceId = parseInt(req.params.resourceId);
+      const resourceData = req.body;
+      
+      const resource = await storage.updateProjectResource(resourceId, resourceData);
+      res.json(resource);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating project resource", error });
+    }
+  });
+
+  app.delete("/api/projects/:projectId/resources/:resourceId", ensureAdmin, async (req, res) => {
+    try {
+      const resourceId = parseInt(req.params.resourceId);
+      
+      // Instead of deleting, we set the removedDate to current date to track history
+      await storage.updateProjectResource(resourceId, {
+        removedDate: new Date().toISOString()
+      });
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error removing resource from project", error });
+    }
+  });
+
+  // Project Skills Routes
+  app.get("/api/projects/:id/skills", ensureAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Check if user has access to the project
+      const isAdmin = isUserAdmin(req.user!);
+      if (!isAdmin) {
+        const userProjects = await storage.getUserProjects(req.user!.id);
+        const userHasAccess = userProjects.some(p => p.id === projectId);
+        
+        if (!userHasAccess) {
+          return res.status(403).json({ message: "You don't have access to this project" });
+        }
+      }
+      
+      const skills = await storage.getProjectSkills(projectId);
+      res.json(skills);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching project skills", error });
+    }
+  });
+
+  app.post("/api/projects/:id/skills", ensureAdmin, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const skillData = {
+        ...req.body,
+        projectId
+      };
+      
+      const skill = await storage.createProjectSkill(skillData);
+      res.status(201).json(skill);
+    } catch (error) {
+      res.status(500).json({ message: "Error adding skill to project", error });
+    }
+  });
+
+  app.put("/api/projects/:projectId/skills/:skillId", ensureAdmin, async (req, res) => {
+    try {
+      const skillId = parseInt(req.params.skillId);
+      const skillData = req.body;
+      
+      const skill = await storage.updateProjectSkill(skillId, skillData);
+      res.json(skill);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating project skill", error });
+    }
+  });
+
+  app.delete("/api/projects/:projectId/skills/:skillId", ensureAdmin, async (req, res) => {
+    try {
+      const skillId = parseInt(req.params.skillId);
+      await storage.deleteProjectSkill(skillId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error removing skill from project", error });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;
