@@ -88,6 +88,43 @@ export interface IStorage {
   approvePendingSkillUpdate(id: number, reviewerId: number, notes?: string): Promise<Skill>;
   rejectPendingSkillUpdate(id: number, reviewerId: number, notes?: string): Promise<void>;
   
+  // Client operations
+  getAllClients(): Promise<Client[]>;
+  getClient(id: number): Promise<Client | undefined>;
+  createClient(client: InsertClient): Promise<Client>;
+  updateClient(id: number, data: Partial<Client>): Promise<Client>;
+  deleteClient(id: number): Promise<void>;
+  searchClients(query: string): Promise<Client[]>;
+  
+  // Project operations
+  getAllProjects(): Promise<Project[]>;
+  getProject(id: number): Promise<Project | undefined>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: number, data: Partial<Project>): Promise<Project>;
+  deleteProject(id: number): Promise<void>;
+  getUserProjects(userId: number): Promise<Project[]>;
+  getClientProjects(clientId: number): Promise<Project[]>;
+  searchProjects(query: string): Promise<Project[]>;
+  
+  // Project Resources operations
+  getProjectResources(projectId: number): Promise<ProjectResource[]>;
+  getUserProjectResources(userId: number): Promise<ProjectResource[]>;
+  getProjectResource(id: number): Promise<ProjectResource | undefined>;
+  createProjectResource(resource: InsertProjectResource): Promise<ProjectResource>;
+  updateProjectResource(id: number, data: Partial<ProjectResource>): Promise<ProjectResource>;
+  deleteProjectResource(id: number): Promise<void>;
+  
+  // Project Skills operations
+  getProjectSkills(projectId: number): Promise<ProjectSkill[]>;
+  getSkillProjects(skillId: number): Promise<ProjectSkill[]>;
+  createProjectSkill(projectSkill: InsertProjectSkill): Promise<ProjectSkill>;
+  deleteProjectSkill(id: number): Promise<void>;
+  
+  // Project Resource History operations
+  getProjectResourceHistory(projectId: number): Promise<ProjectResourceHistory[]>;
+  getUserProjectHistory(userId: number): Promise<ProjectResourceHistory[]>;
+  createProjectResourceHistory(history: InsertProjectResourceHistory): Promise<ProjectResourceHistory>;
+  
   // Session store
   sessionStore: Store;
 }

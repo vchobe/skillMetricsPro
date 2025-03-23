@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, pgEnum, date, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -271,3 +271,137 @@ export const insertPendingSkillUpdateSchema = createInsertSchema(pendingSkillUpd
 
 export type PendingSkillUpdate = typeof pendingSkillUpdates.$inferSelect;
 export type InsertPendingSkillUpdate = z.infer<typeof insertPendingSkillUpdateSchema>;
+
+// Client schema
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  industry: text("industry"),
+  location: text("location"),
+  website: text("website"),
+  contactPerson: text("contact_person"),
+  contactEmail: text("contact_email"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertClientSchema = createInsertSchema(clients).pick({
+  name: true,
+  description: true,
+  industry: true,
+  location: true,
+  website: true,
+  contactPerson: true,
+  contactEmail: true
+});
+
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = z.infer<typeof insertClientSchema>;
+
+// Project schema
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  clientId: integer("client_id").references(() => clients.id),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  location: text("location"),
+  confluenceLink: text("confluence_link"),
+  leadId: integer("lead_id").references(() => users.id),
+  deliveryLeadId: integer("delivery_lead_id").references(() => users.id),
+  status: text("status").default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertProjectSchema = createInsertSchema(projects).pick({
+  name: true,
+  description: true,
+  clientId: true,
+  startDate: true,
+  endDate: true,
+  location: true,
+  confluenceLink: true,
+  leadId: true,
+  deliveryLeadId: true,
+  status: true
+});
+
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+
+// Project Resources (Users assigned to Projects)
+export const projectResources = pgTable("project_resources", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  role: text("role"),
+  allocation: integer("allocation").default(100), // Percentage of time allocated
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertProjectResourceSchema = createInsertSchema(projectResources).pick({
+  projectId: true,
+  userId: true,
+  role: true,
+  allocation: true,
+  startDate: true,
+  endDate: true
+});
+
+export type ProjectResource = typeof projectResources.$inferSelect;
+export type InsertProjectResource = z.infer<typeof insertProjectResourceSchema>;
+
+// Project Skills (Skills required/used in Projects)
+export const projectSkills = pgTable("project_skills", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  skillId: integer("skill_id").notNull().references(() => skills.id),
+  importance: text("importance").default("medium"), // high, medium, low
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const insertProjectSkillSchema = createInsertSchema(projectSkills).pick({
+  projectId: true,
+  skillId: true,
+  importance: true
+});
+
+export type ProjectSkill = typeof projectSkills.$inferSelect;
+export type InsertProjectSkill = z.infer<typeof insertProjectSkillSchema>;
+
+// Project Resource History (tracking changes in project assignments)
+export const projectResourceHistories = pgTable("project_resource_histories", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  action: varchar("action", { length: 50 }).notNull(), // added, removed, role_changed, allocation_changed
+  previousRole: varchar("previous_role", { length: 100 }),
+  newRole: varchar("new_role", { length: 100 }),
+  previousAllocation: integer("previous_allocation"),
+  newAllocation: integer("new_allocation"),
+  date: timestamp("date").defaultNow(),
+  performedById: integer("performed_by_id").references(() => users.id),
+  note: text("note")
+});
+
+export const insertProjectResourceHistorySchema = createInsertSchema(projectResourceHistories).pick({
+  projectId: true,
+  userId: true,
+  action: true,
+  previousRole: true,
+  newRole: true,
+  previousAllocation: true,
+  newAllocation: true,
+  date: true,
+  performedById: true,
+  note: true
+});
+
+export type ProjectResourceHistory = typeof projectResourceHistories.$inferSelect;
+export type InsertProjectResourceHistory = z.infer<typeof insertProjectResourceHistorySchema>;
