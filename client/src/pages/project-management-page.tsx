@@ -697,14 +697,14 @@ export default function ProjectManagementPage() {
       </div>
       
       {/* Main content with higher z-index */}
-      <div className="flex-1 flex flex-col overflow-hidden relative z-40">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-40 ml-64">
         <Header 
           title="Project Management" 
           toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
           isSidebarOpen={isSidebarOpen} 
         />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 max-w-full">
           <div className="mb-6">
             <Button 
               variant="ghost" 

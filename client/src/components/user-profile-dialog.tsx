@@ -93,7 +93,7 @@ export default function UserProfileDialog({ userId, isOpen, onClose }: UserProfi
   });
   
   // Get user's projects
-  const { data: userProjects, isLoading: isLoadingProjects } = useQuery({
+  const { data: userProjects, isLoading: isLoadingProjects } = useQuery<any[]>({
     queryKey: [`/api/users/${userId}/projects`],
     enabled: !!userId && isOpen
   });
