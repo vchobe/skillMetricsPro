@@ -190,7 +190,7 @@ export default function ClientDetailPage() {
         currentPath="/clients" 
       />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-20">
         <Header 
           title="Client Details" 
           toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 

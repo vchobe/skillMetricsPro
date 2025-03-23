@@ -63,7 +63,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
       
       {/* Sidebar */}
       <div 
-        className={`w-64 bg-gray-800 text-white flex flex-col fixed h-full z-50 transition-all duration-300 ${
+        className={`w-64 bg-gray-800 text-white flex flex-col fixed h-full z-30 transition-all duration-300 ${
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-24"
         }`}
       >

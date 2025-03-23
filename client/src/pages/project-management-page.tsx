@@ -693,7 +693,7 @@ export default function ProjectManagementPage() {
         currentPath="/project-management" 
       />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-20">
         <Header 
           title="Project Management" 
           toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
