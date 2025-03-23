@@ -89,16 +89,19 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
               </Link>
             </div>
             
-            <div>
-              <Link href="/clients" className={`flex items-center px-4 py-3 rounded-md ${
-                currentPath === "/clients" 
-                  ? "bg-gray-900 text-white" 
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}>
-                <Building2 className="h-5 w-5" />
-                <span className="ml-3">Clients</span>
-              </Link>
-            </div>
+            {/* Clients tab - Only visible to admins */}
+            {(user?.is_admin || user?.isAdmin) && (
+              <div>
+                <Link href="/clients" className={`flex items-center px-4 py-3 rounded-md ${
+                  currentPath === "/clients" 
+                    ? "bg-gray-900 text-white" 
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                }`}>
+                  <Building2 className="h-5 w-5" />
+                  <span className="ml-3">Clients</span>
+                </Link>
+              </div>
+            )}
             
             {/* Organization Section */}
             <h3 className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">

@@ -92,6 +92,12 @@ export default function UserProfileDialog({ userId, isOpen, onClose }: UserProfi
     enabled: !!userId && isOpen
   });
   
+  // Get user's projects
+  const { data: userProjects, isLoading: isLoadingProjects } = useQuery({
+    queryKey: [`/api/users/${userId}/projects`],
+    enabled: !!userId && isOpen
+  });
+  
   // Format skill history for activity feed
   const activityItems = skillHistory && Array.isArray(skillHistory) 
     ? skillHistory.map((history: any) => ({
@@ -282,6 +288,52 @@ export default function UserProfileDialog({ userId, isOpen, onClose }: UserProfi
                         </div>
                       </div>
                     </div>
+                    
+                    {/* Projects Section */}
+                    {userProjects && userProjects.length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <h3 className="text-lg font-medium mb-4">Projects</h3>
+                        <div className="space-y-4">
+                          {userProjects.map((project: any) => (
+                            <div key={project.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-medium text-indigo-700">{project.name}</h4>
+                                  <p className="text-sm text-gray-600 mt-1">{project.clientName || 'No client'}</p>
+                                </div>
+                                <div className={`px-2 py-1 text-xs rounded-full ${
+                                  project.status === 'active' ? 'bg-green-100 text-green-800' :
+                                  project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                  project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800' :
+                                  project.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {project.status ? project.status.replace('_', ' ') : 'Unknown'}
+                                </div>
+                              </div>
+                              {project.description && (
+                                <p className="text-sm text-gray-600 mt-2">{project.description}</p>
+                              )}
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {project.startDate && (
+                                  <div className="flex items-center text-xs text-gray-500">
+                                    <Calendar className="h-3 w-3 mr-1" />
+                                    {formatDate(project.startDate, "MMM d, yyyy")}
+                                    {project.endDate && ` - ${formatDate(project.endDate, "MMM d, yyyy")}`}
+                                  </div>
+                                )}
+                                {project.location && (
+                                  <div className="flex items-center text-xs text-gray-500">
+                                    <MapPin className="h-3 w-3 mr-1" />
+                                    {project.location}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
