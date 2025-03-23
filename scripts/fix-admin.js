@@ -1,7 +1,12 @@
 // Script to create an admin user with proper password hashing
-import { pool } from '../server/db.js';
+import pg from 'pg';
 import { scrypt, randomBytes } from 'crypto';
 import { promisify } from 'util';
+
+const { Pool } = pg;
+const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL 
+});
 
 const scryptAsync = promisify(scrypt);
 
