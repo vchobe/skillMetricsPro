@@ -53,48 +53,16 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
   
   return (
     <>
-      {/* Mobile overlay */}
-      {isMobile && isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-20"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-      
       {/* Sidebar */}
       <div 
-        className={`w-64 bg-gray-800 text-white flex flex-col fixed h-full z-10 transition-all duration-300 ${
-          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-24"
-        }`}
+        className="w-64 bg-gray-800 text-white flex flex-col fixed h-full z-10"
       >
         <div className="px-4 py-5 flex justify-between items-center border-b border-gray-700">
-          <div className={`flex items-center ${!isOpen ? "lg:justify-center lg:w-full" : ""}`}>
-            {(isOpen || !isMobile) && (
-              <span className={`font-semibold text-xl tracking-tight ${!isOpen && "lg:hidden"}`}>
-                Skill Metrics
-              </span>
-            )}
+          <div className="flex items-center">
+            <span className="font-semibold text-xl tracking-tight">
+              Skill Metrics
+            </span>
           </div>
-          {!isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-400 hover:text-white"
-            >
-              {isOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-            </Button>
-          )}
-          {isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="text-gray-400 hover:text-white lg:hidden"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          )}
         </div>
         
         <div className="flex flex-col flex-grow p-4 overflow-auto">
@@ -106,75 +74,61 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <LayoutDashboard className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Dashboard</span>
-                )}
+                <span className="ml-3">Dashboard</span>
               </Link>
             </div>
             
             {/* Skills Section */}
-            {(isOpen || !isMobile) && (
-              <h3 className={`px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${!isOpen && "lg:hidden"}`}>
-                Skills
-              </h3>
-            )}
+            <h3 className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Skills
+            </h3>
             
             <div>
-              <Link href="/skills" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+              <Link href="/skills" className={`flex items-center px-4 py-3 rounded-md ${
                 currentPath === "/skills" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <Brain className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>My Skills</span>
-                )}
+                <span className="ml-3">My Skills</span>
               </Link>
             </div>
             
             <div>
-              <Link href="/leaderboard" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+              <Link href="/leaderboard" className={`flex items-center px-4 py-3 rounded-md ${
                 currentPath === "/leaderboard" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <Trophy className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Leaderboard</span>
-                )}
+                <span className="ml-3">Leaderboard</span>
               </Link>
             </div>
             
             <div>
-              <Link href="/history" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+              <Link href="/history" className={`flex items-center px-4 py-3 rounded-md ${
                 currentPath === "/history" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <Clock className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill History</span>
-                )}
+                <span className="ml-3">Skill History</span>
               </Link>
             </div>
             
             {/* Projects Section */}
-            {(isOpen || !isMobile) && (
-              <h3 className={`px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${!isOpen && "lg:hidden"}`}>
-                Projects
-              </h3>
-            )}
+            <h3 className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Projects
+            </h3>
             
             <div>
-              <Link href="/projects" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+              <Link href="/projects" className={`flex items-center px-4 py-3 rounded-md ${
                 currentPath === "/projects" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <Briefcase className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>My Projects</span>
-                )}
+                <span className="ml-3">My Projects</span>
               </Link>
             </div>
             
