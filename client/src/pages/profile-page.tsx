@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ProfileHistory } from "@shared/schema";
+import { Link } from "wouter";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import { 
@@ -41,9 +42,15 @@ import {
   Briefcase, 
   MapPin, 
   Clock, 
-  FileEdit 
+  FileEdit,
+  Building2,
+  Calendar,
+  ChevronRight,
+  CheckCircle2,
+  CircleDashed
 } from "lucide-react";
 import { format } from "date-fns";
+import { formatDate, DATE_FORMATS } from "@/lib/date-utils";
 
 // Profile schema
 const profileSchema = z.object({
@@ -82,6 +89,11 @@ export default function ProfilePage() {
   // Get profile history
   const { data: profileHistory, isLoading: isLoadingHistory } = useQuery<ProfileHistory[]>({
     queryKey: ["/api/user/profile/history"],
+  });
+  
+  // Get user's projects
+  const { data: userProjects = [], isLoading: isLoadingProjects } = useQuery<any[]>({
+    queryKey: ["/api/projects"],
   });
   
   // Profile form
@@ -228,11 +240,16 @@ export default function ProfilePage() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <UserCircle className="h-4 w-4" />
                 <span className="hidden sm:inline">Profile Information</span>
                 <span className="inline sm:hidden">Profile</span>
+              </TabsTrigger>
+              <TabsTrigger value="projects" className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                <span className="hidden sm:inline">My Projects</span>
+                <span className="inline sm:hidden">Projects</span>
               </TabsTrigger>
               <TabsTrigger value="security" className="flex items-center gap-2">
                 <FileEdit className="h-4 w-4" />
@@ -358,6 +375,104 @@ export default function ProfilePage() {
                       </div>
                     </form>
                   </Form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="projects">
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Projects</CardTitle>
+                  <CardDescription>
+                    View your current and past project assignments
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingProjects ? (
+                    <div className="flex justify-center items-center h-40">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                  ) : userProjects && userProjects.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timeline</th>
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {userProjects.map((project) => (
+                            <tr key={project.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-md bg-blue-100 text-blue-600">
+                                    <Briefcase className="h-5 w-5" />
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">{project.name}</div>
+                                    <div className="text-sm text-gray-500">{project.location || 'Remote'}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <Building2 className="h-4 w-4 text-gray-400 mr-2" />
+                                  <span className="text-sm text-gray-900">{project.clientName}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                  ${project.status === 'active' ? 'bg-green-100 text-green-800' : 
+                                    project.status === 'planning' ? 'bg-blue-100 text-blue-800' :
+                                    project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800' :
+                                    project.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+                                    'bg-red-100 text-red-800'}`}>
+                                  {project.status === 'active' ? 'Active' : 
+                                   project.status === 'planning' ? 'Planning' :
+                                   project.status === 'on_hold' ? 'On Hold' :
+                                   project.status === 'completed' ? 'Completed' :
+                                   'Cancelled'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div className="flex items-center">
+                                  <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                                  <span>
+                                    {project.startDate ? formatDate(project.startDate, DATE_FORMATS.DISPLAY_SHORT) : 'TBD'} 
+                                    {' - '}
+                                    {project.endDate ? formatDate(project.endDate, DATE_FORMATS.DISPLAY_SHORT) : 'Ongoing'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <Link href={`/projects/${project.id}`} className="text-indigo-600 hover:text-indigo-900">
+                                  View Details
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-1">No projects assigned</h3>
+                      <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
+                        When you're assigned to projects, they will appear here. Projects help track your contributions and experience.
+                      </p>
+                      <Link href="/projects">
+                        <Button variant="outline">
+                          <ChevronRight className="h-4 w-4 mr-1" />
+                          View All Projects
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
