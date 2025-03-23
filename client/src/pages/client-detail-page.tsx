@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { useAuth } from "../hooks/use-auth";
 import { getQueryFn } from "../lib/queryClient";
 import { formatDate, DATE_FORMATS } from "../lib/date-utils";
 
@@ -9,17 +8,17 @@ import Header from "../components/header";
 import Sidebar from "../components/sidebar";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Badge } from "../components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import {
   ChevronLeft,
   Building2,
   Mail,
   Phone,
   MapPin,
-  FileText,
   Clock,
   Briefcase,
+  Plus,
   Edit
 } from "lucide-react";
 
@@ -51,10 +50,8 @@ export default function ClientDetailPage() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user } = useAuth();
-  const isAdmin = user?.is_admin || user?.isAdmin;
   const clientId = parseInt(params.id);
-
+  
   // Fetch client details
   const { data: client, isLoading: clientLoading } = useQuery<Client>({
     queryKey: ["client", clientId],
@@ -62,9 +59,9 @@ export default function ClientDetailPage() {
       on401: "throw",
       url: `/api/clients/${clientId}`,
     }),
-    enabled: !isNaN(clientId) && isAdmin,
+    enabled: !isNaN(clientId),
   });
-
+  
   // Fetch client projects
   const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
     queryKey: ["client-projects", clientId],
@@ -72,9 +69,9 @@ export default function ClientDetailPage() {
       on401: "throw",
       url: `/api/clients/${clientId}/projects`,
     }),
-    enabled: !isNaN(clientId) && isAdmin,
+    enabled: !isNaN(clientId),
   });
-
+  
   // Get status color
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -86,97 +83,63 @@ export default function ClientDetailPage() {
       default: return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   };
-
-  // If not admin, show access denied
-  if (!isAdmin) {
-    return (
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          setIsOpen={setIsSidebarOpen} 
-          currentPath="/clients" 
-        />
-        
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Header 
-            title="Client Details" 
-            toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
-            isSidebarOpen={isSidebarOpen} 
-          />
-          
-          <main className="flex-1 overflow-y-auto p-4 md:p-6">
-            <div className="flex flex-col items-center justify-center h-full">
-              <Building2 className="h-16 w-16 text-gray-400 mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-4">
-                You need administrator privileges to view client details.
-              </p>
-              <Button onClick={() => setLocation("/")}>
-                Return to Dashboard
-              </Button>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
-
+  
   // Loading state
   if (clientLoading) {
     return (
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen flex">
         <Sidebar 
           isOpen={isSidebarOpen} 
           setIsOpen={setIsSidebarOpen} 
           currentPath="/clients" 
         />
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
           <Header 
             title="Client Details" 
             toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
             isSidebarOpen={isSidebarOpen} 
           />
           
-          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-center items-center h-full">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white"></div>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     );
   }
-
+  
   // Client not found
   if (!client) {
     return (
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen flex">
         <Sidebar 
           isOpen={isSidebarOpen} 
           setIsOpen={setIsSidebarOpen} 
           currentPath="/clients" 
         />
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
           <Header 
             title="Client Details" 
             toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
             isSidebarOpen={isSidebarOpen} 
           />
           
-          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center p-12">
               <h2 className="text-2xl font-bold mb-2">Client Not Found</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                The client you're looking for doesn't exist.
+                The client you're looking for doesn't exist or you don't have access to it.
               </p>
               <Button onClick={() => setLocation("/clients")}>
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Back to Clients
               </Button>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     );
@@ -197,7 +160,7 @@ export default function ClientDetailPage() {
           isSidebarOpen={isSidebarOpen} 
         />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
+        <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
           <div className="mb-6">
             <Button 
               variant="ghost" 
@@ -415,7 +378,7 @@ export default function ClientDetailPage() {
               </Card>
             </div>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

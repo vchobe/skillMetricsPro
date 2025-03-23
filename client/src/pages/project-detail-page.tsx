@@ -131,25 +131,25 @@ export default function ProjectDetailPage() {
   // Loading state
   if (projectLoading) {
     return (
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen flex">
         <Sidebar 
           isOpen={isSidebarOpen} 
           setIsOpen={setIsSidebarOpen} 
           currentPath="/projects" 
         />
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
           <Header 
             title="Project Details" 
             toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
             isSidebarOpen={isSidebarOpen} 
           />
           
-          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-center items-center h-full">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white"></div>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     );
@@ -158,21 +158,21 @@ export default function ProjectDetailPage() {
   // Project not found
   if (!project) {
     return (
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen flex">
         <Sidebar 
           isOpen={isSidebarOpen} 
           setIsOpen={setIsSidebarOpen} 
           currentPath="/projects" 
         />
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
           <Header 
             title="Project Details" 
             toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
             isSidebarOpen={isSidebarOpen} 
           />
           
-          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center p-12">
               <h2 className="text-2xl font-bold mb-2">Project Not Found</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -183,7 +183,7 @@ export default function ProjectDetailPage() {
                 Back to Projects
               </Button>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     );
@@ -210,7 +210,7 @@ export default function ProjectDetailPage() {
           isSidebarOpen={isSidebarOpen} 
         />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
+        <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
           <div className="mb-6">
             <Button 
               variant="ghost" 
@@ -490,7 +490,7 @@ export default function ProjectDetailPage() {
               </Card>
             </div>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );
