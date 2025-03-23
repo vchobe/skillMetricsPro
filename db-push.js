@@ -2,7 +2,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
-import * as schema from "./shared/schema.js";
+import * as schema from "./shared/schema.ts"; // Use .ts extension
 
 // Use the connection string from the environment variable
 const connectionString = process.env.DATABASE_URL;
@@ -16,50 +16,89 @@ try {
   // Perform the migration
   await db.execute(sql`CREATE SCHEMA IF NOT EXISTS drizzle`);
   
-  // Create all tables from schema
-  console.log("Creating skill templates table...");
+  // Create clients table
+  console.log("Creating clients table...");
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS "skill_templates" (
+    CREATE TABLE IF NOT EXISTS "clients" (
       "id" SERIAL PRIMARY KEY,
       "name" TEXT NOT NULL,
-      "category" TEXT NOT NULL,
-      "description" TEXT,
-      "is_recommended" BOOLEAN DEFAULT false,
-      "target_level" skill_level,
-      "target_date" DATE,
-      "created_at" TIMESTAMP DEFAULT NOW() NOT NULL,
-      "updated_at" TIMESTAMP DEFAULT NOW() NOT NULL
+      "industry" TEXT,
+      "contact_name" TEXT,
+      "contact_email" TEXT,
+      "contact_phone" TEXT,
+      "website" TEXT,
+      "logo_url" TEXT,
+      "notes" TEXT,
+      "created_at" TIMESTAMP DEFAULT NOW(),
+      "updated_at" TIMESTAMP DEFAULT NOW()
     )
   `);
   
-  console.log("Creating skill targets table...");
+  // Create projects table
+  console.log("Creating projects table...");
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS "skill_targets" (
+    CREATE TABLE IF NOT EXISTS "projects" (
       "id" SERIAL PRIMARY KEY,
       "name" TEXT NOT NULL,
       "description" TEXT,
-      "target_level" skill_level NOT NULL,
-      "target_date" DATE,
-      "created_at" TIMESTAMP DEFAULT NOW() NOT NULL,
-      "updated_at" TIMESTAMP DEFAULT NOW() NOT NULL
+      "client_id" INTEGER REFERENCES "clients"("id"),
+      "start_date" TIMESTAMP,
+      "end_date" TIMESTAMP,
+      "location" TEXT,
+      "confluence_link" TEXT,
+      "lead_id" INTEGER REFERENCES "users"("id"),
+      "delivery_lead_id" INTEGER REFERENCES "users"("id"),
+      "status" TEXT DEFAULT 'active',
+      "created_at" TIMESTAMP DEFAULT NOW(),
+      "updated_at" TIMESTAMP DEFAULT NOW()
     )
   `);
   
-  console.log("Creating skill target skills table...");
+  // Create project resources table
+  console.log("Creating project resources table...");
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS "skill_target_skills" (
+    CREATE TABLE IF NOT EXISTS "project_resources" (
       "id" SERIAL PRIMARY KEY,
-      "target_id" INTEGER NOT NULL,
-      "skill_id" INTEGER NOT NULL
+      "project_id" INTEGER NOT NULL REFERENCES "projects"("id"),
+      "user_id" INTEGER NOT NULL REFERENCES "users"("id"),
+      "role" TEXT,
+      "allocation" INTEGER DEFAULT 100,
+      "start_date" TIMESTAMP,
+      "end_date" TIMESTAMP,
+      "notes" TEXT,
+      "created_at" TIMESTAMP DEFAULT NOW(),
+      "updated_at" TIMESTAMP DEFAULT NOW()
     )
   `);
   
-  console.log("Creating skill target users table...");
+  // Create project skills table
+  console.log("Creating project skills table...");
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS "skill_target_users" (
+    CREATE TABLE IF NOT EXISTS "project_skills" (
       "id" SERIAL PRIMARY KEY,
-      "target_id" INTEGER NOT NULL,
-      "user_id" INTEGER NOT NULL
+      "project_id" INTEGER NOT NULL REFERENCES "projects"("id"),
+      "skill_id" INTEGER NOT NULL REFERENCES "skills"("id"),
+      "required_level" TEXT DEFAULT 'beginner',
+      "importance" TEXT DEFAULT 'medium',
+      "created_at" TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  
+  // Create project resource histories table
+  console.log("Creating project resource histories table...");
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "project_resource_histories" (
+      "id" SERIAL PRIMARY KEY,
+      "project_id" INTEGER NOT NULL REFERENCES "projects"("id"),
+      "user_id" INTEGER NOT NULL REFERENCES "users"("id"),
+      "action" TEXT NOT NULL,
+      "previous_role" TEXT,
+      "new_role" TEXT,
+      "previous_allocation" INTEGER,
+      "new_allocation" INTEGER,
+      "date" TIMESTAMP DEFAULT NOW(),
+      "performed_by_id" INTEGER REFERENCES "users"("id"),
+      "note" TEXT
     )
   `);
   

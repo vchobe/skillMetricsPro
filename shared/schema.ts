@@ -276,24 +276,26 @@ export type InsertPendingSkillUpdate = z.infer<typeof insertPendingSkillUpdateSc
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  description: text("description"),
   industry: text("industry"),
-  location: text("location"),
-  website: text("website"),
-  contactPerson: text("contact_person"),
+  contactName: text("contact_name"),
   contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  website: text("website"),
+  logoUrl: text("logo_url"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
 export const insertClientSchema = createInsertSchema(clients).pick({
   name: true,
-  description: true,
   industry: true,
-  location: true,
+  contactName: true,
+  contactEmail: true,
+  contactPhone: true,
   website: true,
-  contactPerson: true,
-  contactEmail: true
+  logoUrl: true,
+  notes: true
 });
 
 export type Client = typeof clients.$inferSelect;
@@ -341,6 +343,7 @@ export const projectResources = pgTable("project_resources", {
   allocation: integer("allocation").default(100), // Percentage of time allocated
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
@@ -351,7 +354,8 @@ export const insertProjectResourceSchema = createInsertSchema(projectResources).
   role: true,
   allocation: true,
   startDate: true,
-  endDate: true
+  endDate: true,
+  notes: true
 });
 
 export type ProjectResource = typeof projectResources.$inferSelect;
@@ -362,6 +366,7 @@ export const projectSkills = pgTable("project_skills", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   skillId: integer("skill_id").notNull().references(() => skills.id),
+  requiredLevel: text("required_level").default("beginner"), // beginner, intermediate, expert
   importance: text("importance").default("medium"), // high, medium, low
   createdAt: timestamp("created_at").defaultNow()
 });
@@ -369,6 +374,7 @@ export const projectSkills = pgTable("project_skills", {
 export const insertProjectSkillSchema = createInsertSchema(projectSkills).pick({
   projectId: true,
   skillId: true,
+  requiredLevel: true,
   importance: true
 });
 
