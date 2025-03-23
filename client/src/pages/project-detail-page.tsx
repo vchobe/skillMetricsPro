@@ -71,7 +71,7 @@ type ProjectSkill = {
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const projectId = parseInt(params.id);
   
   // Fetch project details
@@ -168,16 +168,16 @@ export default function ProjectDetailPage() {
     return (
       <div className="min-h-screen flex">
         <Sidebar 
-          isOpen={isSidebarOpen} 
-          setIsOpen={setIsSidebarOpen} 
+          isOpen={sidebarOpen} 
+          setIsOpen={setSidebarOpen} 
           currentPath="/projects" 
         />
         
-        <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
+        <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
           <Header 
             title="Project Details" 
-            toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
-            isSidebarOpen={isSidebarOpen} 
+            toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+            isSidebarOpen={sidebarOpen} 
           />
           
           <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -195,16 +195,16 @@ export default function ProjectDetailPage() {
     return (
       <div className="min-h-screen flex">
         <Sidebar 
-          isOpen={isSidebarOpen} 
-          setIsOpen={setIsSidebarOpen} 
+          isOpen={sidebarOpen} 
+          setIsOpen={setSidebarOpen} 
           currentPath="/projects" 
         />
         
-        <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
+        <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
           <Header 
             title="Project Details" 
-            toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
-            isSidebarOpen={isSidebarOpen} 
+            toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+            isSidebarOpen={sidebarOpen} 
           />
           
           <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -230,16 +230,16 @@ export default function ProjectDetailPage() {
   return (
     <div className="min-h-screen flex">
       <Sidebar 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
+        isOpen={sidebarOpen} 
+        setIsOpen={setSidebarOpen} 
         currentPath="/projects" 
       />
       
-      <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
+      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <Header 
           title="Project Details" 
-          toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
-          isSidebarOpen={isSidebarOpen} 
+          toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+          isSidebarOpen={sidebarOpen} 
         />
         
         <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">

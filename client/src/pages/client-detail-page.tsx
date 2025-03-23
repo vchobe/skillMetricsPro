@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { getQueryFn } from "../lib/queryClient";
 import { formatDate, DATE_FORMATS } from "../lib/date-utils";
 
@@ -49,7 +49,7 @@ type Project = {
 export default function ClientDetailPage() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const clientId = parseInt(params.id);
   
   // Fetch client details
@@ -89,16 +89,16 @@ export default function ClientDetailPage() {
     return (
       <div className="min-h-screen flex">
         <Sidebar 
-          isOpen={isSidebarOpen} 
-          setIsOpen={setIsSidebarOpen} 
+          isOpen={sidebarOpen} 
+          setIsOpen={setSidebarOpen} 
           currentPath="/clients" 
         />
         
-        <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
+        <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
           <Header 
             title="Client Details" 
-            toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
-            isSidebarOpen={isSidebarOpen} 
+            toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+            isSidebarOpen={sidebarOpen} 
           />
           
           <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -116,16 +116,16 @@ export default function ClientDetailPage() {
     return (
       <div className="min-h-screen flex">
         <Sidebar 
-          isOpen={isSidebarOpen} 
-          setIsOpen={setIsSidebarOpen} 
+          isOpen={sidebarOpen} 
+          setIsOpen={setSidebarOpen} 
           currentPath="/clients" 
         />
         
-        <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
+        <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
           <Header 
             title="Client Details" 
-            toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
-            isSidebarOpen={isSidebarOpen} 
+            toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+            isSidebarOpen={sidebarOpen} 
           />
           
           <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -148,16 +148,16 @@ export default function ClientDetailPage() {
   return (
     <div className="min-h-screen flex">
       <Sidebar 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
+        isOpen={sidebarOpen} 
+        setIsOpen={setSidebarOpen} 
         currentPath="/clients" 
       />
       
-      <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
+      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <Header 
           title="Client Details" 
-          toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
-          isSidebarOpen={isSidebarOpen} 
+          toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+          isSidebarOpen={sidebarOpen} 
         />
         
         <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
