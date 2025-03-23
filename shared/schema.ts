@@ -230,3 +230,106 @@ export type InsertSkillTemplate = z.infer<typeof insertSkillTemplateSchema>;
 
 export type SkillTarget = typeof skillTargets.$inferSelect;
 export type InsertSkillTarget = z.infer<typeof insertSkillTargetSchema>;
+
+// Project status enum
+export const projectStatusEnum = pgEnum("project_status", ["planning", "active", "on_hold", "completed", "cancelled"]);
+
+// Clients schema
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  contactPerson: text("contact_person"),
+  email: text("email"),
+  phone: text("phone"),
+  address: text("address"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertClientSchema = createInsertSchema(clients).pick({
+  name: true,
+  contactPerson: true,
+  email: true,
+  phone: true,
+  address: true,
+  description: true,
+});
+
+// Projects schema
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  clientId: integer("client_id").notNull(),
+  status: projectStatusEnum("status").notNull().default("planning"),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  location: text("location"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertProjectSchema = createInsertSchema(projects).pick({
+  name: true,
+  description: true,
+  clientId: true,
+  status: true,
+  startDate: true,
+  endDate: true,
+  location: true,
+  notes: true,
+});
+
+// Project Resources (Users assigned to projects)
+export const projectResources = pgTable("project_resources", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  userId: integer("user_id").notNull(),
+  role: text("role"),
+  assignedDate: date("assigned_date").defaultNow().notNull(),
+  removedDate: date("removed_date"), // Null if currently assigned
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertProjectResourceSchema = createInsertSchema(projectResources).pick({
+  projectId: true,
+  userId: true,
+  role: true,
+  assignedDate: true,
+  removedDate: true,
+  notes: true,
+});
+
+// Project Skills (Skills needed for a project)
+export const projectSkills = pgTable("project_skills", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  skillId: integer("skill_id").notNull(),
+  requiredLevel: skillLevelEnum("required_level").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertProjectSkillSchema = createInsertSchema(projectSkills).pick({
+  projectId: true,
+  skillId: true,
+  requiredLevel: true,
+  notes: true,
+});
+
+// Type definitions for new schemas
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = z.infer<typeof insertClientSchema>;
+
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+
+export type ProjectResource = typeof projectResources.$inferSelect;
+export type InsertProjectResource = z.infer<typeof insertProjectResourceSchema>;
+
+export type ProjectSkill = typeof projectSkills.$inferSelect;
+export type InsertProjectSkill = z.infer<typeof insertProjectSkillSchema>;
