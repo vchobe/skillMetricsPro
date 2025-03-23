@@ -197,13 +197,17 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
-        currentPath="/projects" 
-      />
+      {/* Sidebar wrapper with lower z-index */}
+      <div className="z-10 relative">
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          setIsOpen={setIsSidebarOpen} 
+          currentPath="/projects" 
+        />
+      </div>
       
-      <div className="flex-1 flex flex-col overflow-hidden relative z-20">
+      {/* Main content with higher z-index */}
+      <div className="flex-1 flex flex-col overflow-hidden relative z-40">
         <Header 
           title="Project Details" 
           toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 

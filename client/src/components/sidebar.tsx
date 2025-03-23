@@ -56,14 +56,14 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
       {/* Mobile overlay */}
       {isMobile && isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40"
+          className="fixed inset-0 bg-black/50 z-20"
           onClick={() => setIsOpen(false)}
         />
       )}
       
       {/* Sidebar */}
       <div 
-        className={`w-64 bg-gray-800 text-white flex flex-col fixed h-full z-30 transition-all duration-300 ${
+        className={`w-64 bg-gray-800 text-white flex flex-col fixed h-full z-10 transition-all duration-300 ${
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-24"
         }`}
       >
