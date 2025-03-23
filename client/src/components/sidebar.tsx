@@ -10,7 +10,9 @@ import {
   ChevronRight,
   BarChart4,
   LogOut,
-  Trophy
+  Trophy,
+  Briefcase,
+  Building
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -156,6 +158,32 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 <Trophy className="h-5 w-5" />
                 {(isOpen || !isMobile) && (
                   <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Leaderboard</span>
+                )}
+              </Link>
+            </div>
+            
+            <div>
+              <Link href="/projects" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/projects" || currentPath.startsWith("/projects/")
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <Briefcase className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Projects</span>
+                )}
+              </Link>
+            </div>
+            
+            <div>
+              <Link href="/clients" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                currentPath === "/clients" 
+                  ? "bg-gray-900 text-white" 
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}>
+                <Building className="h-5 w-5" />
+                {(isOpen || !isMobile) && (
+                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Clients</span>
                 )}
               </Link>
             </div>
