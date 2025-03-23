@@ -23,6 +23,10 @@ const SKILL_LEVELS = ['beginner', 'intermediate', 'expert'];
 
 // Format date for database
 const formatDate = (date) => {
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
+    // Return current date if invalid
+    return format(new Date(), 'yyyy-MM-dd');
+  }
   return format(date, 'yyyy-MM-dd');
 };
 
@@ -156,7 +160,8 @@ async function assignResourcesToProjects(projects, users) {
       if (project.status === 'completed' || project.status === 'cancelled') {
         // 50% chance of having a removal date
         if (Math.random() > 0.5) {
-          removedDate = formatDate(new Date(project.endDate));
+          // Use current date as fallback if endDate is invalid
+          removedDate = formatDate(new Date());
         }
       }
       
