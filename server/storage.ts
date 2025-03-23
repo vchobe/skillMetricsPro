@@ -1319,12 +1319,22 @@ export class PostgresStorage implements IStorage {
 
   async createClient(client: InsertClient): Promise<Client> {
     try {
-      const { name, description, industry, location, website, contactPerson, contactEmail } = client;
       const result = await pool.query(
-        'INSERT INTO clients (name, description, industry, location, website, contact_person, contact_email) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-        [name, description, industry, location, website, contactPerson, contactEmail]
+        `INSERT INTO clients (name, industry, contact_name, contact_email, contact_phone, website, logo_url, notes) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+         RETURNING *`,
+        [
+          client.name,
+          client.industry || null,
+          client.contactName || null,
+          client.contactEmail || null,
+          client.contactPhone || null,
+          client.website || null,
+          client.logoUrl || null,
+          client.notes || null
+        ]
       );
-      return this.snakeToCamel(result.rows[0]) as Client;
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating client:", error);
       throw error;
@@ -1939,52 +1949,6 @@ export class PostgresStorage implements IStorage {
   // Helper method to convert camelCase to snake_case for SQL queries
   private camelToSnake(str: string): string {
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-  }
-
-  // Client operations
-  async getAllClients(): Promise<Client[]> {
-    try {
-      const result = await pool.query('SELECT * FROM clients ORDER BY name');
-      return this.snakeToCamel(result.rows);
-    } catch (error) {
-      console.error("Error getting all clients:", error);
-      throw error;
-    }
-  }
-
-  async getClient(id: number): Promise<Client | undefined> {
-    try {
-      const result = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
-      if (!result.rows[0]) return undefined;
-      return this.snakeToCamel(result.rows[0]);
-    } catch (error) {
-      console.error("Error getting client:", error);
-      throw error;
-    }
-  }
-
-  async createClient(client: InsertClient): Promise<Client> {
-    try {
-      const result = await pool.query(
-        `INSERT INTO clients (name, industry, contact_name, contact_email, contact_phone, website, logo_url, notes) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-         RETURNING *`,
-        [
-          client.name,
-          client.industry || '',
-          client.contactName || '',
-          client.contactEmail || '',
-          client.contactPhone || '',
-          client.website || '',
-          client.logoUrl || '',
-          client.notes || ''
-        ]
-      );
-      return this.snakeToCamel(result.rows[0]);
-    } catch (error) {
-      console.error("Error creating client:", error);
-      throw error;
-    }
   }
 
   async updateClient(id: number, data: Partial<Client>): Promise<Client> {
