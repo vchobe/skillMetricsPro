@@ -216,10 +216,13 @@ export default function ProjectManagementPage() {
   const { data: managementData, isLoading: dataLoading } = useQuery<ProjectManagementData>({
     queryKey: ["project-management-data"],
     queryFn: async () => {
-      const [projects, clients] = await Promise.all([
-        apiRequest({ url: "/api/projects", method: "GET" }),
-        apiRequest({ url: "/api/clients", method: "GET" })
+      const [projectsResponse, clientsResponse] = await Promise.all([
+        apiRequest("GET", "/api/projects"),
+        apiRequest("GET", "/api/clients")
       ]);
+      
+      const projects = await projectsResponse.json();
+      const clients = await clientsResponse.json();
       
       return {
         projects,
@@ -395,11 +398,7 @@ export default function ProjectManagementPage() {
         startDate: data.startDate ? standardizeDate(data.startDate) : null,
         endDate: data.endDate ? standardizeDate(data.endDate) : null,
       };
-      return apiRequest({
-        url: "/api/projects",
-        method: "POST",
-        data: formattedData,
-      });
+      return apiRequest("POST", "/api/projects", formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-management-data"] });
@@ -429,11 +428,7 @@ export default function ProjectManagementPage() {
         startDate: rest.startDate ? standardizeDate(rest.startDate) : null,
         endDate: rest.endDate ? standardizeDate(rest.endDate) : null,
       };
-      return apiRequest({
-        url: `/api/projects/${id}`,
-        method: "PUT",
-        data: formattedData,
-      });
+      return apiRequest("PUT", `/api/projects/${id}`, formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-management-data"] });
@@ -457,11 +452,7 @@ export default function ProjectManagementPage() {
   // Create client mutation
   const createClientMutation = useMutation({
     mutationFn: async (data: ClientFormValues) => {
-      return apiRequest({
-        url: "/api/clients",
-        method: "POST",
-        data,
-      });
+      return apiRequest("POST", "/api/clients", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-management-data"] });
@@ -486,11 +477,7 @@ export default function ProjectManagementPage() {
   const updateClientMutation = useMutation({
     mutationFn: async (data: ClientFormValues & { id: number }) => {
       const { id, ...rest } = data;
-      return apiRequest({
-        url: `/api/clients/${id}`,
-        method: "PUT",
-        data: rest,
-      });
+      return apiRequest("PUT", `/api/clients/${id}`, rest);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-management-data"] });
