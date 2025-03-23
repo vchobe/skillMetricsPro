@@ -1,0 +1,226 @@
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="clients">
+              {!editClientId && (
+                    <CardDescription>
+                      Create a new client for project assignments
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <Form {...clientForm}>
+                    <form onSubmit={clientForm.handleSubmit(onClientSubmit)} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={clientForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Client Name *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter client name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={clientForm.control}
+                          name="contactPerson"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Contact Person</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Primary contact person" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={clientForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Contact email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={clientForm.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Contact phone number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={clientForm.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem className="col-span-2">
+                              <FormLabel>Address</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Client address" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <FormField
+                        control={clientForm.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Client description"
+                                className="min-h-24"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={() => setLocation("/clients")}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="submit"
+                          disabled={createClientMutation.isPending || updateClientMutation.isPending}
+                        >
+                          {createClientMutation.isPending || updateClientMutation.isPending ? (
+                            <div className="flex items-center">
+                              <div className="animate-spin mr-2 h-4 w-4 border-b-2 border-white"></div>
+                              Saving...
+                            </div>
+                          ) : (
+                            editClientId ? "Update Client" : "Create Client"
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+              
+              {!editClientId && (
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle>Client List</CardTitle>
+                    <CardDescription>
+                      Manage your existing clients
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {dataLoading ? (
+                      <div className="flex justify-center p-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
+                      </div>
+                    ) : !managementData?.clients || managementData.clients.length === 0 ? (
+                      <div className="text-center p-6 text-gray-500 dark:text-gray-400">
+                        <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No clients have been created yet.</p>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Contact Person</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {managementData.clients.map((client) => (
+                            <TableRow key={client.id}>
+                              <TableCell className="font-medium">{client.name}</TableCell>
+                              <TableCell>{client.contactPerson || "-"}</TableCell>
+                              <TableCell>{client.email || "-"}</TableCell>
+                              <TableCell>{client.phone || "-"}</TableCell>
+                              <TableCell className="text-right">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => setLocation(`/project-management?tab=clients&edit=${client.id}`)}
+                                  className="mr-1"
+                                >
+                                  Edit
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => setLocation(`/project-management?tab=projects&client=${client.id}`)}
+                                >
+                                  Add Project
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+            
+            {projectId && (
+              <TabsContent value="resources">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Team Members</CardTitle>
+                      <CardDescription>
+                        Manage team members assigned to this project
+                      </CardDescription>
+                    </div>
+                    <Dialog open={addResourceDialogOpen} onOpenChange={setAddResourceDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          Add Team Member
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                          <DialogTitle>Add Team Member to Project</DialogTitle>
+                          <DialogDescription>
+                            Assign a team member to this project
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="mb-4">
+                          <div className="relative">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            <Input
+                              type="search"
