@@ -574,10 +574,7 @@ export default function ProjectManagementPage() {
   // Remove skill from project mutation
   const removeSkillMutation = useMutation({
     mutationFn: async ({ projectId, skillId }: { projectId: number, skillId: number }) => {
-      return apiRequest({
-        url: `/api/projects/${projectId}/skills/${skillId}`,
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/projects/${projectId}/skills/${skillId}`);
     },
     onSuccess: () => {
       refetchSkills();
