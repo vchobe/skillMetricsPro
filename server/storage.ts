@@ -5,7 +5,11 @@ import {
   Endorsement, InsertEndorsement,
   Notification, InsertNotification,
   SkillTemplate, InsertSkillTemplate,
-  SkillTarget, InsertSkillTarget
+  SkillTarget, InsertSkillTarget,
+  Client, InsertClient,
+  Project, InsertProject,
+  ProjectResource, InsertProjectResource,
+  ProjectSkill, InsertProjectSkill
 } from "@shared/schema";
 import session from "express-session";
 import { Store } from "express-session";
@@ -78,6 +82,35 @@ export interface IStorage {
   getSkillTargetUsers(targetId: number): Promise<number[]>;
   addUserToTarget(targetId: number, userId: number): Promise<void>;
   removeUserFromTarget(targetId: number, userId: number): Promise<void>;
+  
+  // Client operations
+  getAllClients(): Promise<Client[]>;
+  getClient(id: number): Promise<Client | undefined>;
+  createClient(client: InsertClient): Promise<Client>;
+  updateClient(id: number, data: Partial<Client>): Promise<Client>;
+  deleteClient(id: number): Promise<void>;
+  
+  // Project operations
+  getAllProjects(): Promise<Project[]>;
+  getProject(id: number): Promise<Project | undefined>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: number, data: Partial<Project>): Promise<Project>;
+  deleteProject(id: number): Promise<void>;
+  getClientProjects(clientId: number): Promise<Project[]>;
+  getUserProjects(userId: number): Promise<Project[]>;
+  
+  // Project Resource operations
+  getProjectResources(projectId: number): Promise<ProjectResource[]>;
+  getProjectResource(id: number): Promise<ProjectResource | undefined>;
+  createProjectResource(resource: InsertProjectResource): Promise<ProjectResource>;
+  updateProjectResource(id: number, data: Partial<ProjectResource>): Promise<ProjectResource>;
+  removeResourceFromProject(id: number): Promise<void>;
+  
+  // Project Skill operations
+  getProjectSkills(projectId: number): Promise<ProjectSkill[]>;
+  createProjectSkill(skill: InsertProjectSkill): Promise<ProjectSkill>;
+  updateProjectSkill(id: number, data: Partial<ProjectSkill>): Promise<ProjectSkill>;
+  deleteProjectSkill(id: number): Promise<void>;
   
   // Session store
   sessionStore: Store;
@@ -1013,6 +1046,508 @@ export class PostgresStorage implements IStorage {
       );
     } catch (error) {
       console.error("Error removing user from target:", error);
+      throw error;
+    }
+  }
+
+  // Client operations
+  async getAllClients(): Promise<Client[]> {
+    try {
+      const result = await pool.query('SELECT * FROM clients ORDER BY name');
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all clients:", error);
+      throw error;
+    }
+  }
+
+  async getClient(id: number): Promise<Client | undefined> {
+    try {
+      const result = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting client:", error);
+      throw error;
+    }
+  }
+
+  async createClient(client: InsertClient): Promise<Client> {
+    try {
+      const result = await pool.query(
+        `INSERT INTO clients (
+          name, contact_person, email, phone, address, description
+         ) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
+         RETURNING *`,
+        [
+          client.name,
+          client.contactPerson || '',
+          client.email || '',
+          client.phone || '',
+          client.address || '',
+          client.description || ''
+        ]
+      );
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error creating client:", error);
+      throw error;
+    }
+  }
+
+  async updateClient(id: number, data: Partial<Client>): Promise<Client> {
+    try {
+      const sets: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+      
+      // Add updated_at timestamp
+      sets.push(`updated_at = CURRENT_TIMESTAMP`);
+      
+      // Build SET clause and parameters
+      for (const [key, value] of Object.entries(data)) {
+        if (key === 'id') continue; // Skip id
+        
+        // Convert camelCase to snake_case for database column names
+        const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        sets.push(`${columnName} = $${paramIndex}`);
+        params.push(value === null ? '' : value); // Convert null to empty string
+        paramIndex++;
+      }
+      
+      params.push(id); // Add id as the last parameter
+      
+      const result = await pool.query(
+        `UPDATE clients SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+        params
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error("Client not found");
+      }
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error updating client:", error);
+      throw error;
+    }
+  }
+
+  async deleteClient(id: number): Promise<void> {
+    try {
+      // First check if there are any projects associated with this client
+      const projectsCheck = await pool.query('SELECT id FROM projects WHERE client_id = $1 LIMIT 1', [id]);
+      
+      if (projectsCheck.rows.length > 0) {
+        throw new Error("Cannot delete client with associated projects");
+      }
+      
+      const result = await pool.query('DELETE FROM clients WHERE id = $1', [id]);
+      
+      if (result.rowCount === 0) {
+        throw new Error("Client not found");
+      }
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      throw error;
+    }
+  }
+
+  // Project operations
+  async getAllProjects(): Promise<Project[]> {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, c.name as client_name 
+        FROM projects p
+        JOIN clients c ON p.client_id = c.id
+        ORDER BY p.created_at DESC
+      `);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all projects:", error);
+      throw error;
+    }
+  }
+
+  async getProject(id: number): Promise<Project | undefined> {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, c.name as client_name 
+        FROM projects p
+        JOIN clients c ON p.client_id = c.id
+        WHERE p.id = $1
+      `, [id]);
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting project:", error);
+      throw error;
+    }
+  }
+
+  async createProject(project: InsertProject): Promise<Project> {
+    try {
+      const result = await pool.query(
+        `INSERT INTO projects (
+          name, description, client_id, status, start_date, end_date, location, notes
+         ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+         RETURNING *`,
+        [
+          project.name,
+          project.description || '',
+          project.clientId,
+          project.status || 'planning',
+          project.startDate || null,
+          project.endDate || null,
+          project.location || '',
+          project.notes || ''
+        ]
+      );
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      throw error;
+    }
+  }
+
+  async updateProject(id: number, data: Partial<Project>): Promise<Project> {
+    try {
+      const sets: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+      
+      // Add updated_at timestamp
+      sets.push(`updated_at = CURRENT_TIMESTAMP`);
+      
+      // Build SET clause and parameters
+      for (const [key, value] of Object.entries(data)) {
+        if (key === 'id' || key === 'clientName') continue; // Skip id and joined fields
+        
+        // Convert camelCase to snake_case for database column names
+        const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        sets.push(`${columnName} = $${paramIndex}`);
+        params.push(value); // Don't convert null to empty string for dates
+        paramIndex++;
+      }
+      
+      params.push(id); // Add id as the last parameter
+      
+      const result = await pool.query(
+        `UPDATE projects SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+        params
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error("Project not found");
+      }
+      
+      // Get client name to include in the result
+      const projectWithClient = await this.getProject(id);
+      return projectWithClient as Project;
+    } catch (error) {
+      console.error("Error updating project:", error);
+      throw error;
+    }
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    try {
+      // Delete related project resources and skills first
+      await pool.query('DELETE FROM project_resources WHERE project_id = $1', [id]);
+      await pool.query('DELETE FROM project_skills WHERE project_id = $1', [id]);
+      
+      // Then delete the project
+      const result = await pool.query('DELETE FROM projects WHERE id = $1', [id]);
+      
+      if (result.rowCount === 0) {
+        throw new Error("Project not found");
+      }
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      throw error;
+    }
+  }
+
+  async getClientProjects(clientId: number): Promise<Project[]> {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, c.name as client_name 
+        FROM projects p
+        JOIN clients c ON p.client_id = c.id
+        WHERE p.client_id = $1
+        ORDER BY p.created_at DESC
+      `, [clientId]);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting client projects:", error);
+      throw error;
+    }
+  }
+
+  async getUserProjects(userId: number): Promise<Project[]> {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, c.name as client_name 
+        FROM projects p
+        JOIN clients c ON p.client_id = c.id
+        JOIN project_resources pr ON p.id = pr.project_id
+        WHERE pr.user_id = $1 AND (pr.removed_date IS NULL OR pr.removed_date > CURRENT_DATE)
+        ORDER BY p.created_at DESC
+      `, [userId]);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting user projects:", error);
+      throw error;
+    }
+  }
+
+  // Project Resource operations
+  async getProjectResources(projectId: number): Promise<ProjectResource[]> {
+    try {
+      const result = await pool.query(`
+        SELECT pr.*, u.username, u.email, u.first_name, u.last_name
+        FROM project_resources pr
+        JOIN users u ON pr.user_id = u.id
+        WHERE pr.project_id = $1
+        ORDER BY pr.assigned_date DESC
+      `, [projectId]);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting project resources:", error);
+      throw error;
+    }
+  }
+
+  async getProjectResource(id: number): Promise<ProjectResource | undefined> {
+    try {
+      const result = await pool.query(`
+        SELECT pr.*, u.username, u.email, u.first_name, u.last_name
+        FROM project_resources pr
+        JOIN users u ON pr.user_id = u.id
+        WHERE pr.id = $1
+      `, [id]);
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting project resource:", error);
+      throw error;
+    }
+  }
+
+  async createProjectResource(resource: InsertProjectResource): Promise<ProjectResource> {
+    try {
+      // Check if user is already assigned to this project
+      const existingCheck = await pool.query(
+        `SELECT id FROM project_resources 
+         WHERE project_id = $1 AND user_id = $2 AND removed_date IS NULL`,
+        [resource.projectId, resource.userId]
+      );
+      
+      if (existingCheck.rows.length > 0) {
+        throw new Error("User is already assigned to this project");
+      }
+      
+      const result = await pool.query(
+        `INSERT INTO project_resources (
+          project_id, user_id, role, assigned_date, removed_date, notes
+         ) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
+         RETURNING *`,
+        [
+          resource.projectId,
+          resource.userId,
+          resource.role || '',
+          resource.assignedDate || new Date(),
+          resource.removedDate || null,
+          resource.notes || ''
+        ]
+      );
+      
+      // Get the full resource with user details
+      const createdResource = await this.getProjectResource(result.rows[0].id);
+      return createdResource as ProjectResource;
+    } catch (error) {
+      console.error("Error creating project resource:", error);
+      throw error;
+    }
+  }
+
+  async updateProjectResource(id: number, data: Partial<ProjectResource>): Promise<ProjectResource> {
+    try {
+      const sets: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+      
+      // Add updated_at timestamp
+      sets.push(`updated_at = CURRENT_TIMESTAMP`);
+      
+      // Build SET clause and parameters
+      for (const [key, value] of Object.entries(data)) {
+        if (key === 'id' || key === 'projectId' || key === 'userId' || 
+            key === 'username' || key === 'email' || key === 'firstName' || 
+            key === 'lastName') continue; // Skip id and user fields
+        
+        // Convert camelCase to snake_case for database column names
+        const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        sets.push(`${columnName} = $${paramIndex}`);
+        params.push(value); // Keep null values for dates
+        paramIndex++;
+      }
+      
+      params.push(id); // Add id as the last parameter
+      
+      const result = await pool.query(
+        `UPDATE project_resources SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+        params
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error("Project resource not found");
+      }
+      
+      // Get the full resource with user details
+      const updatedResource = await this.getProjectResource(id);
+      return updatedResource as ProjectResource;
+    } catch (error) {
+      console.error("Error updating project resource:", error);
+      throw error;
+    }
+  }
+
+  async removeResourceFromProject(id: number): Promise<void> {
+    try {
+      // Instead of deleting, set the removed_date
+      const result = await pool.query(
+        `UPDATE project_resources 
+         SET removed_date = CURRENT_DATE, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $1 AND removed_date IS NULL`,
+        [id]
+      );
+      
+      if (result.rowCount === 0) {
+        throw new Error("Project resource not found or already removed");
+      }
+    } catch (error) {
+      console.error("Error removing resource from project:", error);
+      throw error;
+    }
+  }
+
+  // Project Skill operations
+  async getProjectSkills(projectId: number): Promise<ProjectSkill[]> {
+    try {
+      const result = await pool.query(`
+        SELECT ps.*, s.name as skill_name, s.category as skill_category
+        FROM project_skills ps
+        JOIN skills s ON ps.skill_id = s.id
+        WHERE ps.project_id = $1
+      `, [projectId]);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting project skills:", error);
+      throw error;
+    }
+  }
+
+  async createProjectSkill(skill: InsertProjectSkill): Promise<ProjectSkill> {
+    try {
+      // Check if skill is already added to this project
+      const existingCheck = await pool.query(
+        `SELECT id FROM project_skills WHERE project_id = $1 AND skill_id = $2`,
+        [skill.projectId, skill.skillId]
+      );
+      
+      if (existingCheck.rows.length > 0) {
+        throw new Error("This skill is already added to the project");
+      }
+      
+      const result = await pool.query(
+        `INSERT INTO project_skills (
+          project_id, skill_id, required_level, notes
+         ) 
+         VALUES ($1, $2, $3, $4) 
+         RETURNING *`,
+        [
+          skill.projectId,
+          skill.skillId,
+          skill.requiredLevel,
+          skill.notes || ''
+        ]
+      );
+      
+      // Get the skill details
+      const skillInfo = await pool.query(
+        `SELECT name as skill_name, category as skill_category FROM skills WHERE id = $1`,
+        [skill.skillId]
+      );
+      
+      const projectSkill = {
+        ...this.snakeToCamel(result.rows[0]),
+        ...this.snakeToCamel(skillInfo.rows[0])
+      };
+      
+      return projectSkill;
+    } catch (error) {
+      console.error("Error creating project skill:", error);
+      throw error;
+    }
+  }
+
+  async updateProjectSkill(id: number, data: Partial<ProjectSkill>): Promise<ProjectSkill> {
+    try {
+      const sets: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+      
+      // Build SET clause and parameters
+      for (const [key, value] of Object.entries(data)) {
+        if (key === 'id' || key === 'projectId' || key === 'skillId' || 
+            key === 'skillName' || key === 'skillCategory') continue; // Skip id and skill fields
+        
+        // Convert camelCase to snake_case for database column names
+        const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        sets.push(`${columnName} = $${paramIndex}`);
+        params.push(value);
+        paramIndex++;
+      }
+      
+      params.push(id); // Add id as the last parameter
+      
+      const result = await pool.query(
+        `UPDATE project_skills SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+        params
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error("Project skill not found");
+      }
+      
+      // Get the updated project skill with skill details
+      const projectSkill = await pool.query(`
+        SELECT ps.*, s.name as skill_name, s.category as skill_category
+        FROM project_skills ps
+        JOIN skills s ON ps.skill_id = s.id
+        WHERE ps.id = $1
+      `, [id]);
+      
+      return this.snakeToCamel(projectSkill.rows[0]);
+    } catch (error) {
+      console.error("Error updating project skill:", error);
+      throw error;
+    }
+  }
+
+  async deleteProjectSkill(id: number): Promise<void> {
+    try {
+      const result = await pool.query('DELETE FROM project_skills WHERE id = $1', [id]);
+      
+      if (result.rowCount === 0) {
+        throw new Error("Project skill not found");
+      }
+    } catch (error) {
+      console.error("Error deleting project skill:", error);
       throw error;
     }
   }
