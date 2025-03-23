@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { getQueryFn } from "../lib/queryClient";
@@ -164,25 +163,21 @@ export default function ProjectDetailPage() {
   // Loading state
   if (projectLoading) {
     return (
-      <div className="min-h-screen flex">
-        <Sidebar 
-          isOpen={isOpen} 
-          setIsOpen={setIsOpen} 
-          currentPath="/projects" 
-        />
+      <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
+        <Sidebar currentPath="/projects" />
         
-        <div className={`flex-1 transition-all duration-300 ${isOpen ? 'ml-64' : 'ml-0'}`}>
+        <div className="flex-1 ml-64 flex flex-col overflow-hidden">
           <Header 
             title="Project Details" 
-            toggleSidebar={() => setIsOpen(!isOpen)} 
-            isSidebarOpen={isOpen} 
+            toggleSidebar={() => {}} 
+            isSidebarOpen={false} 
           />
           
-          <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <main className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="flex justify-center items-center h-full">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white"></div>
             </div>
-          </div>
+          </main>
         </div>
       </div>
     );
@@ -191,21 +186,17 @@ export default function ProjectDetailPage() {
   // Project not found
   if (!project) {
     return (
-      <div className="min-h-screen flex">
-        <Sidebar 
-          isOpen={isOpen} 
-          setIsOpen={setIsOpen} 
-          currentPath="/projects" 
-        />
+      <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
+        <Sidebar currentPath="/projects" />
         
-        <div className={`flex-1 transition-all duration-300 ${isOpen ? 'ml-64' : 'ml-0'}`}>
+        <div className="flex-1 ml-64 flex flex-col overflow-hidden">
           <Header 
             title="Project Details" 
-            toggleSidebar={() => setIsOpen(!isOpen)} 
-            isSidebarOpen={isOpen} 
+            toggleSidebar={() => {}} 
+            isSidebarOpen={false} 
           />
           
-          <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <main className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="text-center p-12">
               <h2 className="text-2xl font-bold mb-2">Project Not Found</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -216,7 +207,7 @@ export default function ProjectDetailPage() {
                 Back to Projects
               </Button>
             </div>
-          </div>
+          </main>
         </div>
       </div>
     );
@@ -226,21 +217,17 @@ export default function ProjectDetailPage() {
   const activeResourceCount = resources?.filter(r => !r.removedDate).length || 0;
 
   return (
-    <div className="min-h-screen flex">
-      <Sidebar 
-        isOpen={isOpen} 
-        setIsOpen={setIsOpen} 
-        currentPath="/projects" 
-      />
+    <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
+      <Sidebar currentPath="/projects" />
       
-      <div className={`flex-1 transition-all duration-300 ${isOpen ? 'ml-64' : 'ml-0'}`}>
+      <div className="flex-1 ml-64 flex flex-col overflow-hidden">
         <Header 
           title="Project Details" 
-          toggleSidebar={() => setIsOpen(!isOpen)} 
-          isSidebarOpen={isOpen} 
+          toggleSidebar={() => {}} 
+          isSidebarOpen={false} 
         />
         
-        <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
           <div className="mb-6">
             <Button 
               variant="ghost" 
@@ -435,7 +422,7 @@ export default function ProjectDetailPage() {
                                     ? formatDate(resource.removedDate, DATE_FORMATS.DISPLAY_SHORT)
                                     : "Active"}
                                 </TableCell>
-                                <TableCell className="truncate max-w-[200px]">
+                                <TableCell className="truncate max-w-[150px]">
                                   {resource.notes || "-"}
                                 </TableCell>
                               </TableRow>
@@ -458,9 +445,9 @@ export default function ProjectDetailPage() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => setLocation(`/project-management?tab=skills&project=${project.id}`)}
+                        onClick={() => setLocation(`/project-management?tab=project-skills&project=${project.id}`)}
                       >
-                        Add Skill
+                        Add Skill Requirement
                       </Button>
                     </CardHeader>
                     <CardContent>
@@ -471,30 +458,33 @@ export default function ProjectDetailPage() {
                       ) : !skills || skills.length === 0 ? (
                         <div className="text-center p-6 text-gray-500 dark:text-gray-400">
                           <Lightbulb className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p>No skills specified for this project yet.</p>
+                          <p>No skill requirements defined for this project yet.</p>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {skills.map((skill) => (
-                            <Card key={skill.id} className="overflow-hidden">
-                              <div className="p-4">
+                            <Card key={skill.id} className="border shadow-sm">
+                              <CardContent className="pt-4">
                                 <div className="flex items-start justify-between">
                                   <div>
-                                    <h3 className="font-medium">{skill.skillName}</h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{skill.skillCategory}</p>
+                                    <div className="flex items-center">
+                                      <Award className="h-4 w-4 text-indigo-500 mr-2" />
+                                      <h3 className="font-medium">{skill.skillName}</h3>
+                                    </div>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                      {skill.skillCategory}
+                                    </p>
                                   </div>
-                                  <div>
-                                    <Badge className={getSkillLevelColor(skill.requiredLevel)}>
-                                      {skill.requiredLevel}
-                                    </Badge>
-                                  </div>
+                                  <Badge className={getSkillLevelColor(skill.requiredLevel)}>
+                                    {skill.requiredLevel}
+                                  </Badge>
                                 </div>
                                 {skill.notes && (
-                                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                                    {skill.notes}
-                                  </p>
+                                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                                    <p className="text-sm">{skill.notes}</p>
+                                  </div>
                                 )}
-                              </div>
+                              </CardContent>
                             </Card>
                           ))}
                         </div>
@@ -506,98 +496,84 @@ export default function ProjectDetailPage() {
             </div>
             
             <div>
-              <Card className="mb-6">
+              <Card className="sticky top-4">
                 <CardHeader>
-                  <CardTitle>Project Summary</CardTitle>
+                  <CardTitle>Project Timeline</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Client</span>
-                    <Link 
-                      href={`/clients/${project.clientId}`} 
-                      className="text-sm text-blue-600 hover:underline flex items-center"
-                    >
-                      <Building2 className="h-3.5 w-3.5 mr-1" />
-                      {project.clientName}
-                    </Link>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Team Size</span>
-                    <span className="text-sm">{activeResourceCount} active members</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Required Skills</span>
-                    <span className="text-sm">{skills?.length || 0} skills</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Status</span>
-                    <Badge className={getStatusColor(project.status)} variant="outline">
-                      {project.status.replace("_", " ").charAt(0).toUpperCase() + project.status.replace("_", " ").slice(1)}
-                    </Badge>
-                  </div>
-                  
-                  {project.location && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Location</span>
-                      <span className="text-sm">{project.location}</span>
+                <CardContent>
+                  <div className="space-y-6">
+                    {project.startDate ? (
+                      <div className="flex">
+                        <div className="flex flex-col items-center mr-4">
+                          <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                          <div className="w-1 flex-grow bg-gray-300 dark:bg-gray-700"></div>
+                        </div>
+                        <div className="pb-6">
+                          <h3 className="text-sm font-medium">Project Start</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatDate(project.startDate, DATE_FORMATS.DISPLAY)}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex">
+                        <div className="flex flex-col items-center mr-4">
+                          <div className="w-4 h-4 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                          <div className="w-1 flex-grow bg-gray-300 dark:bg-gray-700"></div>
+                        </div>
+                        <div className="pb-6">
+                          <h3 className="text-sm font-medium">Project Start</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Not specified
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex">
+                      <div className="flex flex-col items-center mr-4">
+                        <div className={`w-4 h-4 ${project.status === "active" ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-700"} rounded-full`}></div>
+                        <div className="w-1 flex-grow bg-gray-300 dark:bg-gray-700"></div>
+                      </div>
+                      <div className="pb-6">
+                        <h3 className="text-sm font-medium">Current Status</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                          {project.status.replace("_", " ")}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                  
-                  {project.startDate && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Start Date</span>
-                      <span className="text-sm">{formatDate(project.startDate, DATE_FORMATS.DISPLAY_SHORT)}</span>
-                    </div>
-                  )}
-                  
-                  {project.endDate && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">End Date</span>
-                      <span className="text-sm">{formatDate(project.endDate, DATE_FORMATS.DISPLAY_SHORT)}</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
-                    onClick={() => setLocation(`/project-management?tab=resources&project=${project.id}`)}
-                  >
-                    <Users className="h-4 w-4 mr-2" />
-                    Add Team Member
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
-                    onClick={() => setLocation(`/project-management?tab=skills&project=${project.id}`)}
-                  >
-                    <Lightbulb className="h-4 w-4 mr-2" />
-                    Add Required Skill
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
-                    onClick={() => setLocation(`/project-management?tab=projects&edit=${project.id}`)}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Project
-                  </Button>
+                    
+                    {project.endDate ? (
+                      <div className="flex">
+                        <div className="flex flex-col items-center mr-4">
+                          <div className={`w-4 h-4 ${project.status === "completed" ? "bg-green-500" : "bg-gray-300 dark:bg-gray-700"} rounded-full`}></div>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium">Project End</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatDate(project.endDate, DATE_FORMATS.DISPLAY)}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex">
+                        <div className="flex flex-col items-center mr-4">
+                          <div className="w-4 h-4 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium">Project End</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Not specified
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
