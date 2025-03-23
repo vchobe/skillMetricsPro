@@ -1287,6 +1287,654 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+
+  // Client operations
+  async getAllClients(): Promise<Client[]> {
+    try {
+      const result = await pool.query('SELECT * FROM clients ORDER BY name');
+      return result.rows.map(row => this.snakeToCamel(row)) as Client[];
+    } catch (error) {
+      console.error("Error retrieving clients:", error);
+      throw error;
+    }
+  }
+
+  async getClient(id: number): Promise<Client | undefined> {
+    try {
+      const result = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      return this.snakeToCamel(result.rows[0]) as Client;
+    } catch (error) {
+      console.error(`Error retrieving client ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async createClient(client: InsertClient): Promise<Client> {
+    try {
+      const { name, description, industry, location, website, contactPerson, contactEmail } = client;
+      const result = await pool.query(
+        'INSERT INTO clients (name, description, industry, location, website, contact_person, contact_email) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [name, description, industry, location, website, contactPerson, contactEmail]
+      );
+      return this.snakeToCamel(result.rows[0]) as Client;
+    } catch (error) {
+      console.error("Error creating client:", error);
+      throw error;
+    }
+  }
+
+  async updateClient(id: number, data: Partial<Client>): Promise<Client> {
+    try {
+      const client = await this.getClient(id);
+      if (!client) {
+        throw new Error('Client not found');
+      }
+
+      const updateFields = [];
+      const values = [];
+      let paramCount = 1;
+
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined) {
+          updateFields.push(`${this.camelToSnake(key)} = $${paramCount}`);
+          values.push(value);
+          paramCount++;
+        }
+      }
+
+      if (updateFields.length === 0) {
+        return client;
+      }
+
+      values.push(id);
+      const query = `UPDATE clients SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = $${paramCount} RETURNING *`;
+      const result = await pool.query(query, values);
+
+      return this.snakeToCamel(result.rows[0]) as Client;
+    } catch (error) {
+      console.error(`Error updating client ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteClient(id: number): Promise<void> {
+    try {
+      // Check if client exists
+      const client = await this.getClient(id);
+      if (!client) {
+        throw new Error('Client not found');
+      }
+
+      // Check if client has projects
+      const projects = await this.getClientProjects(id);
+      if (projects.length > 0) {
+        throw new Error('Cannot delete client with associated projects');
+      }
+
+      await pool.query('DELETE FROM clients WHERE id = $1', [id]);
+    } catch (error) {
+      console.error(`Error deleting client ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async searchClients(query: string): Promise<Client[]> {
+    try {
+      const searchQuery = `%${query}%`;
+      const result = await pool.query(
+        'SELECT * FROM clients WHERE name ILIKE $1 OR industry ILIKE $1 OR location ILIKE $1 ORDER BY name',
+        [searchQuery]
+      );
+      return result.rows.map(row => this.snakeToCamel(row)) as Client[];
+    } catch (error) {
+      console.error(`Error searching clients with query '${query}':`, error);
+      throw error;
+    }
+  }
+
+  // Project operations
+  async getAllProjects(): Promise<Project[]> {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, c.name as client_name, 
+        u1.username as lead_name, 
+        u2.username as delivery_lead_name
+        FROM projects p
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN users u1 ON p.lead_id = u1.id
+        LEFT JOIN users u2 ON p.delivery_lead_id = u2.id
+        ORDER BY p.name
+      `);
+      return result.rows.map(row => this.snakeToCamel(row)) as Project[];
+    } catch (error) {
+      console.error("Error retrieving projects:", error);
+      throw error;
+    }
+  }
+
+  async getProject(id: number): Promise<Project | undefined> {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, c.name as client_name, 
+        u1.username as lead_name, 
+        u2.username as delivery_lead_name
+        FROM projects p
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN users u1 ON p.lead_id = u1.id
+        LEFT JOIN users u2 ON p.delivery_lead_id = u2.id
+        WHERE p.id = $1
+      `, [id]);
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      return this.snakeToCamel(result.rows[0]) as Project;
+    } catch (error) {
+      console.error(`Error retrieving project ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async createProject(project: InsertProject): Promise<Project> {
+    try {
+      const { 
+        name, description, clientId, startDate, endDate, 
+        location, confluenceLink, leadId, deliveryLeadId, status 
+      } = project;
+      
+      const result = await pool.query(
+        `INSERT INTO projects (
+          name, description, client_id, start_date, end_date, 
+          location, confluence_link, lead_id, delivery_lead_id, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+        [name, description, clientId, startDate, endDate, 
+         location, confluenceLink, leadId, deliveryLeadId, status]
+      );
+      
+      // Fetch the complete project with joined data
+      return await this.getProject(result.rows[0].id);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      throw error;
+    }
+  }
+
+  async updateProject(id: number, data: Partial<Project>): Promise<Project> {
+    try {
+      const project = await this.getProject(id);
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      const updateFields = [];
+      const values = [];
+      let paramCount = 1;
+
+      for (const [key, value] of Object.entries(data)) {
+        // Skip joined fields that aren't in the table
+        if (['clientName', 'leadName', 'deliveryLeadName'].includes(key)) {
+          continue;
+        }
+        
+        if (value !== undefined) {
+          updateFields.push(`${this.camelToSnake(key)} = $${paramCount}`);
+          values.push(value);
+          paramCount++;
+        }
+      }
+
+      if (updateFields.length === 0) {
+        return project;
+      }
+
+      values.push(id);
+      const query = `UPDATE projects SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = $${paramCount} RETURNING *`;
+      const result = await pool.query(query, values);
+
+      // Fetch the updated project with joined data
+      return await this.getProject(id);
+    } catch (error) {
+      console.error(`Error updating project ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    try {
+      // Check if project exists
+      const project = await this.getProject(id);
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      // Start transaction
+      await pool.query('BEGIN');
+
+      // Delete project resources first (cascading delete)
+      await pool.query('DELETE FROM project_resources WHERE project_id = $1', [id]);
+      
+      // Delete project skills
+      await pool.query('DELETE FROM project_skills WHERE project_id = $1', [id]);
+      
+      // Delete the project
+      await pool.query('DELETE FROM projects WHERE id = $1', [id]);
+      
+      // Commit transaction
+      await pool.query('COMMIT');
+    } catch (error) {
+      // Rollback in case of error
+      await pool.query('ROLLBACK');
+      console.error(`Error deleting project ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserProjects(userId: number): Promise<Project[]> {
+    try {
+      const result = await pool.query(`
+        SELECT DISTINCT p.*, c.name as client_name, 
+        u1.username as lead_name, 
+        u2.username as delivery_lead_name
+        FROM projects p
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN users u1 ON p.lead_id = u1.id
+        LEFT JOIN users u2 ON p.delivery_lead_id = u2.id
+        LEFT JOIN project_resources pr ON p.id = pr.project_id
+        WHERE pr.user_id = $1 OR p.lead_id = $1 OR p.delivery_lead_id = $1
+        ORDER BY p.name
+      `, [userId]);
+      return result.rows.map(row => this.snakeToCamel(row)) as Project[];
+    } catch (error) {
+      console.error(`Error retrieving projects for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getClientProjects(clientId: number): Promise<Project[]> {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, c.name as client_name, 
+        u1.username as lead_name, 
+        u2.username as delivery_lead_name
+        FROM projects p
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN users u1 ON p.lead_id = u1.id
+        LEFT JOIN users u2 ON p.delivery_lead_id = u2.id
+        WHERE p.client_id = $1
+        ORDER BY p.name
+      `, [clientId]);
+      return result.rows.map(row => this.snakeToCamel(row)) as Project[];
+    } catch (error) {
+      console.error(`Error retrieving projects for client ${clientId}:`, error);
+      throw error;
+    }
+  }
+
+  async searchProjects(query: string): Promise<Project[]> {
+    try {
+      const searchQuery = `%${query}%`;
+      const result = await pool.query(`
+        SELECT p.*, c.name as client_name, 
+        u1.username as lead_name, 
+        u2.username as delivery_lead_name
+        FROM projects p
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN users u1 ON p.lead_id = u1.id
+        LEFT JOIN users u2 ON p.delivery_lead_id = u2.id
+        WHERE p.name ILIKE $1 OR p.description ILIKE $1 OR p.location ILIKE $1 
+        OR c.name ILIKE $1 OR u1.username ILIKE $1 OR u2.username ILIKE $1
+        ORDER BY p.name
+      `, [searchQuery]);
+      return result.rows.map(row => this.snakeToCamel(row)) as Project[];
+    } catch (error) {
+      console.error(`Error searching projects with query '${query}':`, error);
+      throw error;
+    }
+  }
+
+  // Project Resources operations
+  async getProjectResources(projectId: number): Promise<ProjectResource[]> {
+    try {
+      const result = await pool.query(`
+        SELECT pr.*, u.username, u.email, u.first_name, u.last_name
+        FROM project_resources pr
+        JOIN users u ON pr.user_id = u.id
+        WHERE pr.project_id = $1
+        ORDER BY pr.role
+      `, [projectId]);
+      return result.rows.map(row => this.snakeToCamel(row)) as ProjectResource[];
+    } catch (error) {
+      console.error(`Error retrieving resources for project ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserProjectResources(userId: number): Promise<ProjectResource[]> {
+    try {
+      const result = await pool.query(`
+        SELECT pr.*, p.name as project_name
+        FROM project_resources pr
+        JOIN projects p ON pr.project_id = p.id
+        WHERE pr.user_id = $1
+        ORDER BY pr.start_date DESC
+      `, [userId]);
+      return result.rows.map(row => this.snakeToCamel(row)) as ProjectResource[];
+    } catch (error) {
+      console.error(`Error retrieving project resources for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getProjectResource(id: number): Promise<ProjectResource | undefined> {
+    try {
+      const result = await pool.query(`
+        SELECT pr.*, u.username, u.email, u.first_name, u.last_name, p.name as project_name
+        FROM project_resources pr
+        JOIN users u ON pr.user_id = u.id
+        JOIN projects p ON pr.project_id = p.id
+        WHERE pr.id = $1
+      `, [id]);
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      return this.snakeToCamel(result.rows[0]) as ProjectResource;
+    } catch (error) {
+      console.error(`Error retrieving project resource ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async createProjectResource(resource: InsertProjectResource): Promise<ProjectResource> {
+    try {
+      const { projectId, userId, role, allocation, startDate, endDate } = resource;
+      
+      // Start transaction
+      await pool.query('BEGIN');
+      
+      // Insert the resource
+      const result = await pool.query(
+        `INSERT INTO project_resources (
+          project_id, user_id, role, allocation, start_date, end_date
+        ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [projectId, userId, role, allocation, startDate, endDate]
+      );
+      
+      // Add resource history record
+      await pool.query(
+        `INSERT INTO project_resource_histories (
+          project_id, user_id, action, new_role, new_allocation, performed_by_id
+        ) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [projectId, userId, 'added', role, allocation, userId]
+      );
+      
+      // Commit transaction
+      await pool.query('COMMIT');
+      
+      // Get the complete resource info
+      return await this.getProjectResource(result.rows[0].id);
+    } catch (error) {
+      // Rollback in case of error
+      await pool.query('ROLLBACK');
+      console.error("Error creating project resource:", error);
+      throw error;
+    }
+  }
+
+  async updateProjectResource(id: number, data: Partial<ProjectResource>): Promise<ProjectResource> {
+    try {
+      const resource = await this.getProjectResource(id);
+      if (!resource) {
+        throw new Error('Project resource not found');
+      }
+
+      // Start transaction
+      await pool.query('BEGIN');
+      
+      const updateFields = [];
+      const values = [];
+      let paramCount = 1;
+
+      for (const [key, value] of Object.entries(data)) {
+        // Skip joined fields that aren't in the table
+        if (['username', 'email', 'firstName', 'lastName', 'projectName'].includes(key)) {
+          continue;
+        }
+        
+        if (value !== undefined) {
+          updateFields.push(`${this.camelToSnake(key)} = $${paramCount}`);
+          values.push(value);
+          paramCount++;
+        }
+      }
+
+      if (updateFields.length === 0) {
+        await pool.query('ROLLBACK');
+        return resource;
+      }
+
+      values.push(id);
+      const query = `UPDATE project_resources SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = $${paramCount} RETURNING *`;
+      const result = await pool.query(query, values);
+      
+      // Add history record if role or allocation changed
+      if (data.role !== undefined && data.role !== resource.role) {
+        await pool.query(
+          `INSERT INTO project_resource_histories (
+            project_id, user_id, action, previous_role, new_role, performed_by_id
+          ) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [resource.projectId, resource.userId, 'role_changed', resource.role, data.role, data.userId || resource.userId]
+        );
+      }
+      
+      if (data.allocation !== undefined && data.allocation !== resource.allocation) {
+        await pool.query(
+          `INSERT INTO project_resource_histories (
+            project_id, user_id, action, previous_allocation, new_allocation, performed_by_id
+          ) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [resource.projectId, resource.userId, 'allocation_changed', resource.allocation, data.allocation, data.userId || resource.userId]
+        );
+      }
+      
+      // Commit transaction
+      await pool.query('COMMIT');
+
+      // Get the updated resource
+      return await this.getProjectResource(id);
+    } catch (error) {
+      // Rollback in case of error
+      await pool.query('ROLLBACK');
+      console.error(`Error updating project resource ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteProjectResource(id: number): Promise<void> {
+    try {
+      // Check if resource exists
+      const resource = await this.getProjectResource(id);
+      if (!resource) {
+        throw new Error('Project resource not found');
+      }
+
+      // Start transaction
+      await pool.query('BEGIN');
+      
+      // Add resource history record
+      await pool.query(
+        `INSERT INTO project_resource_histories (
+          project_id, user_id, action, previous_role, previous_allocation, performed_by_id
+        ) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [resource.projectId, resource.userId, 'removed', resource.role, resource.allocation, resource.userId]
+      );
+      
+      // Delete the resource
+      await pool.query('DELETE FROM project_resources WHERE id = $1', [id]);
+      
+      // Commit transaction
+      await pool.query('COMMIT');
+    } catch (error) {
+      // Rollback in case of error
+      await pool.query('ROLLBACK');
+      console.error(`Error deleting project resource ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // Project Skills operations
+  async getProjectSkills(projectId: number): Promise<ProjectSkill[]> {
+    try {
+      const result = await pool.query(`
+        SELECT ps.*, s.name as skill_name, s.category as skill_category, s.level as skill_level
+        FROM project_skills ps
+        JOIN skills s ON ps.skill_id = s.id
+        WHERE ps.project_id = $1
+        ORDER BY s.category, s.name
+      `, [projectId]);
+      return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkill[];
+    } catch (error) {
+      console.error(`Error retrieving skills for project ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  async getSkillProjects(skillId: number): Promise<ProjectSkill[]> {
+    try {
+      const result = await pool.query(`
+        SELECT ps.*, p.name as project_name, p.status as project_status
+        FROM project_skills ps
+        JOIN projects p ON ps.project_id = p.id
+        WHERE ps.skill_id = $1
+        ORDER BY p.name
+      `, [skillId]);
+      return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkill[];
+    } catch (error) {
+      console.error(`Error retrieving projects for skill ${skillId}:`, error);
+      throw error;
+    }
+  }
+
+  async createProjectSkill(projectSkill: InsertProjectSkill): Promise<ProjectSkill> {
+    try {
+      const { projectId, skillId, importance } = projectSkill;
+      
+      // Check if this skill is already linked to the project
+      const existing = await pool.query(
+        'SELECT * FROM project_skills WHERE project_id = $1 AND skill_id = $2',
+        [projectId, skillId]
+      );
+      
+      if (existing.rows.length > 0) {
+        throw new Error('This skill is already associated with the project');
+      }
+      
+      const result = await pool.query(
+        'INSERT INTO project_skills (project_id, skill_id, importance) VALUES ($1, $2, $3) RETURNING *',
+        [projectId, skillId, importance]
+      );
+      
+      // Get the full project skill info
+      const fullResult = await pool.query(`
+        SELECT ps.*, s.name as skill_name, s.category as skill_category, s.level as skill_level, p.name as project_name
+        FROM project_skills ps
+        JOIN skills s ON ps.skill_id = s.id
+        JOIN projects p ON ps.project_id = p.id
+        WHERE ps.id = $1
+      `, [result.rows[0].id]);
+      
+      return this.snakeToCamel(fullResult.rows[0]) as ProjectSkill;
+    } catch (error) {
+      console.error("Error creating project skill:", error);
+      throw error;
+    }
+  }
+
+  async deleteProjectSkill(id: number): Promise<void> {
+    try {
+      await pool.query('DELETE FROM project_skills WHERE id = $1', [id]);
+    } catch (error) {
+      console.error(`Error deleting project skill ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // Project Resource History operations
+  async getProjectResourceHistory(projectId: number): Promise<ProjectResourceHistory[]> {
+    try {
+      const result = await pool.query(`
+        SELECT prh.*, u.username, u.email, p.name as project_name, 
+        performer.username as performed_by_username
+        FROM project_resource_histories prh
+        JOIN users u ON prh.user_id = u.id
+        JOIN projects p ON prh.project_id = p.id
+        LEFT JOIN users performer ON prh.performed_by_id = performer.id
+        WHERE prh.project_id = $1
+        ORDER BY prh.date DESC
+      `, [projectId]);
+      return result.rows.map(row => this.snakeToCamel(row)) as ProjectResourceHistory[];
+    } catch (error) {
+      console.error(`Error retrieving resource history for project ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserProjectHistory(userId: number): Promise<ProjectResourceHistory[]> {
+    try {
+      const result = await pool.query(`
+        SELECT prh.*, p.name as project_name, 
+        performer.username as performed_by_username
+        FROM project_resource_histories prh
+        JOIN projects p ON prh.project_id = p.id
+        LEFT JOIN users performer ON prh.performed_by_id = performer.id
+        WHERE prh.user_id = $1
+        ORDER BY prh.date DESC
+      `, [userId]);
+      return result.rows.map(row => this.snakeToCamel(row)) as ProjectResourceHistory[];
+    } catch (error) {
+      console.error(`Error retrieving project history for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async createProjectResourceHistory(history: InsertProjectResourceHistory): Promise<ProjectResourceHistory> {
+    try {
+      const { 
+        projectId, userId, action, previousRole, newRole, 
+        previousAllocation, newAllocation, performedById, note 
+      } = history;
+      
+      const result = await pool.query(
+        `INSERT INTO project_resource_histories (
+          project_id, user_id, action, previous_role, new_role, 
+          previous_allocation, new_allocation, performed_by_id, note
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        [projectId, userId, action, previousRole, newRole, 
+         previousAllocation, newAllocation, performedById, note]
+      );
+      
+      // Get the full history info with joins
+      const fullResult = await pool.query(`
+        SELECT prh.*, u.username, u.email, p.name as project_name, 
+        performer.username as performed_by_username
+        FROM project_resource_histories prh
+        JOIN users u ON prh.user_id = u.id
+        JOIN projects p ON prh.project_id = p.id
+        LEFT JOIN users performer ON prh.performed_by_id = performer.id
+        WHERE prh.id = $1
+      `, [result.rows[0].id]);
+      
+      return this.snakeToCamel(fullResult.rows[0]) as ProjectResourceHistory;
+    } catch (error) {
+      console.error("Error creating project resource history:", error);
+      throw error;
+    }
+  }
+  
+  // Helper method to convert camelCase to snake_case for SQL queries
+  private camelToSnake(str: string): string {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  }
 }
 
 export const storage = new PostgresStorage();

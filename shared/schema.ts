@@ -380,9 +380,9 @@ export const projectResourceHistories = pgTable("project_resource_histories", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   userId: integer("user_id").notNull().references(() => users.id),
-  action: varchar("action", { length: 50 }).notNull(), // added, removed, role_changed, allocation_changed
-  previousRole: varchar("previous_role", { length: 100 }),
-  newRole: varchar("new_role", { length: 100 }),
+  action: text("action").notNull(), // added, removed, role_changed, allocation_changed
+  previousRole: text("previous_role"),
+  newRole: text("new_role"),
   previousAllocation: integer("previous_allocation"),
   newAllocation: integer("new_allocation"),
   date: timestamp("date").defaultNow(),
