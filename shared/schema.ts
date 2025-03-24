@@ -313,6 +313,8 @@ export const projects = pgTable("projects", {
   confluenceLink: text("confluence_link"),
   leadId: integer("lead_id").references(() => users.id),
   deliveryLeadId: integer("delivery_lead_id").references(() => users.id),
+  hrCoordinatorEmail: text("hr_coordinator_email"),
+  financeTeamEmail: text("finance_team_email"),
   status: text("status").default("active"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
@@ -329,12 +331,17 @@ export const insertProjectSchema = createInsertSchema(projects)
     confluenceLink: true,
     leadId: true,
     deliveryLeadId: true,
+    hrCoordinatorEmail: true,
+    financeTeamEmail: true,
     status: true
   })
   .extend({
     // Allow string dates that will be converted to Date objects on the server
     startDate: z.union([z.string(), z.date(), z.null()]).optional(),
     endDate: z.union([z.string(), z.date(), z.null()]).optional(),
+    // Email validation
+    hrCoordinatorEmail: z.string().email("Invalid HR coordinator email").optional(),
+    financeTeamEmail: z.string().email("Invalid finance team email").optional(),
   });
 
 export type Project = typeof projects.$inferSelect;

@@ -1462,16 +1462,19 @@ export class PostgresStorage implements IStorage {
       
       const { 
         name, description, clientId, startDate, endDate, 
-        location, confluenceLink, leadId, deliveryLeadId, status 
+        location, confluenceLink, leadId, deliveryLeadId, status,
+        hrCoordinatorEmail, financeTeamEmail
       } = project;
       
       const result = await pool.query(
         `INSERT INTO projects (
           name, description, client_id, start_date, end_date, 
-          location, confluence_link, lead_id, delivery_lead_id, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+          location, confluence_link, lead_id, delivery_lead_id, status,
+          hr_coordinator_email, finance_team_email
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
         [name, description, clientId, startDate, endDate, 
-         location, confluenceLink, leadId, deliveryLeadId, status]
+         location, confluenceLink, leadId, deliveryLeadId, status,
+         hrCoordinatorEmail, financeTeamEmail]
       );
       
       const newProjectId = result.rows[0].id;
