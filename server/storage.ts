@@ -2447,7 +2447,7 @@ export class PostgresStorage implements IStorage {
         JOIN users u ON prh.user_id = u.id
         JOIN users pu ON prh.performed_by_id = pu.id
         WHERE prh.project_id = $1
-        ORDER BY prh.created_at DESC
+        ORDER BY prh.date DESC
       `, [projectId]);
       
       return this.snakeToCamel(result.rows);
@@ -2467,7 +2467,7 @@ export class PostgresStorage implements IStorage {
         JOIN projects p ON prh.project_id = p.id
         JOIN users pu ON prh.performed_by_id = pu.id
         WHERE prh.user_id = $1
-        ORDER BY prh.created_at DESC
+        ORDER BY prh.date DESC
       `, [userId]);
       
       return this.snakeToCamel(result.rows);

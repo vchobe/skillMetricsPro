@@ -1491,7 +1491,7 @@ export default function ProjectDetailPage() {
                       {resourceHistory.map((history: ResourceHistory) => (
                         <TableRow key={history.id}>
                           <TableCell className="whitespace-nowrap">
-                            {formatDate(history.date, "MMM d, yyyy")}
+                            {history.date ? formatDate(history.date, "MMM d, yyyy") : "—"}
                           </TableCell>
                           <TableCell>
                             {getUserName(history.userId)}
