@@ -40,13 +40,16 @@ export function getResourceAddedEmailContent(
   role: string,
   startDate: string | null | undefined,
   endDate: string | null | undefined,
-  allocation: number
+  allocation: number,
+  performedBy?: string
 ) {
   const dateRange = startDate && endDate 
     ? `${startDate} to ${endDate}` 
     : startDate
       ? `Starting ${startDate}`
       : 'No specific dates assigned';
+  
+  const actionBy = performedBy ? `This action was performed by ${performedBy}.` : '';
   
   const text = `
     Resource Addition Notification
@@ -56,6 +59,8 @@ export function getResourceAddedEmailContent(
     Role: ${role}
     Allocation: ${allocation}%
     Timeline: ${dateRange}
+    
+    ${actionBy}
     
     This is an automated notification from the Employee Skill Metrics system.
   `;
@@ -73,6 +78,8 @@ export function getResourceAddedEmailContent(
         <p style="margin: 5px 0;"><strong>Timeline:</strong> ${dateRange}</p>
       </div>
       
+      ${actionBy ? `<p style="font-style: italic;">${actionBy}</p>` : ''}
+      
       <p>This is an automated notification from the Employee Skill Metrics system.</p>
     </div>
   `;
@@ -88,14 +95,22 @@ export function getResourceRemovedEmailContent(
   projectName: string,
   username: string,
   userEmail: string,
-  role: string
+  role: string,
+  allocation?: number | null,
+  performedBy?: string
 ) {
+  const allocationInfo = allocation ? `${allocation}%` : 'Not specified';
+  const actionBy = performedBy ? `This action was performed by ${performedBy}.` : '';
+  
   const text = `
     Resource Removal Notification
     
     Project: ${projectName}
     Resource: ${username} (${userEmail})
     Previous Role: ${role}
+    Previous Allocation: ${allocationInfo}
+    
+    ${actionBy}
     
     This is an automated notification from the Employee Skill Metrics system.
   `;
@@ -109,7 +124,10 @@ export function getResourceRemovedEmailContent(
         <p style="margin: 5px 0;"><strong>Project:</strong> ${projectName}</p>
         <p style="margin: 5px 0;"><strong>Resource:</strong> ${username} (${userEmail})</p>
         <p style="margin: 5px 0;"><strong>Previous Role:</strong> ${role}</p>
+        <p style="margin: 5px 0;"><strong>Previous Allocation:</strong> ${allocationInfo}</p>
       </div>
+      
+      ${actionBy ? `<p style="font-style: italic;">${actionBy}</p>` : ''}
       
       <p>This is an automated notification from the Employee Skill Metrics system.</p>
     </div>
@@ -184,7 +202,8 @@ export function getProjectUpdatedEmailContent(
   startDate: string | null | undefined,
   endDate: string | null | undefined,
   leadName: string | null | undefined,
-  changedFields: string[]
+  changedFields: {field: string, oldValue?: string | null, newValue?: string | null}[],
+  performedBy?: string
 ) {
   // Format optional fields
   const clientInfo = clientName ? `${clientName}` : 'Not specified';
@@ -193,17 +212,46 @@ export function getProjectUpdatedEmailContent(
     'Dates not specified';
   const descriptionInfo = description || 'No description provided';
   const leadInfo = leadName || 'Not assigned';
+  const actionBy = performedBy ? `This update was performed by ${performedBy}.` : '';
   
-  // Format the changes summary
+  // Prepare detailed changes list
+  let detailedChanges = '';
+  let htmlDetailedChanges = '';
+  
+  if (changedFields.length > 0) {
+    detailedChanges = 'Changes made:\n';
+    htmlDetailedChanges = '<p style="margin: 5px 0;"><strong>Changes made:</strong></p><ul style="margin-top: 5px;">';
+    
+    changedFields.forEach(change => {
+      const oldValueText = change.oldValue !== undefined && change.oldValue !== null 
+        ? change.oldValue 
+        : '(not set)';
+        
+      const newValueText = change.newValue !== undefined && change.newValue !== null 
+        ? change.newValue 
+        : '(not set)';
+      
+      detailedChanges += `  - ${change.field}: ${oldValueText} → ${newValueText}\n`;
+      htmlDetailedChanges += `<li style="margin: 3px 0;"><strong>${change.field}:</strong> ${oldValueText} → ${newValueText}</li>`;
+    });
+    
+    htmlDetailedChanges += '</ul>';
+  } else {
+    detailedChanges = 'No significant fields changed';
+    htmlDetailedChanges = '<p style="margin: 5px 0;"><em>No significant fields changed</em></p>';
+  }
+  
+  // Format the changes summary (simplified version)
   const changesSummary = changedFields.length > 0 
-    ? `Fields updated: ${changedFields.join(', ')}` 
+    ? `Fields updated: ${changedFields.map(c => c.field).join(', ')}` 
     : 'No significant fields changed';
   
   const text = `
     Project Update Notification
     
     Updated Project: ${projectName}
-    ${changesSummary}
+    
+    ${detailedChanges}
     
     Current Details:
     Client: ${clientInfo}
@@ -212,6 +260,8 @@ export function getProjectUpdatedEmailContent(
     
     Description:
     ${descriptionInfo}
+    
+    ${actionBy}
     
     This is an automated notification from the Employee Skill Metrics system.
   `;
@@ -223,7 +273,11 @@ export function getProjectUpdatedEmailContent(
       
       <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p style="margin: 5px 0;"><strong>Project Name:</strong> ${projectName}</p>
-        <p style="margin: 5px 0; color: #4f46e5;"><strong>${changesSummary}</strong></p>
+        
+        <div style="background-color: #e8edfb; padding: 10px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #4f46e5;">
+          ${htmlDetailedChanges}
+        </div>
+        
         <hr style="border: 0; border-top: 1px solid #d1d5db; margin: 15px 0;" />
         <p style="margin: 5px 0;"><strong>Current Details:</strong></p>
         <p style="margin: 5px 0;"><strong>Client:</strong> ${clientInfo}</p>
@@ -232,6 +286,8 @@ export function getProjectUpdatedEmailContent(
         <p style="margin: 10px 0 5px 0;"><strong>Description:</strong></p>
         <p style="margin: 5px 0; padding-left: 15px;">${descriptionInfo}</p>
       </div>
+      
+      ${actionBy ? `<p style="font-style: italic;">${actionBy}</p>` : ''}
       
       <p>This is an automated notification from the Employee Skill Metrics system.</p>
     </div>

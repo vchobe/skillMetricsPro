@@ -167,7 +167,8 @@ export async function sendResourceAddedEmail(
   endDate: Date | string | null | undefined,
   allocation: number,
   hrEmail: string | null = null,
-  financeEmail: string | null = null
+  financeEmail: string | null = null,
+  performedBy: string | null = null
 ): Promise<boolean> {
   try {
     // Format dates for display
@@ -181,7 +182,8 @@ export async function sendResourceAddedEmail(
       role,
       formattedStartDate,
       formattedEndDate,
-      allocation
+      allocation,
+      performedBy || undefined
     );
     
     // Use project-specific emails if provided, otherwise fall back to defaults
@@ -191,6 +193,7 @@ export async function sendResourceAddedEmail(
     if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
       console.log('Mailjet not configured. Logging resource addition details instead...');
       console.log(`Resource Added: ${username} (${role}) to ${projectName}`);
+      console.log(`Timeline: ${formattedStartDate || 'N/A'} to ${formattedEndDate || 'ongoing'}`);
       console.log(`Would have sent email to: ${hrRecipientEmail}, ${financeRecipientEmail}`);
       return true;
     }
@@ -227,6 +230,7 @@ export async function sendResourceAddedEmail(
     } catch (sendError: any) {
       console.error('Error sending resource addition email:', sendError?.message || sendError);
       console.log(`Fallback - Resource Added: ${username} (${role}) to ${projectName}`);
+      console.log(`Timeline: ${formattedStartDate || 'N/A'} to ${formattedEndDate || 'ongoing'}`);
       return false;
     }
   } catch (error: any) {
