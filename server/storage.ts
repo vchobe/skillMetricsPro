@@ -2146,7 +2146,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async deleteProjectResource(id: number): Promise<void> {
+  async deleteProjectResource(id: number, performedByUserId?: number): Promise<void> {
     try {
       // Check if resource exists
       const resource = await this.getProjectResource(id);
@@ -2158,15 +2158,38 @@ export class PostgresStorage implements IStorage {
       const project = await this.getProject(resource.projectId);
       const user = await this.getUser(resource.userId);
       
+      // Get the performer's name if available
+      let performerName: string | null = null;
+      const historyPerformedById = performedByUserId || resource.userId;
+      
+      if (performedByUserId && performedByUserId !== resource.userId) {
+        try {
+          const performer = await this.getUser(performedByUserId);
+          if (performer) {
+            performerName = `${performer.firstName || ''} ${performer.lastName || ''}`.trim() || performer.username;
+          }
+        } catch (err) {
+          console.warn("Could not fetch performer name for email notification:", err);
+        }
+      }
+      
       // Start transaction
       await pool.query('BEGIN');
       
       // Add resource history record
       await pool.query(
         `INSERT INTO project_resource_histories (
-          project_id, user_id, action, previous_role, previous_allocation, performed_by_id
-        ) VALUES ($1, $2, $3, $4, $5, $6)`,
-        [resource.projectId, resource.userId, 'removed', resource.role, resource.allocation, resource.userId]
+          project_id, user_id, action, previous_role, previous_allocation, performed_by_id, note
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          resource.projectId, 
+          resource.userId, 
+          'removed', 
+          resource.role, 
+          resource.allocation, 
+          historyPerformedById, 
+          `Removed from project by ${performerName || 'system'}`
+        ]
       );
       
       // Delete the resource
@@ -2181,13 +2204,19 @@ export class PostgresStorage implements IStorage {
           // Import the email functionality
           const { sendResourceRemovedEmail } = await import('./email');
           
-          // Send the notification email
+          // Send the notification email with project-specific email addresses if provided
           await sendResourceRemovedEmail(
             project.name,
             user.username,
             user.email,
-            resource.role || 'Team Member'
+            resource.role || 'Team Member',
+            project.hrCoordinatorEmail || null,
+            project.financeTeamEmail || null,
+            resource.allocation,
+            performerName
           );
+          
+          console.log(`Email notification sent for resource removal: ${user.username} from ${project.name}`);
         }
       } catch (emailError) {
         // Log the error but don't fail the transaction (already committed)
@@ -2544,9 +2573,9 @@ export class PostgresStorage implements IStorage {
       // Add to project resource history
       await pool.query(
         `INSERT INTO project_resource_histories (
-          project_id, user_id, action, new_role, new_allocation, performed_by_id
-        ) VALUES ($1, $2, $3, $4, $5, $6)`,
-        [projectId, userId, 'added', role, 100, userId]
+          project_id, user_id, action, new_role, new_allocation, performed_by_id, note
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [projectId, userId, 'added', role, 100, userId, `Added automatically as ${role}`]
       );
       
       // Send email notification to HR and Finance about the resource addition
@@ -2559,7 +2588,7 @@ export class PostgresStorage implements IStorage {
           // Import the email functionality
           const { sendResourceAddedEmail } = await import('./email');
           
-          // Send the notification email
+          // Send the notification email with project-specific email addresses if provided
           await sendResourceAddedEmail(
             project.name,
             user.username,
@@ -2567,7 +2596,10 @@ export class PostgresStorage implements IStorage {
             role || "Team Member",
             null, // No specific start date
             null, // No specific end date
-            100   // Default 100% allocation
+            100,  // Default 100% allocation
+            project.hrCoordinatorEmail || null,
+            project.financeTeamEmail || null,
+            "System (Automatic Assignment)" // Indicate this was an automatic action
           );
           
           console.log(`Email notification sent: ${role} (${user.username}) added to project ${project.name}`);
