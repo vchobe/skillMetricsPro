@@ -1,76 +1,37 @@
-import React, { useEffect, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { z } from "zod";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation, useSearch } from "wouter";
+import { useAuth } from "../hooks/use-auth";
+import { getQueryFn, apiRequest } from "../lib/queryClient";
+import { formatDate, DATE_FORMATS, standardizeDate } from "../lib/date-utils";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "../hooks/use-toast";
+
+import Header from "../components/header";
+import Sidebar from "../components/sidebar";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Badge } from "../components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogTrigger } from "../components/ui/dialog";
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "../components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Calendar as CalendarComponent } from "../components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import { Briefcase, Search, Calendar, Building2, MapPin, UserCircle, Plus, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { useLocation, useRoute } from "wouter";
-import { 
-  Search, 
-  Plus, 
-  Building2, 
-  MapPin, 
-  Calendar as CalendarIcon, 
-  Briefcase
-} from "lucide-react";
-import { 
-  CalendarIcon as CalendarIconUI 
-} from "@radix-ui/react-icons";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { 
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-
-import Header from "@/components/header";
-import { useAuth } from "@/hooks/use-auth";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { DATE_FORMATS, formatDate } from "@/lib/date-utils";
-
-// Define schema for project forms
-const projectSchema = z.object({
-  name: z.string().min(1, { message: "Name is required" }),
-  clientId: z.number().min(1, { message: "Client is required" }),
-  description: z.string().optional(),
-  status: z.enum(["planning", "active", "on_hold", "completed", "cancelled"]),
-  startDate: z.date().nullable().optional(),
-  endDate: z.date().nullable().optional(),
-  location: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-type ProjectFormValues = z.infer<typeof projectSchema>;
 
 type Project = {
   id: number;
@@ -87,6 +48,25 @@ type Project = {
   updatedAt: string;
 };
 
+// Project form schema
+const projectSchema = z.object({
+  name: z.string().min(1, "Project name is required"),
+  description: z.string().optional(),
+  clientId: z.number({
+    required_error: "Client selection is required",
+    invalid_type_error: "Please select a client",
+  }),
+  status: z.enum(["planning", "active", "on_hold", "completed", "cancelled"], {
+    required_error: "Status is required",
+  }),
+  startDate: z.date().nullable().optional(),
+  endDate: z.date().nullable().optional(),
+  location: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+type ProjectFormValues = z.infer<typeof projectSchema>;
+
 type Client = {
   id: number;
   name: string;
@@ -100,210 +80,193 @@ type Client = {
 };
 
 export default function ProjectsPage() {
-  const { user } = useAuth();
-  const isAdmin = user?.isAdmin || false;
-  const { toast } = useToast();
-  const [location, setLocation] = useLocation();
-  const [match, params] = useRoute('/projects/:id');
-  const projectId = match ? parseInt(params.id) : null;
-  
-  // State management
+  const [, setLocation] = useLocation();
+  const search = useSearch();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [createProjectDialogOpen, setCreateProjectDialogOpen] = useState(false);
   const [editProjectDialogOpen, setEditProjectDialogOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
+  const { user } = useAuth();
+  const isAdmin = user?.is_admin || user?.isAdmin;
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   
-  // Form setup
+  // Parse URL parameters
+  const searchParams = new URLSearchParams(search);
+  const editId = searchParams.get("edit") ? parseInt(searchParams.get("edit") as string) : null;
+  
+  // Project form
   const projectForm = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       name: "",
-      clientId: 0,
       description: "",
+      clientId: 0,
       status: "planning",
-      startDate: null,
-      endDate: null,
       location: "",
       notes: "",
     }
   });
   
-  // Load all projects
-  const { data: projects = [], isLoading, refetch: refetchProjects } = useQuery({
-    queryKey: ["projects"],
-    queryFn: () => apiRequest<Project[]>("GET", "/api/projects"),
+  // Fetch clients for project creation
+  const { data: clients } = useQuery<Client[]>({
+    queryKey: ["clients"],
+    queryFn: getQueryFn({
+      on401: "throw",
+      url: "/api/clients",
+    }),
+    enabled: isAdmin && createProjectDialogOpen,
   });
   
-  // Load all clients for client selection
-  const { data: clients = [] } = useQuery({
-    queryKey: ["clients"],
-    queryFn: () => apiRequest<Client[]>("GET", "/api/clients"),
+  // Fetch specific project for editing
+  const { data: editProject } = useQuery<Project>({
+    queryKey: ["project", editId],
+    queryFn: editId ? getQueryFn({
+      on401: "throw",
+      url: `/api/projects/${editId}`,
+    }) : () => Promise.resolve({} as Project),
+    enabled: !!editId,
   });
+  
+  // Handle edit mode
+  useEffect(() => {
+    if (editId && editProject) {
+      setEditingProjectId(editId);
+      setEditProjectDialogOpen(true);
+      
+      // Set form values with project data
+      projectForm.reset({
+        name: editProject.name,
+        description: editProject.description || "",
+        clientId: editProject.clientId,
+        status: editProject.status,
+        location: editProject.location || "",
+        notes: editProject.notes || "",
+        startDate: editProject.startDate ? new Date(editProject.startDate) : null,
+        endDate: editProject.endDate ? new Date(editProject.endDate) : null,
+      });
+    }
+  }, [editId, editProject, projectForm]);
   
   // Create project mutation
   const createProjectMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      return apiRequest<Project>("POST", "/api/projects", data);
+      console.log("Original dates:", {startDate: data.startDate, endDate: data.endDate});
+      const formattedData = {
+        ...data,
+        startDate: data.startDate ? standardizeDate(data.startDate) : null,
+        endDate: data.endDate ? standardizeDate(data.endDate) : null,
+      };
+      console.log("Formatted data to send:", formattedData);
+      return apiRequest("POST", "/api/projects", formattedData);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast({
-        title: "Project created",
-        description: "The project has been created successfully.",
+        title: "Success",
+        description: "Project created successfully",
       });
-      setCreateProjectDialogOpen(false);
       projectForm.reset();
-      refetchProjects();
+      setCreateProjectDialogOpen(false);
     },
     onError: (error: Error) => {
       toast({
-        title: "Error creating project",
-        description: error.message,
+        title: "Error",
+        description: error.message || "Failed to create project",
         variant: "destructive",
       });
-    }
+    },
   });
   
   // Update project mutation
   const updateProjectMutation = useMutation({
-    mutationFn: async (data: ProjectFormValues) => {
-      if (!editingProjectId) throw new Error("No project selected for editing");
-      return apiRequest<Project>("PUT", `/api/projects/${editingProjectId}`, data);
+    mutationFn: async (data: ProjectFormValues & { id: number }) => {
+      const { id, ...projectData } = data;
+      const formattedData = {
+        ...projectData,
+        startDate: projectData.startDate ? standardizeDate(projectData.startDate) : null,
+        endDate: projectData.endDate ? standardizeDate(projectData.endDate) : null,
+      };
+      return apiRequest("PUT", `/api/projects/${id}`, formattedData);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast({
-        title: "Project updated",
-        description: "The project has been updated successfully.",
+        title: "Success",
+        description: "Project updated successfully",
       });
+      projectForm.reset();
       setEditProjectDialogOpen(false);
       setEditingProjectId(null);
-      projectForm.reset();
-      refetchProjects();
+      // Remove the edit parameter from the URL
       setLocation('/projects');
     },
     onError: (error: Error) => {
       toast({
-        title: "Error updating project",
-        description: error.message,
+        title: "Error",
+        description: error.message || "Failed to update project",
         variant: "destructive",
       });
-    }
-  });
-  
-  // Delete project mutation
-  const deleteProjectMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return apiRequest<void>("DELETE", `/api/projects/${id}`);
     },
-    onSuccess: () => {
-      toast({
-        title: "Project deleted",
-        description: "The project has been deleted successfully.",
-      });
-      refetchProjects();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error deleting project",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   });
   
   // Handle project form submission
   const onProjectSubmit = (data: ProjectFormValues) => {
     if (editingProjectId) {
-      updateProjectMutation.mutate(data);
+      updateProjectMutation.mutate({ ...data, id: editingProjectId });
     } else {
       createProjectMutation.mutate(data);
     }
   };
-  
-  // Process projects data
-  const filteredProjects = projects
-    .filter(project => {
-      // Status filter
-      if (selectedStatus && project.status !== selectedStatus) {
-        return false;
-      }
-      
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        return (
-          project.name.toLowerCase().includes(query) ||
-          project.clientName.toLowerCase().includes(query) ||
-          (project.location && project.location.toLowerCase().includes(query)) ||
-          (project.description && project.description.toLowerCase().includes(query))
-        );
-      }
-      
-      return true;
-    });
-  
-  // Calculate status counts
-  const statusCounts = projects.reduce((acc, project) => {
+
+  // Fetch projects based on user role
+  const { data: projects, isLoading } = useQuery<Project[]>({
+    queryKey: ["projects", isAdmin ? "all" : "user"],
+    queryFn: getQueryFn({
+      on401: "throw",
+      url: isAdmin ? "/api/projects" : `/api/users/${user?.id}/projects`,
+    }),
+  });
+
+  // Filter projects by search query and status
+  const filteredProjects = projects?.filter((project) => {
+    const matchesSearch = searchQuery === "" || 
+      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.location.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = selectedStatus === null || project.status === selectedStatus;
+    
+    return matchesSearch && matchesStatus;
+  }) || [];
+
+  // Get status counts for tabs
+  const statusCounts = projects?.reduce((acc, project) => {
     acc[project.status] = (acc[project.status] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
-  
-  // Utility functions
+  }, {} as Record<string, number>) || {};
+
+  // Get status color
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "planning":
-        return "bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-300";
-      case "active":
-        return "bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-300";
-      case "on_hold":
-        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-300";
-      case "completed":
-        return "bg-gray-100 text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300";
-      case "cancelled":
-        return "bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-300";
-      default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300";
+    switch(status) {
+      case "planning": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case "active": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "on_hold": return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      case "completed": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "cancelled": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   };
   
-  // Effects
-  
-  // Handle project ID in URL for editing
-  useEffect(() => {
-    if (projectId) {
-      const project = projects.find(p => p.id === projectId);
-      
-      if (project) {
-        setEditingProjectId(projectId);
-        setEditProjectDialogOpen(true);
-        
-        // Reset form with project data
-        projectForm.reset({
-          name: project.name,
-          clientId: project.clientId,
-          description: project.description || "",
-          status: project.status,
-          startDate: project.startDate ? new Date(project.startDate) : null,
-          endDate: project.endDate ? new Date(project.endDate) : null,
-          location: project.location || "",
-          notes: project.notes || "",
-        });
-      }
-    } else {
-      // Reset editing state when URL doesn't contain project ID
-      if (editingProjectId) {
-        setEditingProjectId(null);
-        setEditProjectDialogOpen(false);
-        projectForm.reset();
-      }
-    }
-  }, [projectId, projects, projectForm, editingProjectId]);
-  
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="min-h-screen flex">
+      <Sidebar currentPath="/projects" />
+      
+      <div className="flex-1 md:ml-64">
         <Header 
-          title="Projects Management" 
+          title="Projects" 
           toggleSidebar={() => {}} 
           isSidebarOpen={false} 
         />
@@ -315,7 +278,7 @@ export default function ProjectsPage() {
               <Input
                 type="search"
                 placeholder="Search projects, clients, locations..."
-                className="pl-8"
+                className="w-full bg-white dark:bg-gray-800 pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -592,7 +555,7 @@ export default function ProjectsPage() {
                               <FormLabel>Client *</FormLabel>
                               <Select 
                                 onValueChange={(value) => field.onChange(parseInt(value))} 
-                                defaultValue={field.value ? field.value.toString() : undefined}
+                                defaultValue={field.value.toString()}
                               >
                                 <FormControl>
                                   <SelectTrigger>
@@ -888,7 +851,7 @@ export default function ProjectsPage() {
                           
                           {project.startDate && (
                             <div className="flex items-center gap-1">
-                              <CalendarIcon className="h-3.5 w-3.5 text-gray-500" />
+                              <Calendar className="h-3.5 w-3.5 text-gray-500" />
                               <span>{formatDate(project.startDate, DATE_FORMATS.DISPLAY_SHORT)}</span>
                             </div>
                           )}
@@ -904,6 +867,18 @@ export default function ProjectsPage() {
                   ))}
                 </div>
               )}
+            </TabsContent>
+            
+            <TabsContent value="active" className="mt-0">
+              {/* Content shown when Active tab is selected - handled by filter state */}
+            </TabsContent>
+            
+            <TabsContent value="planning" className="mt-0">
+              {/* Content shown when Planning tab is selected - handled by filter state */}
+            </TabsContent>
+            
+            <TabsContent value="completed" className="mt-0">
+              {/* Content shown when Completed tab is selected - handled by filter state */}
             </TabsContent>
           </Tabs>
         </main>
