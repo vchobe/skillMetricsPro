@@ -160,7 +160,10 @@ export class PostgresStorage implements IStorage {
       const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
       
       // Standard date fields that should be properly formatted
-      const dateFields = ['createdAt', 'updatedAt', 'lastUpdated', 'targetDate', 'certificationDate'];
+      const dateFields = [
+        'createdAt', 'updatedAt', 'lastUpdated', 'targetDate', 'certificationDate',
+        'startDate', 'endDate', 'dueDate', 'date' // Added project and resource date fields
+      ];
       
       let value = obj[key];
       
