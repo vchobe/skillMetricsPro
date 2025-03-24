@@ -68,9 +68,9 @@ interface ProjectResource {
   projectId: number;
   userId: number;
   role: string;
+  allocation?: number; // Percentage of time allocated
   startDate?: string;
   endDate?: string;
-  utilization?: number;
   notes?: string;
   createdAt: string;
   updatedAt?: string;
@@ -1266,7 +1266,7 @@ export default function ProjectDetailPage() {
                                         No available skills
                                       </SelectItem>
                                     ) : (
-                                      availableSkills.map((skill: any) => (
+                                      availableSkills.map((skill: Skill) => (
                                         <SelectItem key={skill.id} value={skill.id.toString()}>
                                           {skill.name} - {skill.category}
                                         </SelectItem>
@@ -1346,7 +1346,7 @@ export default function ProjectDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {projectSkills.map((projectSkill: any) => {
+                      {projectSkills.map((projectSkill: ProjectSkill) => {
                         const skill = getSkill(projectSkill.skillId);
                         return (
                           <TableRow key={projectSkill.id}>
@@ -1464,7 +1464,7 @@ export default function ProjectDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {resourceHistory.map((history: any) => (
+                      {resourceHistory.map((history: ResourceHistory) => (
                         <TableRow key={history.id}>
                           <TableCell className="whitespace-nowrap">
                             {formatDate(history.date, "MMM d, yyyy")}
