@@ -13,9 +13,7 @@ import {
   Calendar as CalendarIcon, 
   Briefcase
 } from "lucide-react";
-import { 
-  CalendarIcon as CalendarIconUI 
-} from "@radix-ui/react-icons";
+
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -860,8 +858,7 @@ export default function ProjectsPage() {
                   {filteredProjects.map((project) => (
                     <Card 
                       key={project.id} 
-                      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => setLocation(`/projects/${project.id}`)}
+                      className="overflow-hidden hover:shadow-md transition-shadow"
                     >
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
@@ -898,10 +895,61 @@ export default function ProjectsPage() {
                         </div>
                       </CardContent>
                       
-                      <CardFooter className="pt-2 border-t">
-                        <Button variant="ghost" size="sm" className="text-xs w-full">
+                      <CardFooter className="pt-2 border-t flex justify-between gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocation(`/projects/${project.id}`);
+                          }}
+                        >
                           View Details
                         </Button>
+                        
+                        {isAdmin && (
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Set editing project ID
+                                setEditingProjectId(project.id);
+                                // Reset form with project data
+                                projectForm.reset({
+                                  name: project.name,
+                                  clientId: project.clientId,
+                                  description: project.description || "",
+                                  status: project.status,
+                                  startDate: project.startDate ? new Date(project.startDate) : null,
+                                  endDate: project.endDate ? new Date(project.endDate) : null,
+                                  location: project.location || "",
+                                  notes: project.notes || "",
+                                });
+                                // Open edit dialog
+                                setEditProjectDialogOpen(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              className="text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Are you sure you want to delete "${project.name}"?`)) {
+                                  deleteProjectMutation.mutate(project.id);
+                                }
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        )}
                       </CardFooter>
                     </Card>
                   ))}
