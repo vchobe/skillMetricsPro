@@ -6,6 +6,96 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDate } from "@/lib/date-utils";
 
+// Define types for API responses
+interface Project {
+  id: number;
+  name: string;
+  description?: string;
+  clientId?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  location?: string;
+  confluenceLink?: string;
+  leadId?: number | null;
+  deliveryLeadId?: number | null;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface Client {
+  id: number;
+  name: string;
+  industry?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  website?: string;
+  description?: string;
+  address?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+  location?: string;
+  project?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface Skill {
+  id: number;
+  userId: number;
+  name: string;
+  category: string;
+  level: string;
+  description?: string;
+  certification?: string;
+  credlyLink?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface ProjectResource {
+  id: number;
+  projectId: number;
+  userId: number;
+  role: string;
+  startDate?: string;
+  endDate?: string;
+  utilization?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface ProjectSkill {
+  id: number;
+  projectId: number;
+  skillId: number;
+  requiredLevel: string;
+  createdAt: string;
+  updatedAt?: string;
+  priority?: string;
+}
+
+interface ResourceHistory {
+  id: number;
+  projectId: number;
+  userId: number;
+  action: string;
+  role?: string;
+  date: string;
+  notes?: string;
+}
+
 import {
   Table,
   TableBody,
@@ -138,46 +228,46 @@ export default function ProjectDetailPage() {
   const [openRemoveSkill, setOpenRemoveSkill] = useState<number | null>(null);
   
   // Fetch project details
-  const { data: project, isLoading: isLoadingProject } = useQuery({
+  const { data: project, isLoading: isLoadingProject } = useQuery<Project>({
     queryKey: ["/api/projects", id],
     queryFn: () => apiRequest("GET", `/api/projects/${id}`),
     refetchOnWindowFocus: false,
   });
   
   // Fetch project resources
-  const { data: resources, isLoading: isLoadingResources } = useQuery({
+  const { data: resources, isLoading: isLoadingResources } = useQuery<ProjectResource[]>({
     queryKey: ["/api/projects", id, "resources"],
     queryFn: () => apiRequest("GET", `/api/projects/${id}/resources`),
     refetchOnWindowFocus: false,
   });
   
   // Fetch project skills
-  const { data: projectSkills, isLoading: isLoadingProjectSkills } = useQuery({
+  const { data: projectSkills, isLoading: isLoadingProjectSkills } = useQuery<ProjectSkill[]>({
     queryKey: ["/api/projects", id, "skills"],
     queryFn: () => apiRequest("GET", `/api/projects/${id}/skills`),
     refetchOnWindowFocus: false,
   });
   
   // Fetch all skills for the skill dropdown
-  const { data: allSkills, isLoading: isLoadingAllSkills } = useQuery({
+  const { data: allSkills, isLoading: isLoadingAllSkills } = useQuery<Skill[]>({
     queryKey: ["/api/all-skills"],
     refetchOnWindowFocus: false,
   });
   
   // Fetch all clients for the dropdown
-  const { data: clients, isLoading: isLoadingClients } = useQuery({
+  const { data: clients, isLoading: isLoadingClients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
     refetchOnWindowFocus: false,
   });
   
   // Fetch all users for dropdowns
-  const { data: users, isLoading: isLoadingUsers } = useQuery({
+  const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
     refetchOnWindowFocus: false,
   });
   
   // Fetch resource history
-  const { data: resourceHistory, isLoading: isLoadingHistory } = useQuery({
+  const { data: resourceHistory, isLoading: isLoadingHistory } = useQuery<ResourceHistory[]>({
     queryKey: ["/api/projects", id, "resource-history"],
     queryFn: () => apiRequest("GET", `/api/projects/${id}/resource-history`),
     refetchOnWindowFocus: false,
@@ -383,7 +473,7 @@ export default function ProjectDetailPage() {
   const getClientName = (clientId: number | null) => {
     if (!clientId) return "—";
     if (!clients) return "Loading...";
-    const client = clients.find((c: any) => c.id === clientId);
+    const client = clients.find((c: Client) => c.id === clientId);
     return client ? client.name : "—";
   };
   
@@ -391,34 +481,34 @@ export default function ProjectDetailPage() {
   const getUserName = (userId: number | null) => {
     if (!userId) return "—";
     if (!users) return "Loading...";
-    const user = users.find((u: any) => u.id === userId);
+    const user = users.find((u: User) => u.id === userId);
     return user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username : "—";
   };
   
   // Get skill name by ID
   const getSkillName = (skillId: number) => {
     if (!allSkills) return "Loading...";
-    const skill = allSkills.find((s: any) => s.id === skillId);
+    const skill = allSkills.find((s: Skill) => s.id === skillId);
     return skill ? skill.name : "—";
   };
   
   // Get skill by ID
   const getSkill = (skillId: number) => {
     if (!allSkills) return null;
-    return allSkills.find((s: any) => s.id === skillId);
+    return allSkills.find((s: Skill) => s.id === skillId);
   };
   
   // Create an array of available skills (all skills except those already assigned)
   const availableSkills = allSkills
-    ? allSkills.filter((skill: any) => 
-        !projectSkills || !projectSkills.some((ps: any) => ps.skillId === skill.id)
+    ? allSkills.filter((skill: Skill) => 
+        !projectSkills || !projectSkills.some((ps: ProjectSkill) => ps.skillId === skill.id)
       )
     : [];
   
   // Create an array of available users (all users except those already assigned)
   const availableUsers = users
-    ? users.filter((user: any) => 
-        !resources || !resources.some((r: any) => r.userId === user.id)
+    ? users.filter((user: User) => 
+        !resources || !resources.some((r: ProjectResource) => r.userId === user.id)
       )
     : [];
   
@@ -531,7 +621,7 @@ export default function ProjectDetailPage() {
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="">None</SelectItem>
-                                    {clients?.map((client: any) => (
+                                    {clients?.map((client: Client) => (
                                       <SelectItem key={client.id} value={client.id.toString()}>
                                         {client.name}
                                       </SelectItem>
