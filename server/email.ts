@@ -1,5 +1,14 @@
-import { getPasswordResetEmailContent } from './email-templates';
+import { 
+  getPasswordResetEmailContent,
+  getResourceAddedEmailContent,
+  getResourceRemovedEmailContent
+} from './email-templates';
 import Mailjet from 'node-mailjet';
+import { formatDate } from '../client/src/lib/date-utils';
+
+// Email addresses for HR and Finance
+const HR_COORDINATOR_EMAIL = process.env.HR_COORDINATOR_EMAIL || 'hr@skillsplatform.com';
+const FINANCE_EXECUTIVE_EMAIL = process.env.FINANCE_EXECUTIVE_EMAIL || 'finance@skillsplatform.com';
 
 // Initialize Mailjet client
 const mailjet = new Mailjet({
@@ -106,7 +115,7 @@ export async function sendPasswordResetEmail(
     // Import fallback mechanism
     const { logPasswordResetDetails } = await import('./email-fallback');
     
-    const { text, html } = getPasswordResetEmailContent(username, temporaryPassword);
+    const { text, html, subject } = getPasswordResetEmailContent(username, temporaryPassword);
 
     try {
       const data = await mailjet
@@ -124,7 +133,7 @@ export async function sendPasswordResetEmail(
                   Name: username
                 }
               ],
-              Subject: "Your Password Has Been Reset",
+              Subject: subject || "Your Password Has Been Reset",
               TextPart: text,
               HTMLPart: html
             }
@@ -141,5 +150,143 @@ export async function sendPasswordResetEmail(
   } catch (error: any) {
     console.error('Error in password reset flow:', error?.message || error);
     throw new Error('Failed to send password reset email');
+  }
+}
+
+/**
+ * Sends resource addition notification to HR and Finance
+ */
+export async function sendResourceAddedEmail(
+  projectName: string,
+  username: string,
+  userEmail: string,
+  role: string,
+  startDate: Date | string | null,
+  endDate: Date | string | null,
+  allocation: number
+): Promise<boolean> {
+  try {
+    // Format dates for display
+    const formattedStartDate = startDate ? formatDate(startDate) : null;
+    const formattedEndDate = endDate ? formatDate(endDate) : null;
+    
+    const { text, html, subject } = getResourceAddedEmailContent(
+      projectName,
+      username,
+      userEmail,
+      role,
+      formattedStartDate,
+      formattedEndDate,
+      allocation
+    );
+    
+    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+      console.log('Mailjet not configured. Logging resource addition details instead...');
+      console.log(`Resource Added: ${username} (${role}) to ${projectName}`);
+      console.log(`Would have sent email to: ${HR_COORDINATOR_EMAIL}, ${FINANCE_EXECUTIVE_EMAIL}`);
+      return true;
+    }
+
+    try {
+      await mailjet
+        .post('send', { version: 'v3.1' })
+        .request({
+          Messages: [
+            {
+              From: {
+                Email: "vinayak.chobe@atyeti.com",
+                Name: "Employee Skill Metrics"
+              },
+              To: [
+                {
+                  Email: HR_COORDINATOR_EMAIL,
+                  Name: "HR Coordinator"
+                },
+                {
+                  Email: FINANCE_EXECUTIVE_EMAIL,
+                  Name: "Finance Executive"
+                }
+              ],
+              Subject: subject,
+              TextPart: text,
+              HTMLPart: html
+            }
+          ]
+        });
+
+      console.log(`Resource addition email sent to HR (${HR_COORDINATOR_EMAIL}) and Finance (${FINANCE_EXECUTIVE_EMAIL})`);
+      return true;
+    } catch (sendError: any) {
+      console.error('Error sending resource addition email:', sendError?.message || sendError);
+      console.log(`Fallback - Resource Added: ${username} (${role}) to ${projectName}`);
+      return false;
+    }
+  } catch (error: any) {
+    console.error('Error in resource addition email flow:', error?.message || error);
+    return false;
+  }
+}
+
+/**
+ * Sends resource removal notification to HR and Finance
+ */
+export async function sendResourceRemovedEmail(
+  projectName: string,
+  username: string,
+  userEmail: string,
+  role: string
+): Promise<boolean> {
+  try {
+    const { text, html, subject } = getResourceRemovedEmailContent(
+      projectName,
+      username,
+      userEmail,
+      role
+    );
+    
+    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+      console.log('Mailjet not configured. Logging resource removal details instead...');
+      console.log(`Resource Removed: ${username} (${role}) from ${projectName}`);
+      console.log(`Would have sent email to: ${HR_COORDINATOR_EMAIL}, ${FINANCE_EXECUTIVE_EMAIL}`);
+      return true;
+    }
+
+    try {
+      await mailjet
+        .post('send', { version: 'v3.1' })
+        .request({
+          Messages: [
+            {
+              From: {
+                Email: "vinayak.chobe@atyeti.com",
+                Name: "Employee Skill Metrics"
+              },
+              To: [
+                {
+                  Email: HR_COORDINATOR_EMAIL,
+                  Name: "HR Coordinator"
+                },
+                {
+                  Email: FINANCE_EXECUTIVE_EMAIL,
+                  Name: "Finance Executive"
+                }
+              ],
+              Subject: subject,
+              TextPart: text,
+              HTMLPart: html
+            }
+          ]
+        });
+
+      console.log(`Resource removal email sent to HR (${HR_COORDINATOR_EMAIL}) and Finance (${FINANCE_EXECUTIVE_EMAIL})`);
+      return true;
+    } catch (sendError: any) {
+      console.error('Error sending resource removal email:', sendError?.message || sendError);
+      console.log(`Fallback - Resource Removed: ${username} (${role}) from ${projectName}`);
+      return false;
+    }
+  } catch (error: any) {
+    console.error('Error in resource removal email flow:', error?.message || error);
+    return false;
   }
 }

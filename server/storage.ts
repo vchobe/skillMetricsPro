@@ -2147,6 +2147,9 @@ export class PostgresStorage implements IStorage {
 
   async createProject(project: InsertProject): Promise<Project> {
     try {
+      // Start transaction
+      await pool.query('BEGIN');
+      
       const result = await pool.query(
         `INSERT INTO projects (
           name, description, client_id, start_date, end_date, status, 
@@ -2168,16 +2171,84 @@ export class PostgresStorage implements IStorage {
         ]
       );
       
+      const projectId = result.rows[0].id;
+      
+      // Auto-add project lead as a resource if specified
+      if (project.leadId) {
+        try {
+          await this.addLeadAsResource(projectId, project.leadId, 'Project Lead');
+        } catch (err) {
+          console.error("Error adding project lead as resource:", err);
+          // Continue with project creation even if adding lead fails
+        }
+      }
+      
+      // Auto-add delivery lead as a resource if specified
+      if (project.deliveryLeadId) {
+        try {
+          await this.addLeadAsResource(projectId, project.deliveryLeadId, 'Delivery Lead');
+        } catch (err) {
+          console.error("Error adding delivery lead as resource:", err);
+          // Continue with project creation even if adding delivery lead fails
+        }
+      }
+      
+      // Commit transaction
+      await pool.query('COMMIT');
+      
       // Get the project with client name
-      return await this.getProject(result.rows[0].id) as Project;
+      return await this.getProject(projectId) as Project;
     } catch (error) {
+      // Rollback in case of error
+      await pool.query('ROLLBACK');
       console.error("Error creating project:", error);
       throw error;
+    }
+  }
+  
+  // Helper method to add a lead (project or delivery) as a resource
+  private async addLeadAsResource(projectId: number, userId: number, role: string): Promise<void> {
+    // Check if the user is already a resource on this project
+    const existing = await pool.query(
+      'SELECT * FROM project_resources WHERE project_id = $1 AND user_id = $2',
+      [projectId, userId]
+    );
+    
+    if (existing.rows.length === 0) {
+      // Add the lead as a resource with 100% allocation by default
+      await pool.query(
+        `INSERT INTO project_resources (
+          project_id, user_id, role, allocation, start_date, end_date
+        ) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [projectId, userId, role, 100, null, null]
+      );
+      
+      // Add to project resource history
+      await pool.query(
+        `INSERT INTO project_resource_histories (
+          project_id, user_id, action, new_role, new_allocation, performed_by_id
+        ) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [projectId, userId, 'added', role, 100, userId]
+      );
+      
+      // Send notification to finance and HR (will implement email sending next)
+      console.log(`Leader added as resource: ${role} (userId: ${userId}) to project ${projectId}`);
+    } else {
+      console.log(`User ${userId} is already a resource on project ${projectId}, not adding as ${role}`);
     }
   }
 
   async updateProject(id: number, data: Partial<Project>): Promise<Project> {
     try {
+      // Start transaction
+      await pool.query('BEGIN');
+      
+      // Get the existing project to check for lead changes
+      const existingProject = await this.getProject(id);
+      if (!existingProject) {
+        throw new Error("Project not found");
+      }
+      
       const updateFields: string[] = [];
       const params: any[] = [];
       let paramCount = 1;
@@ -2192,7 +2263,8 @@ export class PostgresStorage implements IStorage {
       }
 
       if (updateFields.length === 0) {
-        return await this.getProject(id) as Project;
+        await pool.query('ROLLBACK');
+        return existingProject;
       }
 
       params.push(id);
@@ -2202,12 +2274,38 @@ export class PostgresStorage implements IStorage {
       );
 
       if (result.rowCount === 0) {
+        await pool.query('ROLLBACK');
         throw new Error("Project not found");
       }
+      
+      // Handle project lead changes
+      if (data.leadId && data.leadId !== existingProject.leadId) {
+        try {
+          await this.addLeadAsResource(id, data.leadId, 'Project Lead');
+        } catch (err) {
+          console.error("Error adding new project lead as resource:", err);
+          // Continue even if adding the lead as a resource fails
+        }
+      }
+      
+      // Handle delivery lead changes
+      if (data.deliveryLeadId && data.deliveryLeadId !== existingProject.deliveryLeadId) {
+        try {
+          await this.addLeadAsResource(id, data.deliveryLeadId, 'Delivery Lead');
+        } catch (err) {
+          console.error("Error adding new delivery lead as resource:", err);
+          // Continue even if adding the delivery lead as a resource fails
+        }
+      }
+      
+      // Commit transaction
+      await pool.query('COMMIT');
 
       // Get the updated project with client name
       return await this.getProject(id) as Project;
     } catch (error) {
+      // Rollback in case of error
+      await pool.query('ROLLBACK');
       console.error("Error updating project:", error);
       throw error;
     }
