@@ -286,13 +286,26 @@ export default function ProjectsPage() {
   
   // Effects
   
-  // Handle project ID in URL for editing
+  // Get edit ID from URL query parameters
+  const getEditIdFromUrl = () => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const editParam = params.get('edit');
+      return editParam ? parseInt(editParam) : null;
+    }
+    return null;
+  };
+
+  // Handle project ID in URL for editing (from route params or query params)
   useEffect(() => {
-    if (projectId) {
-      const project = Array.isArray(projects) ? projects.find(p => p.id === projectId) : null;
+    // Check for both route param ID or edit query param
+    const editId = projectId || getEditIdFromUrl();
+    
+    if (editId && Array.isArray(projects)) {
+      const project = projects.find(p => p.id === editId);
       
       if (project) {
-        setEditingProjectId(projectId);
+        setEditingProjectId(editId);
         setEditProjectDialogOpen(true);
         
         // Reset form with project data
@@ -306,16 +319,20 @@ export default function ProjectsPage() {
           location: project.location || "",
           notes: project.notes || "",
         });
+      } else {
+        console.error(`Project with ID ${editId} not found`);
+        // Clear the edit param from the URL to avoid confusion
+        if (getEditIdFromUrl()) {
+          setLocation('/projects');
+        }
       }
-    } else {
+    } else if (!editId && editingProjectId) {
       // Reset editing state when URL doesn't contain project ID
-      if (editingProjectId) {
-        setEditingProjectId(null);
-        setEditProjectDialogOpen(false);
-        projectForm.reset();
-      }
+      setEditingProjectId(null);
+      setEditProjectDialogOpen(false);
+      projectForm.reset();
     }
-  }, [projectId, projects, projectForm, editingProjectId]);
+  }, [projectId, projects, projectForm, editingProjectId, location, setLocation]);
   
   return (
     <div className="flex flex-col h-screen">
