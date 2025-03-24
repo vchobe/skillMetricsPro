@@ -1622,7 +1622,29 @@ export class PostgresStorage implements IStorage {
         WHERE pr.project_id = $1
         ORDER BY pr.role
       `, [projectId]);
-      return result.rows.map(row => this.snakeToCamel(row)) as ProjectResource[];
+      
+      // Log raw database data for debugging
+      if (result.rows.length > 0) {
+        console.log("Raw project resources from DB:", JSON.stringify(result.rows[0], null, 2));
+      }
+      
+      // Transform and return data with proper date handling
+      const resources = result.rows.map(row => {
+        // Ensure dates are properly formatted as strings
+        if (row.start_date) {
+          row.start_date = new Date(row.start_date).toISOString();
+        }
+        if (row.end_date) {
+          row.end_date = new Date(row.end_date).toISOString();
+        }
+        return this.snakeToCamel(row);
+      }) as ProjectResource[];
+      
+      if (resources.length > 0) {
+        console.log("Processed resources with dates:", JSON.stringify(resources[0], null, 2));
+      }
+      
+      return resources;
     } catch (error) {
       console.error(`Error retrieving resources for project ${projectId}:`, error);
       throw error;
