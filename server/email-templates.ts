@@ -38,8 +38,8 @@ export function getResourceAddedEmailContent(
   username: string,
   userEmail: string,
   role: string,
-  startDate: string | null,
-  endDate: string | null,
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
   allocation: number
 ) {
   const dateRange = startDate && endDate 

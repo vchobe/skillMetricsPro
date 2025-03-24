@@ -161,8 +161,8 @@ export async function sendResourceAddedEmail(
   username: string,
   userEmail: string,
   role: string,
-  startDate: Date | string | null,
-  endDate: Date | string | null,
+  startDate: Date | string | null | undefined,
+  endDate: Date | string | null | undefined,
   allocation: number
 ): Promise<boolean> {
   try {

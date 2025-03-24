@@ -1750,7 +1750,35 @@ export class PostgresStorage implements IStorage {
       await pool.query('COMMIT');
       
       // Get the complete resource info with proper date formatting
-      return await this.getProjectResource(result.rows[0].id);
+      const newResource = await this.getProjectResource(result.rows[0].id);
+      
+      // Send email notification to HR and Finance about the resource addition
+      try {
+        // Import the email functionality
+        const { sendResourceAddedEmail } = await import('./email');
+        
+        // Get project and user details for the notification
+        const project = await this.getProject(projectId);
+        const user = await this.getUser(userId);
+        
+        if (project && user) {
+          // Send the notification email
+          await sendResourceAddedEmail(
+            project.name,
+            user.username,
+            user.email,
+            role || 'Team Member',
+            startDate,
+            endDate,
+            allocation || 100
+          );
+        }
+      } catch (emailError) {
+        // Log the error but don't fail the transaction
+        console.error("Error sending resource addition email notification:", emailError);
+      }
+      
+      return newResource;
     } catch (error) {
       // Rollback in case of error
       await pool.query('ROLLBACK');
@@ -1860,6 +1888,10 @@ export class PostgresStorage implements IStorage {
         throw new Error('Project resource not found');
       }
 
+      // Get project details for email notification
+      const project = await this.getProject(resource.projectId);
+      const user = await this.getUser(resource.userId);
+      
       // Start transaction
       await pool.query('BEGIN');
       
@@ -1876,6 +1908,25 @@ export class PostgresStorage implements IStorage {
       
       // Commit transaction
       await pool.query('COMMIT');
+      
+      // Send email notification to HR and Finance about the resource removal
+      try {
+        if (project && user) {
+          // Import the email functionality
+          const { sendResourceRemovedEmail } = await import('./email');
+          
+          // Send the notification email
+          await sendResourceRemovedEmail(
+            project.name,
+            user.username,
+            user.email,
+            resource.role || 'Team Member'
+          );
+        }
+      } catch (emailError) {
+        // Log the error but don't fail the transaction (already committed)
+        console.error("Error sending resource removal email notification:", emailError);
+      }
     } catch (error) {
       // Rollback in case of error
       await pool.query('ROLLBACK');
@@ -2231,7 +2282,34 @@ export class PostgresStorage implements IStorage {
         [projectId, userId, 'added', role, 100, userId]
       );
       
-      // Send notification to finance and HR (will implement email sending next)
+      // Send email notification to HR and Finance about the resource addition
+      try {
+        // Get project and user details for the notification
+        const project = await this.getProject(projectId);
+        const user = await this.getUser(userId);
+        
+        if (project && user) {
+          // Import the email functionality
+          const { sendResourceAddedEmail } = await import('./email');
+          
+          // Send the notification email
+          await sendResourceAddedEmail(
+            project.name,
+            user.username,
+            user.email,
+            role || "Team Member",
+            null, // No specific start date
+            null, // No specific end date
+            100   // Default 100% allocation
+          );
+          
+          console.log(`Email notification sent: ${role} (${user.username}) added to project ${project.name}`);
+        }
+      } catch (emailError) {
+        // Log the error but don't fail the operation
+        console.error("Error sending lead addition email notification:", emailError);
+      }
+      
       console.log(`Leader added as resource: ${role} (userId: ${userId}) to project ${projectId}`);
     } else {
       console.log(`User ${userId} is already a resource on project ${projectId}, not adding as ${role}`);
@@ -2475,6 +2553,45 @@ export class PostgresStorage implements IStorage {
         ]
       );
       
+      // Add to project resource history
+      await this.createProjectResourceHistory({
+        projectId: resource.projectId,
+        userId: resource.userId,
+        action: 'added',
+        newRole: resource.role || '',
+        newAllocation: resource.allocation || 100,
+        performedById: resource.userId, // Using the same user ID as performed_by for now
+        note: resource.notes
+      });
+      
+      // Send email notification to HR and Finance about the resource addition
+      try {
+        // Get project and user details for the notification
+        const project = await this.getProject(resource.projectId);
+        const user = await this.getUser(resource.userId);
+        
+        if (project && user) {
+          // Import the email functionality
+          const { sendResourceAddedEmail } = await import('./email');
+          
+          // Send the notification email
+          await sendResourceAddedEmail(
+            project.name,
+            user.username,
+            user.email,
+            resource.role || "Team Member",
+            resource.startDate,
+            resource.endDate,
+            resource.allocation || 100
+          );
+          
+          console.log(`Email notification sent: ${resource.role || "Team Member"} (${user.username}) added to project ${project.name}`);
+        }
+      } catch (emailError) {
+        // Log the error but don't fail the operation
+        console.error("Error sending resource addition email notification:", emailError);
+      }
+      
       // Get the resource with user details
       return await this.getProjectResource(result.rows[0].id) as ProjectResource;
     } catch (error) {
@@ -2523,10 +2640,57 @@ export class PostgresStorage implements IStorage {
 
   async deleteProjectResource(id: number): Promise<void> {
     try {
+      // Get the resource details before deletion for history and notification
+      const resourceResult = await pool.query(
+        `SELECT pr.*, p.name as project_name, u.username, u.email
+         FROM project_resources pr
+         JOIN projects p ON pr.project_id = p.id
+         JOIN users u ON pr.user_id = u.id
+         WHERE pr.id = $1`,
+        [id]
+      );
+      
+      if (resourceResult.rowCount === 0) {
+        throw new Error("Project resource not found");
+      }
+      
+      const resource = this.snakeToCamel(resourceResult.rows[0]);
+      
+      // Delete the resource
       const result = await pool.query('DELETE FROM project_resources WHERE id = $1', [id]);
       
       if (result.rowCount === 0) {
         throw new Error("Project resource not found");
+      }
+      
+      // Add to project resource history
+      await this.createProjectResourceHistory({
+        projectId: resource.projectId,
+        userId: resource.userId,
+        action: 'removed',
+        previousRole: resource.role,
+        previousAllocation: resource.allocation,
+        performedById: resource.userId, // Using the same user ID as performed_by for now
+        note: `Resource removed from project ${resource.projectName}`
+      });
+      
+      // Send email notification to HR and Finance about the resource removal
+      try {
+        // Import the email functionality
+        const { sendResourceRemovedEmail } = await import('./email');
+        
+        // Send the notification email
+        await sendResourceRemovedEmail(
+          resource.projectName,
+          resource.username,
+          resource.email,
+          resource.role || "Team Member"
+        );
+        
+        console.log(`Email notification sent: ${resource.role || "Team Member"} (${resource.username}) removed from project ${resource.projectName}`);
+      } catch (emailError) {
+        // Log the error but don't fail the operation
+        console.error("Error sending resource removal email notification:", emailError);
       }
     } catch (error) {
       console.error("Error deleting project resource:", error);
