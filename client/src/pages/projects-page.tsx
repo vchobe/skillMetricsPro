@@ -88,20 +88,64 @@ export default function ProjectsPage() {
     direction: "asc",
   });
 
+  // Define types for API responses
+  interface Project {
+    id: number;
+    name: string;
+    description?: string;
+    clientId?: number | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    location?: string;
+    confluenceLink?: string;
+    leadId?: number | null;
+    deliveryLeadId?: number | null;
+    status: string;
+    createdAt: string;
+    updatedAt?: string;
+  }
+
+  interface Client {
+    id: number;
+    name: string;
+    industry?: string;
+    contactName?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    website?: string;
+    description?: string;
+    address?: string;
+    createdAt: string;
+    updatedAt?: string;
+  }
+
   // Fetch all projects
-  const { data: projects, isLoading: isLoadingProjects } = useQuery({
+  const { data: projects, isLoading: isLoadingProjects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
     refetchOnWindowFocus: false,
   });
 
   // Fetch all clients for the dropdown
-  const { data: clients, isLoading: isLoadingClients } = useQuery({
+  const { data: clients, isLoading: isLoadingClients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
     refetchOnWindowFocus: false,
   });
 
+  interface User {
+    id: number;
+    username: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    role?: string;
+    location?: string;
+    project?: string;
+    createdAt: string;
+    updatedAt?: string;
+  }
+
   // Fetch all users for lead dropdown
-  const { data: users, isLoading: isLoadingUsers } = useQuery({
+  const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
     refetchOnWindowFocus: false,
   });
@@ -170,7 +214,7 @@ export default function ProjectsPage() {
   // Filter and sort projects
   const filteredProjects = projects
     ? projects
-        .filter((project: any) => {
+        .filter((project: Project) => {
           return (
             project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (project.description && 
@@ -179,7 +223,7 @@ export default function ProjectsPage() {
               project.location.toLowerCase().includes(searchTerm.toLowerCase()))
           );
         })
-        .sort((a: any, b: any) => {
+        .sort((a: Project, b: Project) => {
           const { field, direction } = sortConfig;
           let comparison = 0;
 
@@ -188,8 +232,8 @@ export default function ProjectsPage() {
               comparison = a.name.localeCompare(b.name);
               break;
             case "client":
-              const clientA = a.clientId ? (clients?.find((c: any) => c.id === a.clientId)?.name || "") : "";
-              const clientB = b.clientId ? (clients?.find((c: any) => c.id === b.clientId)?.name || "") : "";
+              const clientA = a.clientId && clients ? (clients.find((c) => c.id === a.clientId)?.name || "") : "";
+              const clientB = b.clientId && clients ? (clients.find((c) => c.id === b.clientId)?.name || "") : "";
               comparison = clientA.localeCompare(clientB);
               break;
             case "startDate":
@@ -212,14 +256,14 @@ export default function ProjectsPage() {
   // Get client name by ID
   const getClientName = (clientId: number) => {
     if (!clients) return "Loading...";
-    const client = clients.find((c: any) => c.id === clientId);
+    const client = clients.find((c: Client) => c.id === clientId);
     return client ? client.name : "N/A";
   };
 
   // Get user name by ID
   const getUserName = (userId: number) => {
     if (!users) return "Loading...";
-    const user = users.find((u: any) => u.id === userId);
+    const user = users.find((u: User) => u.id === userId);
     return user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username : "N/A";
   };
 
@@ -294,7 +338,7 @@ export default function ProjectsPage() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="">None</SelectItem>
-                                {clients?.map((client: any) => (
+                                {clients?.map((client: Client) => (
                                   <SelectItem key={client.id} value={client.id.toString()}>
                                     {client.name}
                                   </SelectItem>
