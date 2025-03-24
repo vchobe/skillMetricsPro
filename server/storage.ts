@@ -1457,6 +1457,9 @@ export class PostgresStorage implements IStorage {
 
   async createProject(project: InsertProject): Promise<Project> {
     try {
+      // Start transaction
+      await pool.query('BEGIN');
+      
       const { 
         name, description, clientId, startDate, endDate, 
         location, confluenceLink, leadId, deliveryLeadId, status 
@@ -1471,9 +1474,78 @@ export class PostgresStorage implements IStorage {
          location, confluenceLink, leadId, deliveryLeadId, status]
       );
       
+      const newProjectId = result.rows[0].id;
+      
+      // If project lead is specified, add them as a resource
+      if (leadId) {
+        try {
+          await this.addLeadAsResource(newProjectId, leadId, 'Project Lead');
+        } catch (err) {
+          console.error("Error adding project lead as resource:", err);
+          // Continue even if adding the lead as a resource fails
+        }
+      }
+      
+      // If delivery lead is specified, add them as a resource
+      if (deliveryLeadId) {
+        try {
+          await this.addLeadAsResource(newProjectId, deliveryLeadId, 'Delivery Lead');
+        } catch (err) {
+          console.error("Error adding delivery lead as resource:", err);
+          // Continue even if adding the delivery lead as a resource fails
+        }
+      }
+      
+      // Commit transaction
+      await pool.query('COMMIT');
+      
       // Fetch the complete project with joined data
-      return await this.getProject(result.rows[0].id);
+      const createdProject = await this.getProject(newProjectId);
+      
+      // Send email notification to HR and Finance
+      try {
+        let clientName = null;
+        let leadName = null;
+        
+        // Get client name if a client is associated
+        if (clientId) {
+          const clientResult = await pool.query('SELECT name FROM clients WHERE id = $1', [clientId]);
+          if (clientResult.rows.length > 0) {
+            clientName = clientResult.rows[0].name;
+          }
+        }
+        
+        // Get lead name if a lead is assigned
+        if (leadId) {
+          const leadResult = await pool.query('SELECT username FROM users WHERE id = $1', [leadId]);
+          if (leadResult.rows.length > 0) {
+            leadName = leadResult.rows[0].username;
+          }
+        }
+        
+        // Import the email functionality
+        const { sendProjectCreatedEmail } = await import('./email');
+        
+        // Send notification
+        await sendProjectCreatedEmail(
+          name,
+          clientName,
+          description,
+          startDate,
+          endDate,
+          leadName
+        );
+        
+        console.log(`Email notification sent for new project: ${name}`);
+      } catch (emailError) {
+        // Log the error but don't fail the operation
+        console.error("Error sending project creation email notification:", emailError);
+      }
+      
+      return createdProject;
     } catch (error) {
+      // Rollback transaction if error occurs
+      await pool.query('ROLLBACK');
       console.error("Error creating project:", error);
       throw error;
     }

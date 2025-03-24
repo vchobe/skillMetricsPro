@@ -121,3 +121,125 @@ export function getResourceRemovedEmailContent(
     subject: `Project Resource Removed: ${username} from ${projectName}` 
   };
 }
+
+export function getProjectCreatedEmailContent(
+  projectName: string,
+  clientName: string | null | undefined,
+  description: string | null | undefined,
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+  leadName: string | null | undefined
+) {
+  // Format optional fields
+  const clientInfo = clientName ? `${clientName}` : 'Not specified';
+  const dateRange = startDate ? 
+    (endDate ? `${startDate} to ${endDate}` : `Starting ${startDate} (No end date)`) : 
+    'Dates not specified';
+  const descriptionInfo = description || 'No description provided';
+  const leadInfo = leadName || 'Not assigned';
+  
+  const text = `
+    Project Creation Notification
+    
+    New Project: ${projectName}
+    Client: ${clientInfo}
+    Timeline: ${dateRange}
+    Lead: ${leadInfo}
+    
+    Description:
+    ${descriptionInfo}
+    
+    This is an automated notification from the Employee Skill Metrics system.
+  `;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #4f46e5;">New Project Created</h2>
+      <p>A new project has been created in the system:</p>
+      
+      <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Project Name:</strong> ${projectName}</p>
+        <p style="margin: 5px 0;"><strong>Client:</strong> ${clientInfo}</p>
+        <p style="margin: 5px 0;"><strong>Timeline:</strong> ${dateRange}</p>
+        <p style="margin: 5px 0;"><strong>Project Lead:</strong> ${leadInfo}</p>
+        <p style="margin: 10px 0 5px 0;"><strong>Description:</strong></p>
+        <p style="margin: 5px 0; padding-left: 15px;">${descriptionInfo}</p>
+      </div>
+      
+      <p>This is an automated notification from the Employee Skill Metrics system.</p>
+    </div>
+  `;
+
+  return { 
+    text, 
+    html, 
+    subject: `New Project Created: ${projectName}` 
+  };
+}
+
+export function getProjectUpdatedEmailContent(
+  projectName: string,
+  clientName: string | null | undefined,
+  description: string | null | undefined,
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+  leadName: string | null | undefined,
+  changedFields: string[]
+) {
+  // Format optional fields
+  const clientInfo = clientName ? `${clientName}` : 'Not specified';
+  const dateRange = startDate ? 
+    (endDate ? `${startDate} to ${endDate}` : `Starting ${startDate} (No end date)`) : 
+    'Dates not specified';
+  const descriptionInfo = description || 'No description provided';
+  const leadInfo = leadName || 'Not assigned';
+  
+  // Format the changes summary
+  const changesSummary = changedFields.length > 0 
+    ? `Fields updated: ${changedFields.join(', ')}` 
+    : 'No significant fields changed';
+  
+  const text = `
+    Project Update Notification
+    
+    Updated Project: ${projectName}
+    ${changesSummary}
+    
+    Current Details:
+    Client: ${clientInfo}
+    Timeline: ${dateRange}
+    Lead: ${leadInfo}
+    
+    Description:
+    ${descriptionInfo}
+    
+    This is an automated notification from the Employee Skill Metrics system.
+  `;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #0ea5e9;">Project Updated</h2>
+      <p>A project has been updated in the system:</p>
+      
+      <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Project Name:</strong> ${projectName}</p>
+        <p style="margin: 5px 0; color: #4f46e5;"><strong>${changesSummary}</strong></p>
+        <hr style="border: 0; border-top: 1px solid #d1d5db; margin: 15px 0;" />
+        <p style="margin: 5px 0;"><strong>Current Details:</strong></p>
+        <p style="margin: 5px 0;"><strong>Client:</strong> ${clientInfo}</p>
+        <p style="margin: 5px 0;"><strong>Timeline:</strong> ${dateRange}</p>
+        <p style="margin: 5px 0;"><strong>Project Lead:</strong> ${leadInfo}</p>
+        <p style="margin: 10px 0 5px 0;"><strong>Description:</strong></p>
+        <p style="margin: 5px 0; padding-left: 15px;">${descriptionInfo}</p>
+      </div>
+      
+      <p>This is an automated notification from the Employee Skill Metrics system.</p>
+    </div>
+  `;
+
+  return { 
+    text, 
+    html, 
+    subject: `Project Updated: ${projectName}` 
+  };
+}

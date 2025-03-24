@@ -290,3 +290,149 @@ export async function sendResourceRemovedEmail(
     return false;
   }
 }
+
+/**
+ * Sends project creation notification to HR and Finance
+ */
+export async function sendProjectCreatedEmail(
+  projectName: string,
+  clientName: string | null | undefined,
+  description: string | null | undefined,
+  startDate: Date | string | null | undefined,
+  endDate: Date | string | null | undefined,
+  leadName: string | null | undefined
+): Promise<boolean> {
+  try {
+    // Format dates for display
+    const formattedStartDate = startDate ? formatDate(startDate) : null;
+    const formattedEndDate = endDate ? formatDate(endDate) : null;
+    
+    const { text, html, subject } = getProjectCreatedEmailContent(
+      projectName,
+      clientName,
+      description,
+      formattedStartDate,
+      formattedEndDate,
+      leadName
+    );
+    
+    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+      console.log('Mailjet not configured. Logging project creation details instead...');
+      console.log(`Project Created: ${projectName} (Client: ${clientName || 'Not specified'})`);
+      console.log(`Would have sent email to: ${HR_COORDINATOR_EMAIL}, ${FINANCE_EXECUTIVE_EMAIL}`);
+      return true;
+    }
+
+    try {
+      await mailjet
+        .post('send', { version: 'v3.1' })
+        .request({
+          Messages: [
+            {
+              From: {
+                Email: "vinayak.chobe@atyeti.com",
+                Name: "Employee Skill Metrics"
+              },
+              To: [
+                {
+                  Email: HR_COORDINATOR_EMAIL,
+                  Name: "HR Coordinator"
+                },
+                {
+                  Email: FINANCE_EXECUTIVE_EMAIL,
+                  Name: "Finance Executive"
+                }
+              ],
+              Subject: subject,
+              TextPart: text,
+              HTMLPart: html
+            }
+          ]
+        });
+
+      console.log(`Project creation email sent to HR (${HR_COORDINATOR_EMAIL}) and Finance (${FINANCE_EXECUTIVE_EMAIL})`);
+      return true;
+    } catch (sendError: any) {
+      console.error('Error sending project creation email:', sendError?.message || sendError);
+      console.log(`Fallback - Project Created: ${projectName}`);
+      return false;
+    }
+  } catch (error: any) {
+    console.error('Error in project creation email flow:', error?.message || error);
+    return false;
+  }
+}
+
+/**
+ * Sends project update notification to HR and Finance
+ */
+export async function sendProjectUpdatedEmail(
+  projectName: string,
+  clientName: string | null | undefined,
+  description: string | null | undefined,
+  startDate: Date | string | null | undefined,
+  endDate: Date | string | null | undefined,
+  leadName: string | null | undefined,
+  changedFields: string[]
+): Promise<boolean> {
+  try {
+    // Format dates for display
+    const formattedStartDate = startDate ? formatDate(startDate) : null;
+    const formattedEndDate = endDate ? formatDate(endDate) : null;
+    
+    const { text, html, subject } = getProjectUpdatedEmailContent(
+      projectName,
+      clientName,
+      description,
+      formattedStartDate,
+      formattedEndDate,
+      leadName,
+      changedFields
+    );
+    
+    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+      console.log('Mailjet not configured. Logging project update details instead...');
+      console.log(`Project Updated: ${projectName} (Fields changed: ${changedFields.join(', ')})`);
+      console.log(`Would have sent email to: ${HR_COORDINATOR_EMAIL}, ${FINANCE_EXECUTIVE_EMAIL}`);
+      return true;
+    }
+
+    try {
+      await mailjet
+        .post('send', { version: 'v3.1' })
+        .request({
+          Messages: [
+            {
+              From: {
+                Email: "vinayak.chobe@atyeti.com",
+                Name: "Employee Skill Metrics"
+              },
+              To: [
+                {
+                  Email: HR_COORDINATOR_EMAIL,
+                  Name: "HR Coordinator"
+                },
+                {
+                  Email: FINANCE_EXECUTIVE_EMAIL,
+                  Name: "Finance Executive"
+                }
+              ],
+              Subject: subject,
+              TextPart: text,
+              HTMLPart: html
+            }
+          ]
+        });
+
+      console.log(`Project update email sent to HR (${HR_COORDINATOR_EMAIL}) and Finance (${FINANCE_EXECUTIVE_EMAIL})`);
+      return true;
+    } catch (sendError: any) {
+      console.error('Error sending project update email:', sendError?.message || sendError);
+      console.log(`Fallback - Project Updated: ${projectName}`);
+      return false;
+    }
+  } catch (error: any) {
+    console.error('Error in project update email flow:', error?.message || error);
+    return false;
+  }
+}
