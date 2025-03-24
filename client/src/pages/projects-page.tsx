@@ -126,10 +126,7 @@ export default function ProjectsPage() {
   // Create project mutation
   const createProject = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      return apiRequest("/api/projects", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/projects", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });

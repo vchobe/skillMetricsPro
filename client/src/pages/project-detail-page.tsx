@@ -242,10 +242,7 @@ export default function ProjectDetailPage() {
   // Update project mutation
   const updateProject = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      return apiRequest(`/api/projects/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("PATCH", `/api/projects/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", id] });
@@ -268,9 +265,9 @@ export default function ProjectDetailPage() {
   // Add resource mutation
   const addResource = useMutation({
     mutationFn: async (data: ResourceFormValues) => {
-      return apiRequest(`/api/projects/${id}/resources`, {
-        method: "POST",
-        body: JSON.stringify({ ...data, projectId: parseInt(id) }),
+      return apiRequest("POST", `/api/projects/${id}/resources`, { 
+        ...data, 
+        projectId: parseInt(id) 
       });
     },
     onSuccess: () => {
@@ -296,9 +293,7 @@ export default function ProjectDetailPage() {
   // Remove resource mutation
   const removeResource = useMutation({
     mutationFn: async (resourceId: number) => {
-      return apiRequest(`/api/projects/resources/${resourceId}`, {
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/projects/resources/${resourceId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "resources"] });
