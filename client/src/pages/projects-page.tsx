@@ -284,69 +284,28 @@ export default function ProjectsPage() {
     }
   };
   
-  // Effects
-  
-  // Get edit ID from URL query parameters
-  const getEditIdFromUrl = () => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const editParam = params.get('edit');
-      return editParam ? parseInt(editParam) : null;
-    }
-    return null;
-  };
-
-  // Track URL search params separately to ensure we detect changes
-  const [searchParams, setSearchParams] = useState(
-    typeof window !== 'undefined' ? window.location.search : ''
-  );
-  
-  // Update searchParams whenever location changes
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setSearchParams(window.location.search);
-    }
-  }, [location]);
-
-  // Handle project ID in URL for editing (from route params or query params)
-  useEffect(() => {
-    // Check for both route param ID or edit query param
-    const editId = projectId || getEditIdFromUrl();
-    console.log("Checking for edit ID in URL:", editId, "Search params:", searchParams);
+  // Direct edit function instead of using URL parameters
+  const handleEditProject = (projectToEdit: Project) => {
+    console.log("Direct edit triggered for project:", projectToEdit.name);
     
-    if (editId && Array.isArray(projects)) {
-      const project = projects.find(p => p.id === editId);
-      
-      if (project) {
-        console.log("Found project to edit:", project.name);
-        setEditingProjectId(editId);
-        setEditProjectDialogOpen(true);
-        
-        // Reset form with project data
-        projectForm.reset({
-          name: project.name,
-          clientId: project.clientId,
-          description: project.description || "",
-          status: project.status,
-          startDate: project.startDate ? new Date(project.startDate) : null,
-          endDate: project.endDate ? new Date(project.endDate) : null,
-          location: project.location || "",
-          notes: project.notes || "",
-        });
-      } else {
-        console.error(`Project with ID ${editId} not found`);
-        // Clear the edit param from the URL to avoid confusion
-        if (getEditIdFromUrl()) {
-          setLocation('/projects');
-        }
-      }
-    } else if (!editId && editingProjectId) {
-      // Reset editing state when URL doesn't contain project ID
-      setEditingProjectId(null);
-      setEditProjectDialogOpen(false);
-      projectForm.reset();
-    }
-  }, [projectId, projects, projectForm, editingProjectId, searchParams, setLocation]);
+    // Set editing project ID
+    setEditingProjectId(projectToEdit.id);
+    
+    // Reset form with project data
+    projectForm.reset({
+      name: projectToEdit.name,
+      clientId: projectToEdit.clientId,
+      description: projectToEdit.description || "",
+      status: projectToEdit.status,
+      startDate: projectToEdit.startDate ? new Date(projectToEdit.startDate) : null,
+      endDate: projectToEdit.endDate ? new Date(projectToEdit.endDate) : null,
+      location: projectToEdit.location || "",
+      notes: projectToEdit.notes || "",
+    });
+    
+    // Open edit dialog
+    setEditProjectDialogOpen(true);
+  };
   
   return (
     <div className="flex flex-col h-screen">
@@ -971,25 +930,8 @@ export default function ProjectsPage() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
-                                console.log("Edit button clicked for project:", project.id);
-                                
-                                // Set editing project ID directly without changing URL
-                                setEditingProjectId(project.id);
-                                
-                                // Reset form with project data
-                                projectForm.reset({
-                                  name: project.name,
-                                  clientId: project.clientId,
-                                  description: project.description || "",
-                                  status: project.status,
-                                  startDate: project.startDate ? new Date(project.startDate) : null,
-                                  endDate: project.endDate ? new Date(project.endDate) : null,
-                                  location: project.location || "",
-                                  notes: project.notes || "",
-                                });
-                                
-                                // Open edit dialog
-                                setEditProjectDialogOpen(true);
+                                // Use the direct edit function
+                                handleEditProject(project);
                               }}
                             >
                               Edit
