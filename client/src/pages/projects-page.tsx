@@ -296,15 +296,29 @@ export default function ProjectsPage() {
     return null;
   };
 
+  // Track URL search params separately to ensure we detect changes
+  const [searchParams, setSearchParams] = useState(
+    typeof window !== 'undefined' ? window.location.search : ''
+  );
+  
+  // Update searchParams whenever location changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setSearchParams(window.location.search);
+    }
+  }, [location]);
+
   // Handle project ID in URL for editing (from route params or query params)
   useEffect(() => {
     // Check for both route param ID or edit query param
     const editId = projectId || getEditIdFromUrl();
+    console.log("Checking for edit ID in URL:", editId, "Search params:", searchParams);
     
     if (editId && Array.isArray(projects)) {
       const project = projects.find(p => p.id === editId);
       
       if (project) {
+        console.log("Found project to edit:", project.name);
         setEditingProjectId(editId);
         setEditProjectDialogOpen(true);
         
@@ -332,7 +346,7 @@ export default function ProjectsPage() {
       setEditProjectDialogOpen(false);
       projectForm.reset();
     }
-  }, [projectId, projects, projectForm, editingProjectId, location, setLocation]);
+  }, [projectId, projects, projectForm, editingProjectId, searchParams, setLocation]);
   
   return (
     <div className="flex flex-col h-screen">
