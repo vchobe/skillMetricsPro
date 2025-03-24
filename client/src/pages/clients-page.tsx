@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { formatDate } from "@/lib/date-utils";
 
 import {
   Table,
@@ -89,8 +90,23 @@ export default function ClientsPage() {
     direction: "asc",
   });
 
+  // Define Client interface
+  interface Client {
+    id: number;
+    name: string;
+    industry?: string;
+    contactName?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    website?: string;
+    description?: string;
+    address?: string;
+    createdAt: string;
+    updatedAt?: string;
+  }
+
   // Fetch all clients
-  const { data: clients, isLoading: isLoadingClients } = useQuery({
+  const { data: clients = [], isLoading: isLoadingClients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
     refetchOnWindowFocus: false,
   });
@@ -127,7 +143,7 @@ export default function ClientsPage() {
 
   // Populate edit form when a client is selected for editing
   const populateEditForm = (clientId: number) => {
-    const client = clients.find((c: any) => c.id === clientId);
+    const client = clients.find((c: Client) => c.id === clientId);
     if (!client) return;
     
     editClientForm.reset({
@@ -243,7 +259,7 @@ export default function ClientsPage() {
   // Filter and sort clients
   const filteredClients = clients
     ? clients
-        .filter((client: any) => {
+        .filter((client: Client) => {
           return (
             client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (client.industry && 
@@ -252,7 +268,7 @@ export default function ClientsPage() {
               client.contactName.toLowerCase().includes(searchTerm.toLowerCase()))
           );
         })
-        .sort((a: any, b: any) => {
+        .sort((a: Client, b: Client) => {
           const { field, direction } = sortConfig;
           let comparison = 0;
 
@@ -518,7 +534,7 @@ export default function ClientsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredClients.map((client: any) => (
+                  filteredClients.map((client: Client) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center">
@@ -710,6 +726,15 @@ export default function ClientsPage() {
                                           Save Changes
                                         </Button>
                                       </DialogFooter>
+                                      
+                                      {/* Client metadata with formatted dates */}
+                                      <div className="text-xs text-gray-500 mt-4 pt-4 border-t">
+                                        <p>
+                                          Client created: {formatDate(client.createdAt, "MMM d, yyyy")}
+                                          {client.updatedAt && client.updatedAt !== client.createdAt && 
+                                            ` • Last updated: ${formatDate(client.updatedAt, "MMM d, yyyy")}`}
+                                        </p>
+                                      </div>
                                     </form>
                                   </Form>
                                 </DialogContent>
