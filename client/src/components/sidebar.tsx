@@ -34,11 +34,12 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
     <>
       {/* Sidebar */}
       <div 
-        className="w-64 bg-gray-800 text-white flex flex-col fixed h-full z-10"
+        className="bg-gray-800 text-white flex flex-col fixed h-full z-10"
+        style={{ width: '64px' }}
       >
-        <div className="px-4 py-5 flex justify-between items-center border-b border-gray-700">
+        <div className="px-2 py-5 flex justify-center items-center border-b border-gray-700">
           <div className="flex items-center">
-            <span className="font-semibold text-xl tracking-tight">
+            <span className="font-semibold text-xl tracking-tight hidden">
               Skill Metrics
             </span>
           </div>
@@ -47,13 +48,13 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
         <div className="flex flex-col flex-grow p-4 overflow-auto">
           <div className="space-y-2">
             <div>
-              <Link href="/" className={`flex items-center px-4 py-3 rounded-md ${
+              <Link href="/" className={`flex items-center px-4 py-3 rounded-md group ${
                 currentPath === "/" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <LayoutDashboard className="h-5 w-5" />
-                <span className="ml-3">Dashboard</span>
+                <span className="ml-3 hidden group-hover:block">Dashboard</span>
               </Link>
             </div>
             
@@ -63,13 +64,13 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
             </h3>
             
             <div>
-              <Link href="/skills" className={`flex items-center px-4 py-3 rounded-md ${
+              <Link href="/skills" className={`flex items-center px-4 py-3 rounded-md group ${
                 currentPath === "/skills" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <Brain className="h-5 w-5" />
-                <span className="ml-3">My Skills</span>
+                <span className="ml-3 hidden group-hover:block">My Skills</span>
               </Link>
             </div>
             
@@ -79,13 +80,13 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
             </h3>
             
             <div>
-              <Link href="/projects" className={`flex items-center px-4 py-3 rounded-md ${
+              <Link href="/projects" className={`flex items-center px-4 py-3 rounded-md group ${
                 currentPath === "/projects" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <Briefcase className="h-5 w-5" />
-                <span className="ml-3">My Projects</span>
+                <span className="ml-3 hidden group-hover:block">My Projects</span>
               </Link>
             </div>
             
