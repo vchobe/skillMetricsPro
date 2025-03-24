@@ -336,7 +336,15 @@ export default function ProjectDetailPage() {
   // Update project mutation
   const updateProject = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      return apiRequest("PATCH", `/api/projects/${id}`, data);
+      // Convert string values to appropriate types
+      const formattedData = {
+        ...data,
+        clientId: data.clientId === null || data.clientId === undefined ? null : Number(data.clientId),
+        leadId: data.leadId === null || data.leadId === undefined ? null : Number(data.leadId),
+        deliveryLeadId: data.deliveryLeadId === null || data.deliveryLeadId === undefined ? null : Number(data.deliveryLeadId),
+      };
+      console.log("Updating project with data:", formattedData);
+      return apiRequest("PATCH", `/api/projects/${id}`, formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", id] });
@@ -348,6 +356,7 @@ export default function ProjectDetailPage() {
       setOpenEditProject(false);
     },
     onError: (error: Error) => {
+      console.error("Failed to update project:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to update project",
@@ -755,7 +764,7 @@ export default function ProjectDetailPage() {
                                     <SelectValue placeholder="Select project lead" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
+                                    <SelectItem value="null">None</SelectItem>
                                     {users?.map((user: any) => (
                                       <SelectItem key={user.id} value={user.id.toString()}>
                                         {`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username}
@@ -784,7 +793,7 @@ export default function ProjectDetailPage() {
                                     <SelectValue placeholder="Select delivery lead" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
+                                    <SelectItem value="null">None</SelectItem>
                                     {users?.map((user: any) => (
                                       <SelectItem key={user.id} value={user.id.toString()}>
                                         {`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username}
