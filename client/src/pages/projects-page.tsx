@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useAuth } from "../hooks/use-auth";
 import { getQueryFn, apiRequest } from "../lib/queryClient";
 import { formatDate, DATE_FORMATS, standardizeDate } from "../lib/date-utils";
@@ -81,13 +81,20 @@ type Client = {
 
 export default function ProjectsPage() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [createProjectDialogOpen, setCreateProjectDialogOpen] = useState(false);
+  const [editProjectDialogOpen, setEditProjectDialogOpen] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
   const { user } = useAuth();
   const isAdmin = user?.is_admin || user?.isAdmin;
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
+  // Parse URL parameters
+  const searchParams = new URLSearchParams(search);
+  const editId = searchParams.get("edit") ? parseInt(searchParams.get("edit") as string) : null;
   
   // Project form
   const projectForm = useForm<ProjectFormValues>({

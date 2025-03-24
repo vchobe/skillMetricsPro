@@ -91,6 +91,7 @@ export default function ProjectManagementPage() {
   // Parse URL parameters
   const searchParams = new URLSearchParams(search);
   const projectId = searchParams.get("project") ? parseInt(searchParams.get("project") as string) : null;
+  const editId = searchParams.get("edit") ? parseInt(searchParams.get("edit") as string) : null;
   const initialTab = searchParams.get("tab") || "projects";
   
   // Define states for our data
@@ -121,6 +122,14 @@ export default function ProjectManagementPage() {
     
     fetchManagementData();
   }, []);
+  
+  // Handle edit project navigation
+  useEffect(() => {
+    if (editId) {
+      // Navigate to the projects page with the edit parameter
+      setLocation(`/projects?edit=${editId}`);
+    }
+  }, [editId, setLocation]);
   
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
