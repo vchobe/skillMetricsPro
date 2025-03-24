@@ -187,7 +187,7 @@ export default function ClientDetailPage() {
           currentPath="/clients" 
         />
         
-        <div className={`flex-1 transition-all duration-300 ${isOpen ? 'ml-16' : 'ml-0'}`}>
+        <div className={`flex-1 transition-all duration-300 ${isOpen ? 'ml-64' : 'ml-0'}`}>
           <Header 
             title="Client Details" 
             toggleSidebar={() => setIsOpen(!isOpen)} 
@@ -214,7 +214,7 @@ export default function ClientDetailPage() {
           currentPath="/clients" 
         />
         
-        <div className={`flex-1 transition-all duration-300 ${isOpen ? 'ml-16' : 'ml-0'}`}>
+        <div className={`flex-1 transition-all duration-300 ${isOpen ? 'ml-64' : 'ml-0'}`}>
           <Header 
             title="Client Details" 
             toggleSidebar={() => setIsOpen(!isOpen)} 
@@ -248,7 +248,7 @@ export default function ClientDetailPage() {
         currentPath="/clients" 
       />
       
-      <div className={`flex-1 transition-all duration-300 ${isOpen ? 'ml-16' : 'ml-0'}`}>
+      <div className={`flex-1 transition-all duration-300 ${isOpen ? 'ml-64' : 'ml-0'}`}>
         <Header 
           title="Client Details" 
           toggleSidebar={() => setIsOpen(!isOpen)} 

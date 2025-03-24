@@ -217,7 +217,7 @@ export default function UserProfilePage() {
     <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath={`/users/${userId}`} />
       
-      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-16' : 'ml-0'}`}>
+      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <Header 
           title={isOwnProfile ? "My Profile" : `${user.username || user.email}'s Profile`}
           toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
