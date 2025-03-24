@@ -763,7 +763,7 @@ export default function ProjectManagementPage() {
     <div className="min-h-screen flex flex-col">
       <Header title="Project Management" toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
       
-      <div className="flex-1 ml-64 p-6">
+      <div className="flex-1 ml-16 p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Project Management</h1>
           

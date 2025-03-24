@@ -191,7 +191,7 @@ export default function ProjectsPage() {
     <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
       <Sidebar currentPath="/projects" />
       
-      <div className="flex-1 ml-64 flex flex-col overflow-hidden">
+      <div className="flex-1 ml-16 flex flex-col overflow-hidden">
         <Header 
           title="Projects" 
           toggleSidebar={() => {}} 

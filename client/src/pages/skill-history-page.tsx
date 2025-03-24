@@ -94,7 +94,7 @@ export default function SkillHistoryPage() {
     <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/history" />
       
-      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
+      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-16' : 'ml-0'}`}>
         <Header 
           title={currentSkill ? `${currentSkill.name} History` : "Skill History"} 
           toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 

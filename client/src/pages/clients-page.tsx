@@ -75,7 +75,7 @@ export default function ClientsPage() {
       <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
         <Sidebar currentPath="/clients" />
         
-        <div className="flex-1 ml-64 flex flex-col overflow-hidden">
+        <div className="flex-1 ml-16 flex flex-col overflow-hidden">
           <Header 
             title="Clients" 
             toggleSidebar={() => {}} 
@@ -103,7 +103,7 @@ export default function ClientsPage() {
     <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
       <Sidebar currentPath="/clients" />
       
-      <div className="flex-1 ml-64 flex flex-col overflow-hidden">
+      <div className="flex-1 ml-16 flex flex-col overflow-hidden">
         <Header 
           title="Clients" 
           toggleSidebar={() => {}} 
