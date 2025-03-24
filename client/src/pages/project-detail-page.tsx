@@ -916,11 +916,11 @@ export default function ProjectDetailPage() {
               <dl className="grid grid-cols-1 gap-4">
                 <div>
                   <dt className="text-sm font-medium text-gray-500 mb-1">Project Lead</dt>
-                  <dd>{getUserName(project.leadId)}</dd>
+                  <dd>{getUserName(project.leadId || null)}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500 mb-1">Delivery Lead</dt>
-                  <dd>{getUserName(project.deliveryLeadId)}</dd>
+                  <dd>{getUserName(project.deliveryLeadId || null)}</dd>
                 </div>
               </dl>
             </CardContent>
@@ -1008,7 +1008,7 @@ export default function ProjectDetailPage() {
                                         No available users
                                       </SelectItem>
                                     ) : (
-                                      availableUsers.map((user: any) => (
+                                      availableUsers.map((user: User) => (
                                         <SelectItem key={user.id} value={user.id.toString()}>
                                           {`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username}
                                         </SelectItem>
@@ -1136,7 +1136,7 @@ export default function ProjectDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {resources.map((resource: any) => (
+                      {resources.map((resource: ProjectResource) => (
                         <TableRow key={resource.id}>
                           <TableCell className="font-medium">
                             {getUserName(resource.userId)}
