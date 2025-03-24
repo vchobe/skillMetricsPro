@@ -1556,7 +1556,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async updateProject(id: number, data: Partial<Project>): Promise<Project> {
+  async updateProject(id: number, data: Partial<Project>, performedByUserId?: number): Promise<Project> {
     try {
       const project = await this.getProject(id);
       if (!project) {
@@ -1566,6 +1566,50 @@ export class PostgresStorage implements IStorage {
       const updateFields = [];
       const values = [];
       let paramCount = 1;
+      
+      // Track changes for notification email
+      const changedFields: { field: string, oldValue?: string | null, newValue?: string | null }[] = [];
+      
+      // Store original lead and client info for email notification
+      let clientName: string | null = null;
+      let leadName: string | null = null;
+      
+      // Get client name if needed
+      if (project.clientId) {
+        try {
+          const client = await this.getClient(project.clientId);
+          if (client) {
+            clientName = client.name;
+          }
+        } catch (err) {
+          console.warn("Could not fetch client name for email notification:", err);
+        }
+      }
+      
+      // Get lead name if needed
+      if (project.leadId) {
+        try {
+          const lead = await this.getUser(project.leadId);
+          if (lead) {
+            leadName = `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || lead.username;
+          }
+        } catch (err) {
+          console.warn("Could not fetch lead name for email notification:", err);
+        }
+      }
+      
+      // Get performer name if available
+      let performerName: string | null = null;
+      if (performedByUserId) {
+        try {
+          const performer = await this.getUser(performedByUserId);
+          if (performer) {
+            performerName = `${performer.firstName || ''} ${performer.lastName || ''}`.trim() || performer.username;
+          }
+        } catch (err) {
+          console.warn("Could not fetch performer name for email notification:", err);
+        }
+      }
 
       for (const [key, value] of Object.entries(data)) {
         // Skip joined fields that aren't in the table
@@ -1577,6 +1621,103 @@ export class PostgresStorage implements IStorage {
           updateFields.push(`${this.camelToSnake(key)} = $${paramCount}`);
           values.push(value);
           paramCount++;
+          
+          // Track significant field changes for notification
+          if (['name', 'status', 'description', 'clientId', 'leadId', 'startDate', 'endDate', 'location'].includes(key)) {
+            let oldValueDisplay = (project as any)[key]?.toString() || null;
+            let newValueDisplay = value?.toString() || null;
+            
+            // Format the fields for better readability
+            if (key === 'clientId' && value !== null) {
+              newValueDisplay = 'New client assignment';
+              try {
+                // Try to get the new client name
+                const newClient = await this.getClient(value as number);
+                if (newClient) {
+                  newValueDisplay = newClient.name;
+                }
+              } catch (err) {
+                console.warn("Could not fetch new client name for email notification:", err);
+              }
+              
+              if (project.clientId) {
+                oldValueDisplay = clientName || 'Unknown client';
+              } else {
+                oldValueDisplay = 'No client';
+              }
+            }
+            
+            if (key === 'leadId' && value !== null) {
+              newValueDisplay = 'New project lead';
+              try {
+                // Try to get the new lead name
+                const newLead = await this.getUser(value as number);
+                if (newLead) {
+                  newValueDisplay = `${newLead.firstName || ''} ${newLead.lastName || ''}`.trim() || newLead.username;
+                }
+              } catch (err) {
+                console.warn("Could not fetch new lead name for email notification:", err);
+              }
+              
+              if (project.leadId) {
+                oldValueDisplay = leadName || 'Unknown lead';
+              } else {
+                oldValueDisplay = 'No lead assigned';
+              }
+            }
+            
+            // Format dates in a readable way
+            if (['startDate', 'endDate'].includes(key)) {
+              if (value) {
+                try {
+                  const date = new Date(value as string | number | Date);
+                  newValueDisplay = date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  });
+                } catch (err) {
+                  console.warn(`Could not format new ${key} for email notification:`, err);
+                }
+              }
+              
+              if (project[key as keyof Project]) {
+                try {
+                  const date = new Date(project[key as keyof Project] as string | number | Date);
+                  oldValueDisplay = date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  });
+                } catch (err) {
+                  console.warn(`Could not format old ${key} for email notification:`, err);
+                }
+              }
+            }
+            
+            // Only add if there's actually a change
+            if (oldValueDisplay !== newValueDisplay) {
+              let fieldDisplay = key;
+              // Make field names more readable
+              switch (key) {
+                case 'clientId': fieldDisplay = 'Client'; break;
+                case 'leadId': fieldDisplay = 'Project Lead'; break;
+                case 'startDate': fieldDisplay = 'Start Date'; break;
+                case 'endDate': fieldDisplay = 'End Date'; break;
+                case 'name': fieldDisplay = 'Project Name'; break;
+                default: 
+                  // Capitalize first letter of each word
+                  fieldDisplay = key.replace(/([A-Z])/g, ' $1')
+                    .replace(/^./, str => str.toUpperCase());
+              }
+              
+              changedFields.push({
+                field: fieldDisplay,
+                oldValue: oldValueDisplay,
+                newValue: newValueDisplay
+              });
+            }
+          }
         }
       }
 
@@ -1587,9 +1728,37 @@ export class PostgresStorage implements IStorage {
       values.push(id);
       const query = `UPDATE projects SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = $${paramCount} RETURNING *`;
       const result = await pool.query(query, values);
-
+      
       // Fetch the updated project with joined data
-      return await this.getProject(id);
+      const updatedProject = await this.getProject(id);
+      
+      // Send notification email if there are significant changes
+      if (changedFields.length > 0) {
+        try {
+          const { sendProjectUpdatedEmail } = await import('./email');
+          
+          // Send notification with project-specific email addresses if provided
+          await sendProjectUpdatedEmail(
+            project.name,
+            clientName,
+            project.description,
+            project.startDate,
+            project.endDate,
+            leadName,
+            changedFields,
+            project.hrCoordinatorEmail || null,
+            project.financeTeamEmail || null,
+            performerName
+          );
+          
+          console.log(`Email notification sent for project update: ${project.name}`);
+        } catch (emailError) {
+          // Log the error but don't fail the operation
+          console.error("Error sending project update email notification:", emailError);
+        }
+      }
+
+      return updatedProject;
     } catch (error) {
       console.error(`Error updating project ${id}:`, error);
       throw error;
@@ -1791,9 +1960,9 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async createProjectResource(resource: InsertProjectResource): Promise<ProjectResource> {
+  async createProjectResource(resource: InsertProjectResource, performedByUserId?: number): Promise<ProjectResource> {
     try {
-      const { projectId, userId, role, allocation, startDate, endDate } = resource;
+      const { projectId, userId, role, allocation, startDate, endDate, notes } = resource;
       
       // Debug log for incoming date values
       console.log("Creating resource with dates:", { 
@@ -1807,20 +1976,22 @@ export class PostgresStorage implements IStorage {
       // Insert the resource
       const result = await pool.query(
         `INSERT INTO project_resources (
-          project_id, user_id, role, allocation, start_date, end_date
-        ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [projectId, userId, role, allocation, startDate, endDate]
+          project_id, user_id, role, allocation, start_date, end_date, notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [projectId, userId, role, allocation, startDate, endDate, notes]
       );
       
       // Debug log for raw result
       console.log("Raw resource after insert:", JSON.stringify(result.rows[0], null, 2));
       
-      // Add resource history record
+      // Add resource history record with the performed by user if available
+      const historyPerformedById = performedByUserId || userId;
+      
       await pool.query(
         `INSERT INTO project_resource_histories (
-          project_id, user_id, action, new_role, new_allocation, performed_by_id
-        ) VALUES ($1, $2, $3, $4, $5, $6)`,
-        [projectId, userId, 'added', role, allocation, userId]
+          project_id, user_id, action, new_role, new_allocation, performed_by_id, note
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [projectId, userId, 'added', role, allocation, historyPerformedById, notes]
       );
       
       // Commit transaction
@@ -1838,8 +2009,21 @@ export class PostgresStorage implements IStorage {
         const project = await this.getProject(projectId);
         const user = await this.getUser(userId);
         
+        // Get the performer's name if available
+        let performerName: string | null = null;
+        if (performedByUserId && performedByUserId !== userId) {
+          try {
+            const performer = await this.getUser(performedByUserId);
+            if (performer) {
+              performerName = `${performer.firstName || ''} ${performer.lastName || ''}`.trim() || performer.username;
+            }
+          } catch (err) {
+            console.warn("Could not fetch performer name for email notification:", err);
+          }
+        }
+        
         if (project && user) {
-          // Send the notification email
+          // Send the notification email with project-specific email addresses if provided
           await sendResourceAddedEmail(
             project.name,
             user.username,
@@ -1847,8 +2031,13 @@ export class PostgresStorage implements IStorage {
             role || 'Team Member',
             startDate,
             endDate,
-            allocation || 100
+            allocation || 100,
+            project.hrCoordinatorEmail || null,
+            project.financeTeamEmail || null,
+            performerName
           );
+          
+          console.log(`Email notification sent for resource addition: ${user.username} to ${project.name}`);
         }
       } catch (emailError) {
         // Log the error but don't fail the transaction

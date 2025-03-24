@@ -248,14 +248,18 @@ export async function sendResourceRemovedEmail(
   userEmail: string,
   role: string,
   hrEmail: string | null = null,
-  financeEmail: string | null = null
+  financeEmail: string | null = null,
+  allocation: number | null = null,
+  performedBy: string | null = null
 ): Promise<boolean> {
   try {
     const { text, html, subject } = getResourceRemovedEmailContent(
       projectName,
       username,
       userEmail,
-      role
+      role,
+      allocation,
+      performedBy || undefined
     );
     
     // Use project-specific emails if provided, otherwise fall back to defaults
@@ -265,6 +269,7 @@ export async function sendResourceRemovedEmail(
     if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
       console.log('Mailjet not configured. Logging resource removal details instead...');
       console.log(`Resource Removed: ${username} (${role}) from ${projectName}`);
+      console.log(`Allocation: ${allocation || 'N/A'}%`);
       console.log(`Would have sent email to: ${hrRecipientEmail}, ${financeRecipientEmail}`);
       return true;
     }
@@ -301,6 +306,7 @@ export async function sendResourceRemovedEmail(
     } catch (sendError: any) {
       console.error('Error sending resource removal email:', sendError?.message || sendError);
       console.log(`Fallback - Resource Removed: ${username} (${role}) from ${projectName}`);
+      console.log(`Allocation: ${allocation || 'N/A'}%`);
       return false;
     }
   } catch (error: any) {
@@ -397,9 +403,10 @@ export async function sendProjectUpdatedEmail(
   startDate: Date | string | null | undefined,
   endDate: Date | string | null | undefined,
   leadName: string | null | undefined,
-  changedFields: string[],
+  changedFields: { field: string, oldValue?: string | null, newValue?: string | null }[],
   hrEmail: string | null = null,
-  financeEmail: string | null = null
+  financeEmail: string | null = null,
+  performedBy: string | null = null
 ): Promise<boolean> {
   try {
     // Format dates for display
@@ -413,7 +420,8 @@ export async function sendProjectUpdatedEmail(
       formattedStartDate,
       formattedEndDate,
       leadName,
-      changedFields
+      changedFields,
+      performedBy || undefined
     );
     
     // Use project-specific emails if provided, otherwise fall back to defaults
@@ -422,7 +430,13 @@ export async function sendProjectUpdatedEmail(
     
     if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
       console.log('Mailjet not configured. Logging project update details instead...');
-      console.log(`Project Updated: ${projectName} (Fields changed: ${changedFields.join(', ')})`);
+      
+      const changedFieldsText = changedFields.map(f => 
+        `${f.field}: ${f.oldValue || '(not set)'} → ${f.newValue || '(not set)'}`
+      ).join(', ');
+      
+      console.log(`Project Updated: ${projectName}`);
+      console.log(`Fields changed: ${changedFieldsText}`);
       console.log(`Would have sent email to: ${hrRecipientEmail}, ${financeRecipientEmail}`);
       return true;
     }
