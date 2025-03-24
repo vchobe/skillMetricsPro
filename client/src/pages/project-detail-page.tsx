@@ -81,19 +81,23 @@ interface ProjectSkill {
   projectId: number;
   skillId: number;
   requiredLevel: string;
+  importance: string; // high, medium, low
   createdAt: string;
   updatedAt?: string;
-  priority?: string;
 }
 
 interface ResourceHistory {
   id: number;
   projectId: number;
   userId: number;
-  action: string;
-  role?: string;
+  action: string; // added, removed, role_changed, allocation_changed
+  previousRole?: string;
+  newRole?: string;
+  previousAllocation?: number;
+  newAllocation?: number;
   date: string;
-  notes?: string;
+  performedById?: number;
+  note?: string;
 }
 
 import {
