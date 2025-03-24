@@ -767,14 +767,16 @@ export default function ProjectManagementPage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Project Management</h1>
           
-          {/* Dialog for creating a new project */}
+          {/* Hidden Dialog for creating a new project - still used by edit functionality */}
           <Dialog open={createProjectDialogOpen} onOpenChange={setCreateProjectDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Project
-              </Button>
-            </DialogTrigger>
+            <div className="hidden">
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Project
+                </Button>
+              </DialogTrigger>
+            </div>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>
@@ -1029,8 +1031,8 @@ export default function ProjectManagementPage() {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell>{project.startDate ? formatDate(project.startDate, DATE_FORMATS.DISPLAY_SHORT) : "Not set"}</TableCell>
-                            <TableCell>{project.endDate ? formatDate(project.endDate, DATE_FORMATS.DISPLAY_SHORT) : "Not set"}</TableCell>
+                            <TableCell>{project.startDate ? formatDate(project.startDate, DATE_FORMATS.DISPLAY) : "Not set"}</TableCell>
+                            <TableCell>{project.endDate ? formatDate(project.endDate, DATE_FORMATS.DISPLAY) : "Not set"}</TableCell>
                             <TableCell className="text-right">
                               <Button 
                                 variant="ghost" 
@@ -1069,12 +1071,14 @@ export default function ProjectManagementPage() {
                     </CardDescription>
                   </div>
                   <Dialog open={createClientDialogOpen} onOpenChange={setCreateClientDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Client
-                      </Button>
-                    </DialogTrigger>
+                    <div className="hidden">
+                      <DialogTrigger asChild>
+                        <Button size="sm">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create Client
+                        </Button>
+                      </DialogTrigger>
+                    </div>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
                         <DialogTitle>Create New Client</DialogTitle>
@@ -1277,7 +1281,7 @@ export default function ProjectManagementPage() {
                             </TableCell>
                             <TableCell>{resource.email}</TableCell>
                             <TableCell>{resource.role}</TableCell>
-                            <TableCell>{formatDate(resource.assignedDate, DATE_FORMATS.DISPLAY_SHORT)}</TableCell>
+                            <TableCell>{formatDate(resource.assignedDate, DATE_FORMATS.DISPLAY)}</TableCell>
                             <TableCell className="text-right">
                               <Button 
                                 variant="ghost" 
