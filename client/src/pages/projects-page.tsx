@@ -170,7 +170,15 @@ export default function ProjectsPage() {
   // Create project mutation
   const createProject = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      return apiRequest("POST", "/api/projects", data);
+      // Convert string values to appropriate types
+      const formattedData = {
+        ...data,
+        clientId: data.clientId === null || data.clientId === undefined ? null : Number(data.clientId),
+        leadId: data.leadId === null || data.leadId === undefined ? null : Number(data.leadId),
+        deliveryLeadId: data.deliveryLeadId === null || data.deliveryLeadId === undefined ? null : Number(data.deliveryLeadId),
+      };
+      console.log("Creating project with data:", formattedData);
+      return apiRequest("POST", "/api/projects", formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
@@ -183,6 +191,7 @@ export default function ProjectsPage() {
       form.reset();
     },
     onError: (error: Error) => {
+      console.error("Failed to create project:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create project",
