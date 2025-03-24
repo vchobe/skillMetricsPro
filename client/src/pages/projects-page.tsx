@@ -293,23 +293,25 @@ export default function ProjectsPage() {
     
     // Properly log and handle any errors
     try {
-      // Reset form with project data
-      projectForm.reset({
-        name: projectToEdit.name,
-        clientId: projectToEdit.clientId,
-        description: projectToEdit.description || "",
-        status: projectToEdit.status,
-        startDate: projectToEdit.startDate ? new Date(projectToEdit.startDate) : null,
-        endDate: projectToEdit.endDate ? new Date(projectToEdit.endDate) : null,
-        location: projectToEdit.location || "",
-        notes: projectToEdit.notes || "",
-      });
+      // First ensure the dialog will open before resetting the form
+      setEditProjectDialogOpen(true);
       
-      // First ensure form is properly reset before opening dialog
+      // Use a timeout to ensure the dialog is opened before 
+      // form reset to prevent form state being lost
       setTimeout(() => {
-        // Now open edit dialog
-        setEditProjectDialogOpen(true);
-      }, 0);
+        // Reset form with project data
+        console.log("Resetting form with project data:", projectToEdit);
+        projectForm.reset({
+          name: projectToEdit.name,
+          clientId: projectToEdit.clientId,
+          description: projectToEdit.description || "",
+          status: projectToEdit.status,
+          startDate: projectToEdit.startDate ? new Date(projectToEdit.startDate) : null,
+          endDate: projectToEdit.endDate ? new Date(projectToEdit.endDate) : null,
+          location: projectToEdit.location || "",
+          notes: projectToEdit.notes || "",
+        });
+      }, 100); // Slightly longer timeout to ensure dialog is fully opened
     } catch (error) {
       console.error("Error preparing project edit form:", error);
       toast({
@@ -587,11 +589,17 @@ export default function ProjectsPage() {
                 onOpenChange={(open) => {
                   if (!open) {
                     // Dialog is closing
+                    console.log("Dialog is closing, resetting state");
                     setEditProjectDialogOpen(false);
-                    setEditingProjectId(null);
-                    projectForm.reset();
+                    // Add a slight delay before clearing ID to avoid race conditions
+                    setTimeout(() => {
+                      setEditingProjectId(null);
+                      projectForm.reset();
+                    }, 100);
                   } else {
-                    setEditProjectDialogOpen(true);
+                    // Dialog is opening - handled in handleEditProject 
+                    // We don't need to do anything extra here
+                    console.log("Dialog is opening via onOpenChange");
                   }
                 }}
               >
