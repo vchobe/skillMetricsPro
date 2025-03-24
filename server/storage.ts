@@ -1660,7 +1660,18 @@ export class PostgresStorage implements IStorage {
         WHERE pr.user_id = $1
         ORDER BY pr.start_date DESC
       `, [userId]);
-      return result.rows.map(row => this.snakeToCamel(row)) as ProjectResource[];
+      
+      // Ensure dates are properly formatted for each resource
+      return result.rows.map(row => {
+        // Format dates as ISO strings if they exist
+        if (row.start_date) {
+          row.start_date = new Date(row.start_date).toISOString();
+        }
+        if (row.end_date) {
+          row.end_date = new Date(row.end_date).toISOString();
+        }
+        return this.snakeToCamel(row);
+      }) as ProjectResource[];
     } catch (error) {
       console.error(`Error retrieving project resources for user ${userId}:`, error);
       throw error;
@@ -1676,10 +1687,27 @@ export class PostgresStorage implements IStorage {
         JOIN projects p ON pr.project_id = p.id
         WHERE pr.id = $1
       `, [id]);
+      
       if (result.rows.length === 0) {
         return undefined;
       }
-      return this.snakeToCamel(result.rows[0]) as ProjectResource;
+      
+      // Log the raw data from database for debugging
+      console.log(`Raw project resource ${id} from DB:`, JSON.stringify(result.rows[0], null, 2));
+      
+      // Ensure dates are properly formatted
+      const row = result.rows[0];
+      if (row.start_date) {
+        row.start_date = new Date(row.start_date).toISOString();
+      }
+      if (row.end_date) {
+        row.end_date = new Date(row.end_date).toISOString();
+      }
+      
+      const resource = this.snakeToCamel(row) as ProjectResource;
+      console.log(`Processed resource ${id} with dates:`, JSON.stringify(resource, null, 2));
+      
+      return resource;
     } catch (error) {
       console.error(`Error retrieving project resource ${id}:`, error);
       throw error;
@@ -1689,6 +1717,12 @@ export class PostgresStorage implements IStorage {
   async createProjectResource(resource: InsertProjectResource): Promise<ProjectResource> {
     try {
       const { projectId, userId, role, allocation, startDate, endDate } = resource;
+      
+      // Debug log for incoming date values
+      console.log("Creating resource with dates:", { 
+        startDate: startDate ? new Date(startDate).toISOString() : null, 
+        endDate: endDate ? new Date(endDate).toISOString() : null 
+      });
       
       // Start transaction
       await pool.query('BEGIN');
@@ -1701,6 +1735,9 @@ export class PostgresStorage implements IStorage {
         [projectId, userId, role, allocation, startDate, endDate]
       );
       
+      // Debug log for raw result
+      console.log("Raw resource after insert:", JSON.stringify(result.rows[0], null, 2));
+      
       // Add resource history record
       await pool.query(
         `INSERT INTO project_resource_histories (
@@ -1712,7 +1749,7 @@ export class PostgresStorage implements IStorage {
       // Commit transaction
       await pool.query('COMMIT');
       
-      // Get the complete resource info
+      // Get the complete resource info with proper date formatting
       return await this.getProjectResource(result.rows[0].id);
     } catch (error) {
       // Rollback in case of error
@@ -1727,6 +1764,24 @@ export class PostgresStorage implements IStorage {
       const resource = await this.getProjectResource(id);
       if (!resource) {
         throw new Error('Project resource not found');
+      }
+
+      // Debug log incoming update data
+      console.log(`Updating resource ${id} with data:`, JSON.stringify(data, null, 2));
+      
+      // Process date fields specifically for logging
+      if (data.startDate) {
+        console.log(`Start date before processing: ${typeof data.startDate}`, data.startDate);
+        if (!(data.startDate instanceof Date) && typeof data.startDate === 'object') {
+          console.log("Start date is an object but not a Date, needs conversion");
+        }
+      }
+      
+      if (data.endDate) {
+        console.log(`End date before processing: ${typeof data.endDate}`, data.endDate);
+        if (!(data.endDate instanceof Date) && typeof data.endDate === 'object') {
+          console.log("End date is an object but not a Date, needs conversion");
+        }
       }
 
       // Start transaction
@@ -1756,7 +1811,11 @@ export class PostgresStorage implements IStorage {
 
       values.push(id);
       const query = `UPDATE project_resources SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = $${paramCount} RETURNING *`;
+      console.log(`SQL Query: ${query}`);
+      console.log(`Values: ${JSON.stringify(values)}`);
+      
       const result = await pool.query(query, values);
+      console.log(`Raw update result: ${JSON.stringify(result.rows[0], null, 2)}`);
       
       // Add history record if role or allocation changed
       if (data.role !== undefined && data.role !== resource.role) {
@@ -1780,8 +1839,11 @@ export class PostgresStorage implements IStorage {
       // Commit transaction
       await pool.query('COMMIT');
 
-      // Get the updated resource
-      return await this.getProjectResource(id);
+      // Get the updated resource with proper date formatting
+      const updatedResource = await this.getProjectResource(id);
+      console.log(`Processed updated resource: ${JSON.stringify(updatedResource, null, 2)}`);
+      
+      return updatedResource;
     } catch (error) {
       // Rollback in case of error
       await pool.query('ROLLBACK');
