@@ -927,8 +927,12 @@ export default function ProjectsPage() {
                               className="text-xs"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Set editing project ID
+                                e.preventDefault();
+                                console.log("Edit button clicked for project:", project.id);
+                                
+                                // Set editing project ID directly without changing URL
                                 setEditingProjectId(project.id);
+                                
                                 // Reset form with project data
                                 projectForm.reset({
                                   name: project.name,
@@ -940,6 +944,7 @@ export default function ProjectsPage() {
                                   location: project.location || "",
                                   notes: project.notes || "",
                                 });
+                                
                                 // Open edit dialog
                                 setEditProjectDialogOpen(true);
                               }}
