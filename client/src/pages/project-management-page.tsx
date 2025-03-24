@@ -395,11 +395,11 @@ export default function ProjectManagementPage() {
     fetchUsers();
   }, []);
   
-  // Fetch skills
+  // Fetch skills - using getAllSkills endpoint instead
   useEffect(() => {
     const fetchSkills = async () => {
       try {
-        const response = await fetch("/api/skills/all");
+        const response = await fetch("/api/skills");
         if (!response.ok) {
           throw new Error("Failed to fetch skills");
         }
