@@ -33,13 +33,18 @@ export function setupAuth(app: Express) {
   // Use environment variable for session secret or a default for development
   const sessionSecret = process.env.SESSION_SECRET || "employee-skill-metrics-secret";
   
+  // Determine if in production
+  const isProduction = process.env.NODE_ENV === "production";
+  
   const sessionSettings: session.SessionOptions = {
     secret: sessionSecret,
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Allow sessions to be saved for anonymous clients
     store: storage.sessionStore,
     cookie: { 
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction, // Only use secure cookies in production
+      httpOnly: true, // Prevent client-side JavaScript from accessing the cookie
+      sameSite: 'lax', // Help with CSRF protection while allowing navigation
       maxAge: 1000 * 60 * 60 * 24, // 1 day
     }
   };
