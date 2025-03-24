@@ -19,6 +19,8 @@ interface Project {
   leadId?: number | null;
   deliveryLeadId?: number | null;
   status: string;
+  hrCoordinatorEmail?: string;
+  financeTeamEmail?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -196,7 +198,9 @@ const projectSchema = z.object({
   confluenceLink: z.string().optional(),
   leadId: z.coerce.number().nullable().optional(),
   deliveryLeadId: z.coerce.number().nullable().optional(),
-  status: z.string().default("active")
+  status: z.string().default("active"),
+  hrCoordinatorEmail: z.string().email("Invalid email format").optional(),
+  financeTeamEmail: z.string().email("Invalid email format").optional()
 });
 
 // Resource schema
@@ -292,7 +296,9 @@ export default function ProjectDetailPage() {
       confluenceLink: "",
       leadId: null,
       deliveryLeadId: null,
-      status: "active"
+      status: "active",
+      hrCoordinatorEmail: "",
+      financeTeamEmail: ""
     },
   });
   
@@ -309,7 +315,9 @@ export default function ProjectDetailPage() {
         confluenceLink: project.confluenceLink || "",
         leadId: project.leadId || null,
         deliveryLeadId: project.deliveryLeadId || null,
-        status: project.status || "active"
+        status: project.status || "active",
+        hrCoordinatorEmail: project.hrCoordinatorEmail || "",
+        financeTeamEmail: project.financeTeamEmail || ""
       });
     }
   }, [project, editProjectForm]);

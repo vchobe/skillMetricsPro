@@ -65,7 +65,9 @@ const projectSchema = z.object({
   confluenceLink: z.string().optional(),
   leadId: z.coerce.number().nullable().optional(),
   deliveryLeadId: z.coerce.number().nullable().optional(),
-  status: z.string().default("active")
+  status: z.string().default("active"),
+  hrCoordinatorEmail: z.string().email("Invalid email format").optional(),
+  financeTeamEmail: z.string().email("Invalid email format").optional()
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
@@ -101,6 +103,8 @@ export default function ProjectsPage() {
     leadId?: number | null;
     deliveryLeadId?: number | null;
     status: string;
+    hrCoordinatorEmail?: string;
+    financeTeamEmail?: string;
     createdAt: string;
     updatedAt?: string;
   }
@@ -163,7 +167,9 @@ export default function ProjectsPage() {
       confluenceLink: "",
       leadId: null,
       deliveryLeadId: null,
-      status: "active"
+      status: "active",
+      hrCoordinatorEmail: "",
+      financeTeamEmail: ""
     },
   });
 
@@ -528,6 +534,52 @@ export default function ProjectsPage() {
                               </SelectContent>
                             </Select>
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="hrCoordinatorEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>HR Coordinator Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              value={field.value || ""}
+                              placeholder="hr@example.com"
+                              type="email"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Email for HR notifications about this project
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="financeTeamEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Finance Team Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              value={field.value || ""}
+                              placeholder="finance@example.com"
+                              type="email"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Email for finance notifications about this project
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
