@@ -869,7 +869,13 @@ export default function ProjectsPage() {
                   {filteredProjects.map((project) => (
                     <Card 
                       key={project.id} 
-                      className="overflow-hidden hover:shadow-md transition-shadow"
+                      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={(e) => {
+                        // Only navigate if not clicking on a button or action element
+                        if (!(e.target as HTMLElement).closest('button')) {
+                          setLocation(`/projects/${project.id}`);
+                        }
+                      }}
                     >
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
