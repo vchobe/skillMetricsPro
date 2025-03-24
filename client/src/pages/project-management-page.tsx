@@ -130,7 +130,7 @@ export default function ProjectManagementPage() {
     <div className="min-h-screen flex">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} currentPath="/project-management" />
       
-      <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
+      <div className="flex-1 md:ml-64">
         <Header title="Project Management" toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
       
         <div className="p-6">

@@ -32,11 +32,8 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
   return (
     <div className={`bg-gray-800 text-white h-screen w-64 fixed left-0 top-0 transform transition-transform duration-300 ease-in-out z-20 ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
       <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center space-x-3">
-          <svg className="w-8 h-8 text-indigo-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path fillRule="evenodd" d="M14.5 10a4.5 4.5 0 004.5-4.5A4.5 4.5 0 0014.5 1h-9A4.5 4.5 0 001 5.5a4.5 4.5 0 002.859 4.2.75.75 0 01.54.795v3.006c0 .502.5.785.918.528l2.834-1.72a.75.75 0 01.64-.086c.475.1.973.154 1.486.154a7.001 7.001 0 016.516 4.398.75.75 0 01-1.386.577 5.5 5.5 0 00-5.13-3.458c-.389 0-.775.035-1.154.104a2.25 2.25 0 01-1.936-.324l-2.292-1.377A1.75 1.75 0 004 12.216V9.658a1.75 1.75 0 00-1.25-1.678A3 3 0 012.5 5.5 3 3 0 015.5 2.5h9a3 3 0 110 6z" clipRule="evenodd" />
-          </svg>
-          <span className="text-white font-bold text-xl">Skill Metrics</span>
+        <div className="flex items-center">
+          <span className="text-white font-bold text-xl">Menu</span>
         </div>
       </div>
 
