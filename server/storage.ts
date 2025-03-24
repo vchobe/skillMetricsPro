@@ -1529,14 +1529,16 @@ export class PostgresStorage implements IStorage {
         // Import the email functionality
         const { sendProjectCreatedEmail } = await import('./email');
         
-        // Send notification
+        // Send notification with project-specific email addresses if provided
         await sendProjectCreatedEmail(
           name,
           clientName,
           description,
           startDate,
           endDate,
-          leadName
+          leadName,
+          hrCoordinatorEmail || null,
+          financeTeamEmail || null
         );
         
         console.log(`Email notification sent for new project: ${name}`);
@@ -2491,7 +2493,7 @@ export class PostgresStorage implements IStorage {
           // Import the email functionality
           const { sendProjectUpdatedEmail } = await import('./email');
           
-          // Send notification
+          // Send notification with project-specific email addresses if available
           await sendProjectUpdatedEmail(
             updatedProject.name,
             clientName,
@@ -2499,7 +2501,9 @@ export class PostgresStorage implements IStorage {
             updatedProject.startDate,
             updatedProject.endDate,
             leadName,
-            changedFields
+            changedFields,
+            updatedProject.hrCoordinatorEmail || null,
+            updatedProject.financeTeamEmail || null
           );
           
           console.log(`Email notification sent for updated project: ${updatedProject.name}`);

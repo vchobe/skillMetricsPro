@@ -165,7 +165,9 @@ export async function sendResourceAddedEmail(
   role: string,
   startDate: Date | string | null | undefined,
   endDate: Date | string | null | undefined,
-  allocation: number
+  allocation: number,
+  hrEmail: string | null = null,
+  financeEmail: string | null = null
 ): Promise<boolean> {
   try {
     // Format dates for display
@@ -182,10 +184,14 @@ export async function sendResourceAddedEmail(
       allocation
     );
     
+    // Use project-specific emails if provided, otherwise fall back to defaults
+    const hrRecipientEmail = hrEmail || HR_COORDINATOR_EMAIL;
+    const financeRecipientEmail = financeEmail || FINANCE_EXECUTIVE_EMAIL;
+    
     if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
       console.log('Mailjet not configured. Logging resource addition details instead...');
       console.log(`Resource Added: ${username} (${role}) to ${projectName}`);
-      console.log(`Would have sent email to: ${HR_COORDINATOR_EMAIL}, ${FINANCE_EXECUTIVE_EMAIL}`);
+      console.log(`Would have sent email to: ${hrRecipientEmail}, ${financeRecipientEmail}`);
       return true;
     }
 
@@ -201,11 +207,11 @@ export async function sendResourceAddedEmail(
               },
               To: [
                 {
-                  Email: HR_COORDINATOR_EMAIL,
+                  Email: hrRecipientEmail,
                   Name: "HR Coordinator"
                 },
                 {
-                  Email: FINANCE_EXECUTIVE_EMAIL,
+                  Email: financeRecipientEmail,
                   Name: "Finance Executive"
                 }
               ],
@@ -216,7 +222,7 @@ export async function sendResourceAddedEmail(
           ]
         });
 
-      console.log(`Resource addition email sent to HR (${HR_COORDINATOR_EMAIL}) and Finance (${FINANCE_EXECUTIVE_EMAIL})`);
+      console.log(`Resource addition email sent to HR (${hrRecipientEmail}) and Finance (${financeRecipientEmail})`);
       return true;
     } catch (sendError: any) {
       console.error('Error sending resource addition email:', sendError?.message || sendError);
@@ -236,7 +242,9 @@ export async function sendResourceRemovedEmail(
   projectName: string,
   username: string,
   userEmail: string,
-  role: string
+  role: string,
+  hrEmail: string | null = null,
+  financeEmail: string | null = null
 ): Promise<boolean> {
   try {
     const { text, html, subject } = getResourceRemovedEmailContent(
@@ -246,10 +254,14 @@ export async function sendResourceRemovedEmail(
       role
     );
     
+    // Use project-specific emails if provided, otherwise fall back to defaults
+    const hrRecipientEmail = hrEmail || HR_COORDINATOR_EMAIL;
+    const financeRecipientEmail = financeEmail || FINANCE_EXECUTIVE_EMAIL;
+    
     if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
       console.log('Mailjet not configured. Logging resource removal details instead...');
       console.log(`Resource Removed: ${username} (${role}) from ${projectName}`);
-      console.log(`Would have sent email to: ${HR_COORDINATOR_EMAIL}, ${FINANCE_EXECUTIVE_EMAIL}`);
+      console.log(`Would have sent email to: ${hrRecipientEmail}, ${financeRecipientEmail}`);
       return true;
     }
 
@@ -265,11 +277,11 @@ export async function sendResourceRemovedEmail(
               },
               To: [
                 {
-                  Email: HR_COORDINATOR_EMAIL,
+                  Email: hrRecipientEmail,
                   Name: "HR Coordinator"
                 },
                 {
-                  Email: FINANCE_EXECUTIVE_EMAIL,
+                  Email: financeRecipientEmail,
                   Name: "Finance Executive"
                 }
               ],
@@ -280,7 +292,7 @@ export async function sendResourceRemovedEmail(
           ]
         });
 
-      console.log(`Resource removal email sent to HR (${HR_COORDINATOR_EMAIL}) and Finance (${FINANCE_EXECUTIVE_EMAIL})`);
+      console.log(`Resource removal email sent to HR (${hrRecipientEmail}) and Finance (${financeRecipientEmail})`);
       return true;
     } catch (sendError: any) {
       console.error('Error sending resource removal email:', sendError?.message || sendError);
@@ -302,7 +314,9 @@ export async function sendProjectCreatedEmail(
   description: string | null | undefined,
   startDate: Date | string | null | undefined,
   endDate: Date | string | null | undefined,
-  leadName: string | null | undefined
+  leadName: string | null | undefined,
+  hrEmail: string | null = null,
+  financeEmail: string | null = null
 ): Promise<boolean> {
   try {
     // Format dates for display
@@ -318,10 +332,14 @@ export async function sendProjectCreatedEmail(
       leadName
     );
     
+    // Use project-specific emails if provided, otherwise fall back to defaults
+    const hrRecipientEmail = hrEmail || HR_COORDINATOR_EMAIL;
+    const financeRecipientEmail = financeEmail || FINANCE_EXECUTIVE_EMAIL;
+    
     if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
       console.log('Mailjet not configured. Logging project creation details instead...');
       console.log(`Project Created: ${projectName} (Client: ${clientName || 'Not specified'})`);
-      console.log(`Would have sent email to: ${HR_COORDINATOR_EMAIL}, ${FINANCE_EXECUTIVE_EMAIL}`);
+      console.log(`Would have sent email to: ${hrRecipientEmail}, ${financeRecipientEmail}`);
       return true;
     }
 
@@ -337,11 +355,11 @@ export async function sendProjectCreatedEmail(
               },
               To: [
                 {
-                  Email: HR_COORDINATOR_EMAIL,
+                  Email: hrRecipientEmail,
                   Name: "HR Coordinator"
                 },
                 {
-                  Email: FINANCE_EXECUTIVE_EMAIL,
+                  Email: financeRecipientEmail,
                   Name: "Finance Executive"
                 }
               ],
@@ -352,7 +370,7 @@ export async function sendProjectCreatedEmail(
           ]
         });
 
-      console.log(`Project creation email sent to HR (${HR_COORDINATOR_EMAIL}) and Finance (${FINANCE_EXECUTIVE_EMAIL})`);
+      console.log(`Project creation email sent to HR (${hrRecipientEmail}) and Finance (${financeRecipientEmail})`);
       return true;
     } catch (sendError: any) {
       console.error('Error sending project creation email:', sendError?.message || sendError);
@@ -375,7 +393,9 @@ export async function sendProjectUpdatedEmail(
   startDate: Date | string | null | undefined,
   endDate: Date | string | null | undefined,
   leadName: string | null | undefined,
-  changedFields: string[]
+  changedFields: string[],
+  hrEmail: string | null = null,
+  financeEmail: string | null = null
 ): Promise<boolean> {
   try {
     // Format dates for display
@@ -392,10 +412,14 @@ export async function sendProjectUpdatedEmail(
       changedFields
     );
     
+    // Use project-specific emails if provided, otherwise fall back to defaults
+    const hrRecipientEmail = hrEmail || HR_COORDINATOR_EMAIL;
+    const financeRecipientEmail = financeEmail || FINANCE_EXECUTIVE_EMAIL;
+    
     if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
       console.log('Mailjet not configured. Logging project update details instead...');
       console.log(`Project Updated: ${projectName} (Fields changed: ${changedFields.join(', ')})`);
-      console.log(`Would have sent email to: ${HR_COORDINATOR_EMAIL}, ${FINANCE_EXECUTIVE_EMAIL}`);
+      console.log(`Would have sent email to: ${hrRecipientEmail}, ${financeRecipientEmail}`);
       return true;
     }
 
@@ -411,11 +435,11 @@ export async function sendProjectUpdatedEmail(
               },
               To: [
                 {
-                  Email: HR_COORDINATOR_EMAIL,
+                  Email: hrRecipientEmail,
                   Name: "HR Coordinator"
                 },
                 {
-                  Email: FINANCE_EXECUTIVE_EMAIL,
+                  Email: financeRecipientEmail,
                   Name: "Finance Executive"
                 }
               ],
@@ -426,7 +450,7 @@ export async function sendProjectUpdatedEmail(
           ]
         });
 
-      console.log(`Project update email sent to HR (${HR_COORDINATOR_EMAIL}) and Finance (${FINANCE_EXECUTIVE_EMAIL})`);
+      console.log(`Project update email sent to HR (${hrRecipientEmail}) and Finance (${financeRecipientEmail})`);
       return true;
     } catch (sendError: any) {
       console.error('Error sending project update email:', sendError?.message || sendError);
