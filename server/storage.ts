@@ -2330,6 +2330,7 @@ export class PostgresStorage implements IStorage {
   }
   
   // Helper method to add a lead (project or delivery) as a resource
+  // Add a project lead or delivery lead as a resource automatically
   private async addLeadAsResource(projectId: number, userId: number, role: string): Promise<void> {
     // Check if the user is already a resource on this project
     const existing = await pool.query(
@@ -2450,9 +2451,62 @@ export class PostgresStorage implements IStorage {
       
       // Commit transaction
       await pool.query('COMMIT');
-
-      // Get the updated project with client name
-      return await this.getProject(id) as Project;
+      
+      // Get the updated project with joined data
+      const updatedProject = await this.getProject(id) as Project;
+      
+      // Send email notification to HR and Finance about the project update
+      try {
+        // Determine which fields were changed
+        const changedFields: string[] = [];
+        for (const key in data) {
+          if (data.hasOwnProperty(key) && key !== 'id' && key !== 'clientName') {
+            changedFields.push(this.camelToSnake(key).replace(/_/g, ' '));
+          }
+        }
+        
+        if (changedFields.length > 0) {
+          let clientName = null;
+          let leadName = null;
+          
+          // Get client name if a client is associated
+          if (updatedProject.clientId) {
+            const clientResult = await pool.query('SELECT name FROM clients WHERE id = $1', [updatedProject.clientId]);
+            if (clientResult.rows.length > 0) {
+              clientName = clientResult.rows[0].name;
+            }
+          }
+          
+          // Get lead name if a lead is assigned
+          if (updatedProject.leadId) {
+            const leadResult = await pool.query('SELECT username FROM users WHERE id = $1', [updatedProject.leadId]);
+            if (leadResult.rows.length > 0) {
+              leadName = leadResult.rows[0].username;
+            }
+          }
+          
+          // Import the email functionality
+          const { sendProjectUpdatedEmail } = await import('./email');
+          
+          // Send notification
+          await sendProjectUpdatedEmail(
+            updatedProject.name,
+            clientName,
+            updatedProject.description,
+            updatedProject.startDate,
+            updatedProject.endDate,
+            leadName,
+            changedFields
+          );
+          
+          console.log(`Email notification sent for updated project: ${updatedProject.name}`);
+        }
+      } catch (emailError) {
+        // Log the error but don't fail the operation
+        console.error("Error sending project update email notification:", emailError);
+      }
+      
+      return updatedProject;
     } catch (error) {
       // Rollback in case of error
       await pool.query('ROLLBACK');

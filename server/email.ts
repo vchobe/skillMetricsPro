@@ -1,7 +1,9 @@
 import { 
   getPasswordResetEmailContent,
   getResourceAddedEmailContent,
-  getResourceRemovedEmailContent
+  getResourceRemovedEmailContent,
+  getProjectCreatedEmailContent,
+  getProjectUpdatedEmailContent
 } from './email-templates';
 import Mailjet from 'node-mailjet';
 import { formatDate } from '../client/src/lib/date-utils';
