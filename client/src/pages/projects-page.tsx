@@ -119,6 +119,36 @@ export default function ProjectsPage() {
     enabled: isAdmin && createProjectDialogOpen,
   });
   
+  // Fetch specific project for editing
+  const { data: editProject } = useQuery<Project>({
+    queryKey: ["project", editId],
+    queryFn: editId ? getQueryFn({
+      on401: "throw",
+      url: `/api/projects/${editId}`,
+    }) : () => Promise.resolve({} as Project),
+    enabled: !!editId,
+  });
+  
+  // Handle edit mode
+  useEffect(() => {
+    if (editId && editProject) {
+      setEditingProjectId(editId);
+      setEditProjectDialogOpen(true);
+      
+      // Set form values with project data
+      projectForm.reset({
+        name: editProject.name,
+        description: editProject.description || "",
+        clientId: editProject.clientId,
+        status: editProject.status,
+        location: editProject.location || "",
+        notes: editProject.notes || "",
+        startDate: editProject.startDate ? new Date(editProject.startDate) : null,
+        endDate: editProject.endDate ? new Date(editProject.endDate) : null,
+      });
+    }
+  }, [editId, editProject, projectForm]);
+  
   // Create project mutation
   const createProjectMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
@@ -149,9 +179,45 @@ export default function ProjectsPage() {
     },
   });
   
+  // Update project mutation
+  const updateProjectMutation = useMutation({
+    mutationFn: async (data: ProjectFormValues & { id: number }) => {
+      const { id, ...projectData } = data;
+      const formattedData = {
+        ...projectData,
+        startDate: projectData.startDate ? standardizeDate(projectData.startDate) : null,
+        endDate: projectData.endDate ? standardizeDate(projectData.endDate) : null,
+      };
+      return apiRequest("PUT", `/api/projects/${id}`, formattedData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast({
+        title: "Success",
+        description: "Project updated successfully",
+      });
+      projectForm.reset();
+      setEditProjectDialogOpen(false);
+      setEditingProjectId(null);
+      // Remove the edit parameter from the URL
+      setLocation('/projects');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update project",
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Handle project form submission
   const onProjectSubmit = (data: ProjectFormValues) => {
-    createProjectMutation.mutate(data);
+    if (editingProjectId) {
+      updateProjectMutation.mutate({ ...data, id: editingProjectId });
+    } else {
+      createProjectMutation.mutate(data);
+    }
   };
 
   // Fetch projects based on user role
