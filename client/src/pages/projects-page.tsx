@@ -291,20 +291,33 @@ export default function ProjectsPage() {
     // Set editing project ID
     setEditingProjectId(projectToEdit.id);
     
-    // Reset form with project data
-    projectForm.reset({
-      name: projectToEdit.name,
-      clientId: projectToEdit.clientId,
-      description: projectToEdit.description || "",
-      status: projectToEdit.status,
-      startDate: projectToEdit.startDate ? new Date(projectToEdit.startDate) : null,
-      endDate: projectToEdit.endDate ? new Date(projectToEdit.endDate) : null,
-      location: projectToEdit.location || "",
-      notes: projectToEdit.notes || "",
-    });
-    
-    // Open edit dialog
-    setEditProjectDialogOpen(true);
+    // Properly log and handle any errors
+    try {
+      // Reset form with project data
+      projectForm.reset({
+        name: projectToEdit.name,
+        clientId: projectToEdit.clientId,
+        description: projectToEdit.description || "",
+        status: projectToEdit.status,
+        startDate: projectToEdit.startDate ? new Date(projectToEdit.startDate) : null,
+        endDate: projectToEdit.endDate ? new Date(projectToEdit.endDate) : null,
+        location: projectToEdit.location || "",
+        notes: projectToEdit.notes || "",
+      });
+      
+      // First ensure form is properly reset before opening dialog
+      setTimeout(() => {
+        // Now open edit dialog
+        setEditProjectDialogOpen(true);
+      }, 0);
+    } catch (error) {
+      console.error("Error preparing project edit form:", error);
+      toast({
+        title: "Error editing project",
+        description: "Failed to prepare the edit form. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   return (
@@ -569,7 +582,19 @@ export default function ProjectsPage() {
             
             {/* Edit Project Dialog */}
             {isAdmin && (
-              <Dialog open={editProjectDialogOpen} onOpenChange={setEditProjectDialogOpen}>
+              <Dialog 
+                open={editProjectDialogOpen} 
+                onOpenChange={(open) => {
+                  if (!open) {
+                    // Dialog is closing
+                    setEditProjectDialogOpen(false);
+                    setEditingProjectId(null);
+                    projectForm.reset();
+                  } else {
+                    setEditProjectDialogOpen(true);
+                  }
+                }}
+              >
                 <DialogContent className="sm:max-w-[725px]">
                   <DialogHeader>
                     <DialogTitle>Edit Project</DialogTitle>
