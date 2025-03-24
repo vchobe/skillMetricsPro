@@ -204,8 +204,8 @@ const resourceSchema = z.object({
   userId: z.coerce.number(),
   role: z.string().optional(),
   allocation: z.coerce.number().min(1).max(100),
-  startDate: z.string().optional(),
-  endDate: z.string().optional()
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable()
 });
 
 // Project skill schema
@@ -215,7 +215,9 @@ const projectSkillSchema = z.object({
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
-type ResourceFormValues = z.infer<typeof resourceSchema>;
+type ResourceFormValues = z.infer<typeof resourceSchema> & { 
+  projectId?: number; // Add optional projectId for internal use
+};
 type ProjectSkillFormValues = z.infer<typeof projectSkillSchema>;
 
 export default function ProjectDetailPage() {
@@ -320,7 +322,7 @@ export default function ProjectDetailPage() {
       role: "",
       allocation: 100,
       startDate: new Date().toISOString().split('T')[0],
-      endDate: ""
+      endDate: null
     },
   });
   
@@ -368,10 +370,24 @@ export default function ProjectDetailPage() {
   // Add resource mutation
   const addResource = useMutation({
     mutationFn: async (data: ResourceFormValues) => {
-      return apiRequest("POST", `/api/projects/${id}/resources`, { 
-        ...data, 
-        projectId: parseInt(id) 
-      });
+      // Create a copy of the data to avoid mutating the original
+      const formattedData = { ...data };
+      
+      // Ensure proper projectId is included
+      formattedData.projectId = parseInt(id);
+      
+      // Convert empty string dates to null
+      if (formattedData.startDate === "") {
+        formattedData.startDate = null;
+      }
+      
+      if (formattedData.endDate === "") {
+        formattedData.endDate = null;
+      }
+      
+      console.log("Adding resource with data:", formattedData);
+      
+      return apiRequest("POST", `/api/projects/${id}/resources`, formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "resources"] });
@@ -385,6 +401,7 @@ export default function ProjectDetailPage() {
       addResourceForm.reset();
     },
     onError: (error: Error) => {
+      console.error("Failed to add resource:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to add resource",
@@ -1103,6 +1120,11 @@ export default function ProjectDetailPage() {
                                     type="date"
                                     {...field}
                                     value={field.value || ""}
+                                    onChange={(e) => {
+                                      // Handle empty strings properly
+                                      const value = e.target.value || null;
+                                      field.onChange(value);
+                                    }}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1121,6 +1143,11 @@ export default function ProjectDetailPage() {
                                     type="date"
                                     {...field}
                                     value={field.value || ""}
+                                    onChange={(e) => {
+                                      // Handle empty strings properly
+                                      const value = e.target.value || null;
+                                      field.onChange(value);
+                                    }}
                                   />
                                 </FormControl>
                                 <FormMessage />
