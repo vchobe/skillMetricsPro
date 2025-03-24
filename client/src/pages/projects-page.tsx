@@ -172,7 +172,13 @@ export default function ProjectsPage() {
       const { id: _, ...submitData } = data;
       
       console.log("Updating project:", id, "with data:", submitData);
-      return apiRequest("PUT", `/api/projects/${id}`, submitData);
+      try {
+        const result = await apiRequest("PUT", `/api/projects/${id}`, submitData);
+        return result;
+      } catch (error) {
+        console.error("API error updating project:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
