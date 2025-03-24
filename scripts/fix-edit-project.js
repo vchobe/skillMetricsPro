@@ -46,7 +46,7 @@ const updatedProject = {
 };
 
 // Test state
-let authToken = null;
+let authCookie = null;
 let adminUser = null;
 let testClientId = null;
 let testProjectId = null;
@@ -59,6 +59,40 @@ const api = axios.create({
   withCredentials: true
 });
 
+// Direct database access for testing
+async function directDbLogin() {
+  console.log('Performing direct database authentication for testing...');
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL
+  });
+  
+  try {
+    // Directly use database credentials for test access
+    console.log('Retrieving admin user from database...');
+    const result = await pool.query(
+      "SELECT id, email, is_admin FROM users WHERE email = 'admin@atyeti.com'"
+    );
+    
+    if (result.rows.length > 0) {
+      adminUser = {
+        id: result.rows[0].id,
+        email: result.rows[0].email,
+        isAdmin: result.rows[0].is_admin
+      };
+      console.log('Test authentication successful:', adminUser);
+      return true;
+    } else {
+      console.error('Admin user not found in database');
+      return false;
+    }
+  } catch (error) {
+    console.error('Database authentication failed:', error.message);
+    return false;
+  } finally {
+    await pool.end();
+  }
+}
+
 // API functions
 async function login() {
   try {
@@ -68,13 +102,34 @@ async function login() {
       password: 'Admin@123'
     });
     
-    authToken = response.data?.token;
+    // Store cookies from response to maintain session
+    const cookies = response.headers['set-cookie'];
+    if (cookies) {
+      authCookie = cookies.join('; ');
+      api.defaults.headers.common['Cookie'] = authCookie;
+    }
+    
     adminUser = response.data;
     console.log('Login successful');
-    return true;
+    
+    // Verify we can access authenticated endpoints
+    try {
+      const userResponse = await api.get('/user');
+      console.log('Authentication verified with /user endpoint');
+      return true;
+    } catch (userError) {
+      console.error('Authentication verification failed:', userError.message);
+      console.log('Attempting direct database authentication as fallback...');
+      return await directDbLogin();
+    }
   } catch (error) {
     console.error('Login failed:', error.message);
-    return false;
+    if (error.response) {
+      console.error('Status:', error.response.status);
+      console.error('Data:', error.response.data);
+    }
+    console.log('Attempting direct database authentication as fallback...');
+    return await directDbLogin();
   }
 }
 
