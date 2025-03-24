@@ -339,14 +339,14 @@ export default function ProjectsPage() {
                           <FormLabel>Client</FormLabel>
                           <FormControl>
                             <Select
-                              onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                              defaultValue={field.value?.toString() || ""}
+                              onValueChange={(value) => field.onChange(value === "null" ? null : value ? parseInt(value) : null)}
+                              defaultValue={field.value === null ? "null" : field.value?.toString() || undefined}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a client" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="null">None</SelectItem>
                                 {clients?.map((client: Client) => (
                                   <SelectItem key={client.id} value={client.id.toString()}>
                                     {client.name}
@@ -469,14 +469,14 @@ export default function ProjectsPage() {
                           <FormLabel>Project Lead</FormLabel>
                           <FormControl>
                             <Select
-                              onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                              defaultValue={field.value?.toString() || ""}
+                              onValueChange={(value) => field.onChange(value === "null" ? null : value ? parseInt(value) : null)}
+                              defaultValue={field.value === null ? "null" : field.value?.toString() || undefined}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select project lead" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="null">None</SelectItem>
                                 {users?.map((user: any) => (
                                   <SelectItem key={user.id} value={user.id.toString()}>
                                     {`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username}
@@ -498,14 +498,14 @@ export default function ProjectsPage() {
                           <FormLabel>Delivery Lead</FormLabel>
                           <FormControl>
                             <Select
-                              onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                              defaultValue={field.value?.toString() || ""}
+                              onValueChange={(value) => field.onChange(value === "null" ? null : value ? parseInt(value) : null)}
+                              defaultValue={field.value === null ? "null" : field.value?.toString() || undefined}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select delivery lead" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="null">None</SelectItem>
                                 {users?.map((user: any) => (
                                   <SelectItem key={user.id} value={user.id.toString()}>
                                     {`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username}
