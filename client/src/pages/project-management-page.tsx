@@ -225,7 +225,7 @@ export default function ProjectManagementPage() {
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                onClick={() => setLocation(`/project-management?edit=${project.id}`)}
+                                onClick={() => setLocation(`/project-management?tab=projects&edit=${project.id}`)}
                                 className="mr-1"
                               >
                                 Edit
@@ -233,7 +233,7 @@ export default function ProjectManagementPage() {
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                onClick={() => setLocation(`/project-management?project=${project.id}&tab=resources`)}
+                                onClick={() => setLocation(`/projects/${project.id}`)}
                               >
                                 Manage
                               </Button>
