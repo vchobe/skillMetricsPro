@@ -164,9 +164,15 @@ export default function ProjectsPage() {
   
   // Update project mutation
   const updateProjectMutation = useMutation({
-    mutationFn: async (data: ProjectFormValues) => {
-      if (!editingProjectId) throw new Error("No project selected for editing");
-      return apiRequest<Project>("PUT", `/api/projects/${editingProjectId}`, data);
+    mutationFn: async (data: ProjectFormValues & { id?: number }) => {
+      const id = data.id || editingProjectId;
+      if (!id) throw new Error("No project selected for editing");
+      
+      // Extract id from the data before sending to API
+      const { id: _, ...submitData } = data;
+      
+      console.log("Updating project:", id, "with data:", submitData);
+      return apiRequest("PUT", `/api/projects/${id}`, submitData);
     },
     onSuccess: () => {
       toast({
@@ -177,9 +183,9 @@ export default function ProjectsPage() {
       setEditingProjectId(null);
       projectForm.reset();
       refetchProjects();
-      setLocation('/projects');
     },
     onError: (error: Error) => {
+      console.error("Error updating project:", error);
       toast({
         title: "Error updating project",
         description: error.message,
@@ -211,8 +217,13 @@ export default function ProjectsPage() {
   
   // Handle project form submission
   const onProjectSubmit = (data: ProjectFormValues) => {
+    console.log("Submitting form with data:", data, "editingProjectId:", editingProjectId);
     if (editingProjectId) {
-      updateProjectMutation.mutate(data);
+      // Include the project ID in the data for the mutation
+      updateProjectMutation.mutate({
+        ...data,
+        id: editingProjectId
+      });
     } else {
       createProjectMutation.mutate(data);
     }
