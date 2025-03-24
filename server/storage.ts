@@ -3055,6 +3055,7 @@ export class PostgresStorage implements IStorage {
           resource.role || "Team Member",
           resource.hrCoordinatorEmail || null,
           resource.financeTeamEmail || null,
+          resource.allocation,
           resource.performedById ? `Removed by User ID: ${resource.performedById}` : null
         );
         
