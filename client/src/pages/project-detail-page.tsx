@@ -624,7 +624,7 @@ export default function ProjectDetailPage() {
                                     <SelectValue placeholder="Select a client" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
+                                    <SelectItem value="null">None</SelectItem>
                                     {clients?.map((client: Client) => (
                                       <SelectItem key={client.id} value={client.id.toString()}>
                                         {client.name}
