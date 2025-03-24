@@ -170,15 +170,29 @@ export default function ProjectsPage() {
   // Create project mutation
   const createProject = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      // Convert string values to appropriate types
-      const formattedData = {
-        ...data,
-        clientId: data.clientId === null || data.clientId === undefined ? null : Number(data.clientId),
-        leadId: data.leadId === null || data.leadId === undefined ? null : Number(data.leadId),
-        deliveryLeadId: data.deliveryLeadId === null || data.deliveryLeadId === undefined ? null : Number(data.deliveryLeadId),
-      };
-      console.log("Creating project with data:", formattedData);
-      return apiRequest("POST", "/api/projects", formattedData);
+      try {
+        // Convert string values to appropriate types and ensure proper null handling
+        const formattedData = {
+          ...data,
+          clientId: data.clientId === "null" ? null : 
+                   data.clientId === null || data.clientId === undefined ? null : 
+                   Number(data.clientId),
+          leadId: data.leadId === "null" ? null : 
+                 data.leadId === null || data.leadId === undefined ? null : 
+                 Number(data.leadId),
+          deliveryLeadId: data.deliveryLeadId === "null" ? null : 
+                         data.deliveryLeadId === null || data.deliveryLeadId === undefined ? null : 
+                         Number(data.deliveryLeadId),
+          startDate: data.startDate || null,
+          endDate: data.endDate || null,
+        };
+        
+        console.log("Creating project with data:", formattedData);
+        return await apiRequest("POST", "/api/projects", formattedData);
+      } catch (err) {
+        console.error("Error in project creation mutation:", err);
+        throw err;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
@@ -194,7 +208,7 @@ export default function ProjectsPage() {
       console.error("Failed to create project:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create project",
+        description: error.message || "Failed to create project. Please check your form data and try again.",
         variant: "destructive",
       });
     },
