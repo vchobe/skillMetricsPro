@@ -1632,6 +1632,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/projects/:id/resources", ensureAdmin, async (req, res) => {
     try {
+      console.log("Project resource creation request body:", JSON.stringify(req.body, null, 2));
+      
       const projectId = parseInt(req.params.id);
       const project = await storage.getProject(projectId);
       
@@ -1645,27 +1647,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       if (!parsedData.success) {
+        console.error("Resource validation failed:", JSON.stringify(parsedData.error.format(), null, 2));
         return res.status(400).json({
           message: "Invalid resource data",
           errors: parsedData.error.format()
         });
       }
       
-      const resource = await storage.createProjectResource(parsedData.data);
+      // Convert date strings to Date objects if needed
+      const data = { ...parsedData.data };
+      
+      // Handle startDate conversion
+      if (typeof data.startDate === 'string' && data.startDate) {
+        data.startDate = new Date(data.startDate);
+      }
+      
+      // Handle endDate conversion
+      if (typeof data.endDate === 'string' && data.endDate) {
+        data.endDate = new Date(data.endDate);
+      }
+      
+      console.log("Processed resource data:", JSON.stringify(data, null, 2));
+      const resource = await storage.createProjectResource(data);
       
       // Create resource history entry
       await storage.createProjectResourceHistory({
         projectId,
-        userId: parsedData.data.userId,
+        userId: data.userId,
         action: "added",
-        newRole: parsedData.data.role,
-        newAllocation: parsedData.data.allocation,
+        newRole: data.role,
+        newAllocation: data.allocation,
         performedById: req.user!.id,
         note: "Added to project"
       });
       
+      console.log("Created resource:", JSON.stringify(resource, null, 2));
       res.status(201).json(resource);
     } catch (error) {
+      console.error("Server error during resource creation:", error);
       res.status(500).json({ message: "Error adding resource to project", error });
     }
   });

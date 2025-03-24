@@ -354,15 +354,21 @@ export const projectResources = pgTable("project_resources", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
-export const insertProjectResourceSchema = createInsertSchema(projectResources).pick({
-  projectId: true,
-  userId: true,
-  role: true,
-  allocation: true,
-  startDate: true,
-  endDate: true,
-  notes: true
-});
+export const insertProjectResourceSchema = createInsertSchema(projectResources)
+  .pick({
+    projectId: true,
+    userId: true,
+    role: true,
+    allocation: true,
+    startDate: true,
+    endDate: true,
+    notes: true
+  })
+  .extend({
+    // Allow string dates that will be converted to Date objects on the server
+    startDate: z.union([z.string(), z.date(), z.null()]).optional(),
+    endDate: z.union([z.string(), z.date(), z.null()]).optional(),
+  });
 
 export type ProjectResource = typeof projectResources.$inferSelect;
 export type InsertProjectResource = z.infer<typeof insertProjectResourceSchema>;
