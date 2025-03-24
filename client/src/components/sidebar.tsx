@@ -59,7 +59,7 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
             </div>
             
             {/* Skills Section */}
-            <h3 className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <h3 className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden">
               Skills
             </h3>
             
@@ -75,7 +75,7 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
             </div>
             
             {/* Projects Section */}
-            <h3 className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <h3 className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden">
               Projects
             </h3>
             
@@ -93,41 +93,41 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
             {/* Clients tab - Only visible to admins */}
             {(user?.is_admin || user?.isAdmin) && (
               <div>
-                <Link href="/clients" className={`flex items-center px-4 py-3 rounded-md ${
+                <Link href="/clients" className={`flex items-center px-4 py-3 rounded-md group ${
                   currentPath === "/clients" 
                     ? "bg-gray-900 text-white" 
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}>
                   <Building2 className="h-5 w-5" />
-                  <span className="ml-3">Clients</span>
+                  <span className="ml-3 hidden group-hover:block">Clients</span>
                 </Link>
               </div>
             )}
             
             {/* Organization Section */}
-            <h3 className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <h3 className="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden">
               Organization
             </h3>
             
             <div>
-              <Link href="/organization" className={`flex items-center px-4 py-3 rounded-md ${
+              <Link href="/organization" className={`flex items-center px-4 py-3 rounded-md group ${
                 currentPath === "/organization" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <BarChart4 className="h-5 w-5" />
-                <span className="ml-3">Dashboard</span>
+                <span className="ml-3 hidden group-hover:block">Dashboard</span>
               </Link>
             </div>
             
             <div>
-              <Link href="/profile" className={`flex items-center px-4 py-3 rounded-md ${
+              <Link href="/profile" className={`flex items-center px-4 py-3 rounded-md group ${
                 currentPath === "/profile" 
                   ? "bg-gray-900 text-white" 
                   : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}>
                 <UserCircle className="h-5 w-5" />
-                <span className="ml-3">Profile</span>
+                <span className="ml-3 hidden group-hover:block">Profile</span>
               </Link>
             </div>
           </div>
@@ -135,7 +135,7 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
           {/* Admin Section - Only visible to admins - check both property formats */}
           {(user?.is_admin || user?.isAdmin) && (
             <div className="mt-8">
-              <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden">
                 Admin
               </h3>
               <div className="mt-2 space-y-2">
@@ -155,25 +155,25 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
                       window.history.pushState({}, "", adminUrl);
                       setLocation(adminUrl);
                     }}
-                    className={`flex items-center px-4 py-3 rounded-md ${
+                    className={`flex items-center px-4 py-3 rounded-md group ${
                       currentPath === "/admin" 
                         ? "bg-gray-900 text-white" 
                         : "text-gray-300 hover:bg-gray-700 hover:text-white"
                     }`}
                   >
                     <BarChart4 className="h-5 w-5" />
-                    <span className="ml-3">Admin Dashboard</span>
+                    <span className="ml-3 hidden group-hover:block">Admin Dashboard</span>
                   </a>
                 </div>
                 
                 <div>
-                  <Link href="/project-management" className={`flex items-center px-4 py-3 rounded-md ${
+                  <Link href="/project-management" className={`flex items-center px-4 py-3 rounded-md group ${
                     currentPath === "/project-management" 
                       ? "bg-gray-900 text-white" 
                       : "text-gray-300 hover:bg-gray-700 hover:text-white"
                   }`}>
                     <FolderKanban className="h-5 w-5" />
-                    <span className="ml-3">Project Management</span>
+                    <span className="ml-3 hidden group-hover:block">Project Management</span>
                   </Link>
                 </div>
               </div>
@@ -182,14 +182,14 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
         </div>
         
         <div className="p-4 border-t border-gray-700">
-          <div className="flex items-center">
+          <div className="flex items-center group">
             <Avatar className="h-8 w-8">
               <AvatarImage src="" alt={`${user?.firstName} ${user?.lastName}`} />
               <AvatarFallback className="bg-indigo-600 text-white">
                 {user?.firstName?.[0]}{user?.lastName?.[0]}
               </AvatarFallback>
             </Avatar>
-            <div className="ml-3">
+            <div className="ml-3 hidden group-hover:block">
               <p className="text-sm font-medium text-white">{user?.firstName} {user?.lastName}</p>
               <button 
                 onClick={handleLogout}
