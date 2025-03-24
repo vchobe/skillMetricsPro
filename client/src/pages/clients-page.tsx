@@ -147,10 +147,7 @@ export default function ClientsPage() {
   // Create client mutation
   const createClient = useMutation({
     mutationFn: async (data: ClientFormValues) => {
-      return apiRequest("/api/clients", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/clients", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
@@ -174,10 +171,7 @@ export default function ClientsPage() {
   // Update client mutation
   const updateClient = useMutation({
     mutationFn: async (data: { id: number; formData: ClientFormValues }) => {
-      return apiRequest(`/api/clients/${data.id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data.formData),
-      });
+      return apiRequest("PATCH", `/api/clients/${data.id}`, data.formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });

@@ -140,21 +140,21 @@ export default function ProjectDetailPage() {
   // Fetch project details
   const { data: project, isLoading: isLoadingProject } = useQuery({
     queryKey: ["/api/projects", id],
-    queryFn: () => apiRequest(`/api/projects/${id}`),
+    queryFn: () => apiRequest("GET", `/api/projects/${id}`),
     refetchOnWindowFocus: false,
   });
   
   // Fetch project resources
   const { data: resources, isLoading: isLoadingResources } = useQuery({
     queryKey: ["/api/projects", id, "resources"],
-    queryFn: () => apiRequest(`/api/projects/${id}/resources`),
+    queryFn: () => apiRequest("GET", `/api/projects/${id}/resources`),
     refetchOnWindowFocus: false,
   });
   
   // Fetch project skills
   const { data: projectSkills, isLoading: isLoadingProjectSkills } = useQuery({
     queryKey: ["/api/projects", id, "skills"],
-    queryFn: () => apiRequest(`/api/projects/${id}/skills`),
+    queryFn: () => apiRequest("GET", `/api/projects/${id}/skills`),
     refetchOnWindowFocus: false,
   });
   
@@ -179,7 +179,7 @@ export default function ProjectDetailPage() {
   // Fetch resource history
   const { data: resourceHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: ["/api/projects", id, "resource-history"],
-    queryFn: () => apiRequest(`/api/projects/${id}/resource-history`),
+    queryFn: () => apiRequest("GET", `/api/projects/${id}/resource-history`),
     refetchOnWindowFocus: false,
   });
   
@@ -317,9 +317,9 @@ export default function ProjectDetailPage() {
   // Add project skill mutation
   const addProjectSkill = useMutation({
     mutationFn: async (data: ProjectSkillFormValues) => {
-      return apiRequest(`/api/projects/${id}/skills`, {
-        method: "POST",
-        body: JSON.stringify({ ...data, projectId: parseInt(id) }),
+      return apiRequest("POST", `/api/projects/${id}/skills`, {
+        ...data,
+        projectId: parseInt(id)
       });
     },
     onSuccess: () => {
@@ -344,9 +344,7 @@ export default function ProjectDetailPage() {
   // Remove project skill mutation
   const removeProjectSkill = useMutation({
     mutationFn: async (projectSkillId: number) => {
-      return apiRequest(`/api/projects/skills/${projectSkillId}`, {
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/projects/skills/${projectSkillId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "skills"] });
