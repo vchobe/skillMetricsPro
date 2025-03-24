@@ -1392,6 +1392,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Project Management Dashboard
+  app.get("/api/project-management", ensureAuth, async (req, res) => {
+    try {
+      const isAdmin = isUserAdmin(req.user!);
+      const clients = await storage.getAllClients();
+      
+      const projects = isAdmin 
+        ? await storage.getAllProjects()
+        : await storage.getUserProjects(req.user!.id);
+      
+      // Add client names to projects
+      const projectsWithClientNames = projects.map(project => {
+        const client = clients.find(c => c.id === project.clientId);
+        return {
+          ...project,
+          clientName: client ? client.name : 'Unknown Client'
+        };
+      });
+      
+      res.json({
+        projects: projectsWithClientNames,
+        clients: clients
+      });
+    } catch (error) {
+      console.error("Error fetching project management data:", error);
+      res.status(500).json({ message: "Error fetching project management data" });
+    }
+  });
+
   // Project Routes
   app.get("/api/projects", ensureAuth, async (req, res) => {
     try {
