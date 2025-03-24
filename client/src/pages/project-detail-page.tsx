@@ -181,6 +181,7 @@ import {
   Building,
   CheckCircle,
   XCircle,
+  Mail,
 } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -776,6 +777,52 @@ export default function ProjectDetailPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={editProjectForm.control}
+                          name="hrCoordinatorEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>HR Coordinator Email</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  value={field.value || ""}
+                                  placeholder="hr@example.com"
+                                  type="email"
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Email for resource notifications to HR
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={editProjectForm.control}
+                          name="financeTeamEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Finance Team Email</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  value={field.value || ""}
+                                  placeholder="finance@example.com"
+                                  type="email"
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Email for resource notifications to Finance
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={editProjectForm.control}
                           name="leadId"
                           render={({ field }) => (
                             <FormItem>
@@ -987,6 +1034,46 @@ export default function ProjectDetailPage() {
               ) : (
                 <div className="text-gray-500">No documentation links available</div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-1 gap-4">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500 mb-1">HR Coordinator</dt>
+                  <dd className="flex items-center">
+                    {project.hrCoordinatorEmail ? (
+                      <>
+                        <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                        <a href={`mailto:${project.hrCoordinatorEmail}`} className="text-blue-600 hover:underline">
+                          {project.hrCoordinatorEmail}
+                        </a>
+                      </>
+                    ) : (
+                      <span className="text-gray-500">No HR email configured</span>
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500 mb-1">Finance Team</dt>
+                  <dd className="flex items-center">
+                    {project.financeTeamEmail ? (
+                      <>
+                        <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                        <a href={`mailto:${project.financeTeamEmail}`} className="text-blue-600 hover:underline">
+                          {project.financeTeamEmail}
+                        </a>
+                      </>
+                    ) : (
+                      <span className="text-gray-500">No Finance email configured</span>
+                    )}
+                  </dd>
+                </div>
+              </dl>
             </CardContent>
           </Card>
 
