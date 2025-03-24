@@ -174,13 +174,13 @@ export default function ProjectsPage() {
         // Convert string values to appropriate types and ensure proper null handling
         const formattedData = {
           ...data,
-          clientId: data.clientId === "null" ? null : 
+          clientId: typeof data.clientId === "string" && data.clientId === "null" ? null : 
                    data.clientId === null || data.clientId === undefined ? null : 
                    Number(data.clientId),
-          leadId: data.leadId === "null" ? null : 
+          leadId: typeof data.leadId === "string" && data.leadId === "null" ? null : 
                  data.leadId === null || data.leadId === undefined ? null : 
                  Number(data.leadId),
-          deliveryLeadId: data.deliveryLeadId === "null" ? null : 
+          deliveryLeadId: typeof data.deliveryLeadId === "string" && data.deliveryLeadId === "null" ? null : 
                          data.deliveryLeadId === null || data.deliveryLeadId === undefined ? null : 
                          Number(data.deliveryLeadId),
           startDate: data.startDate || null,

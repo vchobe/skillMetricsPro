@@ -1545,18 +1545,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/projects", ensureAdmin, async (req, res) => {
     try {
+      console.log("Project creation request body:", JSON.stringify(req.body, null, 2));
+      
       const parsedData = insertProjectSchema.safeParse(req.body);
       
       if (!parsedData.success) {
+        console.error("Project validation failed:", JSON.stringify(parsedData.error.format(), null, 2));
         return res.status(400).json({
           message: "Invalid project data",
           errors: parsedData.error.format()
         });
       }
       
+      console.log("Validated project data:", JSON.stringify(parsedData.data, null, 2));
       const project = await storage.createProject(parsedData.data);
       res.status(201).json(project);
     } catch (error) {
+      console.error("Server error during project creation:", error);
       res.status(500).json({ message: "Error creating project", error });
     }
   });
