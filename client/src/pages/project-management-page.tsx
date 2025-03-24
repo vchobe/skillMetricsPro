@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -57,10 +57,10 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { toast, useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { formatDate, standardizeDate, DATE_FORMATS } from "@/lib/date-utils";
-import { getQueryFn } from "@/lib/queryClient";
+import { getQueryFn, apiRequest } from "@/lib/queryClient";
 
 import {
   Table,
@@ -259,51 +259,161 @@ export default function ProjectManagementPage() {
     },
   });
 
-  // Fetch data
-  const { data: managementData, isLoading: dataLoading } = 
-    getQueryFn<ProjectManagementData>({
-      url: "/api/project-management",
-      queryKey: ["project-management"],
-      on401: "throw",
-    })();
+  // Define states for our data
+  const [managementData, setManagementData] = useState<ProjectManagementData | null>(null);
+  const [projectDetails, setProjectDetails] = useState<Project | null>(null);
+  const [projectResources, setProjectResources] = useState<ProjectResource[] | null>(null);
+  const [projectSkills, setProjectSkills] = useState<ProjectSkill[] | null>(null);
+  const [users, setUsers] = useState<User[] | null>(null);
+  const [skills, setSkills] = useState<Skill[] | null>(null);
   
-  const { data: projectDetails, isLoading: projectLoading } = 
-    getQueryFn<Project>({
-      url: `/api/projects/${projectId}`,
-      queryKey: ["project", projectId],
-      on401: "throw",
-      enabled: !!projectId,
-    })();
+  // Loading states
+  const [dataLoading, setDataLoading] = useState(true);
+  const [projectLoading, setProjectLoading] = useState(true);
+  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [skillsLoading, setSkillsLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [allSkillsLoading, setAllSkillsLoading] = useState(true);
   
-  const { data: projectResources, isLoading: resourcesLoading } = 
-    getQueryFn<ProjectResource[]>({
-      url: `/api/projects/${projectId}/resources`,
-      queryKey: ["project-resources", projectId],
-      on401: "throw",
-      enabled: !!projectId,
-    })();
+  // Fetch management data
+  useEffect(() => {
+    const fetchManagementData = async () => {
+      try {
+        const response = await fetch("/api/project-management");
+        if (!response.ok) {
+          throw new Error("Failed to fetch project management data");
+        }
+        const data = await response.json();
+        setManagementData(data);
+      } catch (error) {
+        console.error("Error fetching management data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch project management data",
+          variant: "destructive",
+        });
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    
+    fetchManagementData();
+  }, []);
   
-  const { data: projectSkills, isLoading: skillsLoading } = 
-    getQueryFn<ProjectSkill[]>({
-      url: `/api/projects/${projectId}/skills`,
-      queryKey: ["project-skills", projectId],
-      on401: "throw",
-      enabled: !!projectId,
-    })();
+  // Fetch project details if projectId is available
+  useEffect(() => {
+    if (!projectId) {
+      setProjectLoading(false);
+      return;
+    }
+    
+    const fetchProjectDetails = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch project details");
+        }
+        const data = await response.json();
+        setProjectDetails(data);
+      } catch (error) {
+        console.error("Error fetching project details:", error);
+      } finally {
+        setProjectLoading(false);
+      }
+    };
+    
+    fetchProjectDetails();
+  }, [projectId]);
   
-  const { data: users, isLoading: usersLoading } = 
-    getQueryFn<User[]>({
-      url: "/api/users",
-      queryKey: ["users"],
-      on401: "throw",
-    })();
+  // Fetch project resources if projectId is available
+  useEffect(() => {
+    if (!projectId) {
+      setResourcesLoading(false);
+      return;
+    }
+    
+    const fetchProjectResources = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/resources`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch project resources");
+        }
+        const data = await response.json();
+        setProjectResources(data);
+      } catch (error) {
+        console.error("Error fetching project resources:", error);
+      } finally {
+        setResourcesLoading(false);
+      }
+    };
+    
+    fetchProjectResources();
+  }, [projectId]);
   
-  const { data: skills, isLoading: allSkillsLoading } = 
-    getQueryFn<Skill[]>({
-      url: "/api/skills/all",
-      queryKey: ["all-skills"],
-      on401: "throw",
-    })();
+  // Fetch project skills if projectId is available
+  useEffect(() => {
+    if (!projectId) {
+      setSkillsLoading(false);
+      return;
+    }
+    
+    const fetchProjectSkills = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/skills`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch project skills");
+        }
+        const data = await response.json();
+        setProjectSkills(data);
+      } catch (error) {
+        console.error("Error fetching project skills:", error);
+      } finally {
+        setSkillsLoading(false);
+      }
+    };
+    
+    fetchProjectSkills();
+  }, [projectId]);
+  
+  // Fetch users
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch("/api/users");
+        if (!response.ok) {
+          throw new Error("Failed to fetch users");
+        }
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+    
+    fetchUsers();
+  }, []);
+  
+  // Fetch skills
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        const response = await fetch("/api/skills/all");
+        if (!response.ok) {
+          throw new Error("Failed to fetch skills");
+        }
+        const data = await response.json();
+        setSkills(data);
+      } catch (error) {
+        console.error("Error fetching skills:", error);
+      } finally {
+        setAllSkillsLoading(false);
+      }
+    };
+    
+    fetchSkills();
+  }, []);
   
   // Mutations
   const createProject = async (data: ProjectFormValues) => {
