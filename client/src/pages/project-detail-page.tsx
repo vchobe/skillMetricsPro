@@ -955,6 +955,26 @@ export default function ProjectDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Metadata</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-1 gap-4">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500 mb-1">Created</dt>
+                  <dd>{formatDate(project.createdAt, "MMM d, yyyy")}</dd>
+                </div>
+                {project.updatedAt && project.updatedAt !== project.createdAt && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500 mb-1">Last Updated</dt>
+                    <dd>{formatDate(project.updatedAt, "MMM d, yyyy")}</dd>
+                  </div>
+                )}
+              </dl>
+            </CardContent>
+          </Card>
         </div>
       </div>
       
