@@ -149,7 +149,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res, next) => {
+  app.post("/api/auth/register", async (req, res, next) => {
     try {
       console.log("POST /api/register - Body:", req.body);
       
@@ -253,7 +253,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
+  app.post("/api/auth/login", (req, res, next) => {
     try {
       console.log("POST /api/login - Body:", req.body);
       
@@ -300,7 +300,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/logout", (req, res, next) => {
+  app.post("/api/auth/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
       res.sendStatus(200);
@@ -382,7 +382,7 @@ export function setupAuth(app: Express) {
   });
 
   // Password reset route (simplified for in-memory storage)
-  app.post("/api/reset-password", async (req, res, next) => {
+  app.post("/api/auth/reset-password", async (req, res, next) => {
     try {
       const { email } = req.body;
       if (!email) {
