@@ -2683,11 +2683,20 @@ export class PostgresStorage implements IStorage {
       
       // Send email notification to HR and Finance about the project update
       try {
-        // Determine which fields were changed
-        const changedFields: string[] = [];
+        // Determine which fields were changed with before/after values
+        const changedFields: {field: string, oldValue?: string | null, newValue?: string | null}[] = [];
         for (const key in data) {
           if (data.hasOwnProperty(key) && key !== 'id' && key !== 'clientName') {
-            changedFields.push(this.camelToSnake(key).replace(/_/g, ' '));
+            const fieldName = this.camelToSnake(key).replace(/_/g, ' ');
+            // Get old and new values
+            const oldValue = existingProject[key as keyof typeof existingProject] as string | null;
+            const newValue = data[key as keyof typeof data] as string | null;
+            
+            changedFields.push({
+              field: fieldName,
+              oldValue: oldValue !== undefined ? String(oldValue) : null,
+              newValue: newValue !== undefined ? String(newValue) : null
+            });
           }
         }
         
@@ -2724,7 +2733,8 @@ export class PostgresStorage implements IStorage {
             leadName,
             changedFields,
             updatedProject.hrCoordinatorEmail || null,
-            updatedProject.financeTeamEmail || null
+            updatedProject.financeTeamEmail || null,
+            "System (Admin User)" // For now, we'll use a generic identifier until we track the user who made the change
           );
           
           console.log(`Email notification sent for updated project: ${updatedProject.name}`);
@@ -2928,7 +2938,7 @@ export class PostgresStorage implements IStorage {
           // Import the email functionality
           const { sendResourceAddedEmail } = await import('./email');
           
-          // Send the notification email
+          // Send the notification email with project-specific recipients if configured
           await sendResourceAddedEmail(
             project.name,
             user.username,
@@ -2936,7 +2946,10 @@ export class PostgresStorage implements IStorage {
             resource.role || "Team Member",
             resource.startDate,
             resource.endDate,
-            resource.allocation || 100
+            resource.allocation || 100,
+            project.hrCoordinatorEmail || null,
+            project.financeTeamEmail || null,
+            resource.performedById ? `Added by User ID: ${resource.performedById}` : null
           );
           
           console.log(`Email notification sent: ${resource.role || "Team Member"} (${user.username}) added to project ${project.name}`);
@@ -2996,7 +3009,8 @@ export class PostgresStorage implements IStorage {
     try {
       // Get the resource details before deletion for history and notification
       const resourceResult = await pool.query(
-        `SELECT pr.*, p.name as project_name, u.username, u.email
+        `SELECT pr.*, p.name as project_name, p.hr_coordinator_email, p.finance_team_email,
+         u.username, u.email
          FROM project_resources pr
          JOIN projects p ON pr.project_id = p.id
          JOIN users u ON pr.user_id = u.id
@@ -3033,12 +3047,15 @@ export class PostgresStorage implements IStorage {
         // Import the email functionality
         const { sendResourceRemovedEmail } = await import('./email');
         
-        // Send the notification email
+        // Send the notification email with project-specific recipients if configured
         await sendResourceRemovedEmail(
           resource.projectName,
           resource.username,
           resource.email,
-          resource.role || "Team Member"
+          resource.role || "Team Member",
+          resource.hrCoordinatorEmail || null,
+          resource.financeTeamEmail || null,
+          resource.performedById ? `Removed by User ID: ${resource.performedById}` : null
         );
         
         console.log(`Email notification sent: ${resource.role || "Team Member"} (${resource.username}) removed from project ${resource.projectName}`);
