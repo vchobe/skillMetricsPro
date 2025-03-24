@@ -33,7 +33,7 @@ export default function Sidebar({ currentPath, isOpen, setIsOpen }: SidebarProps
     <div className={`bg-gray-800 text-white h-screen w-64 fixed left-0 top-0 transform transition-transform duration-300 ease-in-out z-20 ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center">
-          <span className="text-white font-bold text-xl">Menu</span>
+          <span className="text-white font-bold text-xl">SkillMetrics</span>
         </div>
       </div>
 
