@@ -221,32 +221,35 @@ export default function ProjectsPage() {
   };
   
   // Process projects data
-  const filteredProjects = projects
-    .filter(project => {
-      // Status filter
-      if (selectedStatus && project.status !== selectedStatus) {
-        return false;
-      }
-      
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        return (
-          project.name.toLowerCase().includes(query) ||
-          project.clientName.toLowerCase().includes(query) ||
-          (project.location && project.location.toLowerCase().includes(query)) ||
-          (project.description && project.description.toLowerCase().includes(query))
-        );
-      }
-      
-      return true;
-    });
+  const filteredProjects = Array.isArray(projects) 
+    ? projects.filter(project => {
+        // Status filter
+        if (selectedStatus && project.status !== selectedStatus) {
+          return false;
+        }
+        
+        // Search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          return (
+            project.name.toLowerCase().includes(query) ||
+            project.clientName.toLowerCase().includes(query) ||
+            (project.location && project.location.toLowerCase().includes(query)) ||
+            (project.description && project.description.toLowerCase().includes(query))
+          );
+        }
+        
+        return true;
+      })
+    : [];
   
   // Calculate status counts
-  const statusCounts = projects.reduce((acc, project) => {
-    acc[project.status] = (acc[project.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const statusCounts = Array.isArray(projects) 
+    ? projects.reduce((acc, project) => {
+        acc[project.status] = (acc[project.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>)
+    : {} as Record<string, number>;
   
   // Utility functions
   const getStatusColor = (status: string) => {
@@ -271,7 +274,7 @@ export default function ProjectsPage() {
   // Handle project ID in URL for editing
   useEffect(() => {
     if (projectId) {
-      const project = projects.find(p => p.id === projectId);
+      const project = Array.isArray(projects) ? projects.find(p => p.id === projectId) : null;
       
       if (project) {
         setEditingProjectId(projectId);
