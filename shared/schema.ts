@@ -318,18 +318,24 @@ export const projects = pgTable("projects", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
-export const insertProjectSchema = createInsertSchema(projects).pick({
-  name: true,
-  description: true,
-  clientId: true,
-  startDate: true,
-  endDate: true,
-  location: true,
-  confluenceLink: true,
-  leadId: true,
-  deliveryLeadId: true,
-  status: true
-});
+export const insertProjectSchema = createInsertSchema(projects)
+  .pick({
+    name: true,
+    description: true,
+    clientId: true,
+    startDate: true,
+    endDate: true,
+    location: true,
+    confluenceLink: true,
+    leadId: true,
+    deliveryLeadId: true,
+    status: true
+  })
+  .extend({
+    // Allow string dates that will be converted to Date objects on the server
+    startDate: z.union([z.string(), z.date(), z.null()]).optional(),
+    endDate: z.union([z.string(), z.date(), z.null()]).optional(),
+  });
 
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;

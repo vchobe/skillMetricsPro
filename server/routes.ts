@@ -1547,6 +1547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Project creation request body:", JSON.stringify(req.body, null, 2));
       
+      // Parse data with lenient schema validation
       const parsedData = insertProjectSchema.safeParse(req.body);
       
       if (!parsedData.success) {
@@ -1557,8 +1558,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      console.log("Validated project data:", JSON.stringify(parsedData.data, null, 2));
-      const project = await storage.createProject(parsedData.data);
+      // Convert date strings to Date objects if needed
+      const data = { ...parsedData.data };
+      
+      // Handle startDate conversion
+      if (typeof data.startDate === 'string' && data.startDate) {
+        data.startDate = new Date(data.startDate);
+      }
+      
+      // Handle endDate conversion
+      if (typeof data.endDate === 'string' && data.endDate) {
+        data.endDate = new Date(data.endDate);
+      }
+      
+      console.log("Processed project data:", JSON.stringify(data, null, 2));
+      const project = await storage.createProject(data);
+      console.log("Created project:", JSON.stringify(project, null, 2));
       res.status(201).json(project);
     } catch (error) {
       console.error("Server error during project creation:", error);
