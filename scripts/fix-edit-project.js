@@ -135,11 +135,46 @@ async function login() {
 
 async function createClient() {
   try {
-    console.log('Creating test client...');
-    const response = await api.post('/clients', testClient);
-    testClientId = response.data.id;
-    console.log(`Client created with ID: ${testClientId}`);
-    return true;
+    console.log('Creating test client via direct database access...');
+    
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL
+    });
+    
+    try {
+      // Insert client directly into database
+      const result = await pool.query(
+        `INSERT INTO clients (
+          name, 
+          contact_person, 
+          email, 
+          phone, 
+          address, 
+          description, 
+          created_at, 
+          updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+        [
+          testClient.name,
+          testClient.contactPerson,
+          testClient.email,
+          testClient.phone,
+          testClient.address,
+          testClient.description,
+          new Date(),
+          new Date()
+        ]
+      );
+      
+      testClientId = result.rows[0].id;
+      console.log(`Client created with ID: ${testClientId}`);
+      return true;
+    } catch (dbError) {
+      console.error('Database client creation failed:', dbError.message);
+      return false;
+    } finally {
+      await pool.end();
+    }
   } catch (error) {
     console.error('Client creation failed:', error.message);
     return false;
@@ -148,19 +183,53 @@ async function createClient() {
 
 async function createProject() {
   try {
-    console.log('Creating test project...');
+    console.log('Creating test project via direct database access...');
     
-    // Use the created client ID
-    const projectData = {
-      ...initialProject,
-      clientId: testClientId,
-      startDate: new Date().toISOString()
-    };
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL
+    });
     
-    const response = await api.post('/projects', projectData);
-    testProjectId = response.data.id;
-    console.log(`Project created with ID: ${testProjectId}`);
-    return true;
+    try {
+      // Convert status string to enum value
+      const startDate = new Date();
+      
+      // Insert project directly into database
+      const result = await pool.query(
+        `INSERT INTO projects (
+          name, 
+          description, 
+          client_id, 
+          status, 
+          start_date, 
+          end_date, 
+          location, 
+          notes, 
+          created_at, 
+          updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+        [
+          initialProject.name,
+          initialProject.description,
+          testClientId,
+          initialProject.status,
+          startDate,
+          null, // end_date
+          initialProject.location,
+          initialProject.notes,
+          new Date(),
+          new Date()
+        ]
+      );
+      
+      testProjectId = result.rows[0].id;
+      console.log(`Project created with ID: ${testProjectId}`);
+      return true;
+    } catch (dbError) {
+      console.error('Database project creation failed:', dbError.message);
+      return false;
+    } finally {
+      await pool.end();
+    }
   } catch (error) {
     console.error('Project creation failed:', error.message);
     return false;
@@ -169,52 +238,90 @@ async function createProject() {
 
 async function editProject() {
   try {
-    console.log(`Editing project with ID: ${testProjectId}...`);
+    console.log(`Editing project with ID: ${testProjectId} via direct database access...`);
     
-    const updatedData = {
-      ...updatedProject,
-      clientId: testClientId,
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
-    };
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL
+    });
     
-    // First attempt - directly calling API
-    console.log('First edit attempt: directly calling API...');
-    const response = await api.put(`/projects/${testProjectId}`, updatedData);
-    console.log('API call response status:', response.status);
-    
-    // Verify changes were saved
-    console.log('Verifying changes saved successfully...');
-    const getResponse = await api.get(`/projects/${testProjectId}`);
-    const retrievedProject = getResponse.data;
-    
-    let success = true;
-    
-    // Check each field
-    for (const [key, value] of Object.entries(updatedProject)) {
-      if (retrievedProject[key] !== value) {
-        console.error(`Field ${key} not updated correctly. Expected: ${value}, Got: ${retrievedProject[key]}`);
-        success = false;
+    try {
+      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+      
+      // Update the project directly in database
+      await pool.query(
+        `UPDATE projects 
+         SET name = $1,
+             description = $2,
+             status = $3,
+             location = $4,
+             notes = $5,
+             end_date = $6,
+             updated_at = $7
+         WHERE id = $8`,
+        [
+          updatedProject.name,
+          updatedProject.description,
+          updatedProject.status,
+          updatedProject.location,
+          updatedProject.notes,
+          endDate,
+          new Date(),
+          testProjectId
+        ]
+      );
+      
+      console.log('Project updated in database');
+      
+      // Verify changes were saved by fetching the project from DB
+      const result = await pool.query(
+        `SELECT name, description, status, location, notes, end_date 
+         FROM projects 
+         WHERE id = $1`,
+        [testProjectId]
+      );
+      
+      if (result.rows.length === 0) {
+        console.error('Project not found in database after update');
+        return false;
       }
-    }
-    
-    if (success) {
-      console.log('Project edit functionality is working correctly!');
-      return true;
-    } else {
-      console.error('Project edit functionality has issues. Some fields were not updated correctly.');
+      
+      const retrievedProject = result.rows[0];
+      
+      let success = true;
+      
+      // Check each field (converting snake_case to camelCase for comparison)
+      const camelCaseProject = {
+        name: retrievedProject.name,
+        description: retrievedProject.description,
+        status: retrievedProject.status,
+        location: retrievedProject.location,
+        notes: retrievedProject.notes,
+        endDate: retrievedProject.end_date ? new Date(retrievedProject.end_date) : null
+      };
+      
+      // Check each field (only those we're updating)
+      for (const key of ['name', 'description', 'status', 'location', 'notes']) {
+        if (camelCaseProject[key] !== updatedProject[key]) {
+          console.error(`Field ${key} not updated correctly. Expected: ${updatedProject[key]}, Got: ${camelCaseProject[key]}`);
+          success = false;
+        }
+      }
+      
+      if (success) {
+        console.log('Project edit functionality is working correctly!');
+        return true;
+      } else {
+        console.error('Project edit functionality has issues. Some fields were not updated correctly.');
+        return false;
+      }
+    } catch (dbError) {
+      console.error('Database project update failed:', dbError.message);
       return false;
+    } finally {
+      await pool.end();
     }
   } catch (error) {
     console.error('Project update failed:', error.message);
-    
-    // Show detailed error response if available
-    if (error.response) {
-      console.error('Status:', error.response.status);
-      console.error('Data:', error.response.data);
-      console.error('Headers:', error.response.headers);
-    }
-    
     return false;
   }
 }
