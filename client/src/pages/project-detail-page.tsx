@@ -1511,7 +1511,7 @@ export default function ProjectDetailPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {getUserName(history.performedById)}
+                            {history.performedById ? getUserName(history.performedById) : "—"}
                           </TableCell>
                           <TableCell>
                             {history.action === 'added' && 
