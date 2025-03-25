@@ -786,7 +786,7 @@ export default function UserProfilePage() {
                                             )}
                                           </div>
                                         </div>
-                                        <Link href={`/projects/${project.projectId}`}>
+                                        <Link to={`/projects/${project.projectId}`}>
                                           <Button variant="ghost" size="sm">View Project</Button>
                                         </Link>
                                       </div>
@@ -812,7 +812,9 @@ export default function UserProfilePage() {
                                          history.action === 'removed' ? 'Left ' : 
                                          history.action === 'role_changed' ? 'Role changed in ' : 
                                          'Updated role in '}
-                                        <span className="font-semibold">{history.projectName || `Project #${history.projectId}`}</span>
+                                        <Link to={`/projects/${history.projectId}`} className="hover:underline">
+                                          <span className="font-semibold">{history.projectName || `Project #${history.projectId}`}</span>
+                                        </Link>
                                       </p>
                                       {history.action === 'role_changed' && (
                                         <p className="text-xs text-slate-600">
