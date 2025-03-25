@@ -558,24 +558,26 @@ export default function ProjectDetailPage() {
   
   if (isLoadingProject || !project) {
     return (
-      <div className="flex h-screen w-full">
+      <div className="min-h-screen flex">
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/projects" />
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-lg text-gray-600">Loading project details...</p>
+        <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'} flex items-center justify-center`}>
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+            <p className="mt-4 text-lg text-gray-600">Loading project details...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full">
+    <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/projects" />
       
-      <div className="flex-1 flex flex-col overflow-auto">
+      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <Header title={project.name} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} isSidebarOpen={sidebarOpen} />
         
-        <div className="container mx-auto py-6 px-4">
+        <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4">
               <div className="flex items-center mb-4 sm:mb-0">
