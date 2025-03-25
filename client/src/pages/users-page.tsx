@@ -63,7 +63,9 @@ export default function UsersPage() {
   const [skillLevelFilter, setSkillLevelFilter] = useState<string | undefined>();
   const [certificationFilter, setCertificationFilter] = useState<boolean | undefined>();
   const [skillCategoryFilter, setSkillCategoryFilter] = useState<string | undefined>();
+  const [skillNameFilter, setSkillNameFilter] = useState<string | undefined>();
   const [skillCategories, setSkillCategories] = useState<string[]>([]);
+  const [skillNames, setSkillNames] = useState<string[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const { user } = useAuth();
@@ -78,16 +80,23 @@ export default function UsersPage() {
     queryKey: ["/api/skills"],
   });
   
-  // Extract all unique skill categories
+  // Extract all unique skill categories and skill names
   useEffect(() => {
     if (allSkills) {
       const categoriesSet = new Set<string>();
+      const namesSet = new Set<string>();
+      
       allSkills.forEach(skill => {
         if (skill.category) {
           categoriesSet.add(skill.category);
         }
+        if (skill.name) {
+          namesSet.add(skill.name);
+        }
       });
+      
       setSkillCategories(Array.from(categoriesSet).sort());
+      setSkillNames(Array.from(namesSet).sort());
     }
   }, [allSkills]);
   
@@ -175,8 +184,12 @@ export default function UsersPage() {
     const matchesCategory = !skillCategoryFilter || 
       user.skillCategories?.includes(skillCategoryFilter);
     
+    // Specific skill filter
+    const matchesSkillName = !skillNameFilter || 
+      user.userSkills?.some(skill => skill.name === skillNameFilter);
+    
     return matchesSearch && matchesRole && matchesDate && 
-           matchesSkillLevel && matchesCertification && matchesCategory;
+           matchesSkillLevel && matchesCertification && matchesCategory && matchesSkillName;
   }) : [];
   
   // Sort users
@@ -383,6 +396,28 @@ export default function UsersPage() {
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
                       
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <span>Specific Skill</span>
+                          {skillNameFilter && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-56 max-h-48 overflow-auto">
+                          {skillNames.map(skillName => (
+                            <DropdownMenuCheckboxItem
+                              key={skillName}
+                              checked={skillNameFilter === skillName}
+                              onCheckedChange={() => setSkillNameFilter(skillNameFilter === skillName ? undefined : skillName)}
+                            >
+                              {skillName}
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                          {skillNames.length > 0 && <DropdownMenuSeparator />}
+                          <DropdownMenuItem onClick={() => setSkillNameFilter(undefined)}>
+                            Clear Filter
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => {
                         setRoleFilter(undefined);
@@ -390,6 +425,7 @@ export default function UsersPage() {
                         setSkillLevelFilter(undefined);
                         setSkillCategoryFilter(undefined);
                         setCertificationFilter(undefined);
+                        setSkillNameFilter(undefined);
                       }}>
                         Reset All Filters
                       </DropdownMenuItem>
@@ -398,7 +434,7 @@ export default function UsersPage() {
                 </div>
                 
                 {/* Active filters display */}
-                {(roleFilter || dateFilter || skillLevelFilter || skillCategoryFilter || certificationFilter !== undefined) && (
+                {(roleFilter || dateFilter || skillLevelFilter || skillCategoryFilter || skillNameFilter || certificationFilter !== undefined) && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {roleFilter && (
                       <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
@@ -450,6 +486,18 @@ export default function UsersPage() {
                       </div>
                     )}
                     
+                    {skillNameFilter && (
+                      <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                        <span>Skill: {skillNameFilter}</span>
+                        <button 
+                          onClick={() => setSkillNameFilter(undefined)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                    
                     {certificationFilter !== undefined && (
                       <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
                         <span>Has Certifications</span>
@@ -468,6 +516,7 @@ export default function UsersPage() {
                         setDateFilter(undefined);
                         setSkillLevelFilter(undefined);
                         setSkillCategoryFilter(undefined);
+                        setSkillNameFilter(undefined);
                         setCertificationFilter(undefined);
                       }}
                       className="text-sm text-primary hover:underline"
