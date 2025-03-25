@@ -38,6 +38,7 @@ import {
   BadgeCheck,
   Layers,
   Code2,
+  Check,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -212,10 +213,27 @@ export default function OrgDashboard() {
       filters.skillCount === 'low' ? user.totalSkills < 2 : true
     );
     
-    // Category filter is handled at the skill level, not implemented here
+    // Category and skill name filters
+    let matchesCategory = true;
+    let matchesSkillName = true;
+    
+    if (filters.category || filters.skillName) {
+      // Find the user's skills
+      const userSkills = allSkills?.filter(skill => skill.userId === user.id) || [];
+      
+      // Check if any of the user's skills match the selected category
+      if (filters.category) {
+        matchesCategory = userSkills.some(skill => skill.category === filters.category);
+      }
+      
+      // Check if any of the user's skills match the selected skill name
+      if (filters.skillName) {
+        matchesSkillName = userSkills.some(skill => skill.name === filters.skillName);
+      }
+    }
     
     return matchesSearch && matchesSkillLevel && matchesCertification && 
-           matchesDateJoined && matchesSkillCount;
+           matchesDateJoined && matchesSkillCount && matchesCategory && matchesSkillName;
   });
   
   // Sort users
@@ -600,12 +618,66 @@ export default function OrgDashboard() {
                           <CardDescription>Browse and connect with colleagues across the organization</CardDescription>
                         </div>
                         <div className="flex gap-2">
-                          <div className="relative">
-                            <Button variant="outline" size="sm" className="flex items-center gap-1">
-                              <Filter className="h-4 w-4" />
-                              <span>Filter</span>
-                            </Button>
-                          </div>
+                          {/* Skill Category Dropdown */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                <Layers className="h-4 w-4" />
+                                <span>Category</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[200px]">
+                              <DropdownMenuLabel>Select Category</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {skillCategories.map((category) => (
+                                <DropdownMenuItem 
+                                  key={category}
+                                  onClick={() => applyFilter('category', category)}
+                                  className="flex items-center justify-between"
+                                >
+                                  <span>{category}</span>
+                                  {filters.category === category && <Check className="h-4 w-4" />}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          
+                          {/* Skill Name Dropdown */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                <Code2 className="h-4 w-4" />
+                                <span>Skill</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[200px] max-h-[300px] overflow-y-auto">
+                              <DropdownMenuLabel>Select Skill</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <div className="relative">
+                                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                                <Input 
+                                  placeholder="Search skills..." 
+                                  className="pl-7 h-8 text-sm"
+                                  onChange={(e) => {
+                                    // This is just a filter for the dropdown, not actual filtering
+                                    const input = e.target.value.toLowerCase();
+                                    // UI would filter the dropdown items based on input
+                                  }}
+                                />
+                              </div>
+                              <DropdownMenuSeparator />
+                              {skillNames.map((skillName) => (
+                                <DropdownMenuItem 
+                                  key={skillName}
+                                  onClick={() => applyFilter('skillName', skillName)}
+                                  className="flex items-center justify-between"
+                                >
+                                  <span>{skillName}</span>
+                                  {filters.skillName === skillName && <Check className="h-4 w-4" />}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </CardHeader>
