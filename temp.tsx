@@ -1189,7 +1189,7 @@ export default function ProjectDetailPage() {
                       <FormLabel>Project Lead</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                        value={field.value !== null && field.value !== undefined ? field.value.toString() : ""}
+                        value={field.value !== null ? field.value.toString() : ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1220,7 +1220,7 @@ export default function ProjectDetailPage() {
                       <FormLabel>Delivery Lead</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                        value={field.value !== null && field.value !== undefined ? field.value.toString() : ""}
+                        value={field.value !== null ? field.value.toString() : ""}
                       >
                         <FormControl>
                           <SelectTrigger>
