@@ -47,12 +47,26 @@ interface ProjectResource {
   userId: number;
   role: string;
   allocation?: number;
-  startDate?: string;
-  endDate?: string;
+  startDate?: string | null;
+  endDate?: string | null;
   notes?: string;
   createdAt: string;
   updatedAt?: string;
   projectName?: string; // Added when joining with project
+}
+
+// Combined type for projects list that can include items from project history
+interface ExtendedProjectResource {
+  id: number;
+  projectId: number;
+  userId: number;
+  role: string;
+  allocation?: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  notes?: string;
+  createdAt: string;
+  projectName?: string;
 }
 
 interface ProjectResourceHistory {
@@ -708,28 +722,27 @@ export default function UserProfilePage() {
                           {/* Past Projects */}
                           <div>
                             <h3 className="font-medium text-lg mb-4">Past Projects</h3>
-                            {userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date())
-                              .concat(projectHistory ? projectHistory
-                                .filter(h => h.action === 'removed')
-                                .map(h => ({
-                                  id: h.id,
-                                  projectId: h.projectId,
-                                  userId: h.userId,
-                                  role: h.previousRole || 'Team Member',
-                                  allocation: h.previousAllocation,
-                                  startDate: null,
-                                  endDate: h.date,
-                                  notes: h.note,
-                                  createdAt: h.date,
-                                  projectName: h.projectName
-                                })) : [])
-                              .length === 0 ? (
+                            {/* Calculate if there are any past projects (including those from history) */}
+                            {(userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date()).length === 0 && 
+                              (!projectHistory || projectHistory.filter(h => h.action === 'removed').length === 0)) ? (
                               <div className="text-muted-foreground text-sm">No past project assignments.</div>
                             ) : (
                               <div className="grid gap-4 grid-cols-1">
                                 {[
-                                  // Regular past projects (with end date)
-                                  ...userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date()),
+                                  // Regular past projects (with end date) - cast them to ExtendedProjectResource
+                                  ...userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date())
+                                    .map(p => ({
+                                      id: p.id,
+                                      projectId: p.projectId,
+                                      userId: p.userId,
+                                      role: p.role,
+                                      allocation: p.allocation,
+                                      startDate: p.startDate,
+                                      endDate: p.endDate,
+                                      notes: p.notes,
+                                      createdAt: p.createdAt,
+                                      projectName: p.projectName
+                                    }) as ExtendedProjectResource),
                                   // Projects the user was removed from (based on history)
                                   ...(projectHistory ? projectHistory
                                     .filter(h => h.action === 'removed')
@@ -739,12 +752,12 @@ export default function UserProfilePage() {
                                       userId: h.userId,
                                       role: h.previousRole || 'Team Member',
                                       allocation: h.previousAllocation,
-                                      startDate: null,
+                                      startDate: null as string | null,
                                       endDate: h.date,
                                       notes: h.note || 'Removed from project',
                                       createdAt: h.date,
                                       projectName: h.projectName
-                                    })) : [])
+                                    } as ExtendedProjectResource)) : [])
                                 ].map(project => (
                                     <div key={project.id} className="p-4 border rounded-lg bg-muted/30">
                                       <div className="flex justify-between items-start">
