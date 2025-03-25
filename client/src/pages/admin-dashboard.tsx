@@ -144,7 +144,8 @@ import {
   AlertTriangle,
   XCircle,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  X
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
