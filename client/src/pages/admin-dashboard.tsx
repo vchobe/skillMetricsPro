@@ -272,6 +272,9 @@ export default function AdminDashboard() {
   const [certSortDirection, setCertSortDirection] = useState<"asc" | "desc">("asc");
   const [certSearchQuery, setCertSearchQuery] = useState("");
   const [certCategoryFilter, setCertCategoryFilter] = useState("all");
+  const [certSkillLevelFilter, setCertSkillLevelFilter] = useState("all");
+  const [certSkillNameFilter, setCertSkillNameFilter] = useState("all");
+  const [certActiveFilters, setCertActiveFilters] = useState<{[key: string]: string}>({});
   
   // Redirect if not admin
   const { toast } = useToast();
