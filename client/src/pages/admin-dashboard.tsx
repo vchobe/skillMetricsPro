@@ -263,11 +263,9 @@ export default function AdminDashboard() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [skillCategories, setSkillCategories] = useState<string[]>([]);
   const [skillNames, setSkillNames] = useState<string[]>([]);
-  const [userFilters, setUserFilters] = useState<{
-    category?: string;
-    skillName?: string;
-    skillLevel?: string;
-  }>({});
+  const [userSkillCategoryFilter, setUserSkillCategoryFilter] = useState<string>("all");
+  const [userSkillNameFilter, setUserSkillNameFilter] = useState<string>("all");
+  const [userSkillLevelFilter, setUserSkillLevelFilter] = useState<string>("all");
   
   // Skill History tab - sorting and filtering state
   const [skillHistorySortField, setSkillHistorySortField] = useState<string>("date");
@@ -699,7 +697,41 @@ export default function AdminDashboard() {
       );
     }
     
-    // Step 3: Sort users
+    // Step 3: Filter by skill properties
+    if (userSkillCategoryFilter !== "all" || userSkillNameFilter !== "all" || userSkillLevelFilter !== "all") {
+      filtered = filtered.filter(user => {
+        // Get all skills for this user
+        const userSkills = skills?.filter(s => 
+          s.userId === user.id || (s as any).user_id === user.id
+        ) || [];
+        
+        // If user has no skills and we're filtering by skills, exclude them
+        if (userSkills.length === 0) return false;
+        
+        // Check if user has any skills matching all the filters
+        return userSkills.some(skill => {
+          // Filter by category if specified
+          if (userSkillCategoryFilter !== "all" && skill.category !== userSkillCategoryFilter) {
+            return false;
+          }
+          
+          // Filter by skill name if specified
+          if (userSkillNameFilter !== "all" && skill.name !== userSkillNameFilter) {
+            return false;
+          }
+          
+          // Filter by skill level if specified
+          if (userSkillLevelFilter !== "all" && skill.level !== userSkillLevelFilter) {
+            return false;
+          }
+          
+          // All filters passed
+          return true;
+        });
+      });
+    }
+    
+    // Step 4: Sort users
     return filtered.sort((a, b) => {
       // Get comparable values based on sort field
       let aValue: any, bValue: any;
@@ -739,7 +771,7 @@ export default function AdminDashboard() {
       }
       return 0;
     });
-  }, [users, searchQuery, roleFilter, sortField, sortDirection, skills]);
+  }, [users, searchQuery, roleFilter, sortField, sortDirection, skills, userSkillCategoryFilter, userSkillNameFilter, userSkillLevelFilter]);
   
   // CSV Export function for certifications
   const exportCertificationsCSV = () => {
@@ -2865,18 +2897,99 @@ export default function AdminDashboard() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
-                    <Select value={roleFilter} onValueChange={setRoleFilter}>
-                      <SelectTrigger className="w-full sm:w-[150px]">
-                        <SelectValue placeholder="Filter by role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Roles</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="developer">Developer</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="employee">Employee</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                      <Select value={roleFilter} onValueChange={setRoleFilter}>
+                        <SelectTrigger className="w-full sm:w-[150px]">
+                          <SelectValue placeholder="Filter by role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Roles</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="developer">Developer</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="employee">Employee</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <Select value={userSkillCategoryFilter} onValueChange={setUserSkillCategoryFilter}>
+                        <SelectTrigger className="w-full sm:w-[170px]">
+                          <SelectValue placeholder="Skill Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {skillCategories.map(category => (
+                            <SelectItem key={category} value={category}>{category}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <Select value={userSkillNameFilter} onValueChange={setUserSkillNameFilter}>
+                        <SelectTrigger className="w-full sm:w-[170px]">
+                          <SelectValue placeholder="Skill Name" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Skills</SelectItem>
+                          {skillNames.map(name => (
+                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <Select value={userSkillLevelFilter} onValueChange={setUserSkillLevelFilter}>
+                        <SelectTrigger className="w-full sm:w-[150px]">
+                          <SelectValue placeholder="Skill Level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Levels</SelectItem>
+                          <SelectItem value="beginner">Beginner</SelectItem>
+                          <SelectItem value="intermediate">Intermediate</SelectItem>
+                          <SelectItem value="expert">Expert</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {/* Active filters display */}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {roleFilter !== "all" && (
+                      <Badge variant="outline" className="px-3 py-1 rounded-full flex items-center gap-1 bg-gray-100">
+                        Role: {roleFilter}
+                        <X 
+                          className="h-3 w-3 ml-1 cursor-pointer" 
+                          onClick={() => setRoleFilter("all")} 
+                        />
+                      </Badge>
+                    )}
+                    
+                    {userSkillCategoryFilter !== "all" && (
+                      <Badge variant="outline" className="px-3 py-1 rounded-full flex items-center gap-1 bg-gray-100">
+                        Category: {userSkillCategoryFilter}
+                        <X 
+                          className="h-3 w-3 ml-1 cursor-pointer" 
+                          onClick={() => setUserSkillCategoryFilter("all")} 
+                        />
+                      </Badge>
+                    )}
+                    
+                    {userSkillNameFilter !== "all" && (
+                      <Badge variant="outline" className="px-3 py-1 rounded-full flex items-center gap-1 bg-gray-100">
+                        Skill: {userSkillNameFilter}
+                        <X 
+                          className="h-3 w-3 ml-1 cursor-pointer" 
+                          onClick={() => setUserSkillNameFilter("all")} 
+                        />
+                      </Badge>
+                    )}
+                    
+                    {userSkillLevelFilter !== "all" && (
+                      <Badge variant="outline" className="px-3 py-1 rounded-full flex items-center gap-1 bg-gray-100">
+                        Level: {userSkillLevelFilter}
+                        <X 
+                          className="h-3 w-3 ml-1 cursor-pointer" 
+                          onClick={() => setUserSkillLevelFilter("all")} 
+                        />
+                      </Badge>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="px-0">
