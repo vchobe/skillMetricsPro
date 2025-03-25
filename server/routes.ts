@@ -1816,6 +1816,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get projects for a specific user
+  app.get("/api/users/:userId/projects", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      // Get user project resources
+      const projectResources = await storage.getUserProjectResources(userId);
+      
+      // Fetch additional project details if needed
+      const enhancedResources = await Promise.all(
+        projectResources.map(async (resource) => {
+          try {
+            const project = await storage.getProject(resource.projectId);
+            return {
+              ...resource,
+              projectName: project?.name || null,
+              projectStatus: project?.status || null,
+              clientId: project?.clientId || null
+            };
+          } catch (err) {
+            console.error(`Error fetching project ${resource.projectId} details:`, err);
+            return resource;
+          }
+        })
+      );
+
+      res.json(enhancedResources);
+    } catch (error) {
+      console.error("Error fetching user projects:", error);
+      res.status(500).json({ message: "Error fetching user projects", error });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;

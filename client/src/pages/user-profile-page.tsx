@@ -582,6 +582,211 @@ export default function UserProfilePage() {
                 </div>
               </div>
             </TabsContent>
+
+            {/* Projects Tab */}
+            <TabsContent value="projects">
+              <div className="grid gap-6 grid-cols-1 lg:grid-cols-4">
+                {/* Project Stats Summary */}
+                <div className="lg:col-span-1">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Project Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Current Projects</span>
+                        <span className="font-bold text-lg">
+                          {userProjects ? userProjects.filter(p => !p.endDate || new Date(p.endDate) > new Date()).length : 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Past Projects</span>
+                        <span className="font-bold">
+                          {userProjects ? userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date()).length : 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Role Changes</span>
+                        <span className="font-bold">
+                          {projectHistory ? projectHistory.filter(h => h.action === 'role_changed').length : 0}
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Total Projects</span>
+                          <span className="font-bold">
+                            {userProjects ? (new Set(userProjects.map(p => p.projectId))).size : 0}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {/* Project List */}
+                <div className="lg:col-span-3">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle>Projects</CardTitle>
+                        <CardDescription>
+                          {isOwnProfile 
+                            ? "Your current and past project assignments" 
+                            : `${user.username || user.email.split('@')[0]}'s current and past project assignments`}
+                        </CardDescription>
+                      </div>
+                      {isLoadingProjects && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+                    </CardHeader>
+                    <CardContent>
+                      {!userProjects || userProjects.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No project assignments found.
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {/* Current Projects */}
+                          <div>
+                            <h3 className="font-medium text-lg mb-4">Current Projects</h3>
+                            {userProjects.filter(p => !p.endDate || new Date(p.endDate) > new Date()).length === 0 ? (
+                              <div className="text-muted-foreground text-sm">No current project assignments.</div>
+                            ) : (
+                              <div className="grid gap-4 grid-cols-1">
+                                {userProjects
+                                  .filter(p => !p.endDate || new Date(p.endDate) > new Date())
+                                  .map(project => (
+                                    <div key={project.id} className="p-4 border rounded-lg shadow-sm transition-all hover:shadow">
+                                      <div className="flex justify-between items-start">
+                                        <div>
+                                          <h4 className="font-medium">
+                                            {project.projectName || `Project #${project.projectId}`}
+                                          </h4>
+                                          <div className="text-sm text-muted-foreground">
+                                            Role: <span className="font-medium">{project.role}</span>
+                                          </div>
+                                          {project.allocation && (
+                                            <div className="text-sm text-muted-foreground">
+                                              Allocation: <span className="font-medium">{project.allocation}%</span>
+                                            </div>
+                                          )}
+                                          <div className="flex gap-4 mt-2">
+                                            {project.startDate && (
+                                              <div className="text-xs text-muted-foreground">
+                                                Start: {formatDate(project.startDate, "MMM d, yyyy")}
+                                              </div>
+                                            )}
+                                            {project.endDate && (
+                                              <div className="text-xs text-muted-foreground">
+                                                End: {formatDate(project.endDate, "MMM d, yyyy")}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <Link href={`/projects/${project.projectId}`}>
+                                          <Button variant="outline" size="sm">View Project</Button>
+                                        </Link>
+                                      </div>
+                                      {project.notes && (
+                                        <div className="mt-3 p-3 bg-muted rounded-md text-sm">
+                                          <p className="text-muted-foreground">{project.notes}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Past Projects */}
+                          <div>
+                            <h3 className="font-medium text-lg mb-4">Past Projects</h3>
+                            {userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date()).length === 0 ? (
+                              <div className="text-muted-foreground text-sm">No past project assignments.</div>
+                            ) : (
+                              <div className="grid gap-4 grid-cols-1">
+                                {userProjects
+                                  .filter(p => p.endDate && new Date(p.endDate) <= new Date())
+                                  .map(project => (
+                                    <div key={project.id} className="p-4 border rounded-lg bg-muted/30">
+                                      <div className="flex justify-between items-start">
+                                        <div>
+                                          <h4 className="font-medium">
+                                            {project.projectName || `Project #${project.projectId}`}
+                                          </h4>
+                                          <div className="text-sm text-muted-foreground">
+                                            Role: <span className="font-medium">{project.role}</span>
+                                          </div>
+                                          {project.allocation && (
+                                            <div className="text-sm text-muted-foreground">
+                                              Allocation: <span className="font-medium">{project.allocation}%</span>
+                                            </div>
+                                          )}
+                                          <div className="flex gap-4 mt-2">
+                                            {project.startDate && (
+                                              <div className="text-xs text-muted-foreground">
+                                                Start: {formatDate(project.startDate, "MMM d, yyyy")}
+                                              </div>
+                                            )}
+                                            {project.endDate && (
+                                              <div className="text-xs text-muted-foreground">
+                                                End: {formatDate(project.endDate, "MMM d, yyyy")}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <Link href={`/projects/${project.projectId}`}>
+                                          <Button variant="ghost" size="sm">View Project</Button>
+                                        </Link>
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Project History (Role Changes) */}
+                          {projectHistory && projectHistory.length > 0 && (
+                            <div className="mt-6 pt-6 border-t">
+                              <h3 className="font-medium text-lg mb-4">Project History</h3>
+                              <div className="space-y-3">
+                                {projectHistory.map(history => (
+                                  <div key={history.id} className="flex items-start gap-4 p-3 rounded-md bg-slate-50">
+                                    <div className="rounded-full bg-slate-200 p-2">
+                                      <Calendar className="h-4 w-4 text-slate-600" />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium">
+                                        {history.action === 'added' ? 'Joined ' : 
+                                         history.action === 'removed' ? 'Left ' : 
+                                         history.action === 'role_changed' ? 'Role changed in ' : 
+                                         'Updated role in '}
+                                        <span className="font-semibold">{history.projectName || `Project #${history.projectId}`}</span>
+                                      </p>
+                                      {history.action === 'role_changed' && (
+                                        <p className="text-xs text-slate-600">
+                                          Changed from {history.previousRole} to {history.newRole}
+                                        </p>
+                                      )}
+                                      <p className="text-xs text-slate-500 mt-1">
+                                        {formatDate(history.date, "MMMM d, yyyy")}
+                                      </p>
+                                      {history.note && (
+                                        <p className="text-xs text-slate-600 mt-1 italic">
+                                          Note: {history.note}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
             
             {/* Activity Tab */}
             <TabsContent value="activity">
