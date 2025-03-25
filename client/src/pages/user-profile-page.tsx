@@ -23,6 +23,53 @@ interface Activity {
   note?: string;
 }
 
+// Define Project interfaces
+interface Project {
+  id: number;
+  name: string;
+  description?: string;
+  clientId?: number | null;
+  clientName?: string; // Added when joining with client
+  startDate?: string | null;
+  endDate?: string | null;
+  location?: string;
+  confluenceLink?: string;
+  leadId?: number | null;
+  deliveryLeadId?: number | null;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface ProjectResource {
+  id: number;
+  projectId: number;
+  userId: number;
+  role: string;
+  allocation?: number;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+  projectName?: string; // Added when joining with project
+}
+
+interface ProjectResourceHistory {
+  id: number;
+  projectId: number;
+  userId: number;
+  action: string;
+  previousRole?: string;
+  newRole?: string;
+  previousAllocation?: number;
+  newAllocation?: number;
+  date: string;
+  performedById?: number;
+  note?: string;
+  projectName?: string; // Added when joining with project
+}
+
 import {
   Card,
   CardContent,
@@ -55,7 +102,8 @@ import {
   Cloud,
   PenTool,
   GitBranch,
-  Brain
+  Brain,
+  FolderKanban
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -82,6 +130,18 @@ export default function UserProfilePage() {
   const { data: skillHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: [`/api/users/${userId}/skills/history`],
     enabled: !!userId
+  });
+  
+  // Get user projects
+  const { data: userProjects, isLoading: isLoadingProjects } = useQuery<ProjectResource[]>({
+    queryKey: [`/api/users/${userId}/projects`],
+    enabled: !!userId
+  });
+
+  // Get user project history
+  const { data: projectHistory, isLoading: isLoadingProjectHistory } = useQuery<ProjectResourceHistory[]>({
+    queryKey: [`/api/user/projects/history`],
+    enabled: !!userId && (userId === currentUser?.id?.toString() || currentUser?.is_admin === true)
   });
   
   // Format skill history for activity feed
@@ -276,7 +336,7 @@ export default function UserProfilePage() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <UserCircle className="h-4 w-4" />
                 <span className="hidden sm:inline">Profile</span>
@@ -284,6 +344,10 @@ export default function UserProfilePage() {
               <TabsTrigger value="skills" className="flex items-center gap-2">
                 <Award className="h-4 w-4" />
                 <span className="hidden sm:inline">Skills</span>
+              </TabsTrigger>
+              <TabsTrigger value="projects" className="flex items-center gap-2">
+                <FolderKanban className="h-4 w-4" />
+                <span className="hidden sm:inline">Projects</span>
               </TabsTrigger>
               <TabsTrigger value="activity" className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
