@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDate } from "@/lib/date-utils";
+import Sidebar from "@/components/sidebar";
+import Header from "@/components/header";
 
 import {
   Table,
@@ -79,6 +81,7 @@ export default function ClientsPage() {
   const isAdmin = user?.isAdmin || user?.is_admin;
   
   const [searchTerm, setSearchTerm] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [openNewClient, setOpenNewClient] = useState(false);
   const [editClientId, setEditClientId] = useState<number | null>(null);
   const [deleteClientId, setDeleteClientId] = useState<number | null>(null);
@@ -304,491 +307,504 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Clients</h1>
-          <p className="text-gray-500">
-            Manage client information and contact details
-          </p>
-        </div>
-        {isAdmin && (
-          <Dialog open={openNewClient} onOpenChange={setOpenNewClient}>
-            <DialogTrigger asChild>
-              <Button className="mt-4 md:mt-0">
-                <Plus className="h-4 w-4 mr-2" />
-                New Client
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[625px]">
-              <DialogHeader>
-                <DialogTitle>Create New Client</DialogTitle>
-                <DialogDescription>
-                  Add details for the new client. Required fields are marked with an asterisk (*).
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...newClientForm}>
-                <form onSubmit={newClientForm.handleSubmit(onNewClientSubmit)} className="space-y-4">
-                  <FormField
-                    control={newClientForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Client Name *</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={newClientForm.control}
-                      name="industry"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Industry</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={newClientForm.control}
-                      name="website"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Website</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="https://example.com" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <FormField
-                    control={newClientForm.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={newClientForm.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <h3 className="text-lg font-medium mt-6 mb-2">Contact Information</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField
-                      control={newClientForm.control}
-                      name="contactName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Contact Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={newClientForm.control}
-                      name="contactEmail"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="email" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={newClientForm.control}
-                      name="contactPhone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setOpenNewClient(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={createClient.isPending}
-                    >
-                      {createClient.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Create Client
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+    <div className="min-h-screen flex">
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/clients" />
       
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <CardTitle>Search Clients</CardTitle>
-          <CardDescription>
-            Find clients by name, industry, or contact person
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <Input
-              placeholder="Search clients..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-      
-      {isLoadingClients ? (
-        <div className="flex justify-center items-center py-10">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead 
-                    className="w-[250px] cursor-pointer"
-                    onClick={() => handleSort("name")}
-                  >
-                    Name {renderSortIcon("name")}
-                  </TableHead>
-                  <TableHead 
-                    className="cursor-pointer"
-                    onClick={() => handleSort("industry")}
-                  >
-                    Industry {renderSortIcon("industry")}
-                  </TableHead>
-                  <TableHead 
-                    className="cursor-pointer"
-                    onClick={() => handleSort("contactName")}
-                  >
-                    Contact {renderSortIcon("contactName")}
-                  </TableHead>
-                  <TableHead>
-                    Projects
-                  </TableHead>
-                  <TableHead>
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6 text-gray-500">
-                      No clients found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredClients.map((client: Client) => (
-                    <TableRow key={client.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center">
-                          <Building className="h-4 w-4 mr-2 text-gray-400" />
-                          {client.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {client.industry || "—"}
-                      </TableCell>
-                      <TableCell>
-                        {client.contactName ? (
-                          <div>
-                            <div>{client.contactName}</div>
-                            {client.contactEmail && (
-                              <div className="text-xs text-gray-500">
-                                {client.contactEmail}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          "—"
+      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
+        <Header 
+          title="Clients" 
+          toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+          isSidebarOpen={sidebarOpen} 
+        />
+        
+        <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Clients</h1>
+              <p className="text-gray-500">
+                Manage client information and contact details
+              </p>
+            </div>
+            
+            {isAdmin && (
+              <Dialog open={openNewClient} onOpenChange={setOpenNewClient}>
+                <DialogTrigger asChild>
+                  <Button className="mt-4 md:mt-0">
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Client
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[625px]">
+                  <DialogHeader>
+                    <DialogTitle>Create New Client</DialogTitle>
+                    <DialogDescription>
+                      Add details for the new client. Required fields are marked with an asterisk (*).
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...newClientForm}>
+                    <form onSubmit={newClientForm.handleSubmit(onNewClientSubmit)} className="space-y-4">
+                      <FormField
+                        control={newClientForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Client Name *</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        {countProjects(client.id)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          {isAdmin && (
-                            <>
-                              <Dialog
-                                open={editClientId === client.id}
-                                onOpenChange={(open) => {
-                                  if (!open) setEditClientId(null);
-                                  if (open) populateEditForm(client.id);
-                                }}
-                              >
-                                <DialogTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => populateEditForm(client.id)}
-                                  >
-                                    <Edit className="h-4 w-4 mr-1" />
-                                    Edit
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-[625px]">
-                                  <DialogHeader>
-                                    <DialogTitle>Edit Client</DialogTitle>
-                                    <DialogDescription>
-                                      Update details for {client.name}.
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <Form {...editClientForm}>
-                                    <form onSubmit={editClientForm.handleSubmit(onEditClientSubmit)} className="space-y-4">
-                                      <FormField
-                                        control={editClientForm.control}
-                                        name="name"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>Client Name *</FormLabel>
-                                            <FormControl>
-                                              <Input {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                      
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField
-                                          control={editClientForm.control}
-                                          name="industry"
-                                          render={({ field }) => (
-                                            <FormItem>
-                                              <FormLabel>Industry</FormLabel>
-                                              <FormControl>
-                                                <Input {...field} />
-                                              </FormControl>
-                                              <FormMessage />
-                                            </FormItem>
-                                          )}
-                                        />
-                                        
-                                        <FormField
-                                          control={editClientForm.control}
-                                          name="website"
-                                          render={({ field }) => (
-                                            <FormItem>
-                                              <FormLabel>Website</FormLabel>
-                                              <FormControl>
-                                                <Input {...field} placeholder="https://example.com" />
-                                              </FormControl>
-                                              <FormMessage />
-                                            </FormItem>
-                                          )}
-                                        />
-                                      </div>
-                                      
-                                      <FormField
-                                        control={editClientForm.control}
-                                        name="description"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>Description</FormLabel>
-                                            <FormControl>
-                                              <Textarea {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                      
-                                      <FormField
-                                        control={editClientForm.control}
-                                        name="address"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>Address</FormLabel>
-                                            <FormControl>
-                                              <Textarea {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                      
-                                      <h3 className="text-lg font-medium mt-6 mb-2">Contact Information</h3>
-                                      
-                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <FormField
-                                          control={editClientForm.control}
-                                          name="contactName"
-                                          render={({ field }) => (
-                                            <FormItem>
-                                              <FormLabel>Contact Name</FormLabel>
-                                              <FormControl>
-                                                <Input {...field} />
-                                              </FormControl>
-                                              <FormMessage />
-                                            </FormItem>
-                                          )}
-                                        />
-                                        
-                                        <FormField
-                                          control={editClientForm.control}
-                                          name="contactEmail"
-                                          render={({ field }) => (
-                                            <FormItem>
-                                              <FormLabel>Email</FormLabel>
-                                              <FormControl>
-                                                <Input {...field} type="email" />
-                                              </FormControl>
-                                              <FormMessage />
-                                            </FormItem>
-                                          )}
-                                        />
-                                        
-                                        <FormField
-                                          control={editClientForm.control}
-                                          name="contactPhone"
-                                          render={({ field }) => (
-                                            <FormItem>
-                                              <FormLabel>Phone</FormLabel>
-                                              <FormControl>
-                                                <Input {...field} />
-                                              </FormControl>
-                                              <FormMessage />
-                                            </FormItem>
-                                          )}
-                                        />
-                                      </div>
-                                      
-                                      <DialogFooter>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          onClick={() => setEditClientId(null)}
-                                        >
-                                          Cancel
-                                        </Button>
-                                        <Button
-                                          type="submit"
-                                          disabled={updateClient.isPending}
-                                        >
-                                          {updateClient.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                          Save Changes
-                                        </Button>
-                                      </DialogFooter>
-                                      
-                                      {/* Client metadata with formatted dates */}
-                                      <div className="text-xs text-gray-500 mt-4 pt-4 border-t">
-                                        <p>
-                                          Client created: {formatDate(client.createdAt, "MMM d, yyyy")}
-                                          {client.updatedAt && client.updatedAt !== client.createdAt && 
-                                            ` • Last updated: ${formatDate(client.updatedAt, "MMM d, yyyy")}`}
-                                        </p>
-                                      </div>
-                                    </form>
-                                  </Form>
-                                </DialogContent>
-                              </Dialog>
-                              
-                              <AlertDialog
-                                open={deleteClientId === client.id}
-                                onOpenChange={(open) => !open && setDeleteClientId(null)}
-                              >
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-red-500 border-red-200 hover:bg-red-50"
-                                    onClick={() => setDeleteClientId(client.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-1" />
-                                    Delete
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently delete the client "{client.name}" and cannot be undone.
-                                      Any project relationships with this client will be removed.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => deleteClient.mutate(client.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      {deleteClient.isPending && deleteClientId === client.id && (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      )}
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </>
+                      />
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={newClientForm.control}
+                          name="industry"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Industry</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                        />
+                        
+                        <FormField
+                          control={newClientForm.control}
+                          name="website"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Website</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="https://example.com" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <FormField
+                        control={newClientForm.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={newClientForm.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Address</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <h3 className="text-lg font-medium mt-6 mb-2">Contact Information</h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField
+                          control={newClientForm.control}
+                          name="contactName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Contact Name</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={newClientForm.control}
+                          name="contactEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="email" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={newClientForm.control}
+                          name="contactPhone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setOpenNewClient(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={createClient.isPending}
+                        >
+                          {createClient.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Create Client
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
+          
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle>Search Clients</CardTitle>
+              <CardDescription>
+                Find clients by name, industry, or contact person
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search clients..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          
+          {isLoadingClients ? (
+            <div className="flex justify-center items-center py-10">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead 
+                        className="w-[250px] cursor-pointer"
+                        onClick={() => handleSort("name")}
+                      >
+                        Name {renderSortIcon("name")}
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => handleSort("industry")}
+                      >
+                        Industry {renderSortIcon("industry")}
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => handleSort("contactName")}
+                      >
+                        Contact {renderSortIcon("contactName")}
+                      </TableHead>
+                      <TableHead>
+                        Projects
+                      </TableHead>
+                      <TableHead>
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredClients.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-6 text-gray-500">
+                          No clients found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredClients.map((client: Client) => (
+                        <TableRow key={client.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center">
+                              <Building className="h-4 w-4 mr-2 text-gray-400" />
+                              {client.name}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {client.industry || "—"}
+                          </TableCell>
+                          <TableCell>
+                            {client.contactName ? (
+                              <div>
+                                <div>{client.contactName}</div>
+                                {client.contactEmail && (
+                                  <div className="text-xs text-gray-500">
+                                    {client.contactEmail}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {countProjects(client.id)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              {isAdmin && (
+                                <>
+                                  <Dialog
+                                    open={editClientId === client.id}
+                                    onOpenChange={(open) => {
+                                      if (!open) setEditClientId(null);
+                                      if (open) populateEditForm(client.id);
+                                    }}
+                                  >
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => populateEditForm(client.id)}
+                                      >
+                                        <Edit className="h-4 w-4 mr-1" />
+                                        Edit
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[625px]">
+                                      <DialogHeader>
+                                        <DialogTitle>Edit Client</DialogTitle>
+                                        <DialogDescription>
+                                          Update details for {client.name}.
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <Form {...editClientForm}>
+                                        <form onSubmit={editClientForm.handleSubmit(onEditClientSubmit)} className="space-y-4">
+                                          <FormField
+                                            control={editClientForm.control}
+                                            name="name"
+                                            render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel>Client Name *</FormLabel>
+                                                <FormControl>
+                                                  <Input {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )}
+                                          />
+                                          
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField
+                                              control={editClientForm.control}
+                                              name="industry"
+                                              render={({ field }) => (
+                                                <FormItem>
+                                                  <FormLabel>Industry</FormLabel>
+                                                  <FormControl>
+                                                    <Input {...field} />
+                                                  </FormControl>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}
+                                            />
+                                            
+                                            <FormField
+                                              control={editClientForm.control}
+                                              name="website"
+                                              render={({ field }) => (
+                                                <FormItem>
+                                                  <FormLabel>Website</FormLabel>
+                                                  <FormControl>
+                                                    <Input {...field} placeholder="https://example.com" />
+                                                  </FormControl>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}
+                                            />
+                                          </div>
+                                          
+                                          <FormField
+                                            control={editClientForm.control}
+                                            name="description"
+                                            render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel>Description</FormLabel>
+                                                <FormControl>
+                                                  <Textarea {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )}
+                                          />
+                                          
+                                          <FormField
+                                            control={editClientForm.control}
+                                            name="address"
+                                            render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel>Address</FormLabel>
+                                                <FormControl>
+                                                  <Textarea {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )}
+                                          />
+                                          
+                                          <h3 className="text-lg font-medium mt-6 mb-2">Contact Information</h3>
+                                          
+                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <FormField
+                                              control={editClientForm.control}
+                                              name="contactName"
+                                              render={({ field }) => (
+                                                <FormItem>
+                                                  <FormLabel>Contact Name</FormLabel>
+                                                  <FormControl>
+                                                    <Input {...field} />
+                                                  </FormControl>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}
+                                            />
+                                            
+                                            <FormField
+                                              control={editClientForm.control}
+                                              name="contactEmail"
+                                              render={({ field }) => (
+                                                <FormItem>
+                                                  <FormLabel>Email</FormLabel>
+                                                  <FormControl>
+                                                    <Input {...field} type="email" />
+                                                  </FormControl>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}
+                                            />
+                                            
+                                            <FormField
+                                              control={editClientForm.control}
+                                              name="contactPhone"
+                                              render={({ field }) => (
+                                                <FormItem>
+                                                  <FormLabel>Phone</FormLabel>
+                                                  <FormControl>
+                                                    <Input {...field} />
+                                                  </FormControl>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}
+                                            />
+                                          </div>
+                                          
+                                          <DialogFooter>
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              onClick={() => setEditClientId(null)}
+                                            >
+                                              Cancel
+                                            </Button>
+                                            <Button
+                                              type="submit"
+                                              disabled={updateClient.isPending}
+                                            >
+                                              {updateClient.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                              Update Client
+                                            </Button>
+                                          </DialogFooter>
+                                          
+                                          {/* Client metadata with formatted dates */}
+                                          <div className="text-xs text-gray-500 mt-4 pt-4 border-t">
+                                            <p>
+                                              Client created: {formatDate(client.createdAt, "MMM d, yyyy")}
+                                              {client.updatedAt && client.updatedAt !== client.createdAt && 
+                                                ` • Last updated: ${formatDate(client.updatedAt, "MMM d, yyyy")}`}
+                                            </p>
+                                          </div>
+                                        </form>
+                                      </Form>
+                                    </DialogContent>
+                                  </Dialog>
+                                  
+                                  <AlertDialog
+                                    open={deleteClientId === client.id}
+                                    onOpenChange={(open) => !open && setDeleteClientId(null)}
+                                  >
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-red-500 border-red-200 hover:bg-red-50"
+                                        onClick={() => setDeleteClientId(client.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-1" />
+                                        Delete
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently delete the client "{client.name}" and cannot be undone.
+                                          Any project relationships with this client will be removed.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => deleteClient.mutate(client.id)}
+                                          className="bg-red-600 hover:bg-red-700"
+                                        >
+                                          {deleteClient.isPending && deleteClientId === client.id && (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          )}
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
