@@ -110,7 +110,10 @@ export default function ClientDetailPage() {
     error
   } = useQuery({
     queryKey: ['/api/clients', clientId],
-    queryFn: () => apiRequest<any>("GET", `/api/clients/${clientId}`),
+    queryFn: async () => {
+      const res = await apiRequest<any>("GET", `/api/clients/${clientId}`);
+      return await res.json();
+    },
     enabled: !isNaN(clientId)
   });
   
@@ -156,7 +159,11 @@ export default function ClientDetailPage() {
   // Update client mutation
   const updateClient = useMutation({
     mutationFn: async (data: z.infer<typeof clientSchema>) => {
-      return apiRequest<any>("PATCH", `/api/clients/${clientId}`, data);
+      const res = await apiRequest<any>("PATCH", `/api/clients/${clientId}`, data);
+      if (res.status === 204) {
+        return {}; // Return empty object for success with no content
+      }
+      return await res.json();
     },
     onSuccess: () => {
       toast({
@@ -179,7 +186,11 @@ export default function ClientDetailPage() {
   // Delete client mutation
   const deleteClient = useMutation({
     mutationFn: async () => {
-      return apiRequest<any>("DELETE", `/api/clients/${clientId}`);
+      const res = await apiRequest<any>("DELETE", `/api/clients/${clientId}`);
+      if (res.status === 204) {
+        return {}; // Return empty object for success with no content
+      }
+      return await res.json();
     },
     onSuccess: () => {
       toast({
