@@ -661,16 +661,16 @@ export default function UserProfilePage() {
                       {isLoadingProjects && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
                     </CardHeader>
                     <CardContent>
-                      {!userProjects || userProjects.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No project assignments found.
+                      {isLoadingProjects ? (
+                        <div className="flex justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                       ) : (
                         <div className="space-y-6">
                           {/* Current Projects */}
                           <div>
                             <h3 className="font-medium text-lg mb-4">Current Projects</h3>
-                            {userProjects.filter(p => !p.endDate || new Date(p.endDate) > new Date()).length === 0 ? (
+                            {(!userProjects || userProjects.filter(p => !p.endDate || new Date(p.endDate) > new Date()).length === 0) ? (
                               <div className="text-muted-foreground text-sm">No current project assignments.</div>
                             ) : (
                               <div className="grid gap-4 grid-cols-1">
@@ -704,7 +704,7 @@ export default function UserProfilePage() {
                                             )}
                                           </div>
                                         </div>
-                                        <Link href={`/projects/${project.projectId}`}>
+                                        <Link to={`/projects/${project.projectId}`}>
                                           <Button variant="outline" size="sm">View Project</Button>
                                         </Link>
                                       </div>
@@ -723,42 +723,57 @@ export default function UserProfilePage() {
                           <div>
                             <h3 className="font-medium text-lg mb-4">Past Projects</h3>
                             {/* Calculate if there are any past projects (including those from history) */}
-                            {(userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date()).length === 0 && 
+                            {((!userProjects || userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date()).length === 0) && 
                               (!projectHistory || projectHistory.filter(h => h.action === 'removed').length === 0)) ? (
                               <div className="text-muted-foreground text-sm">No past project assignments.</div>
                             ) : (
                               <div className="grid gap-4 grid-cols-1">
-                                {[
-                                  // Regular past projects (with end date) - cast them to ExtendedProjectResource
-                                  ...userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date())
-                                    .map(p => ({
-                                      id: p.id,
-                                      projectId: p.projectId,
-                                      userId: p.userId,
-                                      role: p.role,
-                                      allocation: p.allocation,
-                                      startDate: p.startDate,
-                                      endDate: p.endDate,
-                                      notes: p.notes,
-                                      createdAt: p.createdAt,
-                                      projectName: p.projectName
-                                    }) as ExtendedProjectResource),
-                                  // Projects the user was removed from (based on history)
-                                  ...(projectHistory ? projectHistory
-                                    .filter(h => h.action === 'removed')
-                                    .map(h => ({
-                                      id: h.id,
-                                      projectId: h.projectId,
-                                      userId: h.userId,
-                                      role: h.previousRole || 'Team Member',
-                                      allocation: h.previousAllocation,
-                                      startDate: null as string | null,
-                                      endDate: h.date,
-                                      notes: h.note || 'Removed from project',
-                                      createdAt: h.date,
-                                      projectName: h.projectName
-                                    } as ExtendedProjectResource)) : [])
-                                ].map(project => (
+                                {(() => {
+                                  // Create an array to hold all past projects
+                                  const pastProjects: ExtendedProjectResource[] = [];
+                                  
+                                  // Add regular past projects (with end date)
+                                  if (userProjects) {
+                                    userProjects
+                                      .filter(p => p.endDate && new Date(p.endDate) <= new Date())
+                                      .forEach(p => {
+                                        pastProjects.push({
+                                          id: p.id,
+                                          projectId: p.projectId,
+                                          userId: p.userId,
+                                          role: p.role,
+                                          allocation: p.allocation,
+                                          startDate: p.startDate,
+                                          endDate: p.endDate,
+                                          notes: p.notes,
+                                          createdAt: p.createdAt,
+                                          projectName: p.projectName
+                                        });
+                                      });
+                                  }
+                                  
+                                  // Add projects the user was removed from (based on history)
+                                  if (projectHistory) {
+                                    projectHistory
+                                      .filter(h => h.action === 'removed')
+                                      .forEach(h => {
+                                        pastProjects.push({
+                                          id: h.id,
+                                          projectId: h.projectId,
+                                          userId: h.userId,
+                                          role: h.previousRole || 'Team Member',
+                                          allocation: h.previousAllocation,
+                                          startDate: null,
+                                          endDate: h.date,
+                                          notes: h.note || 'Removed from project',
+                                          createdAt: h.date,
+                                          projectName: h.projectName
+                                        });
+                                      });
+                                  }
+                                  
+                                  return pastProjects;
+                                })().map(project => (
                                     <div key={project.id} className="p-4 border rounded-lg bg-muted/30">
                                       <div className="flex justify-between items-start">
                                         <div>
