@@ -602,7 +602,8 @@ export default function UserProfilePage() {
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">Past Projects</span>
                         <span className="font-bold">
-                          {userProjects ? userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date()).length : 0}
+                          {(userProjects ? userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date()).length : 0) + 
+                           (projectHistory ? projectHistory.filter(h => h.action === 'removed').length : 0)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -615,7 +616,15 @@ export default function UserProfilePage() {
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-medium">Total Projects</span>
                           <span className="font-bold">
-                            {userProjects ? (new Set(userProjects.map(p => p.projectId))).size : 0}
+                            {userProjects ? 
+                              (new Set([
+                                ...userProjects.map(p => p.projectId),
+                                ...(projectHistory ? 
+                                  projectHistory
+                                    .filter(h => h.action === 'removed')
+                                    .map(h => h.projectId) : 
+                                  [])
+                              ])).size : 0}
                           </span>
                         </div>
                       </div>
@@ -699,13 +708,44 @@ export default function UserProfilePage() {
                           {/* Past Projects */}
                           <div>
                             <h3 className="font-medium text-lg mb-4">Past Projects</h3>
-                            {userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date()).length === 0 ? (
+                            {userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date())
+                              .concat(projectHistory ? projectHistory
+                                .filter(h => h.action === 'removed')
+                                .map(h => ({
+                                  id: h.id,
+                                  projectId: h.projectId,
+                                  userId: h.userId,
+                                  role: h.previousRole || 'Team Member',
+                                  allocation: h.previousAllocation,
+                                  startDate: null,
+                                  endDate: h.date,
+                                  notes: h.note,
+                                  createdAt: h.date,
+                                  projectName: h.projectName
+                                })) : [])
+                              .length === 0 ? (
                               <div className="text-muted-foreground text-sm">No past project assignments.</div>
                             ) : (
                               <div className="grid gap-4 grid-cols-1">
-                                {userProjects
-                                  .filter(p => p.endDate && new Date(p.endDate) <= new Date())
-                                  .map(project => (
+                                {[
+                                  // Regular past projects (with end date)
+                                  ...userProjects.filter(p => p.endDate && new Date(p.endDate) <= new Date()),
+                                  // Projects the user was removed from (based on history)
+                                  ...(projectHistory ? projectHistory
+                                    .filter(h => h.action === 'removed')
+                                    .map(h => ({
+                                      id: h.id,
+                                      projectId: h.projectId,
+                                      userId: h.userId,
+                                      role: h.previousRole || 'Team Member',
+                                      allocation: h.previousAllocation,
+                                      startDate: null,
+                                      endDate: h.date,
+                                      notes: h.note || 'Removed from project',
+                                      createdAt: h.date,
+                                      projectName: h.projectName
+                                    })) : [])
+                                ].map(project => (
                                     <div key={project.id} className="p-4 border rounded-lg bg-muted/30">
                                       <div className="flex justify-between items-start">
                                         <div>
