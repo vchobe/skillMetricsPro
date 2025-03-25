@@ -36,6 +36,8 @@ import {
   Clock,
   Bookmark,
   BadgeCheck,
+  Layers,
+  Code2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -115,12 +117,19 @@ export default function OrgDashboard() {
     queryKey: ["/api/admin/skill-history"],
   });
   
-  // Extract all unique skill categories
+  // Extract all unique skill categories and names
   useEffect(() => {
     if (allSkills) {
       const categoriesSet = new Set<string>();
-      allSkills.forEach(skill => categoriesSet.add(skill.category || 'Other'));
+      const namesSet = new Set<string>();
+      
+      allSkills.forEach(skill => {
+        categoriesSet.add(skill.category || 'Other');
+        namesSet.add(skill.name);
+      });
+      
       setSkillCategories(Array.from(categoriesSet));
+      setSkillNames(Array.from(namesSet).sort());
     }
   }, [allSkills]);
   
@@ -666,6 +675,58 @@ export default function OrgDashboard() {
                                 </DropdownMenuSubContent>
                               </DropdownMenuSub>
                               
+                              {/* Skill Category Filter */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <span className="flex items-center">
+                                    <Layers className="mr-2 h-4 w-4" />
+                                    <span>Skill Category</span>
+                                  </span>
+                                  {filters.category && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="w-48 max-h-[300px] overflow-y-auto">
+                                  {skillCategories.map(category => (
+                                    <DropdownMenuCheckboxItem
+                                      key={category}
+                                      checked={filters.category === category}
+                                      onCheckedChange={() => applyFilter('category', filters.category === category ? undefined : category)}
+                                    >
+                                      {category}
+                                    </DropdownMenuCheckboxItem>
+                                  ))}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => applyFilter('category', undefined)}>
+                                    Clear Filter
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              
+                              {/* Specific Skill Filter */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <span className="flex items-center">
+                                    <Code2 className="mr-2 h-4 w-4" />
+                                    <span>Specific Skill</span>
+                                  </span>
+                                  {filters.skillName && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="w-48 max-h-[300px] overflow-y-auto">
+                                  {skillNames.map(name => (
+                                    <DropdownMenuCheckboxItem
+                                      key={name}
+                                      checked={filters.skillName === name}
+                                      onCheckedChange={() => applyFilter('skillName', filters.skillName === name ? undefined : name)}
+                                    >
+                                      {name}
+                                    </DropdownMenuCheckboxItem>
+                                  ))}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => applyFilter('skillName', undefined)}>
+                                    Clear Filter
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              
                               {/* Date Joined Filter */}
                               <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>
@@ -757,8 +818,34 @@ export default function OrgDashboard() {
                         </div>
                         
                         {/* Active filters display */}
-                        {(filters.skillLevel || filters.hasCertification || filters.dateJoined || filters.skillCount || filters.category) && (
+                        {(filters.skillLevel || filters.hasCertification || filters.dateJoined || filters.skillCount || filters.category || filters.skillName) && (
                           <div className="flex flex-wrap gap-2 mt-2">
+                            {filters.category && (
+                              <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                                <Layers className="h-3 w-3 mr-1" />
+                                <span>Category: {filters.category}</span>
+                                <button 
+                                  onClick={() => applyFilter('category', undefined)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                            
+                            {filters.skillName && (
+                              <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                                <Code2 className="h-3 w-3 mr-1" />
+                                <span>Skill: {filters.skillName}</span>
+                                <button 
+                                  onClick={() => applyFilter('skillName', undefined)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                            
                             {filters.skillLevel && (
                               <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
                                 <Trophy className="h-3 w-3 mr-1" />
