@@ -1868,7 +1868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Admin can see any user's history, but regular users should only see their own
       const requestUser = req.user;
-      if (!requestUser || (parseInt(requestUser.id) !== userId && !requestUser.is_admin)) {
+      if (!requestUser || (parseInt(String(requestUser.id)) !== userId && !requestUser.is_admin)) {
         return res.status(403).json({ message: "Not authorized to view this user's project history" });
       }
 

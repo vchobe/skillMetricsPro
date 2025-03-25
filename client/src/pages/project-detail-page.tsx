@@ -427,11 +427,16 @@ export default function ProjectDetailPage() {
   // Remove resource mutation
   const removeResource = useMutation({
     mutationFn: async (resourceId: number) => {
-      return apiRequest("DELETE", `/api/projects/resources/${resourceId}`);
+      const response = await apiRequest("DELETE", `/api/projects/resources/${resourceId}`);
+      return response;
     },
     onSuccess: () => {
+      // Invalidate both resource lists and history
       queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "resources"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "resource-history"] });
+      // Also invalidate user projects as this change might affect user's project list
+      queryClient.invalidateQueries({ queryKey: ["/api/user/projects"] });
+      
       toast({
         title: "Success",
         description: "Resource removed successfully",
@@ -440,6 +445,7 @@ export default function ProjectDetailPage() {
       setOpenRemoveResource(null);
     },
     onError: (error: Error) => {
+      console.error("Error removing resource:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to remove resource",
