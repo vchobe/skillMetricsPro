@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -553,7 +554,9 @@ export default function ClientsPage() {
                           <TableCell className="font-medium">
                             <div className="flex items-center">
                               <Building className="h-4 w-4 mr-2 text-gray-400" />
-                              {client.name}
+                              <Link to={`/clients/${client.id}`} className="text-blue-600 hover:underline cursor-pointer">
+                                {client.name}
+                              </Link>
                             </div>
                           </TableCell>
                           <TableCell>
