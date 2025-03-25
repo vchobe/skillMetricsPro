@@ -1130,7 +1130,7 @@ export default function ProjectDetailPage() {
                       <FormLabel>Status</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value ?? ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1519,7 +1519,7 @@ export default function ProjectDetailPage() {
                     <FormLabel>Required Level</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      defaultValue={field.value ?? ""}
                     >
                       <FormControl>
                         <SelectTrigger>
