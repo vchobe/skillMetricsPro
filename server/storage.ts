@@ -1897,32 +1897,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async getUserProjectResources(userId: number): Promise<ProjectResource[]> {
-    try {
-      const result = await pool.query(`
-        SELECT pr.*, p.name as project_name
-        FROM project_resources pr
-        JOIN projects p ON pr.project_id = p.id
-        WHERE pr.user_id = $1
-        ORDER BY pr.start_date DESC
-      `, [userId]);
-      
-      // Ensure dates are properly formatted for each resource
-      return result.rows.map(row => {
-        // Format dates as ISO strings if they exist
-        if (row.start_date) {
-          row.start_date = new Date(row.start_date).toISOString();
-        }
-        if (row.end_date) {
-          row.end_date = new Date(row.end_date).toISOString();
-        }
-        return this.snakeToCamel(row);
-      }) as ProjectResource[];
-    } catch (error) {
-      console.error(`Error retrieving project resources for user ${userId}:`, error);
-      throw error;
-    }
-  }
+  // getUserProjectResources implementation moved to line ~2867
 
   async getProjectResource(id: number): Promise<ProjectResource | undefined> {
     try {
@@ -2874,7 +2849,18 @@ export class PostgresStorage implements IStorage {
         ORDER BY pr.start_date DESC
       `, [userId]);
       
-      return this.snakeToCamel(result.rows);
+      // Ensure dates are properly formatted for each resource
+      return result.rows.map(row => {
+        const processed = { ...row };
+        // Format dates as ISO strings if they exist
+        if (processed.start_date) {
+          processed.start_date = new Date(processed.start_date).toISOString();
+        }
+        if (processed.end_date) {
+          processed.end_date = new Date(processed.end_date).toISOString();
+        }
+        return this.snakeToCamel(processed);
+      }) as ProjectResource[];
     } catch (error) {
       console.error("Error getting user project resources:", error);
       throw error;
