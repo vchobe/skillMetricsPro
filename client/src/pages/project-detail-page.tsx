@@ -5,6 +5,94 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDate } from "@/lib/date-utils";
+import Sidebar from "@/components/sidebar";
+import Header from "@/components/header";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Loader2,
+  ArrowLeft,
+  Users,
+  Calendar,
+  MapPin,
+  Link as LinkIcon,
+  Edit,
+  Plus,
+  Trash2,
+  AlertCircle,
+  Download,
+  FileText,
+  Computer,
+  Building,
+  CheckCircle,
+  XCircle,
+  Mail,
+} from "lucide-react";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import SkillLevelBadge from "@/components/skill-level-badge";
 
 // Define types for API responses
 interface Project {
@@ -104,92 +192,6 @@ interface ResourceHistory {
   note?: string;
 }
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Loader2,
-  ArrowLeft,
-  Users,
-  Calendar,
-  MapPin,
-  Link as LinkIcon,
-  Edit,
-  Plus,
-  Trash2,
-  AlertCircle,
-  Download,
-  FileText,
-  Computer,
-  Building,
-  CheckCircle,
-  XCircle,
-  Mail,
-} from "lucide-react";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import SkillLevelBadge from "@/components/skill-level-badge";
-
 // Project schema for form validation
 const projectSchema = z.object({
   name: z.string().min(2, "Project name is required"),
@@ -234,6 +236,7 @@ export default function ProjectDetailPage() {
   const { toast } = useToast();
   const isAdmin = user?.isAdmin || user?.is_admin;
   
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [openEditProject, setOpenEditProject] = useState(false);
   const [openAddResource, setOpenAddResource] = useState(false);
   const [openRemoveResource, setOpenRemoveResource] = useState<number | null>(null);
@@ -545,7 +548,7 @@ export default function ProjectDetailPage() {
         !projectSkills || !projectSkills.some((ps: ProjectSkill) => ps.skillId === skill.id)
       )
     : [];
-  
+    
   // Create an array of available users (all users except those already assigned)
   const availableUsers = users
     ? users.filter((user: User) => 
@@ -553,1119 +556,1005 @@ export default function ProjectDetailPage() {
       )
     : [];
   
-  if (isLoadingProject) {
+  if (isLoadingProject || !project) {
     return (
-      <div className="container mx-auto py-10 flex justify-center items-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="flex h-screen w-full">
+        <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/projects" />
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-lg text-gray-600">Loading project details...</p>
+        </div>
       </div>
     );
   }
-  
-  if (!project) {
-    return (
-      <div className="container mx-auto py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Project Not Found</CardTitle>
-            <CardDescription>
-              The project you're looking for doesn't exist or you don't have permission to view it.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button onClick={() => setLocation("/projects")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Projects
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-  
+
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4">
-          <div className="flex items-center mb-4 sm:mb-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLocation("/projects")}
-              className="mr-4"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-            <h1 className="text-3xl font-bold">{project.name}</h1>
-          </div>
-          
-          {isAdmin && (
-            <div className="flex gap-2">
-              <Dialog open={openEditProject} onOpenChange={setOpenEditProject}>
-                <DialogTrigger asChild>
-                  <Button>
+    <div className="flex h-screen w-full">
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/projects" />
+      
+      <div className="flex-1 flex flex-col overflow-auto">
+        <Header title={project.name} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} isSidebarOpen={sidebarOpen} />
+        
+        <div className="container mx-auto py-6 px-4">
+          <div className="mb-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4">
+              <div className="flex items-center mb-4 sm:mb-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/projects")}
+                  className="mr-4"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <h1 className="text-3xl font-bold">{project.name}</h1>
+              </div>
+              
+              {isAdmin && (
+                <div className="flex space-x-2">
+                  <Button variant="outline" onClick={() => setOpenEditProject(true)}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Project
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[625px]">
-                  <DialogHeader>
-                    <DialogTitle>Edit Project</DialogTitle>
-                    <DialogDescription>
-                      Update details for {project.name}.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <Form {...editProjectForm}>
-                    <form onSubmit={editProjectForm.handleSubmit(onEditProjectSubmit)} className="space-y-4">
-                      <FormField
-                        control={editProjectForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Project Name *</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={editProjectForm.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                              <Textarea {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={editProjectForm.control}
-                          name="clientId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Client</FormLabel>
-                              <FormControl>
-                                <Select
-                                  onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                                  value={field.value?.toString() || ""}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a client" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="null">None</SelectItem>
-                                    {clients?.map((client: Client) => (
-                                      <SelectItem key={client.id} value={client.id.toString()}>
-                                        {client.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={editProjectForm.control}
-                          name="status"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Status</FormLabel>
-                              <FormControl>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="active">Active</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="on_hold">On Hold</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={editProjectForm.control}
-                          name="startDate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Start Date</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="date"
-                                  {...field}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={editProjectForm.control}
-                          name="endDate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>End Date</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="date"
-                                  {...field}
-                                  value={field.value || ""}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <FormField
-                        control={editProjectForm.control}
-                        name="location"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Location</FormLabel>
-                            <FormControl>
-                              <Input {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={editProjectForm.control}
-                        name="confluenceLink"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Documentation Link</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                value={field.value || ""}
-                                placeholder="https://confluence.example.com/project"
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Link to Confluence page or other project documentation
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={editProjectForm.control}
-                          name="hrCoordinatorEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>HR Coordinator Email</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  value={field.value || ""}
-                                  placeholder="hr@example.com"
-                                  type="email"
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Email for resource notifications to HR
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={editProjectForm.control}
-                          name="financeTeamEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Finance Team Email</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  value={field.value || ""}
-                                  placeholder="finance@example.com"
-                                  type="email"
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Email for resource notifications to Finance
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={editProjectForm.control}
-                          name="leadId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Project Lead</FormLabel>
-                              <FormControl>
-                                <Select
-                                  onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                                  value={field.value?.toString() || ""}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select project lead" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="null">None</SelectItem>
-                                    {users?.map((user: any) => (
-                                      <SelectItem key={user.id} value={user.id.toString()}>
-                                        {`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={editProjectForm.control}
-                          name="deliveryLeadId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Delivery Lead</FormLabel>
-                              <FormControl>
-                                <Select
-                                  onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                                  value={field.value?.toString() || ""}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select delivery lead" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="null">None</SelectItem>
-                                    {users?.map((user: any) => (
-                                      <SelectItem key={user.id} value={user.id.toString()}>
-                                        {`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setOpenEditProject(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          disabled={updateProject.isPending}
-                        >
-                          {updateProject.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Save Changes
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          )}
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Client</CardDescription>
-              <CardTitle className="text-lg">
-                {project.clientId ? (
-                  <div className="flex items-center">
-                    <Building className="h-4 w-4 mr-2 text-gray-400" />
-                    {getClientName(project.clientId)}
-                  </div>
-                ) : (
-                  <span className="text-gray-500">—</span>
-                )}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Timeline</CardDescription>
-              <CardTitle className="text-lg">
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                  <span>
-                    {project.startDate 
-                      ? formatDate(project.startDate, "MMM d, yyyy") 
-                      : "—"} 
-                    {project.startDate && project.endDate ? " → " : ""}
-                    {project.endDate 
-                      ? formatDate(project.endDate, "MMM d, yyyy") 
-                      : project.startDate ? " (Ongoing)" : ""}
-                  </span>
+                  <Button onClick={() => setOpenAddResource(true)}>
+                    <Users className="mr-2 h-4 w-4" />
+                    Add Resource
+                  </Button>
+                  <Button variant="outline" onClick={() => setOpenAddSkill(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Skill
+                  </Button>
                 </div>
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Location</CardDescription>
-              <CardTitle className="text-lg">
-                {project.location ? (
-                  <div className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                    {project.location}
-                  </div>
-                ) : (
-                  <span className="text-gray-500">—</span>
-                )}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Status</CardDescription>
-              <CardTitle className="text-lg">
-                <span 
-                  className={`
-                    px-2 py-1 rounded-full text-xs font-medium 
-                    ${project.status === 'active' ? 'bg-green-100 text-green-800' : ''} 
-                    ${project.status === 'completed' ? 'bg-blue-100 text-blue-800' : ''} 
-                    ${project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800' : ''} 
-                    ${project.status === 'cancelled' ? 'bg-red-100 text-red-800' : ''} 
-                  `}
-                >
-                  {project.status === 'active' && 'Active'}
-                  {project.status === 'completed' && 'Completed'}
-                  {project.status === 'on_hold' && 'On Hold'}
-                  {project.status === 'cancelled' && 'Cancelled'}
-                  {!['active', 'completed', 'on_hold', 'cancelled'].includes(project.status) && project.status}
-                </span>
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </div>
-        
-        {project.description && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Description</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="whitespace-pre-line">{project.description}</div>
-            </CardContent>
-          </Card>
-        )}
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Leadership</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-1 gap-4">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 mb-1">Project Lead</dt>
-                  <dd>{getUserName(project.leadId || null)}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 mb-1">Delivery Lead</dt>
-                  <dd>{getUserName(project.deliveryLeadId || null)}</dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Documentation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {project.confluenceLink ? (
-                <div className="mb-4">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Confluence Link</div>
-                  <div className="flex items-center">
-                    <LinkIcon className="h-4 w-4 mr-2 text-gray-400" />
-                    <a
-                      href={project.confluenceLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline truncate"
-                    >
-                      {project.confluenceLink}
-                    </a>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-gray-500">No documentation links available</div>
               )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-1 gap-4">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 mb-1">HR Coordinator</dt>
-                  <dd className="flex items-center">
-                    {project.hrCoordinatorEmail ? (
-                      <>
-                        <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                        <a href={`mailto:${project.hrCoordinatorEmail}`} className="text-blue-600 hover:underline">
-                          {project.hrCoordinatorEmail}
-                        </a>
-                      </>
-                    ) : (
-                      <span className="text-gray-500">No HR email configured</span>
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 mb-1">Finance Team</dt>
-                  <dd className="flex items-center">
-                    {project.financeTeamEmail ? (
-                      <>
-                        <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                        <a href={`mailto:${project.financeTeamEmail}`} className="text-blue-600 hover:underline">
-                          {project.financeTeamEmail}
-                        </a>
-                      </>
-                    ) : (
-                      <span className="text-gray-500">No Finance email configured</span>
-                    )}
-                  </dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Metadata</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-1 gap-4">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 mb-1">Created</dt>
-                  <dd>{formatDate(project.createdAt, "MMM d, yyyy")}</dd>
-                </div>
-                {project.updatedAt && project.updatedAt !== project.createdAt && (
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500 mb-1">Last Updated</dt>
-                    <dd>{formatDate(project.updatedAt, "MMM d, yyyy")}</dd>
-                  </div>
-                )}
-              </dl>
-            </CardContent>
-          </Card>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-gray-500 flex items-center">
+                    <Building className="h-4 w-4 mr-2" />
+                    Client
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-lg font-medium">{getClientName(project.clientId)}</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-gray-500 flex items-center">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Dates
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-md">
+                    <span className="font-medium">Start:</span> {project.startDate ? formatDate(project.startDate) : "Not set"}
+                  </p>
+                  <p className="text-md">
+                    <span className="font-medium">End:</span> {project.endDate ? formatDate(project.endDate) : "Not set"}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-gray-500 flex items-center">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Location
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-lg font-medium">{project.location || "Not specified"}</p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-gray-500 flex items-center">
+                    <Users className="h-4 w-4 mr-2" />
+                    Leadership
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-md">
+                    <span className="font-medium">Project Lead:</span> {getUserName(project.leadId)}
+                  </p>
+                  <p className="text-md">
+                    <span className="font-medium">Delivery Lead:</span> {getUserName(project.deliveryLeadId)}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-gray-500 flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Badge 
+                    className={
+                      project.status === "active" ? "bg-green-100 text-green-800" :
+                      project.status === "planning" ? "bg-blue-100 text-blue-800" :
+                      project.status === "completed" ? "bg-gray-100 text-gray-800" :
+                      "bg-yellow-100 text-yellow-800"
+                    }
+                  >
+                    {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                  </Badge>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-gray-500 flex items-center">
+                    <Mail className="h-4 w-4 mr-2" />
+                    Notification Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm">
+                  <p className="text-md">
+                    <span className="font-medium">HR:</span> {project.hrCoordinatorEmail || "Not set"}
+                  </p>
+                  <p className="text-md">
+                    <span className="font-medium">Finance:</span> {project.financeTeamEmail || "Not set"}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {project.description && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Description</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="whitespace-pre-line">{project.description}</p>
+                </CardContent>
+              </Card>
+            )}
+            
+            {project.confluenceLink && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <LinkIcon className="h-4 w-4 mr-2" />
+                    Project Documentation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <a 
+                    href={project.confluenceLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-blue-500 hover:underline flex items-center"
+                  >
+                    {project.confluenceLink}
+                    <LinkIcon className="ml-2 h-4 w-4" />
+                  </a>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+          
+          <Tabs defaultValue="resources">
+            <TabsList>
+              <TabsTrigger value="resources">Resources</TabsTrigger>
+              <TabsTrigger value="skills">Required Skills</TabsTrigger>
+              <TabsTrigger value="history">Resource History</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="resources">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Resources</CardTitle>
+                  <CardDescription>
+                    Team members assigned to this project
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingResources ? (
+                    <div className="flex justify-center py-6">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : !resources || resources.length === 0 ? (
+                    <div className="text-center py-6">
+                      <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium mb-1">No resources assigned</h3>
+                      <p className="text-gray-500">
+                        This project doesn't have any team members assigned to it yet.
+                      </p>
+                      {isAdmin && (
+                        <Button
+                          onClick={() => setOpenAddResource(true)}
+                          className="mt-4"
+                        >
+                          <Users className="mr-2 h-4 w-4" />
+                          Add Resource
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Allocation</TableHead>
+                            <TableHead>Start Date</TableHead>
+                            <TableHead>End Date</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {resources.map((resource: ProjectResource) => (
+                            <TableRow key={resource.id}>
+                              <TableCell className="font-medium">{getUserName(resource.userId)}</TableCell>
+                              <TableCell>{resource.role || "—"}</TableCell>
+                              <TableCell>{resource.allocation || 100}%</TableCell>
+                              <TableCell>
+                                {resource.startDate ? formatDate(resource.startDate) : "Not set"}
+                              </TableCell>
+                              <TableCell>
+                                {resource.endDate ? formatDate(resource.endDate) : "Not set"}
+                              </TableCell>
+                              <TableCell>
+                                {isAdmin && (
+                                  <AlertDialog open={openRemoveResource === resource.id} onOpenChange={(isOpen) => {
+                                    if (!isOpen) setOpenRemoveResource(null);
+                                  }}>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setOpenRemoveResource(resource.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Remove Resource</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to remove {getUserName(resource.userId)} from this project?
+                                          This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          className="bg-red-600 text-white hover:bg-red-700"
+                                          onClick={() => removeResource.mutate(resource.id)}
+                                        >
+                                          {removeResource.isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            "Remove"
+                                          )}
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="skills">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Required Skills</CardTitle>
+                  <CardDescription>
+                    Skills needed for this project
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingProjectSkills ? (
+                    <div className="flex justify-center py-6">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : !projectSkills || projectSkills.length === 0 ? (
+                    <div className="text-center py-6">
+                      <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium mb-1">No skills defined</h3>
+                      <p className="text-gray-500">
+                        No specific skills have been identified for this project yet.
+                      </p>
+                      {isAdmin && (
+                        <Button
+                          onClick={() => setOpenAddSkill(true)}
+                          className="mt-4"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Skill
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Skill</TableHead>
+                            <TableHead>Available Level</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Required Level</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {projectSkills.map((projectSkill: ProjectSkill) => {
+                            const skill = getSkill(projectSkill.skillId);
+                            return (
+                              <TableRow key={projectSkill.id}>
+                                <TableCell className="font-medium">
+                                  {skill ? skill.name : getSkillName(projectSkill.skillId)}
+                                </TableCell>
+                                <TableCell>
+                                  {skill && <SkillLevelBadge level={skill.level} />}
+                                </TableCell>
+                                <TableCell>{skill?.category || "—"}</TableCell>
+                                <TableCell>
+                                  <SkillLevelBadge level={projectSkill.requiredLevel} />
+                                </TableCell>
+                                <TableCell>
+                                  {isAdmin && (
+                                    <AlertDialog open={openRemoveSkill === projectSkill.id} onOpenChange={(isOpen) => {
+                                      if (!isOpen) setOpenRemoveSkill(null);
+                                    }}>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => setOpenRemoveSkill(projectSkill.id)}
+                                        >
+                                          <Trash2 className="h-4 w-4 text-red-500" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Remove Skill</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to remove this skill from the project requirements?
+                                            This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            className="bg-red-600 text-white hover:bg-red-700"
+                                            onClick={() => removeProjectSkill.mutate(projectSkill.id)}
+                                          >
+                                            {removeProjectSkill.isPending ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              "Remove"
+                                            )}
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="history">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Resource History</CardTitle>
+                  <CardDescription>
+                    Record of resource changes on this project
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingHistory ? (
+                    <div className="flex justify-center py-6">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : !resourceHistory || resourceHistory.length === 0 ? (
+                    <div className="text-center py-6">
+                      <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium mb-1">No history available</h3>
+                      <p className="text-gray-500">
+                        No resource changes have been recorded for this project yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Resource</TableHead>
+                            <TableHead>Action</TableHead>
+                            <TableHead>Performed By</TableHead>
+                            <TableHead>Details</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {resourceHistory.map((history: ResourceHistory) => (
+                            <TableRow key={history.id}>
+                              <TableCell>
+                                {formatDate(history.date)}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {getUserName(history.userId)}
+                              </TableCell>
+                              <TableCell>
+                                {history.action === 'added' && (
+                                  <Badge className="bg-green-100 text-green-800">Added</Badge>
+                                )}
+                                {history.action === 'removed' && (
+                                  <Badge className="bg-red-100 text-red-800">Removed</Badge>
+                                )}
+                                {history.action === 'role_changed' && (
+                                  <Badge className="bg-blue-100 text-blue-800">Role Changed</Badge>
+                                )}
+                                {history.action === 'allocation_changed' && (
+                                  <Badge className="bg-yellow-100 text-yellow-800">Allocation Changed</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {history.performedById ? getUserName(history.performedById) : "—"}
+                              </TableCell>
+                              <TableCell>
+                                {history.action === 'added' && 
+                                  `Role: ${history.newRole || "N/A"}, Allocation: ${history.newAllocation || 0}%`}
+                                {history.action === 'removed' && 
+                                  `Previous role: ${history.previousRole || "N/A"}`}
+                                {history.action === 'role_changed' && 
+                                  `${history.previousRole || "None"} → ${history.newRole || "None"}`}
+                                {history.action === 'allocation_changed' && 
+                                  `${history.previousAllocation || 0}% → ${history.newAllocation || 0}%`}
+                                {history.note && `: ${history.note}`}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
       
-      <Tabs defaultValue="resources" className="w-full mb-8">
-        <TabsList className="mb-4">
-          <TabsTrigger value="resources">Resources</TabsTrigger>
-          <TabsTrigger value="skills">Required Skills</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
-        </TabsList>
-        
-        {/* Resources Tab */}
-        <TabsContent value="resources">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Project Resources</CardTitle>
-                <CardDescription>
-                  Team members assigned to this project
-                </CardDescription>
-              </div>
-              {isAdmin && (
-                <Dialog open={openAddResource} onOpenChange={setOpenAddResource}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Resource
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add Resource to Project</DialogTitle>
-                      <DialogDescription>
-                        Assign a team member to this project.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <Form {...addResourceForm}>
-                      <form onSubmit={addResourceForm.handleSubmit(onAddResourceSubmit)} className="space-y-4">
-                        <FormField
-                          control={addResourceForm.control}
-                          name="userId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>User</FormLabel>
-                              <FormControl>
-                                <Select
-                                  onValueChange={(value) => field.onChange(parseInt(value))}
-                                  defaultValue={field.value.toString()}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select user" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {availableUsers.length === 0 ? (
-                                      <SelectItem value="0" disabled>
-                                        No available users
-                                      </SelectItem>
-                                    ) : (
-                                      availableUsers.map((user: User) => (
-                                        <SelectItem key={user.id} value={user.id.toString()}>
-                                          {`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username}
-                                        </SelectItem>
-                                      ))
-                                    )}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={addResourceForm.control}
-                          name="role"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Role</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g. Developer, Designer, etc." />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={addResourceForm.control}
-                          name="allocation"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Allocation (%)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  max="100"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Percentage of time allocated to this project (1-100)
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <FormField
-                            control={addResourceForm.control}
-                            name="startDate"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Start Date</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="date"
-                                    {...field}
-                                    value={field.value || ""}
-                                    onChange={(e) => {
-                                      // Handle empty strings properly
-                                      const value = e.target.value || null;
-                                      field.onChange(value);
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={addResourceForm.control}
-                            name="endDate"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>End Date</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="date"
-                                    {...field}
-                                    value={field.value || ""}
-                                    onChange={(e) => {
-                                      // Handle empty strings properly
-                                      const value = e.target.value || null;
-                                      field.onChange(value);
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        
-                        <DialogFooter>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setOpenAddResource(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="submit"
-                            disabled={addResource.isPending || availableUsers.length === 0}
-                          >
-                            {addResource.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Add Resource
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
-              )}
-            </CardHeader>
-            <CardContent>
-              {isLoadingResources ? (
-                <div className="flex justify-center items-center py-10">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : resources && resources.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Allocation</TableHead>
-                        <TableHead>Timeline</TableHead>
-                        {isAdmin && <TableHead>Actions</TableHead>}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {resources.map((resource: ProjectResource) => (
-                        <TableRow key={resource.id}>
-                          <TableCell className="font-medium">
-                            {getUserName(resource.userId)}
-                          </TableCell>
-                          <TableCell>{resource.role || "—"}</TableCell>
-                          <TableCell>{resource.allocation}%</TableCell>
-                          <TableCell>
-                            {resource.startDate 
-                              ? formatDate(resource.startDate, "MMM d, yyyy") 
-                              : "—"} 
-                            {resource.startDate && resource.endDate ? " → " : ""}
-                            {resource.endDate 
-                              ? formatDate(resource.endDate, "MMM d, yyyy") 
-                              : resource.startDate ? " (Ongoing)" : ""}
-                          </TableCell>
-                          {isAdmin && (
-                            <TableCell>
-                              <AlertDialog
-                                open={openRemoveResource === resource.id}
-                                onOpenChange={(open) => !open && setOpenRemoveResource(null)}
-                              >
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setOpenRemoveResource(resource.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-1" />
-                                    Remove
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will remove {getUserName(resource.userId)} from the project.
-                                      This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel onClick={() => setOpenRemoveResource(null)}>
-                                      Cancel
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => removeResource.mutate(resource.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      {removeResource.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                      Remove
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium mb-1">No resources assigned</h3>
-                  <p className="text-gray-500 mb-4">
-                    This project doesn't have any team members assigned yet.
-                  </p>
-                  {isAdmin && (
-                    <Button
-                      onClick={() => setOpenAddResource(true)}
-                      disabled={availableUsers.length === 0}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Resource
-                    </Button>
+      {/* Edit Project Dialog */}
+      <Dialog open={openEditProject} onOpenChange={setOpenEditProject}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+            <DialogDescription>
+              Update the project details. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...editProjectForm}>
+            <form onSubmit={editProjectForm.handleSubmit(onEditProjectSubmit)} className="space-y-4">
+              <FormField
+                control={editProjectForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editProjectForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea rows={3} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editProjectForm.control}
+                  name="clientId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Client</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                        value={field.value !== null ? field.value.toString() : ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select client" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {clients?.map((client: Client) => (
+                            <SelectItem key={client.id} value={client.id.toString()}>
+                              {client.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* Skills Tab */}
-        <TabsContent value="skills">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Required Skills</CardTitle>
-                <CardDescription>
-                  Skills needed for this project
-                </CardDescription>
-              </div>
-              {isAdmin && (
-                <Dialog open={openAddSkill} onOpenChange={setOpenAddSkill}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Skill
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add Skill to Project</DialogTitle>
-                      <DialogDescription>
-                        Add a required skill for this project.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <Form {...addSkillForm}>
-                      <form onSubmit={addSkillForm.handleSubmit(onAddSkillSubmit)} className="space-y-4">
-                        <FormField
-                          control={addSkillForm.control}
-                          name="skillId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Skill</FormLabel>
-                              <FormControl>
-                                <Select
-                                  onValueChange={(value) => field.onChange(parseInt(value))}
-                                  defaultValue={field.value.toString()}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select skill" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {availableSkills.length === 0 ? (
-                                      <SelectItem value="0" disabled>
-                                        No available skills
-                                      </SelectItem>
-                                    ) : (
-                                      availableSkills.map((skill: Skill) => (
-                                        <SelectItem key={skill.id} value={skill.id.toString()}>
-                                          {skill.name} - {skill.category}
-                                        </SelectItem>
-                                      ))
-                                    )}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={addSkillForm.control}
-                          name="requiredLevel"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Required Level</FormLabel>
-                              <FormControl>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="beginner">Beginner</SelectItem>
-                                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                                    <SelectItem value="expert">Expert</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <DialogFooter>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setOpenAddSkill(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="submit"
-                            disabled={addProjectSkill.isPending || availableSkills.length === 0}
-                          >
-                            {addProjectSkill.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Add Skill
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
-              )}
-            </CardHeader>
-            <CardContent>
-              {isLoadingProjectSkills ? (
-                <div className="flex justify-center items-center py-10">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : projectSkills && projectSkills.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Skill</TableHead>
-                        <TableHead>Current Level</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Required Level</TableHead>
-                        {isAdmin && <TableHead>Actions</TableHead>}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {projectSkills.map((projectSkill: ProjectSkill) => {
-                        const skill = getSkill(projectSkill.skillId);
-                        return (
-                          <TableRow key={projectSkill.id}>
-                            <TableCell className="font-medium">
-                              {skill ? skill.name : getSkillName(projectSkill.skillId)}
-                            </TableCell>
-                            <TableCell>
-                              {skill && <SkillLevelBadge level={skill.level} />}
-                            </TableCell>
-                            <TableCell>{skill?.category || "—"}</TableCell>
-                            <TableCell>
-                              <SkillLevelBadge level={projectSkill.requiredLevel} />
-                            </TableCell>
-                            {isAdmin && (
-                              <TableCell>
-                                <AlertDialog
-                                  open={openRemoveSkill === projectSkill.id}
-                                  onOpenChange={(open) => !open && setOpenRemoveSkill(null)}
-                                >
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => setOpenRemoveSkill(projectSkill.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-1" />
-                                      Remove
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will remove {getSkillName(projectSkill.skillId)} from the required skills for this project.
-                                        This action cannot be undone.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel onClick={() => setOpenRemoveSkill(null)}>
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => removeProjectSkill.mutate(projectSkill.id)}
-                                        className="bg-red-600 hover:bg-red-700"
-                                      >
-                                        {removeProjectSkill.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Remove
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </TableCell>
-                            )}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <Computer className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium mb-1">No skills specified</h3>
-                  <p className="text-gray-500 mb-4">
-                    This project doesn't have any required skills specified yet.
-                  </p>
-                  {isAdmin && (
-                    <Button
-                      onClick={() => setOpenAddSkill(true)}
-                      disabled={availableSkills.length === 0}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Skill
-                    </Button>
+                />
+                
+                <FormField
+                  control={editProjectForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="planning">Planning</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="on-hold">On Hold</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* History Tab */}
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Resource History</CardTitle>
-              <CardDescription>
-                Timeline of resource changes on this project
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingHistory ? (
-                <div className="flex justify-center items-center py-10">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : resourceHistory && resourceHistory.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Resource</TableHead>
-                        <TableHead>Action</TableHead>
-                        <TableHead>Changed By</TableHead>
-                        <TableHead>Details</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {resourceHistory.map((history: ResourceHistory) => (
-                        <TableRow key={history.id}>
-                          <TableCell className="whitespace-nowrap">
-                            {history.date ? formatDate(history.date, "MMM d, yyyy") : "—"}
-                          </TableCell>
-                          <TableCell>
-                            {getUserName(history.userId)}
-                          </TableCell>
-                          <TableCell>
-                            {history.action === 'added' && (
-                              <Badge className="bg-green-100 text-green-800">Added</Badge>
-                            )}
-                            {history.action === 'removed' && (
-                              <Badge className="bg-red-100 text-red-800">Removed</Badge>
-                            )}
-                            {history.action === 'role_changed' && (
-                              <Badge className="bg-blue-100 text-blue-800">Role Changed</Badge>
-                            )}
-                            {history.action === 'allocation_changed' && (
-                              <Badge className="bg-yellow-100 text-yellow-800">Allocation Changed</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {history.performedById ? getUserName(history.performedById) : "—"}
-                          </TableCell>
-                          <TableCell>
-                            {history.action === 'added' && 
-                              `Role: ${history.newRole || "N/A"}, Allocation: ${history.newAllocation || 0}%`}
-                            {history.action === 'removed' && 
-                              `Previous role: ${history.previousRole || "N/A"}`}
-                            {history.action === 'role_changed' && 
-                              `${history.previousRole || "None"} → ${history.newRole || "None"}`}
-                            {history.action === 'allocation_changed' && 
-                              `${history.previousAllocation || 0}% → ${history.newAllocation || 0}%`}
-                            {history.note && `: ${history.note}`}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium mb-1">No history available</h3>
-                  <p className="text-gray-500">
-                    No resource changes have been recorded for this project yet.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editProjectForm.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editProjectForm.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editProjectForm.control}
+                  name="leadId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project Lead</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                        value={field.value !== null ? field.value.toString() : ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select project lead" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {users?.map((user: User) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                              {user.firstName && user.lastName 
+                                ? `${user.firstName} ${user.lastName}` 
+                                : user.username}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editProjectForm.control}
+                  name="deliveryLeadId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Delivery Lead</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                        value={field.value !== null ? field.value.toString() : ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select delivery lead" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {users?.map((user: User) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                              {user.firstName && user.lastName 
+                                ? `${user.firstName} ${user.lastName}` 
+                                : user.username}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={editProjectForm.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editProjectForm.control}
+                name="confluenceLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confluence Link</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="url" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editProjectForm.control}
+                  name="hrCoordinatorEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>HR Coordinator Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                      <FormDescription>
+                        For resource notifications
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editProjectForm.control}
+                  name="financeTeamEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Finance Team Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                      <FormDescription>
+                        For resource notifications
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setOpenEditProject(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={updateProject.isPending}
+                >
+                  {updateProject.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Resource Dialog */}
+      <Dialog open={openAddResource} onOpenChange={setOpenAddResource}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Resource</DialogTitle>
+            <DialogDescription>
+              Add a team member to this project.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...addResourceForm}>
+            <form onSubmit={addResourceForm.handleSubmit(onAddResourceSubmit)} className="space-y-4">
+              <FormField
+                control={addResourceForm.control}
+                name="userId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Team Member</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select team member" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableUsers.map((user: User) => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.firstName && user.lastName 
+                              ? `${user.firstName} ${user.lastName}` 
+                              : user.username}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={addResourceForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g. Developer, QA Engineer, Designer" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={addResourceForm.control}
+                name="allocation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Allocation (%)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        type="number" 
+                        min={1} 
+                        max={100} 
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Percentage of time allocated to this project
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={addResourceForm.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={addResourceForm.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setOpenAddResource(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={addResource.isPending}
+                >
+                  {addResource.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    "Add Resource"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Skill Dialog */}
+      <Dialog open={openAddSkill} onOpenChange={setOpenAddSkill}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Required Skill</DialogTitle>
+            <DialogDescription>
+              Add a skill requirement to this project.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...addSkillForm}>
+            <form onSubmit={addSkillForm.handleSubmit(onAddSkillSubmit)} className="space-y-4">
+              <FormField
+                control={addSkillForm.control}
+                name="skillId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Skill</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select skill" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableSkills.map((skill: Skill) => (
+                          <SelectItem key={skill.id} value={skill.id.toString()}>
+                            {skill.name} ({skill.category})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={addSkillForm.control}
+                name="requiredLevel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Required Level</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select required level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setOpenAddSkill(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={addProjectSkill.isPending}
+                >
+                  {addProjectSkill.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    "Add Skill"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
