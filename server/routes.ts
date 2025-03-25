@@ -1517,6 +1517,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error deleting client", error });
     }
   });
+  
+  // Client Projects endpoint
+  app.get("/api/clients/:id/projects", ensureAuth, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+      const client = await storage.getClient(clientId);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      const projects = await storage.getClientProjects(clientId);
+      res.json(projects);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching client projects", error });
+    }
+  });
 
   // Project routes
   app.get("/api/projects", ensureAuth, async (req, res) => {
