@@ -131,24 +131,40 @@ export default function UserProfilePage() {
   // Get user details
   const { data: user, isLoading: isLoadingUser, error: userError } = useQuery<Omit<User, 'password'>>({
     queryKey: [`/api/users/${userId}`],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/users/${userId}`);
+      return await res.json();
+    },
     enabled: !!userId
   });
   
   // Get user's skills
   const { data: skills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
     queryKey: [`/api/users/${userId}/skills`],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/users/${userId}/skills`);
+      return await res.json();
+    },
     enabled: !!userId
   });
   
   // Get skill history
   const { data: skillHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: [`/api/users/${userId}/skills/history`],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/users/${userId}/skills/history`);
+      return await res.json();
+    },
     enabled: !!userId
   });
   
   // Get user projects
   const { data: userProjects, isLoading: isLoadingProjects } = useQuery<ProjectResource[]>({
     queryKey: [`/api/users/${userId}/projects`],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/users/${userId}/projects`);
+      return await res.json();
+    },
     enabled: !!userId
   });
 

@@ -472,7 +472,7 @@ export default function ClientDetailPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {clientProjects.map((project) => (
+                        {clientProjects.map((project: any) => (
                           <TableRow key={project.id}>
                             <TableCell className="font-medium">{project.name}</TableCell>
                             <TableCell>
