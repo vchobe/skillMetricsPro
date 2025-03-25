@@ -1851,6 +1851,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching user projects", error });
     }
   });
+  
+  // Get project history for a specific user
+  app.get("/api/users/:userId/projects/history", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      // Verify this user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Admin can see any user's history, but regular users should only see their own
+      const requestUser = req.user;
+      if (!requestUser || (parseInt(requestUser.id) !== userId && !requestUser.is_admin)) {
+        return res.status(403).json({ message: "Not authorized to view this user's project history" });
+      }
+
+      // Get the user's project history
+      const history = await storage.getUserProjectHistory(userId);
+      
+      // Enhance with project names for better display
+      const enhancedHistory = await Promise.all(
+        history.map(async (item) => {
+          try {
+            const project = await storage.getProject(item.projectId);
+            return {
+              ...item,
+              projectName: project?.name || null
+            };
+          } catch (err) {
+            console.error(`Error fetching project ${item.projectId} details:`, err);
+            return item;
+          }
+        })
+      );
+
+      res.json(enhancedHistory);
+    } catch (error) {
+      console.error("Error fetching user project history:", error);
+      res.status(500).json({ message: "Error fetching user project history", error });
+    }
+  });
 
   // Create HTTP server
   const httpServer = createServer(app);

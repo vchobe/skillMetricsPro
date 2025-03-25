@@ -140,7 +140,7 @@ export default function UserProfilePage() {
 
   // Get user project history
   const { data: projectHistory, isLoading: isLoadingProjectHistory } = useQuery<ProjectResourceHistory[]>({
-    queryKey: [`/api/user/projects/history`],
+    queryKey: [`/api/users/${userId}/projects/history`],
     enabled: !!userId && (userId === currentUser?.id?.toString() || currentUser?.is_admin === true)
   });
   
