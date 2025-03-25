@@ -21,6 +21,7 @@ import SkillManagementPage from "@/pages/skill-management-page";
 import ProjectsPage from "@/pages/projects-page";
 import ProjectDetailPage from "@/pages/project-detail-page";
 import ClientsPage from "@/pages/clients-page";
+import ClientDetailPage from "@/pages/client-detail-page";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 
@@ -80,6 +81,7 @@ function Router() {
       <ProtectedRoute path="/leaderboard" component={LeaderboardPage} />
       <ProtectedRoute path="/projects/:id" component={ProjectDetailPage} />
       <ProtectedRoute path="/projects" component={ProjectsPage} />
+      <ProtectedRoute path="/clients/:id" component={ClientDetailPage} />
       <ProtectedRoute path="/clients" component={ClientsPage} />
       <ProtectedRoute 
         path="/admin/skills" 
