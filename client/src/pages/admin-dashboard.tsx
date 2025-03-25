@@ -261,6 +261,13 @@ export default function AdminDashboard() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [skillCategories, setSkillCategories] = useState<string[]>([]);
+  const [skillNames, setSkillNames] = useState<string[]>([]);
+  const [userFilters, setUserFilters] = useState<{
+    category?: string;
+    skillName?: string;
+    skillLevel?: string;
+  }>({});
   
   // Skill History tab - sorting and filtering state
   const [skillHistorySortField, setSkillHistorySortField] = useState<string>("date");
@@ -432,10 +439,21 @@ export default function AdminDashboard() {
     ).map(([name, value]) => ({ name, value }))
     : [];
   
-  // Get unique categories for filter
-  const skillCategories = skills ? 
-    Array.from(new Set(skills.map(skill => skill.category || "Other")))
-    : [];
+  // Extract unique skill categories and names for filters
+  useEffect(() => {
+    if (skills) {
+      const categoriesSet = new Set<string>();
+      const namesSet = new Set<string>();
+      
+      skills.forEach(skill => {
+        categoriesSet.add(skill.category || 'Other');
+        namesSet.add(skill.name);
+      });
+      
+      setSkillCategories(Array.from(categoriesSet).sort());
+      setSkillNames(Array.from(namesSet).sort());
+    }
+  }, [skills]);
     
   // Skill distribution by name with optional category filter
   const skillNameData = skills ? 
