@@ -68,6 +68,7 @@ type SortDirection = "asc" | "desc";
 type Filters = {
   skillLevel?: string;
   category?: string;
+  skillName?: string;
   hasCertification?: boolean;
   dateJoined?: string;
   skillCount?: string;
@@ -97,6 +98,7 @@ export default function OrgDashboard() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [filters, setFilters] = useState<Filters>({});
   const [skillCategories, setSkillCategories] = useState<string[]>([]);
+  const [skillNames, setSkillNames] = useState<string[]>([]);
   
   // Fetch all users and their skills
   const { data: users, isLoading: isLoadingUsers } = useQuery<Omit<User, 'password'>[]>({

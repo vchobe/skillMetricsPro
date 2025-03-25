@@ -136,19 +136,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
               </Link>
             </div>
             
-            <div>
-              <Link href="/users" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-                currentPath === "/users" 
-                  ? "bg-gray-900 text-white" 
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}>
-                <UserCircle className="h-5 w-5" />
-                {(isOpen || !isMobile) && (
-                  <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Employee Directory</span>
-                )}
-              </Link>
-            </div>
-            
+
 
             
             <div>
