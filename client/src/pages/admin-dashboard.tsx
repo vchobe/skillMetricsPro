@@ -2897,9 +2897,14 @@ export default function AdminDashboard() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                      <Select value={roleFilter} onValueChange={setRoleFilter}>
-                        <SelectTrigger className="w-full sm:w-[150px]">
+                    <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
+                      <Select 
+                        value={roleFilter} 
+                        onValueChange={(value) => {
+                          setRoleFilter(value);
+                        }}
+                      >
+                        <SelectTrigger className="w-full md:w-[180px] h-10">
                           <SelectValue placeholder="Filter by role" />
                         </SelectTrigger>
                         <SelectContent>
@@ -2911,9 +2916,14 @@ export default function AdminDashboard() {
                         </SelectContent>
                       </Select>
                       
-                      <Select value={userSkillCategoryFilter} onValueChange={setUserSkillCategoryFilter}>
-                        <SelectTrigger className="w-full sm:w-[170px]">
-                          <SelectValue placeholder="Skill Category" />
+                      <Select 
+                        value={userSkillCategoryFilter} 
+                        onValueChange={(value) => {
+                          setUserSkillCategoryFilter(value);
+                        }}
+                      >
+                        <SelectTrigger className="w-full md:w-[180px] h-10">
+                          <SelectValue placeholder="Filter by category" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Categories</SelectItem>
@@ -2923,21 +2933,31 @@ export default function AdminDashboard() {
                         </SelectContent>
                       </Select>
                       
-                      <Select value={userSkillNameFilter} onValueChange={setUserSkillNameFilter}>
-                        <SelectTrigger className="w-full sm:w-[170px]">
-                          <SelectValue placeholder="Skill Name" />
+                      <Select 
+                        value={userSkillNameFilter} 
+                        onValueChange={(value) => {
+                          setUserSkillNameFilter(value);
+                        }}
+                      >
+                        <SelectTrigger className="w-full md:w-[200px] h-10">
+                          <SelectValue placeholder="Filter by skill name" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Skills</SelectItem>
+                          <SelectItem value="all">All Skill Names</SelectItem>
                           {skillNames.map(name => (
                             <SelectItem key={name} value={name}>{name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       
-                      <Select value={userSkillLevelFilter} onValueChange={setUserSkillLevelFilter}>
-                        <SelectTrigger className="w-full sm:w-[150px]">
-                          <SelectValue placeholder="Skill Level" />
+                      <Select 
+                        value={userSkillLevelFilter} 
+                        onValueChange={(value) => {
+                          setUserSkillLevelFilter(value);
+                        }}
+                      >
+                        <SelectTrigger className="w-full md:w-[180px] h-10">
+                          <SelectValue placeholder="Filter by skill level" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Levels</SelectItem>
@@ -2950,47 +2970,84 @@ export default function AdminDashboard() {
                   </div>
                   
                   {/* Active filters display */}
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {roleFilter !== "all" && (
-                      <Badge variant="outline" className="px-3 py-1 rounded-full flex items-center gap-1 bg-gray-100">
-                        Role: {roleFilter}
-                        <X 
-                          className="h-3 w-3 ml-1 cursor-pointer" 
-                          onClick={() => setRoleFilter("all")} 
-                        />
-                      </Badge>
-                    )}
-                    
-                    {userSkillCategoryFilter !== "all" && (
-                      <Badge variant="outline" className="px-3 py-1 rounded-full flex items-center gap-1 bg-gray-100">
-                        Category: {userSkillCategoryFilter}
-                        <X 
-                          className="h-3 w-3 ml-1 cursor-pointer" 
-                          onClick={() => setUserSkillCategoryFilter("all")} 
-                        />
-                      </Badge>
-                    )}
-                    
-                    {userSkillNameFilter !== "all" && (
-                      <Badge variant="outline" className="px-3 py-1 rounded-full flex items-center gap-1 bg-gray-100">
-                        Skill: {userSkillNameFilter}
-                        <X 
-                          className="h-3 w-3 ml-1 cursor-pointer" 
-                          onClick={() => setUserSkillNameFilter("all")} 
-                        />
-                      </Badge>
-                    )}
-                    
-                    {userSkillLevelFilter !== "all" && (
-                      <Badge variant="outline" className="px-3 py-1 rounded-full flex items-center gap-1 bg-gray-100">
-                        Level: {userSkillLevelFilter}
-                        <X 
-                          className="h-3 w-3 ml-1 cursor-pointer" 
-                          onClick={() => setUserSkillLevelFilter("all")} 
-                        />
-                      </Badge>
-                    )}
-                  </div>
+                  {(roleFilter !== "all" || userSkillCategoryFilter !== "all" || userSkillNameFilter !== "all" || userSkillLevelFilter !== "all") && (
+                    <div className="mt-4 px-0 py-2 flex flex-wrap gap-2 items-center border-t">
+                      <span className="text-sm text-gray-500">Active filters:</span>
+                      
+                      {roleFilter !== "all" && (
+                        <Badge 
+                          variant="outline" 
+                          className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200 pl-2 pr-1 py-1"
+                        >
+                          <span className="capitalize">Role:</span> {roleFilter}
+                          <button 
+                            onClick={() => setRoleFilter("all")}
+                            className="ml-1 rounded-full hover:bg-blue-100 p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                      
+                      {userSkillCategoryFilter !== "all" && (
+                        <Badge 
+                          variant="outline" 
+                          className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200 pl-2 pr-1 py-1"
+                        >
+                          <span className="capitalize">Category:</span> {userSkillCategoryFilter}
+                          <button 
+                            onClick={() => setUserSkillCategoryFilter("all")}
+                            className="ml-1 rounded-full hover:bg-blue-100 p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                      
+                      {userSkillNameFilter !== "all" && (
+                        <Badge 
+                          variant="outline" 
+                          className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200 pl-2 pr-1 py-1"
+                        >
+                          <span className="capitalize">Skill Name:</span> {userSkillNameFilter}
+                          <button 
+                            onClick={() => setUserSkillNameFilter("all")}
+                            className="ml-1 rounded-full hover:bg-blue-100 p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                      
+                      {userSkillLevelFilter !== "all" && (
+                        <Badge 
+                          variant="outline" 
+                          className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200 pl-2 pr-1 py-1"
+                        >
+                          <span className="capitalize">Level:</span> {userSkillLevelFilter}
+                          <button 
+                            onClick={() => setUserSkillLevelFilter("all")}
+                            className="ml-1 rounded-full hover:bg-blue-100 p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )}
+                      
+                      <Button 
+                        variant="link" 
+                        className="text-sm px-2 h-7"
+                        onClick={() => {
+                          setRoleFilter("all");
+                          setUserSkillCategoryFilter("all");
+                          setUserSkillNameFilter("all");
+                          setUserSkillLevelFilter("all");
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className="px-0">
                   <div className="overflow-x-auto scrollable-container">
