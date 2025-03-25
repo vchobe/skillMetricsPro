@@ -1728,7 +1728,10 @@ export default function AdminDashboard() {
                     </div>
                     <Select 
                       value={certCategoryFilter} 
-                      onValueChange={setCertCategoryFilter}
+                      onValueChange={(value) => {
+                        setCertCategoryFilter(value);
+                        setCertActiveFilters(prev => ({...prev, category: value !== 'all' ? value : ''}));
+                      }}
                     >
                       <SelectTrigger className="w-full md:w-[180px] h-10">
                         <SelectValue placeholder="Filter by category" />
@@ -1747,8 +1750,96 @@ export default function AdminDashboard() {
                         ))}
                       </SelectContent>
                     </Select>
+                    
+                    {/* Skill Level Filter */}
+                    <Select 
+                      value={certSkillLevelFilter} 
+                      onValueChange={(value) => {
+                        setCertSkillLevelFilter(value);
+                        setCertActiveFilters(prev => ({...prev, level: value !== 'all' ? value : ''}));
+                      }}
+                    >
+                      <SelectTrigger className="w-full md:w-[180px] h-10">
+                        <SelectValue placeholder="Filter by skill level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Levels</SelectItem>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Skill Name Filter */}
+                    <Select 
+                      value={certSkillNameFilter} 
+                      onValueChange={(value) => {
+                        setCertSkillNameFilter(value);
+                        setCertActiveFilters(prev => ({...prev, skillName: value !== 'all' ? value : ''}));
+                      }}
+                    >
+                      <SelectTrigger className="w-full md:w-[200px] h-10">
+                        <SelectValue placeholder="Filter by skill name" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Skill Names</SelectItem>
+                        {/* Generate skill name items from certification data */}
+                        {certificationReport && Array.from(
+                          new Set(
+                            certificationReport.flatMap(report => 
+                              report.certifications.map(cert => cert.name)
+                            ).filter(Boolean)
+                          )
+                        ).map(name => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
+                  
+                  {/* Active filters display */}
+                  {Object.entries(certActiveFilters).filter(([_, value]) => value).length > 0 && (
+                    <div className="px-6 py-2 flex flex-wrap gap-2 items-center border-b">
+                      <span className="text-sm text-gray-500">Active filters:</span>
+                      {Object.entries(certActiveFilters).filter(([_, value]) => value).map(([key, value]) => (
+                        <Badge 
+                          key={key} 
+                          variant="outline" 
+                          className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200 pl-2 pr-1 py-1"
+                        >
+                          <span className="capitalize">{key === 'skillName' ? 'Skill Name' : key}:</span> {value}
+                          <button 
+                            onClick={() => {
+                              if (key === 'category') setCertCategoryFilter('all');
+                              if (key === 'level') setCertSkillLevelFilter('all');
+                              if (key === 'skillName') setCertSkillNameFilter('all');
+                              setCertActiveFilters(prev => {
+                                const newFilters = {...prev};
+                                delete newFilters[key];
+                                return newFilters;
+                              });
+                            }}
+                            className="ml-1 rounded-full hover:bg-blue-100 p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                      <Button 
+                        variant="link" 
+                        className="text-sm px-2 h-7"
+                        onClick={() => {
+                          setCertCategoryFilter('all');
+                          setCertSkillLevelFilter('all');
+                          setCertSkillNameFilter('all');
+                          setCertActiveFilters({});
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                    </div>
+                  )}
                 
                 <CardContent className="px-0">
                   <div className="overflow-x-auto scrollable-container">
@@ -1886,6 +1977,16 @@ export default function AdminDashboard() {
                             const filteredCerts = flatCertifications.filter(item => {
                               // Category filter
                               if (certCategoryFilter !== 'all' && item.cert.category !== certCategoryFilter) {
+                                return false;
+                              }
+                              
+                              // Skill level filter
+                              if (certSkillLevelFilter !== 'all' && item.cert.level !== certSkillLevelFilter) {
+                                return false;
+                              }
+                              
+                              // Skill name filter
+                              if (certSkillNameFilter !== 'all' && item.cert.name !== certSkillNameFilter) {
                                 return false;
                               }
                               
