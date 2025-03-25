@@ -82,10 +82,12 @@ interface ProjectSkill {
   id: number;
   projectId: number;
   skillId: number;
-  requiredLevel: string;
-  importance: string; // high, medium, low
+  requiredLevel: string; // beginner, intermediate, expert
   createdAt: string;
   updatedAt?: string;
+  skillName?: string; // From the join query
+  category?: string; // From the join query
+  level?: string; // From the join query
 }
 
 interface ResourceHistory {
