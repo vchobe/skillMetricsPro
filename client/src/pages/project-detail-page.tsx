@@ -218,7 +218,7 @@ const resourceSchema = z.object({
 // Project skill schema
 const projectSkillSchema = z.object({
   skillId: z.coerce.number(),
-  importance: z.string().default("medium")
+  requiredLevel: z.enum(["beginner", "intermediate", "expert"]).default("intermediate")
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
@@ -342,7 +342,7 @@ export default function ProjectDetailPage() {
     resolver: zodResolver(projectSkillSchema),
     defaultValues: {
       skillId: 0,
-      importance: "medium"
+      requiredLevel: "intermediate"
     },
   });
   
@@ -1439,10 +1439,10 @@ export default function ProjectDetailPage() {
                         
                         <FormField
                           control={addSkillForm.control}
-                          name="importance"
+                          name="requiredLevel"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Importance</FormLabel>
+                              <FormLabel>Required Level</FormLabel>
                               <FormControl>
                                 <Select
                                   onValueChange={field.onChange}
@@ -1452,9 +1452,9 @@ export default function ProjectDetailPage() {
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="high">High</SelectItem>
-                                    <SelectItem value="medium">Medium</SelectItem>
-                                    <SelectItem value="low">Low</SelectItem>
+                                    <SelectItem value="beginner">Beginner</SelectItem>
+                                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                                    <SelectItem value="expert">Expert</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </FormControl>
@@ -1496,9 +1496,9 @@ export default function ProjectDetailPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Skill</TableHead>
-                        <TableHead>Level</TableHead>
+                        <TableHead>Current Level</TableHead>
                         <TableHead>Category</TableHead>
-                        <TableHead>Importance</TableHead>
+                        <TableHead>Required Level</TableHead>
                         {isAdmin && <TableHead>Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
@@ -1515,16 +1515,7 @@ export default function ProjectDetailPage() {
                             </TableCell>
                             <TableCell>{skill?.category || "—"}</TableCell>
                             <TableCell>
-                              <Badge 
-                                variant="outline" 
-                                className={`
-                                  ${projectSkill.importance === 'high' ? 'border-red-200 bg-red-50 text-red-700' : ''}
-                                  ${projectSkill.importance === 'medium' ? 'border-blue-200 bg-blue-50 text-blue-700' : ''}
-                                  ${projectSkill.importance === 'low' ? 'border-gray-200 bg-gray-50 text-gray-700' : ''}
-                                `}
-                              >
-                                {projectSkill.importance.charAt(0).toUpperCase() + projectSkill.importance.slice(1)}
-                              </Badge>
+                              <SkillLevelBadge level={projectSkill.requiredLevel} />
                             </TableCell>
                             {isAdmin && (
                               <TableCell>
