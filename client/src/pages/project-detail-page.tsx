@@ -520,7 +520,7 @@ export default function ProjectDetailPage() {
   };
   
   // Get client name by ID
-  const getClientName = (clientId: number | null) => {
+  const getClientName = (clientId: number | null | undefined) => {
     if (!clientId) return "—";
     if (!clients) return "Loading...";
     const client = clients.find((c: Client) => c.id === clientId);
@@ -528,7 +528,7 @@ export default function ProjectDetailPage() {
   };
   
   // Get user name by ID
-  const getUserName = (userId: number | null) => {
+  const getUserName = (userId: number | null | undefined) => {
     if (!userId) return "—";
     if (!users) return "Loading...";
     const user = users.find((u: User) => u.id === userId);
