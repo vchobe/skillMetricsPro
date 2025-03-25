@@ -123,7 +123,10 @@ export default function ClientDetailPage() {
     isLoading: isLoadingProjects
   } = useQuery({
     queryKey: ['/api/clients', clientId, 'projects'],
-    queryFn: () => apiRequest<any[]>("GET", `/api/clients/${clientId}/projects`),
+    queryFn: async () => {
+      const res = await apiRequest<any[]>("GET", `/api/clients/${clientId}/projects`);
+      return await res.json();
+    },
     enabled: !isNaN(clientId)
   });
 

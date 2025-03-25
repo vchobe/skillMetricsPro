@@ -246,46 +246,70 @@ export default function ProjectDetailPage() {
   // Fetch project details
   const { data: project, isLoading: isLoadingProject } = useQuery<Project>({
     queryKey: ["/api/projects", id],
-    queryFn: () => apiRequest("GET", `/api/projects/${id}`),
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/projects/${id}`);
+      return await res.json();
+    },
     refetchOnWindowFocus: false,
   });
   
   // Fetch project resources
   const { data: resources, isLoading: isLoadingResources } = useQuery<ProjectResource[]>({
     queryKey: ["/api/projects", id, "resources"],
-    queryFn: () => apiRequest("GET", `/api/projects/${id}/resources`),
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/projects/${id}/resources`);
+      return await res.json();
+    },
     refetchOnWindowFocus: false,
   });
   
   // Fetch project skills
   const { data: projectSkills, isLoading: isLoadingProjectSkills } = useQuery<ProjectSkill[]>({
     queryKey: ["/api/projects", id, "skills"],
-    queryFn: () => apiRequest("GET", `/api/projects/${id}/skills`),
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/projects/${id}/skills`);
+      return await res.json();
+    },
     refetchOnWindowFocus: false,
   });
   
   // Fetch all skills for the skill dropdown
   const { data: allSkills, isLoading: isLoadingAllSkills } = useQuery<Skill[]>({
     queryKey: ["/api/all-skills"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/all-skills");
+      return await res.json();
+    },
     refetchOnWindowFocus: false,
   });
   
   // Fetch all clients for the dropdown
   const { data: clients, isLoading: isLoadingClients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/clients");
+      return await res.json();
+    },
     refetchOnWindowFocus: false,
   });
   
   // Fetch all users for dropdowns
   const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/users");
+      return await res.json();
+    },
     refetchOnWindowFocus: false,
   });
   
   // Fetch resource history
   const { data: resourceHistory, isLoading: isLoadingHistory } = useQuery<ResourceHistory[]>({
     queryKey: ["/api/projects", id, "resource-history"],
-    queryFn: () => apiRequest("GET", `/api/projects/${id}/resource-history`),
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/projects/${id}/resource-history`);
+      return await res.json();
+    },
     refetchOnWindowFocus: false,
   });
   
