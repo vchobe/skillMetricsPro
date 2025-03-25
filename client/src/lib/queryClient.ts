@@ -41,6 +41,12 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
+    
+    // Handle 204 No Content responses
+    if (res.status === 204) {
+      return {} as any; // Return empty object for success with no content
+    }
+    
     return await res.json();
   };
 

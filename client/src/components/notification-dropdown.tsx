@@ -42,7 +42,9 @@ export default function NotificationDropdown() {
   // Mark a single notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: number) => {
-      await apiRequest("POST", `/api/notifications/${notificationId}/read`);
+      const res = await apiRequest("POST", `/api/notifications/${notificationId}/read`);
+      // Handle 204 No Content responses appropriately
+      return res.status === 204 ? {} : await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
@@ -59,7 +61,9 @@ export default function NotificationDropdown() {
   // Mark all notifications as read
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/notifications/read-all");
+      const res = await apiRequest("POST", "/api/notifications/read-all");
+      // Handle 204 No Content responses appropriately
+      return res.status === 204 ? {} : await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });

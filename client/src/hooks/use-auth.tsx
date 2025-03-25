@@ -34,6 +34,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginUser) => {
       const res = await apiRequest("POST", "/api/login", credentials);
+      // For login, we expect a JSON response with user data
+      if (res.status === 204) {
+        // Handle empty success response (unlikely for login)
+        return {} as Omit<User, 'password'>;
+      }
       return await res.json();
     },
     onSuccess: (user: Omit<User, 'password'>) => {
@@ -46,6 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Trigger a storage event so other components can detect the change
       window.dispatchEvent(new Event('storage'));
+      
+      // Invalidate notifications and other user-specific queries
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       
       toast({
         title: "Login successful",
@@ -64,6 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (userData: InsertUser) => {
       const res = await apiRequest("POST", "/api/register", userData);
+      if (res.status === 204) {
+        // Handle empty success response
+        return { message: "Registration successful" };
+      }
       return await res.json();
     },
     onSuccess: (response) => {
@@ -117,7 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const resetPasswordMutation = useMutation({
     mutationFn: async ({ email }: { email: string }) => {
-      await apiRequest("POST", "/api/reset-password", { email });
+      const res = await apiRequest("POST", "/api/reset-password", { email });
+      // No need to return data for reset password
+      return;
     },
     onSuccess: () => {
       toast({
