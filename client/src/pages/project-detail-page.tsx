@@ -427,8 +427,22 @@ export default function ProjectDetailPage() {
   // Remove resource mutation
   const removeResource = useMutation({
     mutationFn: async (resourceId: number) => {
-      const response = await apiRequest("DELETE", `/api/projects/resources/${resourceId}`);
-      return response;
+      const res = await fetch(`/api/projects/resources/${resourceId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      
+      // For 204 No Content responses, we don't parse the body
+      if (res.status === 204) {
+        return null;
+      }
+      
+      return res.json();
     },
     onSuccess: () => {
       // Invalidate both resource lists and history
@@ -484,7 +498,22 @@ export default function ProjectDetailPage() {
   // Remove project skill mutation
   const removeProjectSkill = useMutation({
     mutationFn: async (projectSkillId: number) => {
-      return apiRequest("DELETE", `/api/projects/skills/${projectSkillId}`);
+      const res = await fetch(`/api/projects/skills/${projectSkillId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      
+      // For 204 No Content responses, we don't parse the body
+      if (res.status === 204) {
+        return null;
+      }
+      
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "skills"] });
