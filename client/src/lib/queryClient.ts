@@ -11,7 +11,10 @@ export async function apiRequest<T = any>(
   method: string,
   url: string,
   data?: unknown | undefined,
-): Promise<T> {
+): Promise<Response> {
+  // Return the Response object directly instead of parsing JSON
+  // This allows the calling function to decide whether to read the body as JSON
+  // or handle empty responses (like 204 No Content from logout)
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
@@ -20,7 +23,7 @@ export async function apiRequest<T = any>(
   });
 
   await throwIfResNotOk(res);
-  return res.json() as Promise<T>;
+  return res;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
