@@ -1,86 +1,84 @@
 #!/bin/bash
 set -e
 
+# Script to deploy the entire application stack to GCP:
+# 1. Create and configure the Cloud SQL database
+# 2. Deploy the application to Cloud Run
+# 3. Setup database schema and initial data
+# 4. Perform health checks
+
+# Run in the context of the repository root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$SCRIPT_DIR/.."  # Navigate to project root
+
 # Configuration
 PROJECT_ID="skills-management-platform"  # Replace with your GCP project ID
-REGION="us-central1"                     # GCP region 
-REPO_URL="https://github.com/yourusername/skills-management-platform.git"  # Replace with your repository URL
+REGION="us-central1"                     # GCP region
+SERVICE_NAME="skills-management-app"     # Cloud Run service name 
+DB_INSTANCE_NAME="skills-management-db"  # Cloud SQL instance name
 
-echo "=== Skills Management Platform: Complete Deployment ==="
-echo "This script will deploy the entire Skills Management Platform to Google Cloud Platform"
+echo "===================================================="
+echo "🚀 STARTING FULL DEPLOYMENT PROCESS"
+echo "===================================================="
 echo "Project ID: $PROJECT_ID"
-echo "Region: $REGION"
-echo ""
-echo "The following steps will be performed:"
-echo "1. Deploy the application to Cloud Run"
-echo "2. Setup the Cloud SQL PostgreSQL database"
-echo "3. Initialize the database schema"
-echo "4. Load test data into the database"
-echo "5. Configure backups and monitoring"
-echo ""
-echo "Press ENTER to continue or CTRL+C to cancel..."
-read
+echo "Region: $REGION" 
+echo "Service: $SERVICE_NAME"
+echo "Database: $DB_INSTANCE_NAME"
+echo "----------------------------------------------------"
 
-# Make sure all scripts are executable
-chmod +x deployment/*.sh
+# Check if required tools are installed
+command -v gcloud >/dev/null 2>&1 || { echo "❌ Google Cloud SDK (gcloud) is required but not installed. Aborting."; exit 1; }
+command -v node >/dev/null 2>&1 || { echo "❌ Node.js is required but not installed. Aborting."; exit 1; }
 
-# 1. Initialize GCP project
-echo "=== Initializing GCP project ==="
-gcloud config set project $PROJECT_ID
-
-# Check if user is authenticated to GCP
-if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" &>/dev/null; then
-  echo "You need to authenticate with GCP first. Running gcloud auth login..."
-  gcloud auth login
+# Check if user is logged in to gcloud
+ACCOUNT=$(gcloud config get-value account 2>/dev/null)
+if [ -z "$ACCOUNT" ]; then
+  echo "❌ You are not logged in to gcloud. Please run 'gcloud auth login' first."
+  exit 1
 fi
+echo "✅ Logged in to gcloud as: $ACCOUNT"
 
-# Enable required APIs
-echo "=== Enabling required GCP APIs ==="
-gcloud services enable cloudbuild.googleapis.com \
-  run.googleapis.com \
-  sqladmin.googleapis.com \
-  secretmanager.googleapis.com \
-  storage.googleapis.com \
-  monitoring.googleapis.com
+# Check permissions
+echo "Checking permissions..."
+gcloud projects describe $PROJECT_ID >/dev/null 2>&1 || { echo "❌ You don't have permission to access project $PROJECT_ID. Aborting."; exit 1; }
+echo "✅ You have access to project $PROJECT_ID"
 
-# 2. Deploy application and setup database
-echo "=== Deploying application and setting up database ==="
+# Step 1: Deploy infrastructure and application
+echo -e "\n===================================================="
+echo "📦 STEP 1: DEPLOYING INFRASTRUCTURE AND APPLICATION"
+echo "===================================================="
 ./deployment/deploy-to-gcp.sh
 
-# 3. Initialize database schema and test data
-echo "=== Initializing database schema and test data ==="
+# Step 2: Set up database schema and test data
+echo -e "\n===================================================="
+echo "🗃️ STEP 2: SETTING UP DATABASE SCHEMA AND INITIAL DATA" 
+echo "===================================================="
 ./deployment/setup-database.sh
 
-# 4. Setup monitoring
-echo "=== Setting up monitoring ==="
+# Step 3: Run deployment checks
+echo -e "\n===================================================="
+echo "🔍 STEP 3: RUNNING DEPLOYMENT CHECKS"
+echo "===================================================="
+./deployment/check-deployment.sh
 
-# Create basic Cloud Monitoring alerts for the service
-SERVICE_NAME="skills-management-app"
-gcloud beta monitoring channels create \
-  --display-name="Skills Platform Admin Email" \
-  --type=email \
-  --channel-labels=email_address="admin@skillsplatform.com"
+# Get the service URL for the final message
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format='value(status.url)')
 
-echo "=== Setting up Cloud Run error rate alert ==="
-gcloud alpha monitoring policies create \
-  --display-name="Cloud Run High Error Rate" \
-  --conditions="condition-filter='metric.type=\"run.googleapis.com/request_count\" resource.type=\"cloud_run_revision\" metric.label.\"response_code_class\"=\"4xx\" OR metric.label.\"response_code_class\"=\"5xx\"' AND condition-threshold='comparison=\"COMPARISON_GT\" threshold-value=5 duration=\"60s\" filter=\"resource.type=\\\"cloud_run_revision\\\" AND resource.label.\\\"service_name\\\"=\\\"$SERVICE_NAME\\\"\"'"
-
-# 5. Create scheduled backups
-echo "=== Setting up scheduled database backups ==="
-# Create a backup schedule for Cloud SQL
-gcloud sql instances patch $DB_INSTANCE_NAME \
-  --backup-start-time="23:00" \
-  --enable-bin-log \
-  --retained-backups-count=7
-
-echo "=== Deployment complete! ==="
+echo -e "\n===================================================="
+echo "✅ DEPLOYMENT COMPLETE"
+echo "===================================================="
+echo "Your application is now deployed and available at:"
+echo "$SERVICE_URL"
 echo ""
-echo "Your Skills Management Platform has been successfully deployed to Google Cloud Platform."
+echo "Default admin credentials:"
+echo "Username: admin@example.com"
+echo "Password: password123"
+echo "(Change these credentials after first login!)"
 echo ""
-echo "Next steps:"
-echo "1. Access your application at: $(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format='value(status.url)')"
-echo "2. Check deployment status: ./deployment/check-deployment.sh"
-echo "3. Create manual backups: ./deployment/backup-restore-db.sh backup"
+echo "To monitor your application:"
+echo "- Cloud Run console: https://console.cloud.google.com/run?project=$PROJECT_ID"
+echo "- Logs: https://console.cloud.google.com/logs?project=$PROJECT_ID" 
+echo "- Database: https://console.cloud.google.com/sql/instances/$DB_INSTANCE_NAME?project=$PROJECT_ID"
 echo ""
-echo "For more information, refer to the deployment documentation."
+echo "To run health checks again: ./deployment/check-deployment.sh"
+echo "===================================================="

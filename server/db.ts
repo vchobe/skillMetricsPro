@@ -1,24 +1,68 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import pkg from 'pg';
+const { Pool } = pkg;
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
+// Check for database URL
+const databaseUrl = process.env.DATABASE_URL || process.env.CLOUD_SQL_URL;
 
-if (!process.env.DATABASE_URL) {
+if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "No database connection string found. Set DATABASE_URL or CLOUD_SQL_URL environment variable.",
   );
 }
 
-// Configure pool with connection timeout and retry strategy
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 10000, // 10 seconds timeout
-  max: 20, // Max 20 clients in the pool
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  allowExitOnIdle: false // Don't allow the pool to exit on idle
-});
+// Log database URL (with password masked)
+const maskedUrl = databaseUrl.replace(/:[^:@]*@/, ':****@');
+console.log('Database URL:', maskedUrl);
+
+// Check if we're in production environment (GCP Cloud Run)
+const isProduction = process.env.NODE_ENV === 'production' || process.env.USE_CLOUD_SQL === 'true';
+
+// Parse connection configuration
+function parseConnectionConfig() {
+  let config: any;
+  const cloudSqlUrl = process.env.CLOUD_SQL_URL || '';
+  
+  // If in production or explicitly set to use Cloud SQL, try that first
+  if (isProduction && cloudSqlUrl) {
+    try {
+      // Use the Cloud SQL connection string (for production)
+      const match = cloudSqlUrl.match(/postgresql:\/\/([^:]+):([^@]+)@\/([^?]+)\?host=\/cloudsql\/(.+)/);
+      
+      if (match) {
+        const [_, user, password, dbName, instanceConnectionName] = match;
+        console.log(`Using Cloud SQL socket connection to: ${instanceConnectionName}`);
+        
+        return {
+          user,
+          password,
+          database: dbName,
+          host: `/cloudsql/${instanceConnectionName}`,
+          ssl: false, // SSL is not used with Unix socket
+          max: 20,
+          idleTimeoutMillis: 30000,
+          connectionTimeoutMillis: 10000
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing Cloud SQL connection string:', error);
+      console.log('Falling back to standard connection');
+    }
+  }
+  
+  // For development or fallback: use standard PostgreSQL connection
+  console.log('Using standard PostgreSQL connection with Neon');
+  return { 
+    connectionString: databaseUrl,
+    max: 20, 
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000
+  };
+}
+
+// Configure pool with parsed connection config
+export const pool = new Pool(parseConnectionConfig());
 
 // Setup event handlers for connection issues
 pool.on('error', (err) => {
@@ -42,6 +86,8 @@ export async function testDatabaseConnection() {
 }
 
 // Ensure the connection is valid at startup
-testDatabaseConnection();
+testDatabaseConnection().catch(err => {
+  console.error('Initial database connection test failed:', err);
+});
 
-export const db = drizzle({ client: pool, schema });
+export const db = drizzle(pool, { schema });

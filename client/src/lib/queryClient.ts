@@ -1,5 +1,26 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// Get the API base URL - use relative URL for local development,
+// or absolute URL for deployed environments
+function getApiBaseUrl(): string {
+  // For local development, use a relative path
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return '';
+  }
+  
+  // For deployed environments, use the current origin
+  return window.location.origin;
+}
+
+// Function to construct a full API URL
+function getFullApiUrl(path: string): string {
+  // Make sure the path starts with a slash for consistency
+  const apiPath = path.startsWith('/') ? path : `/${path}`;
+  
+  // Join the base URL with the path
+  return `${getApiBaseUrl()}${apiPath}`;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -12,10 +33,14 @@ export async function apiRequest<T = any>(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // Get the full URL with proper base URL
+  const fullUrl = getFullApiUrl(url);
+  console.log(`Making API request: ${method} ${fullUrl}`);
+  
   // Return the Response object directly instead of parsing JSON
   // This allows the calling function to decide whether to read the body as JSON
   // or handle empty responses (like 204 No Content from logout)
-  const res = await fetch(url, {
+  const res = await fetch(fullUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -32,7 +57,11 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Convert the queryKey to a full URL
+    const fullUrl = getFullApiUrl(queryKey[0] as string);
+    console.log(`Fetching data from: ${fullUrl}`);
+    
+    const res = await fetch(fullUrl, {
       credentials: "include",
     });
 

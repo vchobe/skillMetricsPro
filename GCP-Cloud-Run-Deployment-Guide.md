@@ -2,19 +2,25 @@
 
 This guide explains how to deploy the Employee Skills Management Platform to Google Cloud Platform using Cloud Run and Cloud SQL.
 
-## Deployment Script Overview
+## Deployment Scripts Overview
 
-The `deploy-to-gcp.sh` script automates the entire deployment process, including:
+The deployment scripts in the `deployment/` directory automate the entire deployment process, including:
 
 1. Setting up GCP project configuration
-2. Cloning the repository
-3. Creating a Cloud SQL PostgreSQL instance
-4. Setting up environment variables
-5. Preparing database initialization scripts
-6. Creating Docker configuration
-7. Building and pushing the Docker image
-8. Deploying the application to Cloud Run
-9. Initializing the database
+2. Creating a Cloud SQL PostgreSQL instance
+3. Setting up environment variables
+4. Building and pushing the Docker image
+5. Deploying the application to Cloud Run
+6. Initializing the database schema and sample data
+7. Verifying deployment status with health checks
+
+## Available Deployment Scripts
+
+1. **`deployment/deploy-all.sh`** - Orchestrates the entire deployment process in one command
+2. **`deployment/deploy-to-gcp.sh`** - Deploys the infrastructure and application
+3. **`deployment/setup-database.sh`** - Sets up database schema and initial data
+4. **`deployment/check-deployment.sh`** - Verifies deployment status
+5. **`deployment/backup-restore-db.sh`** - Manages database backups and restoration
 
 ## Prerequisites
 
@@ -32,25 +38,46 @@ Before running the deployment script, ensure you have:
 ### 1. Prepare Your Environment
 
 1. Open Google Cloud Shell or your local terminal
-2. Clone the repository containing the deployment script:
+2. Clone the repository containing the deployment scripts:
    ```bash
    git clone https://github.com/yourusername/employee-skills-platform.git
    cd employee-skills-platform
    ```
-3. Make the script executable:
+3. Make the deployment scripts executable:
    ```bash
-   chmod +x deploy-to-gcp.sh
+   chmod +x deployment/*.sh
    ```
 
-### 2. Run the Deployment Script
+### 2. Run the Deployment
 
-Run the script, providing your GCP project ID:
+#### Option 1: Full Automated Deployment (Recommended)
+
+Run the all-in-one deployment script:
 
 ```bash
-./deploy-to-gcp.sh your-gcp-project-id
+./deployment/deploy-all.sh
 ```
 
-If you don't provide a project ID, the script will use the default "skillmetrics-platform".
+This script will handle the entire deployment process from start to finish.
+
+#### Option 2: Step-by-Step Deployment
+
+If you prefer to run each step individually:
+
+1. Deploy the infrastructure and application:
+   ```bash
+   ./deployment/deploy-to-gcp.sh
+   ```
+
+2. Set up the database schema and initial data:
+   ```bash
+   ./deployment/setup-database.sh
+   ```
+
+3. Verify the deployment:
+   ```bash
+   ./deployment/check-deployment.sh
+   ```
 
 ### 3. Script Execution Details
 
@@ -120,18 +147,61 @@ You can modify the script to change:
 
 ## Troubleshooting
 
+### Using the Deployment Check Script
+
+We've provided a comprehensive diagnostic tool that can help identify common deployment issues:
+
+```bash
+./deployment/check-deployment.sh
+```
+
+This script will:
+- Verify if the Cloud Run service is accessible
+- Check the application health endpoint
+- Test database connectivity
+- Display recent application logs
+- Check Cloud SQL instance status
+
+### Common Troubleshooting Steps
+
 If deployment fails, check the following:
 1. Verify that billing is enabled for your GCP project
-2. Ensure all required APIs are enabled
-3. Check Cloud Build logs for container build errors
-4. Review the deployment logs in the Cloud Run service
-5. Check the database initialization logs
+2. Ensure all required APIs are enabled:
+   ```bash
+   gcloud services enable cloudbuild.googleapis.com run.googleapis.com sqladmin.googleapis.com
+   ```
+3. Check Cloud Build logs for container build errors:
+   ```bash
+   gcloud builds list --filter="source.repoSource.repoName:skills-management-app"
+   ```
+4. Review the deployment logs in the Cloud Run service:
+   ```bash
+   gcloud logging read "resource.type=cloud_run_revision" --limit=50
+   ```
+5. Test database connectivity directly:
+   ```bash
+   ./cloud-sql-proxy --instances=PROJECT_ID:REGION:skills-management-db=tcp:5432
+   ```
 
-Common issues:
-- Insufficient permissions: Ensure your account has appropriate roles
-- API limits: New GCP accounts may have limits on resource creation
-- Database connection issues: Check network settings and credentials
-- Build errors: Verify the Dockerfile and build configuration
+### Common Issues
+
+- **Insufficient permissions**: Ensure your account has the following roles:
+  - Cloud Run Admin
+  - Cloud SQL Admin
+  - Cloud Build Editor
+  - Storage Admin
+
+- **API limits**: New GCP accounts may have limits on resource creation
+  - Request quota increases if needed
+
+- **Database connection issues**: 
+  - Verify the connection string format
+  - Check that the Cloud SQL instance is running
+  - Ensure the Cloud Run service has the proper IAM permissions
+
+- **Container startup failures**:
+  - Check the application logs for startup errors
+  - Verify all required environment variables are set
 
 ## Maintenance and Updates
 
@@ -166,10 +236,21 @@ For production environments, consider:
 
 ## Data Backup and Recovery
 
-By default, Cloud SQL is configured with daily backups. For additional protection:
-1. Set up point-in-time recovery
-2. Configure export jobs for database dumps
-3. Implement application-level backup procedures
+By default, Cloud SQL is configured with daily backups. We've also provided a backup/restore script for manual database backups:
+
+```bash
+# To create a backup
+./deployment/backup-restore-db.sh backup
+
+# To restore from the latest backup
+./deployment/backup-restore-db.sh restore
+```
+
+For additional protection in production environments:
+1. Set up point-in-time recovery in Cloud SQL
+2. Configure scheduled export jobs for database dumps
+3. Store backups in multiple geographic regions
+4. Test restoration procedures regularly
 
 ## Support and Additional Resources
 

@@ -16,11 +16,29 @@ echo "Cloud SQL Instance: $DB_INSTANCE_NAME"
 # Create a Cloud SQL proxy connection
 echo "=== Starting Cloud SQL proxy ==="
 DB_CONNECTION_NAME=$(gcloud sql instances describe $DB_INSTANCE_NAME --format='value(connectionName)')
-cloud_sql_proxy -instances=$DB_CONNECTION_NAME=tcp:5432 &
+
+# Download the Cloud SQL proxy if it doesn't exist
+if [ ! -f "./cloud-sql-proxy" ]; then
+  echo "Downloading Cloud SQL proxy..."
+  # For Linux
+  if [ "$(uname)" == "Linux" ]; then
+    curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.linux.amd64
+  # For macOS
+  elif [ "$(uname)" == "Darwin" ]; then
+    curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.8.0/cloud-sql-proxy.darwin.amd64
+  else
+    echo "Unsupported operating system: $(uname)"
+    exit 1
+  fi
+  chmod +x cloud-sql-proxy
+fi
+
+# Start the proxy
+./cloud-sql-proxy --instances=$DB_CONNECTION_NAME=tcp:5432 &
 PROXY_PID=$!
 
 # Wait for proxy to establish connection
-sleep 5
+sleep 10
 echo "Cloud SQL proxy started with PID $PROXY_PID"
 
 # Get database password from environment or prompt user
@@ -29,12 +47,19 @@ if [ -z "$DB_PASSWORD" ]; then
   read -s DB_PASSWORD
 fi
 
-# Export the DATABASE_URL for the scripts to use
+# Export database connection variables
 export DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}"
+export CLOUD_SQL_URL="postgresql://${DB_USER}:${DB_PASSWORD}@/${DB_NAME}?host=/cloudsql/${DB_CONNECTION_NAME}"
+
+# Log the connection info (mask password)
+echo "Database URL: postgres://${DB_USER}:****@localhost:5432/${DB_NAME}"
+echo "Cloud SQL URL format: postgresql://${DB_USER}:****@/${DB_NAME}?host=/cloudsql/${DB_CONNECTION_NAME}"
 
 # Run the database schema setup
 echo "=== Creating database schema ==="
-cd /app  # Ensure we're in the app directory
+# Use current directory instead of hardcoded /app path
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$SCRIPT_DIR/.."  # Navigate to project root
 node db-push.js
 
 # Run test data scripts

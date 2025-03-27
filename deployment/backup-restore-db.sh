@@ -1,107 +1,141 @@
 #!/bin/bash
 set -e
 
+# Script to create and restore backups for the Cloud SQL database
+# Usage:
+#   ./backup-restore-db.sh backup    # Creates a backup of the database
+#   ./backup-restore-db.sh restore   # Restores the latest backup
+
 # Configuration
 PROJECT_ID="skills-management-platform"  # Replace with your GCP project ID
 REGION="us-central1"                     # GCP region
 DB_INSTANCE_NAME="skills-management-db"  # Cloud SQL instance name
-DB_NAME="skills_platform"                # Database name
-DB_USER="skills_admin"                   # Database user
-BACKUP_BUCKET="skills-management-backups"  # GCS bucket for backups
-TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+BACKUP_DIR="./db-backups"                # Local directory for backups
 
-# Command line argument processing
-ACTION=$1  # 'backup' or 'restore'
-BACKUP_FILE=$2  # Only needed for restore
+# Ensure backup directory exists
+mkdir -p $BACKUP_DIR
 
-function show_usage {
+# Check command line arguments
+if [ $# -lt 1 ]; then
   echo "Usage:"
-  echo "  $0 backup                # Creates a new backup"
-  echo "  $0 restore [BACKUP_FILE] # Restores from a backup file"
+  echo "  $0 backup   # Create a database backup"
+  echo "  $0 restore  # Restore the latest backup"
   exit 1
+fi
+
+# Function to backup the database
+function backup_database() {
+  TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+  BACKUP_FILE="$BACKUP_DIR/skills_db_backup_$TIMESTAMP.sql"
+  
+  echo "=== Creating database backup ==="
+  echo "Cloud SQL Instance: $DB_INSTANCE_NAME"
+  echo "Backup file: $BACKUP_FILE"
+  
+  # Create a Cloud SQL proxy connection
+  echo "=== Starting Cloud SQL proxy ==="
+  DB_CONNECTION_NAME=$(gcloud sql instances describe $DB_INSTANCE_NAME --format='value(connectionName)')
+  
+  # Start the proxy
+  ./cloud-sql-proxy --instances=$DB_CONNECTION_NAME=tcp:5432 &
+  PROXY_PID=$!
+  
+  # Wait for proxy to establish connection
+  sleep 10
+  echo "Cloud SQL proxy started with PID $PROXY_PID"
+  
+  # Get database credentials
+  echo "Enter database user:"
+  read DB_USER
+  
+  echo "Enter database password:"
+  read -s DB_PASSWORD
+  
+  echo "Enter database name (default: skills_platform):"
+  read DB_NAME
+  DB_NAME=${DB_NAME:-skills_platform}
+  
+  # Create the backup
+  echo "=== Creating backup ==="
+  PGPASSWORD=$DB_PASSWORD pg_dump -h localhost -p 5432 -U $DB_USER -d $DB_NAME -F c -f $BACKUP_FILE
+  
+  echo "=== Backup created successfully ==="
+  echo "Backup file: $BACKUP_FILE"
+  
+  # Stop the Cloud SQL proxy
+  kill $PROXY_PID
 }
 
-# Check action parameter
-if [ "$ACTION" != "backup" ] && [ "$ACTION" != "restore" ]; then
-  show_usage
-fi
-
-# For restore, check backup file parameter
-if [ "$ACTION" = "restore" ] && [ -z "$BACKUP_FILE" ]; then
-  echo "Error: Missing backup file parameter for restore action"
-  show_usage
-fi
-
-# Create GCS bucket if it doesn't exist
-echo "=== Checking GCS backup bucket ==="
-if ! gsutil ls -b gs://$BACKUP_BUCKET &>/dev/null; then
-  echo "Creating backup bucket: gs://$BACKUP_BUCKET"
-  gsutil mb -l $REGION gs://$BACKUP_BUCKET
-else
-  echo "Backup bucket exists: gs://$BACKUP_BUCKET"
-fi
-
-# Start Cloud SQL proxy
-echo "=== Starting Cloud SQL proxy ==="
-DB_CONNECTION_NAME=$(gcloud sql instances describe $DB_INSTANCE_NAME --format='value(connectionName)')
-cloud_sql_proxy -instances=$DB_CONNECTION_NAME=tcp:5432 &
-PROXY_PID=$!
-
-# Wait for proxy to establish connection
-sleep 5
-echo "Cloud SQL proxy started with PID $PROXY_PID"
-
-# Get database password
-if [ -z "$DB_PASSWORD" ]; then
-  echo "Please enter the database password for user $DB_USER:"
-  read -s DB_PASSWORD
-fi
-
-if [ "$ACTION" = "backup" ]; then
-  echo "=== Creating database backup ==="
-  BACKUP_FILENAME="skills_platform_backup_$TIMESTAMP.sql"
+# Function to restore database from backup
+function restore_database() {
+  # Find the latest backup file
+  LATEST_BACKUP=$(find $BACKUP_DIR -name "skills_db_backup_*.sql" -type f -printf "%T@ %p\n" | sort -n | tail -1 | cut -d' ' -f2-)
   
-  echo "Backing up database to $BACKUP_FILENAME..."
-  PGPASSWORD=$DB_PASSWORD pg_dump -h localhost -p 5432 -U $DB_USER -d $DB_NAME -F c > $BACKUP_FILENAME
-  
-  echo "Uploading backup to GCS..."
-  gsutil cp $BACKUP_FILENAME gs://$BACKUP_BUCKET/
-  
-  echo "Cleaning up local backup file..."
-  rm $BACKUP_FILENAME
-  
-  echo "Backup complete: gs://$BACKUP_BUCKET/$BACKUP_FILENAME"
-
-elif [ "$ACTION" = "restore" ]; then
-  echo "=== Restoring database from backup ==="
-  
-  # Check if backup file exists in GCS
-  if ! gsutil stat gs://$BACKUP_BUCKET/$BACKUP_FILE &>/dev/null; then
-    echo "Error: Backup file not found in gs://$BACKUP_BUCKET/$BACKUP_FILE"
-    
-    # List available backups
-    echo "Available backups:"
-    gsutil ls gs://$BACKUP_BUCKET/
-    
-    # Kill the proxy and exit
-    kill $PROXY_PID
+  if [ -z "$LATEST_BACKUP" ]; then
+    echo "No backup files found in $BACKUP_DIR. Aborting."
     exit 1
   fi
   
-  echo "Downloading backup file from GCS..."
-  gsutil cp gs://$BACKUP_BUCKET/$BACKUP_FILE .
+  echo "=== Restoring database from backup ==="
+  echo "Cloud SQL Instance: $DB_INSTANCE_NAME"
+  echo "Backup file: $LATEST_BACKUP"
   
-  echo "Restoring database from $BACKUP_FILE..."
-  PGPASSWORD=$DB_PASSWORD pg_restore -h localhost -p 5432 -U $DB_USER -d $DB_NAME --clean --if-exists $BACKUP_FILE
+  # Confirm restoration
+  echo "WARNING: This will overwrite the current database. Are you sure? (y/n)"
+  read CONFIRM
+  if [ "$CONFIRM" != "y" ]; then
+    echo "Restoration aborted."
+    exit 0
+  fi
   
-  echo "Cleaning up local backup file..."
-  rm $BACKUP_FILE
+  # Create a Cloud SQL proxy connection
+  echo "=== Starting Cloud SQL proxy ==="
+  DB_CONNECTION_NAME=$(gcloud sql instances describe $DB_INSTANCE_NAME --format='value(connectionName)')
   
-  echo "Database restore complete!"
-fi
+  # Start the proxy
+  ./cloud-sql-proxy --instances=$DB_CONNECTION_NAME=tcp:5432 &
+  PROXY_PID=$!
+  
+  # Wait for proxy to establish connection
+  sleep 10
+  echo "Cloud SQL proxy started with PID $PROXY_PID"
+  
+  # Get database credentials
+  echo "Enter database user:"
+  read DB_USER
+  
+  echo "Enter database password:"
+  read -s DB_PASSWORD
+  
+  echo "Enter database name (default: skills_platform):"
+  read DB_NAME
+  DB_NAME=${DB_NAME:-skills_platform}
+  
+  # Restore the backup
+  echo "=== Restoring backup ==="
+  PGPASSWORD=$DB_PASSWORD pg_restore -h localhost -p 5432 -U $DB_USER -d $DB_NAME -c -C $LATEST_BACKUP
+  
+  echo "=== Restoration completed ==="
+  
+  # Stop the Cloud SQL proxy
+  kill $PROXY_PID
+}
 
-# Stop the Cloud SQL proxy
-echo "=== Stopping Cloud SQL proxy ==="
-kill $PROXY_PID
+# Main logic
+case "$1" in
+  backup)
+    backup_database
+    ;;
+  restore)
+    restore_database
+    ;;
+  *)
+    echo "Unknown command: $1"
+    echo "Usage:"
+    echo "  $0 backup   # Create a database backup"
+    echo "  $0 restore  # Restore the latest backup"
+    exit 1
+    ;;
+esac
 
-echo "=== Operation complete! ==="
+echo "=== Operation completed ==="

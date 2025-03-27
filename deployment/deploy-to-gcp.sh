@@ -77,6 +77,27 @@ echo "=== Building and pushing Docker image ==="
 IMAGE_URL="gcr.io/$PROJECT_ID/$SERVICE_NAME:latest"
 gcloud builds submit --tag $IMAGE_URL
 
+# Generate a session secret
+SESSION_SECRET=$(openssl rand -hex 32)
+
+# Get Mailjet credentials if they exist
+MAILJET_API_KEY=$(gcloud secrets versions access latest --secret="MAILJET_API_KEY" 2>/dev/null || echo "")
+MAILJET_SECRET_KEY=$(gcloud secrets versions access latest --secret="MAILJET_SECRET_KEY" 2>/dev/null || echo "")
+
+# Create environment variables for deployment
+CLOUD_SQL_CONNECTION="postgresql://${DB_USER}:${DB_PASSWORD}@/${DB_NAME}?host=/cloudsql/${DB_CONNECTION_NAME}"
+ENV_VARS="DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME},CLOUD_SQL_URL=${CLOUD_SQL_CONNECTION},CLOUD_SQL_CONNECTION_NAME=${DB_CONNECTION_NAME},DB_USER=${DB_USER},DB_PASSWORD=${DB_PASSWORD},DB_NAME=${DB_NAME},NODE_ENV=production,USE_CLOUD_SQL=true,PORT=8080,HOST=0.0.0.0,SESSION_SECRET=${SESSION_SECRET}"
+
+# Add Mailjet keys if they exist
+if [ -n "$MAILJET_API_KEY" ] && [ -n "$MAILJET_SECRET_KEY" ]; then
+  ENV_VARS="${ENV_VARS},MAILJET_API_KEY=${MAILJET_API_KEY},MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY}"
+  echo "Added Mailjet credentials to deployment environment"
+else
+  echo "Warning: Mailjet credentials not found. Email functionality will be limited."
+fi
+
+echo "Cloud SQL connection string format: ${CLOUD_SQL_CONNECTION//${DB_PASSWORD}/****}"
+
 # Deploy to Cloud Run with Cloud SQL connection
 echo "=== Deploying to Cloud Run ==="
 gcloud run deploy $SERVICE_NAME \
@@ -85,7 +106,12 @@ gcloud run deploy $SERVICE_NAME \
   --region $REGION \
   --allow-unauthenticated \
   --add-cloudsql-instances $DB_CONNECTION_NAME \
-  --update-env-vars "DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?host=/cloudsql/${DB_CONNECTION_NAME},NODE_ENV=production"
+  --update-env-vars "$ENV_VARS" \
+  --cpu=1 \
+  --memory=1Gi \
+  --min-instances=0 \
+  --max-instances=10 \
+  --timeout=300s
 
 # Get the URL of the deployed service
 SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format='value(status.url)')

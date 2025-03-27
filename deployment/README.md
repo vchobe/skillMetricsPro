@@ -1,336 +1,114 @@
-# Deployment Scripts Documentation
+# Deployment Scripts
 
-This directory contains scripts for deploying the Skills Management Platform to Google Cloud Platform (GCP).
-
-## Overview
-
-The deployment scripts automate the process of setting up and deploying the application to GCP, including:
-
-1. Creating and configuring the database
-2. Building and pushing the Docker image
-3. Deploying the application to Cloud Run
-4. Setting up environment variables and secrets
-5. Running database migrations
-6. Handling database backups and restores
+This directory contains scripts to deploy the Skills Management Platform to Google Cloud Platform.
 
 ## Prerequisites
 
-Before using these scripts, ensure you have:
+Before deploying, ensure you have the following:
 
-1. Google Cloud SDK installed and configured
-2. Docker installed
-3. Proper GCP permissions:
-   - Cloud Run Admin
-   - Cloud SQL Admin
-   - Service Account User
-   - Storage Admin
-4. A properly configured `.env.prod` file (see [Environment Variables Documentation](../docs/installation/environment_variables.md))
+1. **Google Cloud SDK** installed and configured 
+   - Install from: https://cloud.google.com/sdk/docs/install
+   - Run `gcloud auth login` to authenticate
 
-## Script Files
+2. **Google Cloud Platform Project** with the following APIs enabled:
+   - Cloud Run API
+   - Cloud SQL Admin API
+   - Cloud Build API
+   - Container Registry API
 
-### `deploy-all.sh`
+3. **Node.js** installed (version 16 or higher)
 
-Main orchestration script that runs the entire deployment process.
+4. **PostgreSQL Client Tools** installed (for database operations)
+   - `pg_dump` and `pg_restore` commands must be available
+
+## Deployment Scripts
+
+### Full Deployment
+
+To perform a complete deployment:
 
 ```bash
-#!/bin/bash
-# Main deployment script for the Skills Management Platform
-
-# Load environment variables
-source .env.prod
-
-# Step 1: Setup Database
-./deployment/setup-database.sh
-
-# Step 2: Build and deploy application
-./deployment/deploy-to-gcp.sh
-
-# Step 3: Run database migrations
-./deployment/run-migrations.sh
-
-# Step 4: Verify deployment
-./deployment/check-deployment.sh
-
-echo "Deployment completed successfully!"
-```
-
-**Usage:**
-```bash
-chmod +x deployment/deploy-all.sh
 ./deployment/deploy-all.sh
 ```
 
-### `setup-database.sh`
+This script will:
+1. Create/update the Cloud SQL database instance
+2. Deploy the application to Cloud Run
+3. Initialize the database schema and test data
+4. Perform health checks
 
-Sets up the Cloud SQL PostgreSQL database.
+### Individual Scripts
 
+If you prefer to run the deployment steps individually:
+
+1. **Deploy infrastructure and application:**
 ```bash
-#!/bin/bash
-# Setup PostgreSQL database on Cloud SQL
-
-# Create Cloud SQL instance if it doesn't exist
-gcloud sql instances describe ${DB_INSTANCE} > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-  echo "Creating Cloud SQL instance: ${DB_INSTANCE}"
-  gcloud sql instances create ${DB_INSTANCE} \
-    --database-version=POSTGRES_13 \
-    --cpu=1 \
-    --memory=3840MB \
-    --region=${GCP_REGION} \
-    --storage-size=10GB \
-    --storage-type=SSD
-else
-  echo "Cloud SQL instance ${DB_INSTANCE} already exists"
-fi
-
-# Create database if it doesn't exist
-gcloud sql databases describe ${DB_NAME} --instance=${DB_INSTANCE} > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-  echo "Creating database: ${DB_NAME}"
-  gcloud sql databases create ${DB_NAME} --instance=${DB_INSTANCE}
-else
-  echo "Database ${DB_NAME} already exists"
-fi
-
-# Create database user if it doesn't exist
-gcloud sql users describe ${DB_USER} --instance=${DB_INSTANCE} > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-  echo "Creating database user: ${DB_USER}"
-  
-  # Generate random password if not provided
-  if [ -z "${DB_PASSWORD}" ]; then
-    DB_PASSWORD=$(openssl rand -base64 16)
-    
-    # Store password in Secret Manager
-    echo -n "${DB_PASSWORD}" | gcloud secrets create db-password --data-file=-
-    echo "Password stored in Secret Manager as 'db-password'"
-  fi
-  
-  gcloud sql users create ${DB_USER} \
-    --instance=${DB_INSTANCE} \
-    --password="${DB_PASSWORD}"
-else
-  echo "Database user ${DB_USER} already exists"
-fi
-
-echo "Database setup completed successfully"
-```
-
-**Usage:**
-```bash
-chmod +x deployment/setup-database.sh
-./deployment/setup-database.sh
-```
-
-### `deploy-to-gcp.sh`
-
-Builds and deploys the application to Google Cloud Run.
-
-```bash
-#!/bin/bash
-# Deploy application to Google Cloud Platform
-
-# Build Docker image
-docker build -t gcr.io/${GCP_PROJECT_ID}/skills-platform:v1 .
-
-# Push to Google Container Registry
-docker push gcr.io/${GCP_PROJECT_ID}/skills-platform:v1
-
-# Deploy to Cloud Run
-gcloud run deploy skills-platform \
-  --image gcr.io/${GCP_PROJECT_ID}/skills-platform:v1 \
-  --platform managed \
-  --region ${GCP_REGION} \
-  --memory 1Gi \
-  --allow-unauthenticated \
-  --set-secrets=SESSION_SECRET=session-secret:latest \
-  --set-secrets=DB_PASSWORD=db-password:latest \
-  --set-env-vars="NODE_ENV=production,DB_USER=${DB_USER},DB_NAME=${DB_NAME},DB_HOST=localhost" \
-  --add-cloudsql-instances=${GCP_PROJECT_ID}:${GCP_REGION}:${DB_INSTANCE}
-
-echo "Application deployed successfully to Cloud Run"
-```
-
-**Usage:**
-```bash
-chmod +x deployment/deploy-to-gcp.sh
 ./deployment/deploy-to-gcp.sh
 ```
 
-### `backup-restore-db.sh`
-
-Handles database backups and restores.
-
+2. **Set up database schema and initial data:**
 ```bash
-#!/bin/bash
-# Backup and restore database script
-
-USAGE="Usage: $0 [backup|restore] [backup_file_name]"
-ACTION=$1
-BACKUP_FILE=$2
-
-if [ "$ACTION" != "backup" ] && [ "$ACTION" != "restore" ]; then
-  echo $USAGE
-  exit 1
-fi
-
-if [ "$ACTION" = "backup" ]; then
-  # Create a backup
-  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-  BACKUP_NAME=${BACKUP_FILE:-"skills_platform_backup_${TIMESTAMP}.sql"}
-  
-  echo "Creating backup: $BACKUP_NAME"
-  gcloud sql export sql ${DB_INSTANCE} gs://${GCP_BUCKET}/${BACKUP_NAME} \
-    --database=${DB_NAME} \
-    --offload
-  
-  echo "Backup created successfully!"
-
-elif [ "$ACTION" = "restore" ]; then
-  # Restore from backup
-  if [ -z "$BACKUP_FILE" ]; then
-    echo "Error: Backup file name is required for restore operation"
-    echo $USAGE
-    exit 1
-  fi
-  
-  echo "Restoring from backup: $BACKUP_FILE"
-  gcloud sql import sql ${DB_INSTANCE} gs://${GCP_BUCKET}/${BACKUP_FILE} \
-    --database=${DB_NAME} \
-    --quiet
-  
-  echo "Database restored successfully!"
-fi
+./deployment/setup-database.sh
 ```
 
-**Usage:**
+3. **Check deployment status:**
 ```bash
-# For backup
-chmod +x deployment/backup-restore-db.sh
-./deployment/backup-restore-db.sh backup [optional_backup_name]
-
-# For restore
-./deployment/backup-restore-db.sh restore backup_file_name
-```
-
-### `check-deployment.sh`
-
-Verifies that the deployment is working correctly.
-
-```bash
-#!/bin/bash
-# Check deployment status
-
-SERVICE_URL=$(gcloud run services describe skills-platform --platform managed --region ${GCP_REGION} --format 'value(status.url)')
-
-# Check if service URL is accessible
-echo "Checking if service is accessible at: ${SERVICE_URL}"
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${SERVICE_URL})
-
-if [ $HTTP_STATUS -eq 200 ]; then
-  echo "✅ Service is accessible (HTTP 200)"
-else
-  echo "❌ Service is not accessible (HTTP ${HTTP_STATUS})"
-  exit 1
-fi
-
-# Check database connectivity
-echo "Checking database connectivity..."
-gcloud run services describe skills-platform --platform managed --region ${GCP_REGION} --format 'value(status.conditions)'
-
-echo "Deployment check completed successfully!"
-```
-
-**Usage:**
-```bash
-chmod +x deployment/check-deployment.sh
 ./deployment/check-deployment.sh
 ```
 
+4. **Backup or restore the database:**
+```bash
+./deployment/backup-restore-db.sh backup   # Create a backup
+./deployment/backup-restore-db.sh restore  # Restore from backup
+```
+
+## Cloud SQL Auth Proxy
+
+The deployment scripts use the Cloud SQL Auth Proxy to securely connect to your Cloud SQL instance. The proxy will be downloaded automatically when needed.
+
+## Configuration
+
+Each script contains configuration variables at the top. Before deployment, review and update these variables:
+
+- `PROJECT_ID`: Your Google Cloud project ID
+- `REGION`: The Google Cloud region (e.g., "us-central1")
+- `SERVICE_NAME`: Name for your Cloud Run service
+- `DB_INSTANCE_NAME`: Name for your Cloud SQL instance
+- `DB_NAME`: The database name
+- `DB_USER`: The database user
+
 ## Environment Variables
 
-The deployment scripts use the following environment variables from `.env.prod`:
+The application expects the following environment variables in production:
 
-- `GCP_PROJECT_ID`: Your Google Cloud Platform project ID
-- `GCP_REGION`: GCP region for deployment (e.g., `us-central1`)
-- `DB_INSTANCE`: Cloud SQL instance name
-- `DB_NAME`: Database name
-- `DB_USER`: Database username
-- `DB_PASSWORD`: Database password (optional, will generate if not provided)
-- `GCP_BUCKET`: GCS bucket for database backups
-
-Example `.env.prod` file:
-
-```
-GCP_PROJECT_ID=your-project-id
-GCP_REGION=us-central1
-DB_INSTANCE=skills-platform-db
-DB_NAME=skills_platform
-DB_USER=skills_platform_user
-DB_PASSWORD=your-strong-password
-GCP_BUCKET=skills-platform-backups
-```
-
-## Deployment Process
-
-The complete deployment process follows these steps:
-
-1. **Database Setup**: Creates the Cloud SQL instance, database, and user if they don't exist
-2. **Docker Build**: Builds the Docker image for the application
-3. **Container Registry**: Pushes the image to Google Container Registry
-4. **Cloud Run Deployment**: Deploys the application to Cloud Run with appropriate configuration
-5. **Database Migration**: Applies database schema changes
-6. **Verification**: Checks that the deployment is working correctly
-
-## Best Practices
-
-1. **Environment Variables**: Keep sensitive information in environment variables or Secret Manager
-2. **Regular Backups**: Schedule regular database backups
-3. **Version Control**: Tag releases and use versioned Docker images
-4. **Testing**: Test deployments in a staging environment before production
-5. **Monitoring**: Set up monitoring and alerting for the deployed application
+- `DATABASE_URL`: Standard PostgreSQL connection string (for local development)
+- `CLOUD_SQL_URL`: Cloud SQL connection string (for production)
+- `CLOUD_SQL_CONNECTION_NAME`: Cloud SQL instance connection name
+- `NODE_ENV`: Set to "production"
+- `USE_CLOUD_SQL`: Set to "true" in production
+- `SESSION_SECRET`: Secret for session encryption
+- `MAILJET_API_KEY` and `MAILJET_SECRET_KEY`: For email functionality (optional)
 
 ## Troubleshooting
 
-### Common Issues
+If you encounter deployment issues:
 
-1. **Authentication Errors**:
-   - Check that you're logged in to Google Cloud: `gcloud auth login`
-   - Verify your project is set: `gcloud config set project your-project-id`
+1. Check application logs:
+```bash
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=skills-management-app"
+```
 
-2. **Database Connection Issues**:
-   - Ensure the Cloud SQL instance is running
-   - Check that the database user has the correct permissions
-   - Verify the connection string is correct
+2. Check Cloud SQL instance logs:
+```bash
+gcloud logging read "resource.type=cloudsql_database"
+```
 
-3. **Deployment Failures**:
-   - Check for errors in the deployment logs: `gcloud run services logs read skills-platform`
-   - Verify that required services are enabled: `gcloud services list`
-   - Ensure service account has necessary permissions
+3. Verify Cloud SQL connection:
+```bash
+./cloud-sql-proxy --instances=PROJECT_ID:REGION:INSTANCE_NAME=tcp:5432
+```
 
-### Getting Support
-
-If you encounter issues with these deployment scripts:
-
-1. Check the GCP documentation for specific services
-2. Look for error messages in the command output
-3. Review Cloud Run and Cloud SQL logs
-4. Contact your GCP administrator for account or permission issues
-
-## Customization
-
-To customize these scripts for your environment:
-
-1. Edit the environment variables in `.env.prod`
-2. Modify resource allocations in the deployment scripts
-3. Add additional steps for specific requirements
-4. Incorporate into your CI/CD pipeline as needed
-
-## Continuous Deployment
-
-For continuous deployment:
-
-1. Add a `cloudbuild.yaml` file to your project
-2. Set up Cloud Build triggers for your repository
-3. Configure Cloud Build to execute these deployment scripts
-4. Set up appropriate IAM permissions for the Cloud Build service account
+4. Run the health check script:
+```bash
+./deployment/check-deployment.sh
+```

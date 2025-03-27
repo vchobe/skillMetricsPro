@@ -70,9 +70,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
   
-  // Health check endpoint for testing
-  app.get("/api/health", (req, res) => {
-    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  // Health check endpoint for testing and deployment verification
+  app.get("/api/health", async (req, res) => {
+    try {
+      // Test database connection
+      const client = await pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      
+      // Get database connection type
+      const dbUrl = process.env.DATABASE_URL || '';
+      const isCloudSql = process.env.CLOUD_SQL_URL && process.env.CLOUD_SQL_URL.includes('/cloudsql/');
+      const connectionType = isCloudSql ? 'cloud_sql' : 
+                            dbUrl.includes('neon.tech') ? 'neon' : 
+                            'standard_postgres';
+      
+      res.status(200).json({ 
+        status: "ok", 
+        timestamp: new Date().toISOString(),
+        database: "connected",
+        connection_type: connectionType,
+        environment: process.env.NODE_ENV || 'development',
+        use_cloud_sql: process.env.USE_CLOUD_SQL === 'true',
+        version: process.env.npm_package_version || '1.0.0',
+        server_time: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Health check error:", error);
+      res.status(500).json({ 
+        status: "error", 
+        timestamp: new Date().toISOString(),
+        database: "disconnected",
+        environment: process.env.NODE_ENV || 'development',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Root endpoint for deployment verification
+  app.get("/", (req, res) => {
+    res.send(`
+      <html>
+        <head>
+          <title>SkillMetrics API Server</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
+            .container { max-width: 800px; margin: 0 auto; }
+            h1 { color: #333; }
+            .card { border: 1px solid #ddd; border-radius: 4px; padding: 20px; margin-bottom: 20px; }
+            .success { color: green; }
+            .error { color: red; }
+            code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>SkillMetrics API Server</h1>
+            <div class="card">
+              <h2>Server Status</h2>
+              <p class="success">✅ Server is running</p>
+              <p>Environment: ${process.env.NODE_ENV || 'development'}</p>
+              <p>Server Time: ${new Date().toISOString()}</p>
+            </div>
+            <div class="card">
+              <h2>API Status</h2>
+              <p>Check detailed API health: <a href="/api/health">/api/health</a></p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
   });
 
   // Middleware to ensure user is authenticated
