@@ -1,8 +1,5 @@
 FROM node:20-slim
 
-# Set working directory
-WORKDIR /app
-
 # Install required system dependencies
 RUN apt-get update && apt-get install -y \
     wget \
@@ -15,11 +12,20 @@ RUN apt-get update && apt-get install -y \
 # Setup directory for Cloud SQL Auth Proxy connection
 RUN mkdir -p /cloudsql
 
+# Create the application directory
+RUN mkdir -p /skillmetrics
+
+# Set working directory 
+WORKDIR /skillmetrics
+
+# Debug: Current directory and contents
+RUN pwd && ls -la
+
 # Copy package files first for better layer caching
 COPY package.json package-lock.json* ./
 
-# Verify package.json exists after copy
-RUN ls -la && cat package.json
+# Debug: Verify package.json exists after copy
+RUN echo "Checking package.json:" && ls -la && cat package.json
 
 # Install dependencies with more memory for Node
 ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -39,24 +45,42 @@ ENV NODE_ENV=production
 ENV PORT=8080
 ENV HOST=0.0.0.0
 
-# Start the server with environment variable setup
-CMD if [ -z "$SESSION_SECRET" ]; then \
-      export SESSION_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"); \
-    fi && \
-    # If USE_CLOUD_SQL is set, set up appropriate environment variables
-    if [ "$USE_CLOUD_SQL" = "true" ] && [ ! -z "$CLOUD_SQL_CONNECTION_NAME" ]; then \
-      echo "Using Cloud SQL connection: $CLOUD_SQL_CONNECTION_NAME"; \
-      export CLOUD_SQL_URL="postgresql://$DB_USER:$DB_PASSWORD@/$DB_NAME?host=/cloudsql/$CLOUD_SQL_CONNECTION_NAME"; \
-      echo "Cloud SQL URL format set (password masked): postgresql://$DB_USER:****@/$DB_NAME?host=/cloudsql/$CLOUD_SQL_CONNECTION_NAME"; \
-    fi && \
-    # For debugging purposes, list important directories
-    echo "Current directory:" && pwd && \
-    echo "Directory contents:" && ls -la && \
-    # Start the application
-    if [ -f "server/index.js" ]; then \
-      echo "Starting compiled server" && \
-      node server/index.js; \
-    else \
-      echo "Starting with npm script" && \
-      npm start; \
-    fi
+# Create a startup script
+RUN echo '#!/bin/bash \n\
+# Generate session secret if not provided \n\
+if [ -z "$SESSION_SECRET" ]; then \n\
+  export SESSION_SECRET=$(node -e "console.log(require(\"crypto\").randomBytes(32).toString(\"hex\"))") \n\
+  echo "Generated new session secret" \n\
+fi \n\
+\n\
+# Setup Cloud SQL if enabled \n\
+if [ "$USE_CLOUD_SQL" = "true" ] && [ ! -z "$CLOUD_SQL_CONNECTION_NAME" ]; then \n\
+  echo "Using Cloud SQL connection: $CLOUD_SQL_CONNECTION_NAME" \n\
+  export CLOUD_SQL_URL="postgresql://$DB_USER:$DB_PASSWORD@/$DB_NAME?host=/cloudsql/$CLOUD_SQL_CONNECTION_NAME" \n\
+  echo "Cloud SQL URL format set (password masked): postgresql://$DB_USER:****@/$DB_NAME?host=/cloudsql/$CLOUD_SQL_CONNECTION_NAME" \n\
+fi \n\
+\n\
+# Debug info \n\
+echo "Current directory: $(pwd)" \n\
+echo "Directory contents:" \n\
+ls -la \n\
+echo "Server directory:" \n\
+ls -la server/ 2>/dev/null || echo "Server directory not found" \n\
+\n\
+# Start server \n\
+if [ -f "server/index.js" ]; then \n\
+  echo "Starting compiled server" \n\
+  node server/index.js \n\
+elif [ -f "dist/server/index.js" ]; then \n\
+  echo "Starting compiled server from dist folder" \n\
+  node dist/server/index.js \n\
+else \n\
+  echo "Compiled server not found, starting with npm start" \n\
+  npm start \n\
+fi' > /skillmetrics/start.sh
+
+# Make startup script executable
+RUN chmod +x /skillmetrics/start.sh
+
+# Start the server with the startup script
+CMD ["/skillmetrics/start.sh"]

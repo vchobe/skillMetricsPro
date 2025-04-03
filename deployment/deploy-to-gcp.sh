@@ -84,9 +84,26 @@ SESSION_SECRET=$(openssl rand -hex 32)
 MAILJET_API_KEY=$(gcloud secrets versions access latest --secret="MAILJET_API_KEY" 2>/dev/null || echo "")
 MAILJET_SECRET_KEY=$(gcloud secrets versions access latest --secret="MAILJET_SECRET_KEY" 2>/dev/null || echo "")
 
-# Create environment variables for deployment
-CLOUD_SQL_CONNECTION="postgresql://${DB_USER}:${DB_PASSWORD}@/${DB_NAME}?host=/cloudsql/${DB_CONNECTION_NAME}"
-ENV_VARS="DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME},CLOUD_SQL_URL=${CLOUD_SQL_CONNECTION},CLOUD_SQL_CONNECTION_NAME=${DB_CONNECTION_NAME},DB_USER=${DB_USER},DB_PASSWORD=${DB_PASSWORD},DB_NAME=${DB_NAME},NODE_ENV=production,USE_CLOUD_SQL=true,PORT=8080,HOST=0.0.0.0,SESSION_SECRET=${SESSION_SECRET}"
+# Format the Cloud SQL URL correctly
+CLOUD_SQL_URL="postgresql://${DB_USER}:${DB_PASSWORD}@/${DB_NAME}?host=/cloudsql/${DB_CONNECTION_NAME}"
+
+# Create extensive environment variables for deployment
+ENV_VARS="DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME},"
+ENV_VARS+="CLOUD_SQL_URL=${CLOUD_SQL_URL},"
+ENV_VARS+="CLOUD_SQL_CONNECTION_NAME=${DB_CONNECTION_NAME},"
+ENV_VARS+="DB_USER=${DB_USER},"
+ENV_VARS+="DB_PASSWORD=${DB_PASSWORD},"
+ENV_VARS+="DB_NAME=${DB_NAME},"
+ENV_VARS+="NODE_ENV=production,"
+ENV_VARS+="USE_CLOUD_SQL=true,"
+ENV_VARS+="PORT=8080,"
+ENV_VARS+="HOST=0.0.0.0,"
+ENV_VARS+="SESSION_SECRET=${SESSION_SECRET}"
+
+echo "Environment variables for deployment:"
+echo "DATABASE_URL=postgresql://${DB_USER}:****@localhost:${DB_PORT}/${DB_NAME}"
+echo "CLOUD_SQL_URL=postgresql://${DB_USER}:****@/${DB_NAME}?host=/cloudsql/${DB_CONNECTION_NAME}"
+echo "CLOUD_SQL_CONNECTION_NAME=${DB_CONNECTION_NAME}"
 
 # Add Mailjet keys if they exist
 if [ -n "$MAILJET_API_KEY" ] && [ -n "$MAILJET_SECRET_KEY" ]; then
@@ -96,7 +113,7 @@ else
   echo "Warning: Mailjet credentials not found. Email functionality will be limited."
 fi
 
-echo "Cloud SQL connection string format: ${CLOUD_SQL_CONNECTION//${DB_PASSWORD}/****}"
+echo "Cloud SQL connection string format: postgresql://${DB_USER}:****@/${DB_NAME}?host=/cloudsql/${DB_CONNECTION_NAME}"
 
 # Deploy to Cloud Run with Cloud SQL connection
 echo "=== Deploying to Cloud Run ==="
