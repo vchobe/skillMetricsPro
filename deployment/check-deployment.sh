@@ -58,6 +58,28 @@ gcloud logging read "resource.type=cloud_run_revision AND resource.labels.servic
 echo -e "\n=== Cloud SQL instance status ==="
 gcloud sql instances describe $DB_INSTANCE_NAME --format="table(name, state, settings.tier, settings.activationPolicy, gceZone, ipAddresses)"
 
+# Check Docker image details
+echo -e "\n=== Docker image details ==="
+IMAGE_URL="gcr.io/$PROJECT_ID/$SERVICE_NAME:latest"
+echo "Image URL: $IMAGE_URL"
+
+# Check if image exists
+if gcloud container images describe $IMAGE_URL > /dev/null 2>&1; then
+  echo "✅ Docker image exists"
+  
+  # Show image details
+  echo "Image details:"
+  gcloud container images describe $IMAGE_URL --format="table(image_summary.fully_qualified_digest, image_summary.digest, image_summary.tags, image_summary.mediaType)"
+  
+  # Show when the image was last pushed
+  echo -e "\nImage creation time:"
+  gcloud container images describe $IMAGE_URL --format="value(image_summary.uploadTime)"
+else
+  echo "❌ Docker image not found!"
+  echo "The image $IMAGE_URL does not exist."
+  echo "Check build logs with: gcloud builds list"
+fi
+
 echo -e "\n=== Deployment check complete ==="
 echo "If you're experiencing issues, consider the following steps:"
 echo "1. Check the full application logs to identify errors:"
@@ -67,3 +89,7 @@ echo "   gcloud services enable sqladmin.googleapis.com"
 echo "3. Verify Cloud Run service account has appropriate Cloud SQL access"
 echo "4. Check for network connectivity issues"
 echo "5. Verify environment variables are correctly set"
+echo "6. Debug Docker image issues:"
+echo "   - Check Cloud Build logs: gcloud builds list"
+echo "   - Inspect the image locally: docker pull $IMAGE_URL && docker inspect $IMAGE_URL"
+echo "   - Test the image locally: docker run --rm $IMAGE_URL ls -la /app"

@@ -1,5 +1,6 @@
 FROM node:20-slim
 
+# Set working directory
 WORKDIR /app
 
 # Install required system dependencies
@@ -14,8 +15,11 @@ RUN apt-get update && apt-get install -y \
 # Setup directory for Cloud SQL Auth Proxy connection
 RUN mkdir -p /cloudsql
 
-# Copy package files for installation
-COPY package*.json ./
+# Copy package files first for better layer caching
+COPY package.json package-lock.json* ./
+
+# Verify package.json exists after copy
+RUN ls -la && cat package.json
 
 # Install dependencies with more memory for Node
 ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -45,5 +49,14 @@ CMD if [ -z "$SESSION_SECRET" ]; then \
       export CLOUD_SQL_URL="postgresql://$DB_USER:$DB_PASSWORD@/$DB_NAME?host=/cloudsql/$CLOUD_SQL_CONNECTION_NAME"; \
       echo "Cloud SQL URL format set (password masked): postgresql://$DB_USER:****@/$DB_NAME?host=/cloudsql/$CLOUD_SQL_CONNECTION_NAME"; \
     fi && \
+    # For debugging purposes, list important directories
+    echo "Current directory:" && pwd && \
+    echo "Directory contents:" && ls -la && \
     # Start the application
-    npm start
+    if [ -f "server/index.js" ]; then \
+      echo "Starting compiled server" && \
+      node server/index.js; \
+    else \
+      echo "Starting with npm script" && \
+      npm start; \
+    fi
