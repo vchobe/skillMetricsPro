@@ -13,10 +13,10 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir -p /cloudsql
 
 # Create the application directory
-RUN mkdir -p /skillmetrics
+RUN mkdir -p /app
 
 # Set working directory 
-WORKDIR /skillmetrics
+WORKDIR /app
 
 # Debug: Current directory and contents
 RUN pwd && ls -la
@@ -80,7 +80,7 @@ else \n\
 fi' > /skillmetrics/start.sh
 
 # Make startup script executable
-RUN chmod +x /skillmetrics/start.sh
+RUN chmod +x /app/start.sh
 
 # Start the server with the startup script
-CMD ["/skillmetrics/start.sh"]
+CMD ["/app/start.sh"]
