@@ -1,84 +1,179 @@
 #!/bin/bash
 set -e
 
-# Script to deploy the entire application stack to GCP:
-# 1. Create and configure the Cloud SQL database
-# 2. Deploy the application to Cloud Run
-# 3. Setup database schema and initial data
-# 4. Perform health checks
+# Help information
+show_help() {
+  echo "Usage: $0 [options]"
+  echo ""
+  echo "All-in-one deployment script for Skills Management Platform to GCP"
+  echo ""
+  echo "Options:"
+  echo "  --project-id=ID         Google Cloud Project ID (required)"
+  echo "  --region=REGION         Google Cloud region [default: us-central1]"
+  echo "  --service=NAME          Cloud Run service name [default: skills-management-app]"
+  echo "  --db-instance=NAME      Cloud SQL instance name [default: skills-management-db]"
+  echo "  --db-name=NAME          Database name [default: skills_platform]"
+  echo "  --db-user=USER          Database user [default: skills_admin]"
+  echo "  --setup-db              Set up database schema and initial admin user"
+  echo "  --with-test-data        Add test data to the database (implies --setup-db)"
+  echo "  --quick-deploy          Skip database setup, only deploy application"
+  echo "  --debug                 Enable debug mode (verbose output)"
+  echo "  --help                  Show this help message"
+  echo ""
+  echo "Example:"
+  echo "  $0 --project-id=my-project-123 --region=us-east1 --setup-db"
+  exit 0
+}
 
-# Run in the context of the repository root
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-cd "$SCRIPT_DIR/.."  # Navigate to project root
+if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+  show_help
+fi
 
-# Configuration
-PROJECT_ID="skills-management-platform"  # Replace with your GCP project ID
-REGION="us-central1"                     # GCP region
-SERVICE_NAME="skills-management-app"     # Cloud Run service name 
-DB_INSTANCE_NAME="skills-management-db"  # Cloud SQL instance name
+# Default configuration
+PROJECT_ID=""                       # GCP project ID (must be provided)
+REGION="us-central1"                # GCP region
+SERVICE_NAME="skills-management-app" # Cloud Run service name
+DB_INSTANCE_NAME="skills-management-db" # Cloud SQL instance name
+DB_NAME="skills_platform"           # Database name
+DB_USER="skills_admin"              # Database user
+SETUP_DB=false
+WITH_TEST_DATA=false
+QUICK_DEPLOY=false
+DEBUG=false
 
-echo "===================================================="
-echo "🚀 STARTING FULL DEPLOYMENT PROCESS"
-echo "===================================================="
-echo "Project ID: $PROJECT_ID"
-echo "Region: $REGION" 
-echo "Service: $SERVICE_NAME"
-echo "Database: $DB_INSTANCE_NAME"
-echo "----------------------------------------------------"
+# Parse command line arguments
+for arg in "$@"; do
+  case $arg in
+    --project-id=*)
+      PROJECT_ID="${arg#*=}"
+      shift
+      ;;
+    --region=*)
+      REGION="${arg#*=}"
+      shift
+      ;;
+    --service=*)
+      SERVICE_NAME="${arg#*=}"
+      shift
+      ;;
+    --db-instance=*)
+      DB_INSTANCE_NAME="${arg#*=}"
+      shift
+      ;;
+    --db-name=*)
+      DB_NAME="${arg#*=}"
+      shift
+      ;;
+    --db-user=*)
+      DB_USER="${arg#*=}"
+      shift
+      ;;
+    --setup-db)
+      SETUP_DB=true
+      shift
+      ;;
+    --with-test-data)
+      SETUP_DB=true
+      WITH_TEST_DATA=true
+      shift
+      ;;
+    --quick-deploy)
+      QUICK_DEPLOY=true
+      shift
+      ;;
+    --debug)
+      DEBUG=true
+      set -x # Enable debug mode
+      shift
+      ;;
+    --help)
+      show_help
+      ;;
+    *)
+      # Unknown option
+      echo "Unknown option: $arg"
+      echo "Use --help for usage information."
+      exit 1
+      ;;
+  esac
+done
 
-# Check if required tools are installed
-command -v gcloud >/dev/null 2>&1 || { echo "❌ Google Cloud SDK (gcloud) is required but not installed. Aborting."; exit 1; }
-command -v node >/dev/null 2>&1 || { echo "❌ Node.js is required but not installed. Aborting."; exit 1; }
-
-# Check if user is logged in to gcloud
-ACCOUNT=$(gcloud config get-value account 2>/dev/null)
-if [ -z "$ACCOUNT" ]; then
-  echo "❌ You are not logged in to gcloud. Please run 'gcloud auth login' first."
+# Check for required parameters
+if [ -z "$PROJECT_ID" ]; then
+  echo "Error: Missing required parameter --project-id"
+  echo "Use --help for usage information."
   exit 1
 fi
-echo "✅ Logged in to gcloud as: $ACCOUNT"
 
-# Check permissions
-echo "Checking permissions..."
-gcloud projects describe $PROJECT_ID >/dev/null 2>&1 || { echo "❌ You don't have permission to access project $PROJECT_ID. Aborting."; exit 1; }
-echo "✅ You have access to project $PROJECT_ID"
+# Find script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+echo "Script directory: $SCRIPT_DIR"
 
-# Step 1: Deploy infrastructure and application
-echo -e "\n===================================================="
-echo "📦 STEP 1: DEPLOYING INFRASTRUCTURE AND APPLICATION"
-echo "===================================================="
-./deployment/deploy-to-gcp.sh
+# Ensure we're in the right starting directory
+if [ -f "$SCRIPT_DIR/deploy-to-gcp.sh" ]; then
+  DEPLOY_SCRIPT="$SCRIPT_DIR/deploy-to-gcp.sh"
+  CHECK_SCRIPT="$SCRIPT_DIR/check-deployment.sh"
+  SETUP_DB_SCRIPT="$SCRIPT_DIR/setup-database.sh"
+  
+  # Make sure all scripts are executable
+  chmod +x "$DEPLOY_SCRIPT" "$CHECK_SCRIPT" "$SETUP_DB_SCRIPT"
+else
+  echo "Error: Required deployment scripts not found in $SCRIPT_DIR"
+  echo "Make sure you're running this script from the project's deployment directory."
+  exit 1
+fi
 
-# Step 2: Set up database schema and test data
-echo -e "\n===================================================="
-echo "🗃️ STEP 2: SETTING UP DATABASE SCHEMA AND INITIAL DATA" 
-echo "===================================================="
-./deployment/setup-database.sh
+echo "=== Starting complete deployment process ==="
+echo "Configuration:"
+echo "  Project ID: $PROJECT_ID"
+echo "  Region: $REGION"
+echo "  Service name: $SERVICE_NAME"
+echo "  Database instance: $DB_INSTANCE_NAME"
+echo "  Database name: $DB_NAME"
+echo "  Database user: $DB_USER"
+echo "  Setup database: $SETUP_DB"
+echo "  With test data: $WITH_TEST_DATA"
+echo "  Quick deploy: $QUICK_DEPLOY"
 
-# Step 3: Run deployment checks
-echo -e "\n===================================================="
-echo "🔍 STEP 3: RUNNING DEPLOYMENT CHECKS"
-echo "===================================================="
-./deployment/check-deployment.sh
+# Deploy to GCP
+if [ "$QUICK_DEPLOY" = true ]; then
+  echo "=== Quick deploying application only (skipping database setup) ==="
+  $DEPLOY_SCRIPT --project-id="$PROJECT_ID" --region="$REGION" --service="$SERVICE_NAME" --db-instance="$DB_INSTANCE_NAME" --db-name="$DB_NAME" --db-user="$DB_USER"
+else
+  echo "=== Deploying application to GCP ==="
+  $DEPLOY_SCRIPT --project-id="$PROJECT_ID" --region="$REGION" --service="$SERVICE_NAME" --db-instance="$DB_INSTANCE_NAME" --db-name="$DB_NAME" --db-user="$DB_USER"
+  
+  # Check deployment
+  echo "=== Checking deployment status ==="
+  $CHECK_SCRIPT --project-id="$PROJECT_ID" --region="$REGION" --service="$SERVICE_NAME" --db-instance="$DB_INSTANCE_NAME"
+  
+  # Setup database if requested
+  if [ "$SETUP_DB" = true ]; then
+    echo "=== Setting up database schema ==="
+    
+    # Get the service URL for database setup
+    SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format='value(status.url)')
+    if [ -z "$SERVICE_URL" ]; then
+      echo "Error: Could not retrieve service URL. Database setup failed."
+      exit 1
+    fi
+    
+    DB_SETUP_OPTS=""
+    if [ "$WITH_TEST_DATA" = true ]; then
+      DB_SETUP_OPTS="--with-test-data"
+    fi
+    
+    # Setup database
+    $SETUP_DB_SCRIPT --service-url="$SERVICE_URL" $DB_SETUP_OPTS
+    
+    # Final check after database setup
+    echo "=== Final deployment check after database setup ==="
+    $CHECK_SCRIPT --project-id="$PROJECT_ID" --region="$REGION" --service="$SERVICE_NAME" --db-instance="$DB_INSTANCE_NAME"
+  fi
+fi
 
-# Get the service URL for the final message
-SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format='value(status.url)')
-
-echo -e "\n===================================================="
-echo "✅ DEPLOYMENT COMPLETE"
-echo "===================================================="
-echo "Your application is now deployed and available at:"
-echo "$SERVICE_URL"
+echo "=== Deployment process complete ==="
+echo "Application URL: $(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format='value(status.url)')"
 echo ""
-echo "Default admin credentials:"
-echo "Username: admin@example.com"
-echo "Password: password123"
-echo "(Change these credentials after first login!)"
-echo ""
-echo "To monitor your application:"
-echo "- Cloud Run console: https://console.cloud.google.com/run?project=$PROJECT_ID"
-echo "- Logs: https://console.cloud.google.com/logs?project=$PROJECT_ID" 
-echo "- Database: https://console.cloud.google.com/sql/instances/$DB_INSTANCE_NAME?project=$PROJECT_ID"
-echo ""
-echo "To run health checks again: ./deployment/check-deployment.sh"
-echo "===================================================="
+echo "You can check the status of your deployment at any time with:"
+echo "  $CHECK_SCRIPT --project-id=$PROJECT_ID --region=$REGION --service=$SERVICE_NAME --db-instance=$DB_INSTANCE_NAME"

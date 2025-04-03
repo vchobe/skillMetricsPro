@@ -1,259 +1,166 @@
-# Employee Skills Management Platform - GCP Cloud Run Deployment Guide
+# Deploying to Google Cloud Run
 
-This guide explains how to deploy the Employee Skills Management Platform to Google Cloud Platform using Cloud Run and Cloud SQL.
-
-## Deployment Scripts Overview
-
-The deployment scripts in the `deployment/` directory automate the entire deployment process, including:
-
-1. Setting up GCP project configuration
-2. Creating a Cloud SQL PostgreSQL instance
-3. Setting up environment variables
-4. Building and pushing the Docker image
-5. Deploying the application to Cloud Run
-6. Initializing the database schema and sample data
-7. Verifying deployment status with health checks
-
-## Available Deployment Scripts
-
-1. **`deployment/deploy-all.sh`** - Orchestrates the entire deployment process in one command
-2. **`deployment/deploy-to-gcp.sh`** - Deploys the infrastructure and application
-3. **`deployment/setup-database.sh`** - Sets up database schema and initial data
-4. **`deployment/check-deployment.sh`** - Verifies deployment status
-5. **`deployment/backup-restore-db.sh`** - Manages database backups and restoration
+This guide provides step-by-step instructions for deploying the Skills Management Platform application to Google Cloud Run with PostgreSQL database.
 
 ## Prerequisites
 
-Before running the deployment script, ensure you have:
+Before you begin, you'll need:
 
-- Google Cloud SDK installed on your local machine or Cloud Shell
-- Docker installed (for local testing)
-- Git installed
-- Logged in to Google Cloud (`gcloud auth login`)
-- A Google Cloud project created
-- Billing enabled on your Google Cloud project
+1. A Google Cloud Platform (GCP) account with billing enabled
+2. The [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) installed and configured locally
+3. The `gcloud` CLI tool authenticated with your GCP account
+4. Docker installed on your local machine (for local testing)
+5. Git to clone this repository
 
-## Step-by-Step Deployment Instructions
+## Step 1: Set Up Your GCP Project
 
-### 1. Prepare Your Environment
-
-1. Open Google Cloud Shell or your local terminal
-2. Clone the repository containing the deployment scripts:
-   ```bash
-   git clone https://github.com/yourusername/employee-skills-platform.git
-   cd employee-skills-platform
-   ```
-3. Make the deployment scripts executable:
-   ```bash
-   chmod +x deployment/*.sh
-   ```
-
-### 2. Run the Deployment
-
-#### Option 1: Full Automated Deployment (Recommended)
-
-Run the all-in-one deployment script:
-
+1. Create a new GCP project or use an existing one:
 ```bash
-./deployment/deploy-all.sh
+gcloud projects create [PROJECT_ID] --name="Skills Management Platform"
 ```
 
-This script will handle the entire deployment process from start to finish.
+2. Set the project as your default:
+```bash
+gcloud config set project [PROJECT_ID]
+```
 
-#### Option 2: Step-by-Step Deployment
+3. Enable required APIs:
+```bash
+gcloud services enable cloudbuild.googleapis.com \
+    run.googleapis.com \
+    cloudresourcemanager.googleapis.com \
+    artifactregistry.googleapis.com \
+    sqladmin.googleapis.com
+```
 
-If you prefer to run each step individually:
+## Step 2: Deploy Using the All-in-One Script
 
-1. Deploy the infrastructure and application:
-   ```bash
-   ./deployment/deploy-to-gcp.sh
-   ```
+The simplest way to deploy is using our all-in-one script:
 
-2. Set up the database schema and initial data:
-   ```bash
-   ./deployment/setup-database.sh
-   ```
+```bash
+./deployment/deploy-all.sh --project-id=[YOUR_PROJECT_ID] --setup-db
+```
 
-3. Verify the deployment:
-   ```bash
-   ./deployment/check-deployment.sh
-   ```
+This will:
+1. Create a Cloud SQL PostgreSQL instance
+2. Build and push the Docker image
+3. Deploy the application to Cloud Run
+4. Set up the database schema
+5. Create an admin user
 
-### 3. Script Execution Details
+If you want to add test data as well:
 
-The script performs the following steps:
+```bash
+./deployment/deploy-all.sh --project-id=[YOUR_PROJECT_ID] --with-test-data
+```
 
-#### a. Set up Google Cloud Project Configuration
-- Sets the active GCP project
-- Enables required APIs (Cloud Build, Container Registry, Cloud Run, Cloud SQL, Secret Manager)
+## Step 3: Check Deployment Status
 
-#### b. Repository Setup
-- Clones the repository or updates the existing code
-- Prepares the codebase for deployment
+To verify your deployment is working correctly:
 
-#### c. Database Setup
-- Creates a Cloud SQL PostgreSQL instance
-- Creates the database and database user
-- Configures database connection settings
+```bash
+./deployment/check-deployment.sh --project-id=[YOUR_PROJECT_ID]
+```
 
-#### d. Environment Variables
-- Creates a .env file with appropriate settings for the application
-- Includes database connection details and other configuration values
-- Generates secure random values for secrets
+This will check:
+- If the service is responding
+- Database connection status
+- Docker image details
+- Recent application logs
 
-#### e. Database Initialization
-- Prepares scripts to create the database schema
-- Sets up tables, relationships, and enumerated types
-- Creates an admin user and sample data
+## Step 4: Additional Configuration
 
-#### f. Docker Configuration
-- Creates or updates the Dockerfile for the application
-- Sets up the build process for a production-ready container
+### Email Notifications
 
-#### g. Image Building
-- Builds the Docker image using Cloud Build
-- Pushes the image to Google Container Registry
+To enable email notifications using Mailjet:
 
-#### h. Cloud Run Deployment
-- Creates a service account with appropriate permissions
-- Securely stores environment variables in Secret Manager
-- Deploys the container to Cloud Run with Cloud SQL connection
-- Configures public access to the application
+1. Create Mailjet API keys at https://app.mailjet.com/account/apikeys
+2. Store them as secrets in Secret Manager:
 
-#### i. Database Initialization
-- Runs the database initialization scripts
-- Creates the schema, tables, and initial data
+```bash
+echo -n "your-mailjet-api-key" | gcloud secrets create MAILJET_API_KEY --data-file=-
+echo -n "your-mailjet-secret-key" | gcloud secrets create MAILJET_SECRET_KEY --data-file=-
+```
 
-### 4. Post-Deployment Steps
+3. Redeploy your application to use these secrets:
 
-After successful deployment, the script provides:
-- The URL for accessing your application
-- Admin credentials for the first login
-- Database information for future reference
+```bash
+./deployment/deploy-to-gcp.sh --project-id=[YOUR_PROJECT_ID]
+```
 
-Important security steps to take after deployment:
-1. Change the admin password immediately after first login
-2. Consider restricting access to the application if needed
-3. Set up HTTPS with a custom domain if needed
+### Custom Domain (Optional)
 
-## Customization Options
+To set up a custom domain:
 
-You can modify the script to change:
-- The region for deployment
-- Database instance specifications
-- Admin user details
-- Application configuration
-- Resource allocation for Cloud Run
+1. Go to the [Cloud Run console](https://console.cloud.google.com/run)
+2. Select your service
+3. Go to the "Domain mappings" tab
+4. Follow the instructions to map your domain
+
+## Step 5: Database Backups and Maintenance
+
+### Creating a Database Backup
+
+```bash
+./deployment/backup-restore-db.sh backup --project-id=[YOUR_PROJECT_ID]
+```
+
+### Restoring from a Backup
+
+```bash
+./deployment/backup-restore-db.sh restore --project-id=[YOUR_PROJECT_ID] --file=[BACKUP_FILENAME]
+```
+
+### Listing Available Backups
+
+```bash
+./deployment/backup-restore-db.sh list --project-id=[YOUR_PROJECT_ID]
+```
 
 ## Troubleshooting
 
-### Using the Deployment Check Script
+If you encounter issues with your deployment:
 
-We've provided a comprehensive diagnostic tool that can help identify common deployment issues:
-
+1. Check the application logs:
 ```bash
-./deployment/check-deployment.sh
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=skills-management-app" --limit=50
 ```
 
-This script will:
-- Verify if the Cloud Run service is accessible
-- Check the application health endpoint
-- Test database connectivity
-- Display recent application logs
-- Check Cloud SQL instance status
+2. Verify database connectivity:
+```bash
+gcloud sql instances describe skills-management-db
+```
 
-### Common Troubleshooting Steps
+3. Check if your Docker image was built correctly:
+```bash
+gcloud container images list-tags gcr.io/[YOUR_PROJECT_ID]/skills-management-app
+```
 
-If deployment fails, check the following:
-1. Verify that billing is enabled for your GCP project
-2. Ensure all required APIs are enabled:
-   ```bash
-   gcloud services enable cloudbuild.googleapis.com run.googleapis.com sqladmin.googleapis.com
-   ```
-3. Check Cloud Build logs for container build errors:
-   ```bash
-   gcloud builds list --filter="source.repoSource.repoName:skills-management-app"
-   ```
-4. Review the deployment logs in the Cloud Run service:
-   ```bash
-   gcloud logging read "resource.type=cloud_run_revision" --limit=50
-   ```
-5. Test database connectivity directly:
-   ```bash
-   ./cloud-sql-proxy --instances=PROJECT_ID:REGION:skills-management-db=tcp:5432
-   ```
-
-### Common Issues
-
-- **Insufficient permissions**: Ensure your account has the following roles:
-  - Cloud Run Admin
-  - Cloud SQL Admin
-  - Cloud Build Editor
-  - Storage Admin
-
-- **API limits**: New GCP accounts may have limits on resource creation
-  - Request quota increases if needed
-
-- **Database connection issues**: 
-  - Verify the connection string format
-  - Check that the Cloud SQL instance is running
-  - Ensure the Cloud Run service has the proper IAM permissions
-
-- **Container startup failures**:
-  - Check the application logs for startup errors
-  - Verify all required environment variables are set
-
-## Maintenance and Updates
-
-To update the deployed application:
-1. Make changes to the code repository
-2. Run the deployment script again
-3. The script will detect existing resources and update only what's necessary
-
-## Cost Management
-
-This deployment uses:
-- Cloud Run (pay per use)
-- Cloud SQL (db-f1-micro, which is the smallest and cheapest option)
-- Cloud Build (free tier available)
-- Container Registry (storage costs apply)
-
-Monitor your billing dashboard to track costs.
+4. Run the check-deployment.sh script for detailed diagnostics:
+```bash
+./deployment/check-deployment.sh --project-id=[YOUR_PROJECT_ID]
+```
 
 ## Security Considerations
 
-The deployment includes:
-- Secure storage of secrets in Secret Manager
-- Private database connection using Cloud SQL Proxy
-- Encrypted connections between services
-- Minimal permission service accounts
+- The database password is automatically generated during deployment
+- All communications between Cloud Run and Cloud SQL are encrypted
+- For production deployments, consider:
+  - Setting up IAM service accounts with minimal permissions
+  - Enabling audit logging
+  - Implementing network security policies
+  - Setting up regular database backups
 
-For production environments, consider:
-- Setting up VPC Service Controls
-- Implementing Identity and Access Management best practices
-- Adding additional security layers as needed
-- Regular security scans and updates
+## Cost Management
 
-## Data Backup and Recovery
+To minimize costs:
+- The Cloud SQL instance uses the smallest available tier (db-f1-micro)
+- Cloud Run scales to zero when not in use
+- Consider setting up budget alerts in GCP to monitor spending
 
-By default, Cloud SQL is configured with daily backups. We've also provided a backup/restore script for manual database backups:
+## Need Help?
 
-```bash
-# To create a backup
-./deployment/backup-restore-db.sh backup
-
-# To restore from the latest backup
-./deployment/backup-restore-db.sh restore
-```
-
-For additional protection in production environments:
-1. Set up point-in-time recovery in Cloud SQL
-2. Configure scheduled export jobs for database dumps
-3. Store backups in multiple geographic regions
-4. Test restoration procedures regularly
-
-## Support and Additional Resources
-
-- Google Cloud Run Documentation: [https://cloud.google.com/run/docs](https://cloud.google.com/run/docs)
-- Cloud SQL Documentation: [https://cloud.google.com/sql/docs](https://cloud.google.com/sql/docs)
-- Secret Manager: [https://cloud.google.com/secret-manager/docs](https://cloud.google.com/secret-manager/docs)
+If you encounter any issues not addressed in this guide, please:
+- Check the GCP documentation
+- Look at the application logs
+- Contact the development team for support
