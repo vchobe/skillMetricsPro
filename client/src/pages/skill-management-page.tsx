@@ -52,8 +52,8 @@ type SkillTemplateValues = z.infer<typeof skillTemplateSchema>;
 
 // Define the form schema for setting skill targets
 const skillTargetSchema = z.object({
-  name: z.string().optional(),
-  skillIds: z.array(z.number()),
+  name: z.string().min(1, "Name is required"),
+  skillIds: z.array(z.number()).min(1, "At least one skill must be selected"),
   targetLevel: z.enum(["beginner", "intermediate", "expert"]),
   targetDate: z.string().default(""),
   targetNumber: z.number().min(1).optional(),
@@ -110,7 +110,7 @@ export default function SkillManagementPage() {
     id: null,
     name: '',
     skillIds: [],
-    targetLevel: 'beginner' as "beginner",
+    targetLevel: 'intermediate' as "intermediate", // Match form's default value
     targetDate: "",
     targetNumber: undefined,
     description: ''
@@ -432,7 +432,7 @@ export default function SkillManagementPage() {
         id: null,
         name: '',
         skillIds: [],
-        targetLevel: 'beginner' as "beginner",
+        targetLevel: 'intermediate' as "intermediate", // Match form's default value
         targetDate: "",
         targetNumber: undefined,
         description: ''

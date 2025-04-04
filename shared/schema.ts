@@ -199,7 +199,7 @@ export const insertSkillTemplateSchema = createInsertSchema(skillTemplates).pick
 // Skill Targets schema
 export const skillTargets = pgTable("skill_targets", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
+  name: text("name").notNull(), // Required in database but optional in UI
   description: text("description"),
   targetLevel: skillLevelEnum("target_level").notNull(),
   targetDate: date("target_date"),
