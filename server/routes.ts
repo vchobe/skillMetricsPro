@@ -70,8 +70,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
   
-  // Health check endpoint for testing and deployment verification
-  app.get("/api/health", async (req, res) => {
+  // Health check endpoints for testing and deployment verification
+  app.get(["/health", "/status", "/api/health"], async (req, res) => {
     try {
       // Test database connection
       const client = await pool.connect();
@@ -107,12 +107,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Root endpoint for deployment verification
-  app.get("/", (req, res) => {
+  // Root endpoint that will serve the frontend
+  app.get("/", (req, res, next) => {
+    // Let Vite handle serving the frontend
+    next();
+  });
+  
+  // Status endpoint for deployment verification (moved from root)
+  app.get("/server-status", (req, res) => {
     res.send(`
       <html>
         <head>
-          <title>SkillMetrics API Server</title>
+          <title>SkillMetrics API Server Status</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
             .container { max-width: 800px; margin: 0 auto; }
@@ -125,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </head>
         <body>
           <div class="container">
-            <h1>SkillMetrics API Server</h1>
+            <h1>SkillMetrics API Server Status</h1>
             <div class="card">
               <h2>Server Status</h2>
               <p class="success">✅ Server is running</p>
@@ -134,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </div>
             <div class="card">
               <h2>API Status</h2>
-              <p>Check detailed API health: <a href="/api/health">/api/health</a></p>
+              <p>Check health endpoints: <a href="/health">/health</a> or <a href="/status">/status</a></p>
             </div>
           </div>
         </body>
