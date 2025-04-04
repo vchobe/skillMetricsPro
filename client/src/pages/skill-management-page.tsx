@@ -102,7 +102,7 @@ export default function SkillManagementPage() {
     id: number | null;
     name: string;
     skillIds: number[];
-    targetLevel: string;
+    targetLevel: "beginner" | "intermediate" | "expert";
     targetDate: string;
     targetNumber: number | string | undefined;
     description: string;
@@ -110,7 +110,7 @@ export default function SkillManagementPage() {
     id: null,
     name: '',
     skillIds: [],
-    targetLevel: 'beginner',
+    targetLevel: 'beginner' as "beginner",
     targetDate: "",
     targetNumber: undefined,
     description: ''
@@ -138,7 +138,7 @@ export default function SkillManagementPage() {
     defaultValues: {
       name: "",
       skillIds: [],
-      targetLevel: "intermediate",
+      targetLevel: "intermediate" as "beginner" | "intermediate" | "expert",
       targetDate: "",
       targetNumber: undefined,
       description: ""
@@ -279,7 +279,7 @@ export default function SkillManagementPage() {
       targetForm.reset({
         name: "",
         skillIds: [],
-        targetLevel: "intermediate",
+        targetLevel: "intermediate" as "beginner" | "intermediate" | "expert",
         targetDate: "",
         targetNumber: undefined,
         description: ""
@@ -304,10 +304,8 @@ export default function SkillManagementPage() {
         targetNumber: data.targetNumber !== undefined && data.targetNumber !== null
           ? Number(data.targetNumber) 
           : null,
-        // Ensure targetLevel is always a valid string value
-        targetLevel: data.targetLevel && ['beginner', 'intermediate', 'expert'].includes(data.targetLevel as string)
-          ? data.targetLevel
-          : 'intermediate'
+        // Ensure targetLevel is always a valid string value from the enum
+        targetLevel: data.targetLevel as "beginner" | "intermediate" | "expert"
       };
       
       console.log("Updating skill target with formatted data:", id, formattedData);
@@ -328,7 +326,7 @@ export default function SkillManagementPage() {
       targetForm.reset({
         name: "",
         skillIds: [],
-        targetLevel: "intermediate",
+        targetLevel: "intermediate" as "beginner" | "intermediate" | "expert",
         targetDate: "",
         targetNumber: undefined,
         description: ""
@@ -403,7 +401,7 @@ export default function SkillManagementPage() {
       category: template.category,
       description: template.description || "",
       isRecommended: template.isRecommended,
-      targetLevel: template.targetLevel as any,
+      targetLevel: template.targetLevel as "beginner" | "intermediate" | "expert" | undefined,
       targetDate: template.targetDate
     });
     setShowTemplateDialog(true);
@@ -424,7 +422,7 @@ export default function SkillManagementPage() {
       targetForm.reset({
         name: "",
         skillIds: [],
-        targetLevel: "intermediate" as const, // Use const assertion to fix type issue
+        targetLevel: "intermediate" as "beginner" | "intermediate" | "expert", // Use enum values
         targetDate: "",
         targetNumber: undefined,
         description: ""
@@ -434,7 +432,7 @@ export default function SkillManagementPage() {
         id: null,
         name: '',
         skillIds: [],
-        targetLevel: 'beginner',
+        targetLevel: 'beginner' as "beginner",
         targetDate: "",
         targetNumber: undefined,
         description: ''
@@ -644,8 +642,8 @@ export default function SkillManagementPage() {
                                     <FormLabel>Target Level (Optional)</FormLabel>
                                     <Select 
                                       onValueChange={field.onChange} 
-                                      defaultValue={field.value as string}
-                                      value={field.value as string}
+                                      defaultValue={field.value as "beginner" | "intermediate" | "expert" | undefined}
+                                      value={field.value as "beginner" | "intermediate" | "expert" | undefined}
                                     >
                                       <FormControl>
                                         <SelectTrigger>
@@ -872,8 +870,8 @@ export default function SkillManagementPage() {
                                     <FormLabel>Target Level</FormLabel>
                                     <Select 
                                       onValueChange={field.onChange} 
-                                      defaultValue={field.value as string}
-                                      value={field.value as string}
+                                      defaultValue={field.value as "beginner" | "intermediate" | "expert"}
+                                      value={field.value as "beginner" | "intermediate" | "expert"}
                                     >
                                       <FormControl>
                                         <SelectTrigger>
@@ -1032,8 +1030,8 @@ export default function SkillManagementPage() {
                                             
                                           // Ensure valid targetLevel
                                           const validLevel = (target.targetLevel === 'beginner' || target.targetLevel === 'intermediate' || target.targetLevel === 'expert') 
-                                            ? target.targetLevel 
-                                            : 'intermediate';
+                                            ? (target.targetLevel as "beginner" | "intermediate" | "expert")
+                                            : 'intermediate' as "intermediate";
                                             
                                           // Log the target data before editing to help with debugging
                                           console.log("Editing target:", JSON.stringify(target, null, 2));
