@@ -715,7 +715,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid target ID" });
       }
       
+      console.log(`Updating skill target ${id} with request body:`, req.body);
+      
       const { skillIds, assignedUsers, ...targetData } = req.body;
+      console.log("Extracted targetData:", targetData);
       
       // Update the basic target data
       const updatedTarget = await storage.updateSkillTarget(id, targetData);

@@ -927,6 +927,8 @@ export class PostgresStorage implements IStorage {
   
   async updateSkillTarget(id: number, data: Partial<SkillTarget>): Promise<SkillTarget> {
     try {
+      console.log(`Storage: Updating skill target ${id} with data:`, data);
+      
       const sets: string[] = [];
       const params: any[] = [];
       let paramIndex = 1;
@@ -939,6 +941,7 @@ export class PostgresStorage implements IStorage {
         const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
         sets.push(`${columnName} = $${paramIndex}`);
         params.push(value === null ? null : value);
+        console.log(`  - Setting ${columnName} = ${value === null ? 'NULL' : value} (param $${paramIndex})`);
         paramIndex++;
       }
       

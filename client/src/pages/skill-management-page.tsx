@@ -297,15 +297,20 @@ export default function SkillManagementPage() {
   // Update skill target mutation
   const updateTargetMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: SkillTargetValues }) => {
-      // Ensure targetNumber is properly formatted (as a number or null/undefined, not an empty string)
+      // Validate and format the data for a skill target update
       const formattedData = {
         ...data,
+        // Ensure targetNumber is properly formatted (as a number or null, not an empty string)
         targetNumber: data.targetNumber !== undefined && data.targetNumber !== null
           ? Number(data.targetNumber) 
-          : undefined
+          : null,
+        // Ensure targetLevel is always a valid string value
+        targetLevel: data.targetLevel && ['beginner', 'intermediate', 'expert'].includes(data.targetLevel as string)
+          ? data.targetLevel
+          : 'intermediate'
       };
       
-      console.log("Updating skill target:", id, formattedData);
+      console.log("Updating skill target with formatted data:", id, formattedData);
       const res = await apiRequest("PATCH", `/api/admin/skill-targets/${id}`, formattedData);
       if (!res.ok) {
         const error = await res.json();
@@ -376,11 +381,16 @@ export default function SkillManagementPage() {
   
   // Handle target form submission
   const onTargetSubmit = (data: SkillTargetValues) => {
+    console.log("Target form submitted:", data);
+    console.log("Current target form data state:", targetFormData);
+    
     if (targetFormData.id) {
       // Handle update case
+      console.log(`Updating skill target with ID: ${targetFormData.id}`);
       updateTargetMutation.mutate({ id: targetFormData.id, data });
     } else {
       // Handle create case
+      console.log("Creating new skill target");
       createTargetMutation.mutate(data);
     }
   };
@@ -862,8 +872,8 @@ export default function SkillManagementPage() {
                                     <FormLabel>Target Level</FormLabel>
                                     <Select 
                                       onValueChange={field.onChange} 
-                                      defaultValue={field.value}
-                                      value={field.value}
+                                      defaultValue={field.value as string}
+                                      value={field.value as string}
                                     >
                                       <FormControl>
                                         <SelectTrigger>
