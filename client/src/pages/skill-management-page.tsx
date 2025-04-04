@@ -297,7 +297,16 @@ export default function SkillManagementPage() {
   // Update skill target mutation
   const updateTargetMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: SkillTargetValues }) => {
-      const res = await apiRequest("PATCH", `/api/admin/skill-targets/${id}`, data);
+      // Ensure targetNumber is properly formatted (as a number or null/undefined, not an empty string)
+      const formattedData = {
+        ...data,
+        targetNumber: data.targetNumber !== undefined && data.targetNumber !== null
+          ? Number(data.targetNumber) 
+          : undefined
+      };
+      
+      console.log("Updating skill target:", id, formattedData);
+      const res = await apiRequest("PATCH", `/api/admin/skill-targets/${id}`, formattedData);
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Failed to update skill target");
@@ -321,6 +330,7 @@ export default function SkillManagementPage() {
       });
     },
     onError: (error: Error) => {
+      console.error("Failed to update skill target:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -1010,28 +1020,35 @@ export default function SkillManagementPage() {
                                             ? new Date(target.targetDate).toISOString().split('T')[0]
                                             : "";
                                             
+                                          // Ensure valid targetLevel
+                                          const validLevel = (target.targetLevel === 'beginner' || target.targetLevel === 'intermediate' || target.targetLevel === 'expert') 
+                                            ? target.targetLevel 
+                                            : 'intermediate';
+                                            
+                                          // Log the target data before editing to help with debugging
+                                          console.log("Editing target:", JSON.stringify(target, null, 2));
+                                          
                                           // Update the form with the target data
                                           targetForm.reset({
                                             name: target.name || '',
                                             skillIds: target.skillIds || [],
-                                            targetLevel: (target.targetLevel === 'beginner' || target.targetLevel === 'intermediate' || target.targetLevel === 'expert') 
-                                              ? target.targetLevel 
-                                              : 'beginner',
+                                            targetLevel: validLevel,
                                             targetDate: formattedDate,
                                             targetNumber: target.targetNumber,
                                             description: target.description || ''
                                           });
+                                          
+                                          // Update the state's targetFormData
                                           setTargetFormData({
                                             id: target.id,
                                             name: target.name || '',
                                             skillIds: target.skillIds || [],
-                                            targetLevel: (target.targetLevel === 'beginner' || target.targetLevel === 'intermediate' || target.targetLevel === 'expert') 
-                                              ? target.targetLevel 
-                                              : 'beginner',
+                                            targetLevel: validLevel,
                                             targetDate: formattedDate,
-                                            targetNumber: target.targetNumber !== undefined && target.targetNumber !== null ? target.targetNumber : '',
+                                            targetNumber: target.targetNumber,
                                             description: target.description || ''
                                           });
+                                          
                                           setShowTargetDialog(true);
                                         }}
                                       >

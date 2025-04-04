@@ -854,9 +854,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Count employees needing skill improvement
         const employeesNeedingImprovement = users.filter(user => {
-          // Get the user's skills that match this target
+          // Get the user's skills that match skills in the target's skillIds
           const userTargetSkills = skills.filter(s => 
-            (s.userId === user.id) && 
+            s.userId === user.id && 
             target.skillIds.includes(s.id)
           );
           
