@@ -1,36 +1,48 @@
 #!/bin/bash
+# Extremely simplified deployment script for Google Cloud Run
+
 set -e
+echo "===== STARTING SIMPLIFIED DEPLOYMENT TO CLOUD RUN ====="
 
-# Colors for better output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
+# Set variables
 PROJECT_ID="imposing-elixir-440911-u9"
-IMAGE_NAME="skillmetricspro3"
-IMAGE_TAG="latest"
 SERVICE_NAME="skills-management-app"
 REGION="us-central1"
-SERVICE_ACCOUNT="skillmetrics-service-account@imposing-elixir-440911-u9.iam.gserviceaccount.com"
-SESSION_SECRET="generated-session-secret-for-production-environment"
+IMAGE_NAME="gcr.io/${PROJECT_ID}/skillmetricspro-simple:latest"
 
-echo -e "${YELLOW}Starting deployment to Google Cloud Run...${NC}"
+echo "Project ID: $PROJECT_ID"
+echo "Service Name: $SERVICE_NAME"
+echo "Region: $REGION"
+echo "Image: $IMAGE_NAME"
+echo "===========================================" 
 
-# Submit build to Cloud Build
-echo -e "${YELLOW}Submitting build to Cloud Build...${NC}"
-gcloud builds submit --config cloudbuild.yaml
+# Step 1: Authenticate
+echo "1. Authenticating with Google Cloud..."
+gcloud auth activate-service-account --key-file=service-account-key.json --project=$PROJECT_ID
 
-# Wait a moment for the build to register
-sleep 5
+# Step 2: Build and Deploy in a single command
+echo "2. Building and deploying in one step..."
+gcloud run deploy $SERVICE_NAME \
+  --source . \
+  --platform managed \
+  --region $REGION \
+  --allow-unauthenticated \
+  --set-env-vars "NODE_ENV=production,PORT=8080,HOST=0.0.0.0" \
+  --memory=1Gi
 
-# List recent builds
-echo -e "${YELLOW}Recent builds:${NC}"
-gcloud builds list --limit=3
+# Step 3: Get deployment URL
+echo "3. Getting service URL..."
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format="value(status.url)")
 
-echo -e "${GREEN}Deployment process has been initiated!${NC}"
-echo -e "${YELLOW}Note: The build and deployment will continue in Google Cloud.${NC}"
-echo -e "${YELLOW}You can check the status of your service at:${NC}"
-echo -e "${GREEN}https://console.cloud.google.com/run/detail/${REGION}/${SERVICE_NAME}/metrics?project=${PROJECT_ID}${NC}"
-echo -e "${YELLOW}Once deployed, the service will be available at:${NC}"
-echo -e "${GREEN}https://${SERVICE_NAME}-<hash>.${REGION}.run.app${NC}"
+if [ -n "$SERVICE_URL" ]; then
+  echo ""
+  echo "===== DEPLOYMENT COMPLETED ====="
+  echo "Service URL: $SERVICE_URL"
+  echo ""
+  echo "To check if your service is running properly, visit:"
+  echo "$SERVICE_URL/api/health"
+else
+  echo "ERROR: Service URL not found. Deployment may have failed."
+  echo "Check the Google Cloud Console for more details."
+  exit 1
+fi
