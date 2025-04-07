@@ -1,90 +1,104 @@
-# Google Cloud Run Quick Deployment Guide
+# Cloud Run Deployment Quickstart
 
-This is a quick guide to deploy the Skills Management Application to Google Cloud Run.
+This document provides a brief guide to deploying this application to Google Cloud Run.
 
 ## Prerequisites
 
-You need:
-1. A Google Cloud account with billing enabled
-2. The `gcloud` CLI installed or Cloud Shell access
-3. The project source code
+- Google Cloud CLI installed locally (`gcloud`)
+- Docker installed locally (for local builds)
+- Google Cloud account with billing enabled
+- Owner or Editor permissions on your Google Cloud project
 
-## Option 1: Deploy with the simplified script
+## Steps to Deploy
 
-For a streamlined deployment process:
-
-```bash
-# Authenticate with Google Cloud
-gcloud auth activate-service-account --key-file=service-account-key.json
-
-# Make sure the script is executable
-chmod +x deployment/simplified-deploy.sh
-
-# Run the simplified deployment script
-./deployment/simplified-deploy.sh
-```
-
-## Option 2: Deploy with Cloud Build
-
-For a more robust CI/CD-friendly deployment:
+### 1. Clone the repository locally
 
 ```bash
-# Authenticate with Google Cloud
-gcloud auth activate-service-account --key-file=service-account-key.json
-
-# Generate a secure session secret
-SESSION_SECRET=$(openssl rand -hex 32)
-
-# Submit the build with cloudbuild.yaml
-gcloud builds submit --config=cloudbuild.yaml --substitutions=_SESSION_SECRET="$SESSION_SECRET"
+git clone <repository-url>
+cd <repository-directory>
 ```
 
-## Option 3: Deploy directly from source
-
-For a one-command deployment directly to Cloud Run:
+### 2. Authenticate with Google Cloud
 
 ```bash
-# Authenticate with Google Cloud
-gcloud auth activate-service-account --key-file=service-account-key.json
-
-# Deploy to Cloud Run
-gcloud run deploy skills-management-app \
-  --source . \
-  --region us-central1 \
-  --platform managed \
-  --allow-unauthenticated \
-  --service-account skillmetrics-service-account@imposing-elixir-440911-u9.iam.gserviceaccount.com \
-  --set-env-vars="NODE_ENV=production,PORT=8080,HOST=0.0.0.0,SESSION_SECRET=$(openssl rand -hex 32)" \
-  --memory=512Mi
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
 ```
 
-## Checking Deployment Status
-
-After starting a deployment, check its status:
+### 3. Enable required Google Cloud APIs
 
 ```bash
-# List recent builds
-gcloud builds list --limit=3
-
-# Get details for a specific build
-gcloud builds describe BUILD_ID
-
-# Get Cloud Run service URL
-gcloud run services describe skills-management-app --region us-central1 --format="value(status.url)"
+gcloud services enable \
+  cloudbuild.googleapis.com \
+  run.googleapis.com \
+  artifactregistry.googleapis.com
 ```
+
+### 4. Build and deploy using Cloud Build
+
+The simplest way to deploy is using the provided cloudbuild.yaml file:
+
+```bash
+gcloud builds submit
+```
+
+This will:
+- Build a Docker image from your code
+- Push it to Google Container Registry
+- Deploy it to Cloud Run
+
+### 5. Access your application
+
+After deployment completes, you can find your application URL with:
+
+```bash
+gcloud run services describe skills-management-app --platform managed --region us-central1 --format='value(status.url)'
+```
+
+## Environment Variables
+
+The deployment includes the following environment variables:
+
+- `NODE_ENV=production`
+- `PORT=8080`
+- `HOST=0.0.0.0`
+- `SESSION_SECRET` (automatically generated)
+
+If you need to add a database connection or other environment variables, modify the `cloudbuild.yaml` file.
+
+## Database Setup
+
+For the PostgreSQL database:
+
+1. Create a database instance (we recommend using [Neon.tech](https://neon.tech) for serverless PostgreSQL)
+2. Get the connection string
+3. Add it to your environment variables in the `cloudbuild.yaml` file
 
 ## Troubleshooting
 
-If your deployment encounters issues:
+If you encounter any issues:
 
-1. Check build logs:
-   ```bash
-   gcloud builds log BUILD_ID
-   ```
+1. Check the Cloud Build logs for build errors
+2. Check the Cloud Run logs for runtime errors
+3. Verify that your service account has appropriate permissions
 
-2. Check Cloud Run service logs:
-   ```bash
-   gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=skills-management-app" --limit=20
-   ```
+## Manual Deployment
 
-For more detailed information, refer to the complete [Cloud Run Deployment Guide](docs/cloud-run-deployment.md).
+If you prefer to deploy manually:
+
+```bash
+# Build the image locally
+docker build -t gcr.io/YOUR_PROJECT_ID/skillmetricspro2:latest .
+
+# Push to Container Registry
+docker push gcr.io/YOUR_PROJECT_ID/skillmetricspro2:latest
+
+# Deploy to Cloud Run
+gcloud run deploy skills-management-app \
+  --image gcr.io/YOUR_PROJECT_ID/skillmetricspro2:latest \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars "NODE_ENV=production,PORT=8080,HOST=0.0.0.0,SESSION_SECRET=YOUR_SECRET" \
+  --memory=1Gi
+```
