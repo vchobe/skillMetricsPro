@@ -1,0 +1,12 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '${_IMAGE_NAME}', '-f', 'Dockerfile.port8080', '.']
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_IMAGE_NAME}']
+substitutions:
+  _IMAGE_NAME: gcr.io/imposing-elixir-440911-u9/skillmetricspro2:port8080
+  _PROJECT_ID: imposing-elixir-440911-u9
+options:
+  logging: CLOUD_LOGGING_ONLY
