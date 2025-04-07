@@ -1,242 +1,133 @@
-# Google Cloud Run Deployment Guide
+# Cloud Run Deployment Guide
 
-This guide explains how to deploy the Skills Management Application to Google Cloud Run for serverless, scalable hosting.
+This guide will walk you through deploying the Employee Skills Management application to Google Cloud Run.
 
 ## Prerequisites
 
-Before starting the deployment process, you should have:
+Before beginning deployment, ensure you have:
 
-1. A Google Cloud Platform account with billing enabled
-2. The Google Cloud SDK (`gcloud`) installed 
-3. Editor or Owner access to your Google Cloud project
-4. The application source code cloned to your local machine
+1. A Google Cloud account with billing enabled
+2. The Google Cloud SDK (`gcloud`) installed locally
+3. Access to Google Cloud services: Cloud Run, Artifact Registry, Cloud Build
+4. A PostgreSQL database (we recommend using Neon.tech for a serverless PostgreSQL solution)
 
-## Step 1: Project Setup
+## Deployment Steps
 
-First, select or create a Google Cloud project:
+### 1. Configure Environment Variables
 
-```bash
-# Create a new project (optional)
-gcloud projects create [PROJECT_ID] --name="Skills Management App"
+Create a `.env` file with your production environment variables:
 
-# Select your project
-gcloud config set project [PROJECT_ID]
+```
+NODE_ENV=production
+PORT=8080
+HOST=0.0.0.0
+DATABASE_URL=<your-postgresql-connection-string>
+SESSION_SECRET=<random-strong-secret>
 ```
 
-Then enable the required Google Cloud APIs:
+### 2. Set Up Google Cloud Project
 
 ```bash
-gcloud services enable cloudrun.googleapis.com
-gcloud services enable cloudbuild.googleapis.com
-gcloud services enable artifactregistry.googleapis.com
-gcloud services enable secretmanager.googleapis.com
+# Set your project ID
+PROJECT_ID="your-project-id"
+
+# Configure gcloud to use your project
+gcloud config set project $PROJECT_ID
+
+# Enable required services
+gcloud services enable \
+  artifactregistry.googleapis.com \
+  cloudbuild.googleapis.com \
+  run.googleapis.com
 ```
 
-## Step 2: Service Account Setup
-
-Create a dedicated service account for your deployment:
+### 3. Create a Container Repository
 
 ```bash
-# Create service account
-gcloud iam service-accounts create skillmetrics-service-account \
-  --display-name="Skills Management Service Account"
-
-# Grant necessary permissions
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-  --member="serviceAccount:skillmetrics-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
-  --role="roles/run.admin"
-
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-  --member="serviceAccount:skillmetrics-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
-  --role="roles/storage.admin"
-
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-  --member="serviceAccount:skillmetrics-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
-  --role="roles/artifactregistry.admin"
-
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-  --member="serviceAccount:skillmetrics-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
-  --role="roles/iam.serviceAccountUser"
-```
-
-## Step 3: Set Up Artifact Repository
-
-Create a Docker repository to store your container images:
-
-```bash
-gcloud artifacts repositories create cloud-run-source-deploy \
+# Create a Docker repository in Artifact Registry
+gcloud artifacts repositories create skills-app-repo \
   --repository-format=docker \
   --location=us-central1 \
-  --description="Docker repository for Cloud Run deployments"
+  --description="Skills Management App Docker repository"
 ```
 
-## Step 4: Prepare Environment Secrets
-
-Create and store secrets for your application:
+### 4. Build and Push the Docker Image
 
 ```bash
-# Generate a random session secret
-SESSION_SECRET=$(openssl rand -hex 32)
+# Build the image using Cloud Build
+gcloud builds submit --tag us-central1-docker.pkg.dev/$PROJECT_ID/skills-app-repo/skills-app:latest
 
-# Store it in Secret Manager
-echo -n "$SESSION_SECRET" | \
-  gcloud secrets create app-session-secret \
-  --replication-policy="automatic" \
-  --data-file=-
-
-# Grant access to the service account
-gcloud secrets add-iam-policy-binding app-session-secret \
-  --member="serviceAccount:skillmetrics-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
+# Alternatively, build locally and push
+docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/skills-app-repo/skills-app:latest .
+docker push us-central1-docker.pkg.dev/$PROJECT_ID/skills-app-repo/skills-app:latest
 ```
 
-## Step 5: Dockerfile Configuration
-
-Make sure you have a Dockerfile in your project root:
-
-```dockerfile
-FROM node:20-slim
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-RUN npm run build
-
-ENV PORT=8080
-ENV HOST=0.0.0.0
-ENV NODE_ENV=production
-
-CMD ["npm", "start"]
-```
-
-## Step 6: Deployment
-
-You can deploy your application using one of these methods:
-
-### Method 1: Direct deployment from source
+### 5. Deploy to Cloud Run
 
 ```bash
+# Deploy the service
 gcloud run deploy skills-management-app \
-  --source . \
-  --region us-central1 \
+  --image us-central1-docker.pkg.dev/$PROJECT_ID/skills-app-repo/skills-app:latest \
   --platform managed \
+  --region us-central1 \
   --allow-unauthenticated \
-  --service-account skillmetrics-service-account@[PROJECT_ID].iam.gserviceaccount.com \
-  --set-env-vars="NODE_ENV=production,PORT=8080,HOST=0.0.0.0" \
-  --set-secrets="SESSION_SECRET=app-session-secret:latest" \
-  --memory=512Mi
+  --set-env-vars "NODE_ENV=production,PORT=8080,HOST=0.0.0.0,DATABASE_URL=<your-postgresql-connection-string>,SESSION_SECRET=<random-strong-secret>" \
+  --memory=1Gi \
+  --min-instances=0 \
+  --max-instances=10 \
+  --timeout=300s
 ```
 
-### Method 2: Using Cloud Build with cloudbuild.yaml
+### 6. Access Your Deployed Application
 
-Create a `cloudbuild.yaml` file:
-
-```yaml
-steps:
-  # Build the container image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/skills-management-app:$COMMIT_SHA', '.']
-
-  # Push the container image to Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/skills-management-app:$COMMIT_SHA']
-
-  # Deploy container image to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args:
-      - 'run'
-      - 'deploy'
-      - 'skills-management-app'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/skills-management-app:$COMMIT_SHA'
-      - '--region'
-      - 'us-central1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--service-account'
-      - 'skillmetrics-service-account@$PROJECT_ID.iam.gserviceaccount.com'
-      - '--set-env-vars'
-      - 'NODE_ENV=production,PORT=8080,HOST=0.0.0.0' 
-      - '--set-secrets'
-      - 'SESSION_SECRET=app-session-secret:latest'
-      - '--memory'
-      - '512Mi'
-
-images:
-  - 'gcr.io/$PROJECT_ID/skills-management-app:$COMMIT_SHA'
-```
-
-Then submit the build:
+After successful deployment, get the URL of your application:
 
 ```bash
-gcloud builds submit --config=cloudbuild.yaml
+gcloud run services describe skills-management-app --platform managed --region us-central1 --format='value(status.url)'
 ```
 
-## Step 7: Verify Deployment
+## Setting Up Database
 
-Check the status and get the URL of your deployed service:
+For the database, we recommend using Neon.tech for a serverless PostgreSQL database:
+
+1. Sign up for an account at [Neon.tech](https://neon.tech)
+2. Create a new project
+3. Create a database named `skills_management`
+4. Get the connection string and add it to your environment variables
+
+## Deploying Schema Changes
+
+When you need to update the database schema:
 
 ```bash
-# Check service status
-gcloud run services describe skills-management-app --region us-central1
-
-# Get the service URL
-gcloud run services describe skills-management-app --region us-central1 --format="value(status.url)"
+# Run migration script locally against your production database
+NODE_ENV=production DATABASE_URL="your-production-db-url" npm run db:push
 ```
 
 ## Troubleshooting
 
-If you encounter issues during deployment:
+- **Deployment Fails**: Check Cloud Build logs for errors
+- **Runtime Issues**: Check Cloud Run logs for application errors
+- **Database Connection**: Verify your database connection string and ensure the Cloud Run service has network access to the database
 
-### Permission Issues
-- Ensure your service account has all necessary permissions
-- Check if you've enabled all required APIs
+## Additional Configuration
 
-### Build Failures
-- Verify your Dockerfile is correct
-- Check Cloud Build logs for specific error messages
+### Custom Domain Setup
 
-### Runtime Errors
-- Check application logs in Google Cloud Console
-- Ensure all environment variables are properly set
-
-## Next Steps
-
-### Setting up a Custom Domain
 ```bash
-gcloud beta run domain-mappings create \
-  --service skills-management-app \
-  --domain [YOUR_DOMAIN] \
-  --region us-central1
-```
-
-### Configuring Autoscaling
-```bash
-gcloud run services update skills-management-app \
-  --region us-central1 \
-  --min-instances=1 \
-  --max-instances=10
+# Map custom domain to your Cloud Run service
+gcloud beta run domain-mappings create --service skills-management-app --domain your-domain.com --region us-central1
 ```
 
 ### Continuous Deployment
-Set up a Cloud Build trigger to automatically deploy when changes are pushed to your repository:
 
-```bash
-gcloud builds triggers create github \
-  --name="skills-app-deploy" \
-  --repo-owner="[GITHUB_USERNAME]" \
-  --repo-name="[REPO_NAME]" \
-  --branch-pattern="main" \
-  --build-config="cloudbuild.yaml"
-```
+Set up a Cloud Build trigger to automatically deploy on repository changes:
 
-## Resources
+1. Connect your repository to Cloud Build
+2. Create a trigger to build and deploy on push to main branch
 
-- [Cloud Run Documentation](https://cloud.google.com/run/docs)
-- [Cloud Build Documentation](https://cloud.google.com/build/docs)
-- [Secret Manager Documentation](https://cloud.google.com/secret-manager/docs)
+## Security Considerations
+
+- Use secrets management for sensitive environment variables
+- Set up Identity and Access Management (IAM) rules for your Cloud Run service
+- Configure network policies to restrict access to your database
