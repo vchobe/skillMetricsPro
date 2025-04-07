@@ -20,9 +20,11 @@ COPY . .
 RUN npm run build
 
 # Apply port fix to ensure app explicitly listens on port 8080
-# This is a safeguard in case the hardcoded port in server/index.ts gets overwritten during build
+# This is a critical fix for Cloud Run health checks
 RUN sed -i 's/const port = process.env.PORT/const port = 8080/' ./dist/index.js
 RUN sed -i 's/parseInt(process.env.PORT, 10) : 5000/8080/' ./dist/index.js
+RUN sed -i 's/serving on port 5000/serving on port 8080/' ./dist/index.js
+RUN sed -i 's/log(`serving on/log(`serving on port 8080`);\nconsole.log(`Server explicitly configured to listen on port 8080 for Cloud Run compatibility`);\n\/\//' ./dist/index.js
 RUN grep -n "port" ./dist/index.js
 
 # Expose the port

@@ -1,40 +1,12 @@
 steps:
-# Build Docker image with updated PORT environment variable handling
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/${PROJECT_ID}/skillmetricspro6:latest', '.']
-
-# Deploy to Cloud Run
-- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  entrypoint: gcloud
-  args:
-  - 'run'
-  - 'deploy'
-  - 'skills-management-app'
-  - '--image'
-  - 'gcr.io/${PROJECT_ID}/skillmetricspro6:latest'
-  - '--region'
-  - 'us-central1'
-  - '--platform'
-  - 'managed'
-  - '--allow-unauthenticated'
-  - '--service-account'
-  - 'skillmetrics-service-account@imposing-elixir-440911-u9.iam.gserviceaccount.com'
-  - '--update-env-vars'
-  - 'NODE_ENV=production,HOST=0.0.0.0,PORT=8080,SESSION_SECRET=${_SESSION_SECRET}'
-  - '--memory'
-  - '1Gi'
-  - '--min-instances'
-  - '0'
-  - '--max-instances'
-  - '10'
-  - '--timeout'
-  - '300s'
-
-images:
-- 'gcr.io/${PROJECT_ID}/skillmetricspro6:latest'
-
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '${_IMAGE_NAME}', '-f', 'Dockerfile.cloud', '.']
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_IMAGE_NAME}']
 substitutions:
-  _SESSION_SECRET: "generated-session-secret-for-production-environment"
-
+  _IMAGE_NAME: gcr.io/${_PROJECT_ID}/skillmetricspro2:fixed-v2
+  _PROJECT_ID: imposing-elixir-440911-u9
 options:
   logging: CLOUD_LOGGING_ONLY
