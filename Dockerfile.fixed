@@ -1,0 +1,28 @@
+# Use Node.js LTS slim
+FROM node:20-slim
+
+# Set environment variables
+ENV NODE_ENV=production
+# The application is defaulting to port 5000 but Cloud Run
+# expects containers to listen on port 8080
+ENV PORT=8080
+ENV HOST=0.0.0.0
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm ci
+
+# Copy application code
+COPY . .
+
+# Build TypeScript
+RUN npm run build
+
+# Expose the port 8080 for Cloud Run
+EXPOSE 8080
+
+# Start the server
+CMD ["npm", "start"]

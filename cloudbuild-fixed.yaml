@@ -1,0 +1,14 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-fixed:latest', '-f', 'Dockerfile.fixed', '.']
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-fixed:latest']
+
+# Images to be pushed to GCR
+images:
+  - 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-fixed:latest'
+
+timeout: '1800s'
