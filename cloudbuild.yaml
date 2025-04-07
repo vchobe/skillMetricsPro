@@ -1,0 +1,36 @@
+steps:
+# Deploy the existing image to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args:
+  - 'run'
+  - 'deploy'
+  - 'skills-management-app'
+  - '--image'
+  - 'gcr.io/imposing-elixir-440911-u9/skillmetricspro2:latest'
+  - '--region'
+  - 'us-central1'
+  - '--platform'
+  - 'managed'
+  - '--allow-unauthenticated'
+  - '--service-account'
+  - 'skillmetrics-service-account@imposing-elixir-440911-u9.iam.gserviceaccount.com'
+  - '--update-env-vars'
+  - 'NODE_ENV=production,PORT=8080,HOST=0.0.0.0,SESSION_SECRET=${_SESSION_SECRET}'
+  - '--memory'
+  - '1Gi'
+  - '--min-instances'
+  - '0'
+  - '--max-instances'
+  - '10'
+  - '--timeout'
+  - '300s'
+
+images:
+- 'gcr.io/imposing-elixir-440911-u9/skillmetricspro2:latest'
+
+substitutions:
+  _SESSION_SECRET: "generated-session-secret-for-production-environment"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
