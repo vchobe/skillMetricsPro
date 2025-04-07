@@ -1,42 +1,46 @@
 #!/bin/bash
 set -e
 
-# Configuration
 PROJECT_ID="imposing-elixir-440911-u9"
-SERVICE_NAME="skills-management-app"
 REGION="us-central1"
-SERVICE_ACCOUNT="skillmetrics-service-account@${PROJECT_ID}.iam.gserviceaccount.com"
+SERVICE_NAME="skills-management-app"
+IMAGE="gcr.io/imposing-elixir-440911-u9/skillmetricspro2:latest"
+SERVICE_ACCOUNT="skillmetrics-service-account@imposing-elixir-440911-u9.iam.gserviceaccount.com"
 
-# Generate a secure session secret (if needed)
+# Generate a secure session secret
 SESSION_SECRET=$(openssl rand -hex 32)
 
-echo "🚀 Starting deployment to Cloud Run..."
+echo "=== Deploying to Google Cloud Run ==="
 echo "Project ID: $PROJECT_ID"
-echo "Service name: $SERVICE_NAME"
 echo "Region: $REGION"
+echo "Service Name: $SERVICE_NAME"
+echo "Image: $IMAGE"
 
-# Authenticate with Google Cloud using service account
-if [ -f "service-account-key.json" ]; then
-  echo "🔑 Authenticating with Google Cloud..."
-  gcloud auth activate-service-account --key-file=service-account-key.json
-else
-  echo "⚠️ Service account key file not found. Assuming already authenticated."
-fi
-
-# Set the Google Cloud project
-echo "🔧 Setting Google Cloud project to $PROJECT_ID..."
+# Ensure gcloud is configured for the project
+echo "=== Configuring Google Cloud project ==="
 gcloud config set project $PROJECT_ID
 
-# Build and deploy using Cloud Run without Docker
-echo "🏗️ Building and deploying directly to Cloud Run..."
+# Create environment variables for deployment
+ENV_VARS="NODE_ENV=production,"
+ENV_VARS+="PORT=8080,"
+ENV_VARS+="HOST=0.0.0.0,"
+ENV_VARS+="SESSION_SECRET=${SESSION_SECRET}"
+
+echo "=== Deploying to Cloud Run ==="
 gcloud run deploy $SERVICE_NAME \
-  --source . \
-  --region $REGION \
+  --image $IMAGE \
   --platform managed \
+  --region $REGION \
   --allow-unauthenticated \
   --service-account $SERVICE_ACCOUNT \
-  --set-env-vars="NODE_ENV=production,PORT=8080,HOST=0.0.0.0,SESSION_SECRET=$SESSION_SECRET" \
-  --memory=512Mi
+  --update-env-vars "$ENV_VARS" \
+  --cpu=1 \
+  --memory=1Gi \
+  --min-instances=0 \
+  --max-instances=10 \
+  --timeout=300s
 
-echo "✅ Deployment initiated! The build and deployment will continue in Google Cloud."
-echo "📋 Check deployment status with: gcloud run services describe $SERVICE_NAME --region $REGION"
+# Get the URL of the deployed service
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format='value(status.url)')
+echo "=== Deployment complete! ==="
+echo "Your application is available at: $SERVICE_URL"
