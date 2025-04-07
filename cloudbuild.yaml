@@ -1,12 +1,6 @@
 steps:
-  # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '${_IMAGE_NAME}', '-f', 'Dockerfile.cloud', '.']
-  # Push the container image to Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', '${_IMAGE_NAME}']
-substitutions:
-  _IMAGE_NAME: gcr.io/${_PROJECT_ID}/skillmetricspro2:fixed-v2
-  _PROJECT_ID: imposing-elixir-440911-u9
-options:
-  logging: CLOUD_LOGGING_ONLY
+    args: ['build', '-t', 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-fixed:latest', '-f', 'Dockerfile.port8080', '.']
+images:
+  - 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-fixed:latest'
+timeout: '1800s'
