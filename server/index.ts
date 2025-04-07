@@ -56,19 +56,22 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Hardcoded port 8080 for Cloud Run compatibility
-  // Cloud Run injects PORT=8080 but we need to ensure we're using exactly that port
+  // CRITICAL: Hardcoded port 8080 for Cloud Run compatibility
+  // Cloud Run requires the application to listen on port 8080 
+  // This value must not be changed or read from environment variables
   const port = 8080;
   const host = "0.0.0.0";
   
   // Log environment details to help with debugging
   console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`Using fixed port 8080 for Cloud Run compatibility`);
-  console.log(`Starting server on host ${host}`);
+  console.log(`Using FIXED port 8080 for Cloud Run compatibility`);
+  console.log(`Starting server on host ${host} and port ${port}`);
   
   // Properly specify host and port for Cloud Run compatibility
   server.listen(port, host, () => {
-    log(`serving on ${host}:${port}`);
-    console.log(`Server started and listening on ${host}:${port}`);
+    // Important: The following log statements are used by deployment scripts
+    // to verify the application is listening on the correct port
+    log(`serving on port 8080`);
+    console.log(`Server started and explicitly listening on port 8080`);
   });
 })();
