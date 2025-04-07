@@ -1,41 +1,81 @@
 #!/bin/bash
+# Script to check the deployment status of a Cloud Run service
 
-# Colors for better output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+set -e
+echo "===== CHECKING CLOUD RUN DEPLOYMENT STATUS ====="
 
+# Set variables
 PROJECT_ID="imposing-elixir-440911-u9"
 SERVICE_NAME="skills-management-app"
 REGION="us-central1"
 
-echo -e "${YELLOW}Checking recent builds...${NC}"
-gcloud builds list --limit=5 --project=$PROJECT_ID
+echo "Project ID: $PROJECT_ID"
+echo "Service Name: $SERVICE_NAME"
+echo "Region: $REGION"
+echo "===========================================" 
 
-echo -e "\n${YELLOW}Checking Cloud Run service status...${NC}"
-gcloud run services describe $SERVICE_NAME --region=$REGION --project=$PROJECT_ID
+# Step 1: Authenticate
+echo "1. Authenticating with Google Cloud..."
+gcloud auth activate-service-account --key-file=service-account-key.json --project=$PROJECT_ID
 
-echo -e "\n${YELLOW}Checking service URL...${NC}"
-SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --project=$PROJECT_ID --format='value(status.url)')
+# Step 2: Get service status
+echo "2. Getting service status..."
+SERVICE_STATUS=$(gcloud run services describe $SERVICE_NAME \
+  --platform managed \
+  --region $REGION \
+  --format="yaml" \
+  --project=$PROJECT_ID 2>/dev/null || echo "Service not found")
 
-if [ -n "$SERVICE_URL" ]; then
-  echo -e "${GREEN}Service URL: $SERVICE_URL${NC}"
-  
-  echo -e "\n${YELLOW}Testing service with a simple request...${NC}"
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$SERVICE_URL")
-  
-  if [ "$HTTP_STATUS" == "200" ]; then
-    echo -e "${GREEN}Service is responding with HTTP 200 OK!${NC}"
-  else
-    echo -e "${RED}Service is responding with HTTP $HTTP_STATUS${NC}"
-  fi
-else
-  echo -e "${RED}No service URL found. The service might not be deployed or might be having issues.${NC}"
+if [[ $SERVICE_STATUS == *"Service not found"* ]]; then
+  echo "⚠️ Service not deployed yet."
+  exit 1
 fi
 
-echo -e "\n${YELLOW}Checking service logs (last 10 entries)...${NC}"
-gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=$SERVICE_NAME" --limit=10 --project=$PROJECT_ID
+# Step 3: Get service URL
+echo "3. Getting service URL..."
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME \
+  --platform managed \
+  --region $REGION \
+  --format="value(status.url)" \
+  --project=$PROJECT_ID)
 
-echo -e "\n${YELLOW}Deployment monitoring complete!${NC}"
-echo -e "To access the service in production, use: ${GREEN}$SERVICE_URL${NC}"
+if [ -z "$SERVICE_URL" ]; then
+  echo "⚠️ Service URL not available."
+  exit 1
+fi
+
+echo "Service URL: $SERVICE_URL"
+
+# Step 4: Check if service is responding
+echo "4. Checking service health..."
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" $SERVICE_URL/api/health 2>/dev/null || echo "Failed")
+
+if [ "$HTTP_CODE" == "200" ]; then
+  echo "✅ Health check successful (HTTP $HTTP_CODE)"
+  echo "Service is running properly"
+else
+  echo "⚠️ Health check returned HTTP $HTTP_CODE"
+  echo "Service may not be fully operational"
+fi
+
+# Step 5: Check service traffic assignments
+echo "5. Checking traffic assignments..."
+TRAFFIC=$(gcloud run services describe $SERVICE_NAME \
+  --platform managed \
+  --region $REGION \
+  --format="value(status.traffic)" \
+  --project=$PROJECT_ID)
+
+echo "Traffic assignment: $TRAFFIC"
+
+# Step 6: Get latest deployment logs
+echo "6. Getting latest logs..."
+echo "Recent logs (last 5 entries):"
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=$SERVICE_NAME" \
+  --project=$PROJECT_ID \
+  --limit=5 \
+  --format="table(timestamp,textPayload,jsonPayload.message)"
+
+echo ""
+echo "===== CHECK COMPLETED ====="
+echo "Service URL: $SERVICE_URL"
