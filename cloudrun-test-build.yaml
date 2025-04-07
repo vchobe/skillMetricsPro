@@ -1,0 +1,10 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["build", "-t", "gcr.io/${PROJECT_ID}/skills-minimal-test:latest", "-f", "Dockerfile.cloudrun", "."]
+    timeout: "600s"
+images: ["gcr.io/${PROJECT_ID}/skills-minimal-test:latest"]
+timeout: "900s"
+options:
+  machineType: "E2_HIGHCPU_8"
+  diskSizeGb: "100"
+  dynamic_substitutions: true
