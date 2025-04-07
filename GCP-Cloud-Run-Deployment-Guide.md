@@ -1,166 +1,175 @@
-# Deploying to Google Cloud Run
+# Google Cloud Run Deployment Guide
 
-This guide provides step-by-step instructions for deploying the Skills Management Platform application to Google Cloud Run with PostgreSQL database.
+This guide provides detailed instructions for deploying the Skills Management application to Google Cloud Run.
 
 ## Prerequisites
 
-Before you begin, you'll need:
+- Google Cloud SDK installed locally
+- Docker installed locally (for local builds)
+- A Google Cloud project with billing enabled
+- Owner or Editor access to the Google Cloud project
 
-1. A Google Cloud Platform (GCP) account with billing enabled
-2. The [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) installed and configured locally
-3. The `gcloud` CLI tool authenticated with your GCP account
-4. Docker installed on your local machine (for local testing)
-5. Git to clone this repository
+## Step 1: Initial Setup
 
-## Step 1: Set Up Your GCP Project
+### Set up Google Cloud environment
 
-1. Create a new GCP project or use an existing one:
 ```bash
-gcloud projects create [PROJECT_ID] --name="Skills Management Platform"
+# Login to Google Cloud
+gcloud auth login
+
+# Set your project ID
+export PROJECT_ID="your-project-id"
+gcloud config set project $PROJECT_ID
+
+# Enable required services
+gcloud services enable \
+  artifactregistry.googleapis.com \
+  cloudbuild.googleapis.com \
+  run.googleapis.com \
+  cloudresourcemanager.googleapis.com
 ```
 
-2. Set the project as your default:
+### Clone the repository
+
 ```bash
-gcloud config set project [PROJECT_ID]
+git clone <repository-url>
+cd <repository-directory>
 ```
 
-3. Enable required APIs:
-```bash
-gcloud services enable cloudbuild.googleapis.com \
-    run.googleapis.com \
-    cloudresourcemanager.googleapis.com \
-    artifactregistry.googleapis.com \
-    sqladmin.googleapis.com
+## Step 2: Setting up the Database
+
+We recommend using Neon.tech for a serverless PostgreSQL database:
+
+1. Sign up at [Neon.tech](https://neon.tech)
+2. Create a new project
+3. Create a database called `skills_management`
+4. Get the connection string in the format: `postgres://user:password@hostname:port/database`
+
+## Step 3: Configure Environment Variables
+
+Create a `.env.cloud` file with your production environment variables:
+
+```
+NODE_ENV=production
+PORT=8080
+HOST=0.0.0.0
+DATABASE_URL=<your-postgresql-connection-string>
+SESSION_SECRET=<generated-secret>
 ```
 
-## Step 2: Deploy Using the All-in-One Script
+## Step 4: Deployment Options
 
-The simplest way to deploy is using our all-in-one script:
+### Option 1: Using Cloud Build (Recommended)
+
+This option uses Google Cloud Build to build and deploy your application:
 
 ```bash
-./deployment/deploy-all.sh --project-id=[YOUR_PROJECT_ID] --setup-db
+# Update cloudbuild.yaml with your database connection string
+# Then submit the build
+gcloud builds submit
 ```
 
-This will:
-1. Create a Cloud SQL PostgreSQL instance
-2. Build and push the Docker image
-3. Deploy the application to Cloud Run
-4. Set up the database schema
-5. Create an admin user
+### Option 2: Build locally and deploy manually
 
-If you want to add test data as well:
+If you prefer to build the container locally:
 
 ```bash
-./deployment/deploy-all.sh --project-id=[YOUR_PROJECT_ID] --with-test-data
+# Build the Docker image
+docker build -t gcr.io/$PROJECT_ID/skillmetricspro:latest .
+
+# Configure Docker to use gcloud credentials
+gcloud auth configure-docker
+
+# Push to Google Container Registry
+docker push gcr.io/$PROJECT_ID/skillmetricspro:latest
+
+# Deploy to Cloud Run
+gcloud run deploy skills-management-app \
+  --image gcr.io/$PROJECT_ID/skillmetricspro:latest \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars NODE_ENV=production,PORT=8080,HOST=0.0.0.0,DATABASE_URL=<your-db-url>,SESSION_SECRET=<your-secret> \
+  --memory 1Gi \
+  --min-instances 0 \
+  --max-instances 10
 ```
 
-## Step 3: Check Deployment Status
+### Option 3: Using the provided deployment script
 
-To verify your deployment is working correctly:
+We've included a deployment script that handles the process for you:
 
 ```bash
-./deployment/check-deployment.sh --project-id=[YOUR_PROJECT_ID]
+# Edit the script first to configure your database connection
+nano deploy-to-cloud-run.sh
+
+# Make it executable and run it
+chmod +x deploy-to-cloud-run.sh
+./deploy-to-cloud-run.sh
 ```
 
-This will check:
-- If the service is responding
-- Database connection status
-- Docker image details
-- Recent application logs
+## Step 5: Verify Deployment
 
-## Step 4: Additional Configuration
-
-### Email Notifications
-
-To enable email notifications using Mailjet:
-
-1. Create Mailjet API keys at https://app.mailjet.com/account/apikeys
-2. Store them as secrets in Secret Manager:
+After deployment completes, you can access your application:
 
 ```bash
-echo -n "your-mailjet-api-key" | gcloud secrets create MAILJET_API_KEY --data-file=-
-echo -n "your-mailjet-secret-key" | gcloud secrets create MAILJET_SECRET_KEY --data-file=-
+# Get the URL of your deployed application
+gcloud run services describe skills-management-app \
+  --platform managed \
+  --region us-central1 \
+  --format='value(status.url)'
 ```
 
-3. Redeploy your application to use these secrets:
+## Step 6: Database Migrations
+
+To apply database migrations:
 
 ```bash
-./deployment/deploy-to-gcp.sh --project-id=[YOUR_PROJECT_ID]
-```
-
-### Custom Domain (Optional)
-
-To set up a custom domain:
-
-1. Go to the [Cloud Run console](https://console.cloud.google.com/run)
-2. Select your service
-3. Go to the "Domain mappings" tab
-4. Follow the instructions to map your domain
-
-## Step 5: Database Backups and Maintenance
-
-### Creating a Database Backup
-
-```bash
-./deployment/backup-restore-db.sh backup --project-id=[YOUR_PROJECT_ID]
-```
-
-### Restoring from a Backup
-
-```bash
-./deployment/backup-restore-db.sh restore --project-id=[YOUR_PROJECT_ID] --file=[BACKUP_FILENAME]
-```
-
-### Listing Available Backups
-
-```bash
-./deployment/backup-restore-db.sh list --project-id=[YOUR_PROJECT_ID]
+# Run a one-time migration job
+DATABASE_URL="your-production-db-url" npm run db:push
 ```
 
 ## Troubleshooting
 
-If you encounter issues with your deployment:
+### Common Issues
 
-1. Check the application logs:
-```bash
-gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=skills-management-app" --limit=50
-```
+1. **Container fails to start**: Check Cloud Run logs for errors:
+   ```bash
+   gcloud logging read "resource.type=cloud_run_revision AND \
+                        resource.labels.service_name=skills-management-app" \
+                        --limit 20
+   ```
 
-2. Verify database connectivity:
-```bash
-gcloud sql instances describe skills-management-db
-```
+2. **Database connection issues**: Verify your connection string is correctly formatted and accessible from Cloud Run.
 
-3. Check if your Docker image was built correctly:
-```bash
-gcloud container images list-tags gcr.io/[YOUR_PROJECT_ID]/skills-management-app
-```
-
-4. Run the check-deployment.sh script for detailed diagnostics:
-```bash
-./deployment/check-deployment.sh --project-id=[YOUR_PROJECT_ID]
-```
+3. **Build failures**: Check Cloud Build logs:
+   ```bash
+   gcloud builds list
+   gcloud builds log <build-id>
+   ```
 
 ## Security Considerations
 
-- The database password is automatically generated during deployment
-- All communications between Cloud Run and Cloud SQL are encrypted
-- For production deployments, consider:
-  - Setting up IAM service accounts with minimal permissions
-  - Enabling audit logging
-  - Implementing network security policies
-  - Setting up regular database backups
+- Set up Identity and Access Management (IAM) rules for your service
+- Consider using Secret Manager for sensitive environment variables
+- Configure VPC Service Controls for enhanced security
 
-## Cost Management
+## Continuous Deployment
 
-To minimize costs:
-- The Cloud SQL instance uses the smallest available tier (db-f1-micro)
-- Cloud Run scales to zero when not in use
-- Consider setting up budget alerts in GCP to monitor spending
+To set up continuous deployment:
 
-## Need Help?
+1. Connect your repository to Cloud Build
+2. Create a trigger that runs on pushes to main/master branch
+3. Configure the trigger to use your cloudbuild.yaml file
 
-If you encounter any issues not addressed in this guide, please:
-- Check the GCP documentation
-- Look at the application logs
-- Contact the development team for support
+## Custom Domain Setup
+
+To use a custom domain:
+
+```bash
+gcloud beta run domain-mappings create \
+  --service skills-management-app \
+  --domain your-domain.com
+```
+
+Follow the DNS verification steps provided by Google Cloud.

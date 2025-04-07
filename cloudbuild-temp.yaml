@@ -1,7 +1,7 @@
 steps:
-# Build Docker image with updated PORT environment variable handling
+# Build Docker image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/${PROJECT_ID}/skillmetricspro5:latest', '.']
+  args: ['build', '-t', 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-final:v1-20250407075045', '.']
 
 # Deploy to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -11,7 +11,7 @@ steps:
   - 'deploy'
   - 'skills-management-app'
   - '--image'
-  - 'gcr.io/${PROJECT_ID}/skillmetricspro5:latest'
+  - 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-final:v1-20250407075045'
   - '--region'
   - 'us-central1'
   - '--platform'
@@ -20,7 +20,7 @@ steps:
   - '--service-account'
   - 'skillmetrics-service-account@imposing-elixir-440911-u9.iam.gserviceaccount.com'
   - '--update-env-vars'
-  - 'NODE_ENV=production,HOST=0.0.0.0,PORT=8080,SESSION_SECRET=${_SESSION_SECRET}'
+  - 'NODE_ENV=production,HOST=0.0.0.0,SESSION_SECRET=generated-session-secret-for-production-environment,PORT=8080'
   - '--memory'
   - '1Gi'
   - '--min-instances'
@@ -31,10 +31,7 @@ steps:
   - '300s'
 
 images:
-- 'gcr.io/${PROJECT_ID}/skillmetricspro5:latest'
-
-substitutions:
-  _SESSION_SECRET: "generated-session-secret-for-production-environment"
+- 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-final:v1-20250407075045'
 
 options:
   logging: CLOUD_LOGGING_ONLY
