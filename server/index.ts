@@ -56,15 +56,15 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use PORT environment variable or default to 5000
-  // this serves both the API and the client
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
-  const host = process.env.HOST || "0.0.0.0";
+  // Hardcoded port 8080 for Cloud Run compatibility
+  // Cloud Run injects PORT=8080 but we need to ensure we're using exactly that port
+  const port = 8080;
+  const host = "0.0.0.0";
   
   // Log environment details to help with debugging
   console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`Starting server on port ${port} (from env: ${process.env.PORT})`);
-  console.log(`Starting server on host ${host} (from env: ${process.env.HOST})`);
+  console.log(`Using fixed port 8080 for Cloud Run compatibility`);
+  console.log(`Starting server on host ${host}`);
   
   // Properly specify host and port for Cloud Run compatibility
   server.listen(port, host, () => {
