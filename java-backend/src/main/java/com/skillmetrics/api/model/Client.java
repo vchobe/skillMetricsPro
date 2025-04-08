@@ -2,18 +2,20 @@ package com.skillmetrics.api.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "clients")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Client {
     
     @Id
@@ -33,23 +35,18 @@ public class Client {
     
     private String website;
     
+    @Column(length = 500)
     private String description;
     
     private String address;
     
-    @Column(name = "created_at", nullable = false)
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Project> projects = new ArrayList<>();
+    
+    @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
     
-    @Column(name = "updated_at")
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
-    
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
-    
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

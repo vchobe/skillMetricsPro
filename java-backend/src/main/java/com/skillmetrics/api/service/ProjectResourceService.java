@@ -1,6 +1,7 @@
 package com.skillmetrics.api.service;
 
 import com.skillmetrics.api.dto.ProjectResourceDto;
+import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.Project;
 import com.skillmetrics.api.model.ProjectResource;
 import com.skillmetrics.api.model.ResourceHistory;
@@ -10,6 +11,8 @@ import com.skillmetrics.api.repository.ProjectResourceRepository;
 import com.skillmetrics.api.repository.ResourceHistoryRepository;
 import com.skillmetrics.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,178 +24,210 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProjectResourceService {
-    
+
     private final ProjectResourceRepository projectResourceRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ResourceHistoryRepository resourceHistoryRepository;
-    
-    public List<ProjectResourceDto> getAllProjectResources() {
-        return projectResourceRepository.findAll().stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
+
+    @Transactional(readOnly = true)
+    public ProjectResourceDto getResourceById(Long id) {
+        ProjectResource resource = projectResourceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("ProjectResource", "id", id));
+        
+        return mapToDto(resource);
     }
     
-    public ProjectResourceDto getProjectResourceById(Long id) {
-        return projectResourceRepository.findById(id)
-            .map(this::convertToDto)
-            .orElseThrow(() -> new RuntimeException("Project resource not found with id " + id));
-    }
-    
+    @Transactional(readOnly = true)
     public List<ProjectResourceDto> getResourcesByProjectId(Long projectId) {
-        return projectResourceRepository.findByProjectId(projectId).stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
-    }
-    
-    public List<ProjectResourceDto> getResourcesByUserId(Long userId) {
-        return projectResourceRepository.findByUserId(userId).stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
-    }
-    
-    @Transactional
-    public ProjectResourceDto addResourceToProject(ProjectResourceDto resourceDto, Long performedById) {
-        ProjectResource resource = convertToEntity(resourceDto);
-        resource.setCreatedAt(LocalDateTime.now());
-        
-        ProjectResource savedResource = projectResourceRepository.save(resource);
-        
-        // Create history record for the addition
-        ResourceHistory history = ResourceHistory.builder()
-            .projectId(resource.getProjectId())
-            .userId(resource.getUserId())
-            .action("added")
-            .newRole(resource.getRole())
-            .newAllocation(resource.getAllocation())
-            .date(LocalDateTime.now())
-            .performedById(performedById)
-            .note("Resource added to project")
-            .build();
-        
-        resourceHistoryRepository.save(history);
-        
-        return convertToDto(savedResource);
-    }
-    
-    @Transactional
-    public ProjectResourceDto updateProjectResource(Long id, ProjectResourceDto resourceDto, Long performedById) {
-        return projectResourceRepository.findById(id)
-            .map(resource -> {
-                // Store previous values for history
-                String previousRole = resource.getRole();
-                Integer previousAllocation = resource.getAllocation();
-                
-                // Update the resource
-                resource.setRole(resourceDto.getRole());
-                resource.setAllocation(resourceDto.getAllocation());
-                resource.setStartDate(resourceDto.getStartDate());
-                resource.setEndDate(resourceDto.getEndDate());
-                resource.setNotes(resourceDto.getNotes());
-                resource.setUpdatedAt(LocalDateTime.now());
-                
-                ProjectResource updatedResource = projectResourceRepository.save(resource);
-                
-                // Determine what changed and create history record
-                if (!previousRole.equals(resource.getRole())) {
-                    ResourceHistory history = ResourceHistory.builder()
-                        .projectId(resource.getProjectId())
-                        .userId(resource.getUserId())
-                        .action("role_changed")
-                        .previousRole(previousRole)
-                        .newRole(resource.getRole())
-                        .date(LocalDateTime.now())
-                        .performedById(performedById)
-                        .build();
-                    
-                    resourceHistoryRepository.save(history);
-                }
-                
-                if (!previousAllocation.equals(resource.getAllocation())) {
-                    ResourceHistory history = ResourceHistory.builder()
-                        .projectId(resource.getProjectId())
-                        .userId(resource.getUserId())
-                        .action("allocation_changed")
-                        .previousAllocation(previousAllocation)
-                        .newAllocation(resource.getAllocation())
-                        .date(LocalDateTime.now())
-                        .performedById(performedById)
-                        .build();
-                    
-                    resourceHistoryRepository.save(history);
-                }
-                
-                return convertToDto(updatedResource);
-            })
-            .orElseThrow(() -> new RuntimeException("Project resource not found with id " + id));
-    }
-    
-    @Transactional
-    public void removeResourceFromProject(Long id, Long performedById, String note) {
-        projectResourceRepository.findById(id).ifPresent(resource -> {
-            // Create history record for removal
-            ResourceHistory history = ResourceHistory.builder()
-                .projectId(resource.getProjectId())
-                .userId(resource.getUserId())
-                .action("removed")
-                .previousRole(resource.getRole())
-                .previousAllocation(resource.getAllocation())
-                .date(LocalDateTime.now())
-                .performedById(performedById)
-                .note(note)
-                .build();
-            
-            resourceHistoryRepository.save(history);
-            
-            // Delete the resource
-            projectResourceRepository.deleteById(id);
-        });
-    }
-    
-    public List<ResourceHistory> getResourceHistoryByProjectId(Long projectId) {
-        return resourceHistoryRepository.findByProjectId(projectId);
-    }
-    
-    private ProjectResourceDto convertToDto(ProjectResource resource) {
-        ProjectResourceDto dto = ProjectResourceDto.builder()
-            .id(resource.getId())
-            .projectId(resource.getProjectId())
-            .userId(resource.getUserId())
-            .role(resource.getRole())
-            .allocation(resource.getAllocation())
-            .startDate(resource.getStartDate())
-            .endDate(resource.getEndDate())
-            .notes(resource.getNotes())
-            .createdAt(resource.getCreatedAt())
-            .updatedAt(resource.getUpdatedAt())
-            .build();
-        
-        // Add derived fields from related entities
-        Optional<Project> project = projectRepository.findById(resource.getProjectId());
-        project.ifPresent(p -> dto.setProjectName(p.getName()));
-        
-        Optional<User> user = userRepository.findById(resource.getUserId());
-        if (user.isPresent()) {
-            User u = user.get();
-            dto.setUserName(u.getFirstName() + " " + u.getLastName());
-            dto.setUserEmail(u.getEmail());
+        if (!projectRepository.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project", "id", projectId);
         }
         
-        return dto;
+        return projectResourceRepository.findByProjectId(projectId).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
     
-    private ProjectResource convertToEntity(ProjectResourceDto dto) {
-        return ProjectResource.builder()
-            .id(dto.getId())
-            .projectId(dto.getProjectId())
-            .userId(dto.getUserId())
-            .role(dto.getRole())
-            .allocation(dto.getAllocation())
-            .startDate(dto.getStartDate())
-            .endDate(dto.getEndDate())
-            .notes(dto.getNotes())
-            .createdAt(dto.getCreatedAt())
-            .updatedAt(dto.getUpdatedAt())
-            .build();
+    @Transactional(readOnly = true)
+    public List<ProjectResourceDto> getResourcesByUserId(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("User", "id", userId);
+        }
+        
+        return projectResourceRepository.findByUserId(userId).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional
+    public ProjectResourceDto addResourceToProject(ProjectResourceDto resourceDto) {
+        Project project = projectRepository.findById(resourceDto.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Project", "id", resourceDto.getProjectId()));
+        
+        User user = userRepository.findById(resourceDto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", resourceDto.getUserId()));
+        
+        // Check if the user is already assigned to this project
+        Optional<ProjectResource> existingResource = 
+                projectResourceRepository.findByProjectIdAndUserId(resourceDto.getProjectId(), resourceDto.getUserId());
+        
+        if (existingResource.isPresent()) {
+            throw new IllegalStateException("User is already assigned to this project");
+        }
+        
+        ProjectResource projectResource = new ProjectResource();
+        projectResource.setProject(project);
+        projectResource.setUser(user);
+        projectResource.setRole(resourceDto.getRole());
+        projectResource.setAllocation(resourceDto.getAllocation());
+        projectResource.setStartDate(resourceDto.getStartDate());
+        projectResource.setEndDate(resourceDto.getEndDate());
+        projectResource.setNotes(resourceDto.getNotes());
+        
+        ProjectResource savedResource = projectResourceRepository.save(projectResource);
+        
+        // Record this action in the resource history
+        recordResourceHistory(project, user, "added", null, resourceDto.getRole(), 
+                null, resourceDto.getAllocation(), resourceDto.getNotes());
+        
+        return mapToDto(savedResource);
+    }
+    
+    @Transactional
+    public ProjectResourceDto updateProjectResource(Long id, ProjectResourceDto resourceDto) {
+        ProjectResource resource = projectResourceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("ProjectResource", "id", id));
+        
+        String previousRole = resource.getRole();
+        Integer previousAllocation = resource.getAllocation();
+        String action = null;
+        
+        // Check if role has changed
+        if (!resource.getRole().equals(resourceDto.getRole())) {
+            action = "role_changed";
+        }
+        // Check if allocation has changed
+        else if (resource.getAllocation() != resourceDto.getAllocation()) {
+            action = "allocation_changed";
+        }
+        
+        // Update resource properties
+        resource.setRole(resourceDto.getRole());
+        resource.setAllocation(resourceDto.getAllocation());
+        resource.setStartDate(resourceDto.getStartDate());
+        resource.setEndDate(resourceDto.getEndDate());
+        resource.setNotes(resourceDto.getNotes());
+        
+        ProjectResource updatedResource = projectResourceRepository.save(resource);
+        
+        // Record this action in resource history if role or allocation changed
+        if (action != null) {
+            recordResourceHistory(
+                resource.getProject(), 
+                resource.getUser(), 
+                action, 
+                previousRole, 
+                resourceDto.getRole(),
+                previousAllocation, 
+                resourceDto.getAllocation(), 
+                resourceDto.getNotes()
+            );
+        }
+        
+        return mapToDto(updatedResource);
+    }
+    
+    @Transactional
+    public void removeResourceFromProject(Long id) {
+        ProjectResource resource = projectResourceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("ProjectResource", "id", id));
+        
+        Project project = resource.getProject();
+        User user = resource.getUser();
+        String previousRole = resource.getRole();
+        Integer previousAllocation = resource.getAllocation();
+        
+        // Record this action in resource history before deleting
+        recordResourceHistory(
+            project, 
+            user, 
+            "removed", 
+            previousRole, 
+            null,
+            previousAllocation, 
+            null, 
+            "Resource removed from project"
+        );
+        
+        projectResourceRepository.deleteById(id);
+    }
+    
+    // Helper method to record resource history
+    private void recordResourceHistory(
+            Project project, 
+            User user, 
+            String action, 
+            String previousRole, 
+            String newRole,
+            Integer previousAllocation, 
+            Integer newAllocation, 
+            String note) {
+        
+        // Get current user as the one who performed this action
+        String currentUsername = getCurrentUsername();
+        User performedBy = null;
+        if (currentUsername != null) {
+            performedBy = userRepository.findByUsername(currentUsername).orElse(null);
+        }
+        
+        ResourceHistory history = new ResourceHistory();
+        history.setProject(project);
+        history.setUser(user);
+        history.setAction(action);
+        history.setPreviousRole(previousRole);
+        history.setNewRole(newRole);
+        history.setPreviousAllocation(previousAllocation);
+        history.setNewAllocation(newAllocation);
+        history.setDate(LocalDateTime.now());
+        history.setPerformedBy(performedBy);
+        history.setNote(note);
+        
+        resourceHistoryRepository.save(history);
+    }
+    
+    // Helper method to get current username
+    private String getCurrentUsername() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UserDetails) {
+            return ((UserDetails) principal).getUsername();
+        }
+        return null;
+    }
+    
+    // Helper method to map ProjectResource entity to ProjectResourceDto
+    private ProjectResourceDto mapToDto(ProjectResource resource) {
+        ProjectResourceDto resourceDto = new ProjectResourceDto();
+        resourceDto.setId(resource.getId());
+        resourceDto.setProjectId(resource.getProject().getId());
+        resourceDto.setProjectName(resource.getProject().getName());
+        resourceDto.setUserId(resource.getUser().getId());
+        
+        // Combine first and last name if available, otherwise use username
+        String userName = resource.getUser().getUsername();
+        if (resource.getUser().getFirstName() != null && resource.getUser().getLastName() != null) {
+            userName = resource.getUser().getFirstName() + " " + resource.getUser().getLastName();
+        }
+        resourceDto.setUserName(userName);
+        
+        resourceDto.setRole(resource.getRole());
+        resourceDto.setAllocation(resource.getAllocation());
+        resourceDto.setStartDate(resource.getStartDate());
+        resourceDto.setEndDate(resource.getEndDate());
+        resourceDto.setNotes(resource.getNotes());
+        resourceDto.setCreatedAt(resource.getCreatedAt());
+        resourceDto.setUpdatedAt(resource.getUpdatedAt());
+        
+        return resourceDto;
     }
 }

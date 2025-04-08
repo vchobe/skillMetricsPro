@@ -2,22 +2,23 @@ package com.skillmetrics.api.controller;
 
 import com.skillmetrics.api.dto.UserDto;
 import com.skillmetrics.api.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
-    
+
     private final UserService userService;
-    
+
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<List<UserDto>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
@@ -37,43 +38,36 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserByEmail(email));
     }
     
-    @PostMapping
-    public ResponseEntity<UserDto> createUser(
-            @RequestBody Map<String, Object> payload) {
-        UserDto userDto = new UserDto();
-        userDto.setUsername((String) payload.get("username"));
-        userDto.setEmail((String) payload.get("email"));
-        userDto.setFirstName((String) payload.get("firstName"));
-        userDto.setLastName((String) payload.get("lastName"));
-        userDto.setRole((String) payload.get("role"));
-        userDto.setLocation((String) payload.get("location"));
-        userDto.setProject((String) payload.get("project"));
-        
-        String password = (String) payload.get("password");
-        
-        return new ResponseEntity<>(
-            userService.createUser(userDto, password),
-            HttpStatus.CREATED);
-    }
-    
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @securityService.isCurrentUser(#id)")
     public ResponseEntity<UserDto> updateUser(
             @PathVariable Long id,
-            @RequestBody UserDto userDto) {
+            @Valid @RequestBody UserDto userDto) {
         return ResponseEntity.ok(userService.updateUser(id, userDto));
     }
     
-    @PatchMapping("/{id}/password")
-    public ResponseEntity<Void> updatePassword(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> payload) {
-        userService.updatePassword(id, payload.get("password"));
-        return ResponseEntity.noContent().build();
-    }
-    
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+    
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<List<UserDto>> searchUsersByUsername(@RequestParam String keyword) {
+        return ResponseEntity.ok(userService.searchUsersByUsername(keyword));
+    }
+    
+    @GetMapping("/role/{role}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<List<UserDto>> getUsersByRole(@PathVariable String role) {
+        return ResponseEntity.ok(userService.getUsersByRole(role));
+    }
+    
+    @GetMapping("/location/{location}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<List<UserDto>> getUsersByLocation(@PathVariable String location) {
+        return ResponseEntity.ok(userService.getUsersByLocation(location));
     }
 }

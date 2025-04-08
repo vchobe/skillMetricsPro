@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/health")
+@RequestMapping("/api/health")
 public class HealthController {
 
     @GetMapping
@@ -18,7 +18,8 @@ public class HealthController {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "UP");
         response.put("timestamp", LocalDateTime.now().toString());
-        response.put("service", "skill-metrics-api");
+        response.put("message", "SkillMetrics API is running");
+        
         return ResponseEntity.ok(response);
     }
 }
