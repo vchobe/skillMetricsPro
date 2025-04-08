@@ -1,134 +1,202 @@
 #!/bin/bash
+set -e
 
-# Script to deploy the application to Cloud Run with a fixed port configuration
-
-set -e  # Exit on any error
-
-# Configuration - Use environment variables with fallbacks
-PROJECT_ID="${GCP_PROJECT_ID:-imposing-elixir-440911-u9}"
-SERVICE_NAME="skills-management-app" 
+# Project settings
+PROJECT_ID="imposing-elixir-440911-u9"
+SERVICE_NAME="skills-management-app"
 REGION="us-central1"
-IMAGE_NAME="gcr.io/$PROJECT_ID/skillmetricspro2:fixed-v2"
+IMAGE_NAME="gcr.io/${PROJECT_ID}/skillmetricspro-fixed:latest"
 
-echo "===== STARTING DEPLOYMENT WITH FIXED PORT V2 ====="
-echo "Project ID: $PROJECT_ID"
-echo "Image Name: $IMAGE_NAME"
-echo "Service Name: $SERVICE_NAME"
-echo "Region: $REGION"
-echo "==========================================="
-
-# Ensure service account key exists
-if [ ! -f "service-account-key.json" ]; then
-  if [ -z "$GCP_SERVICE_ACCOUNT" ]; then
-    echo "Error: service-account-key.json not found and GCP_SERVICE_ACCOUNT is not set."
-    echo "Please either create a service account key file or set the GCP_SERVICE_ACCOUNT environment variable."
-    exit 1
-  else
-    echo "Creating service-account-key.json from GCP_SERVICE_ACCOUNT environment variable..."
-    echo "$GCP_SERVICE_ACCOUNT" > service-account-key.json
-    chmod 600 service-account-key.json
-  fi
-fi
-
-# 1. Authenticate with Google Cloud
+# Authenticate with service account
 echo "1. Authenticating with Google Cloud..."
 gcloud auth activate-service-account --key-file=service-account-key.json
-gcloud config set project $PROJECT_ID
 
-# 2. Fix port in server/index.ts - a critical step for Cloud Run compatibility
-echo "2. Creating a cloud-specific build that enforces port 8080..."
+# Get DATABASE_URL from environment 
+if [[ -z "${DATABASE_URL}" ]]; then
+  echo "❌ DATABASE_URL environment variable is not set."
+  echo "Please set it before running this script."
+  exit 1
+fi
 
-# We don't need to modify server/index.ts since it's already been fixed
-echo "Current server/index.ts port configuration:"
-grep -n "port =" server/index.ts
+echo "===== STARTING FIXED DEPLOYMENT TO CLOUD RUN V2 ====="
+echo "Project ID: ${PROJECT_ID}"
+echo "Service Name: ${SERVICE_NAME}"
+echo "Region: ${REGION}"
+echo "Image: ${IMAGE_NAME}"
+echo "===========================================\n"
 
-# Create a special build script for cloud deployment
-cat > cloud-build.sh << 'EOF'
-#!/bin/bash
-# Build the app
-npm run build
-
-# Extra fixes on the compiled JavaScript
-echo "Applying port 8080 fixes to compiled JavaScript..."
-sed -i 's/const port = process.env.PORT/const port = 8080/g' ./dist/index.js
-sed -i 's/parseInt(process.env.PORT, 10) : 5000/8080/g' ./dist/index.js
-sed -i 's/log(`serving on ${host}:${port}`)/log(`serving on port 8080`)/g' ./dist/index.js
-sed -i 's/const {PORT/const {_PORT/g' ./dist/index.js
-
-# Print the result
-echo "Final port configuration in dist/index.js:"
-grep -n "port" ./dist/index.js
-EOF
-
-chmod +x cloud-build.sh
-
-# Create a specialized Dockerfile for this deployment
-cat > Dockerfile.cloud << 'EOF'
-# Use Node.js LTS slim
+# Create simplified Dockerfile for Cloud Run with fixed port
+cat > Dockerfile.cloud-run-fixed << EOF
 FROM node:20-slim
 
-# Set environment variables - Cloud Run will set PORT to 8080
+# Set environment variables for better Node.js performance in containers
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV HOST=0.0.0.0
 
-# Set working directory
-WORKDIR /app
+# Install required system dependencies
+RUN apt-get update && apt-get install -y \\
+    curl \\
+    ca-certificates \\
+    && apt-get clean \\
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy package files and install dependencies
-COPY package*.json ./
-RUN npm ci
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy package files for better layer caching
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm ci --omit=dev
 
 # Copy application code
 COPY . .
 
-# Copy and run our specialized build script
-COPY cloud-build.sh ./
-RUN ./cloud-build.sh
+# Fix the port in index.ts to always use 8080 - FOR CLOUD RUN ONLY
+RUN sed -i 's/const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;/const port = 8080;/g' server/index.ts
+RUN sed -i 's/const host = process.env.HOST || "0.0.0.0";/const host = "0.0.0.0";/g' server/index.ts
 
-# Expose the port
+# Build the application with clean environment
+RUN npm run build
+
+# Create startup script with health check and better debugging
+RUN echo '#!/bin/bash' > /usr/src/app/start.sh && \\
+    echo 'set -e' >> /usr/src/app/start.sh && \\
+    echo '' >> /usr/src/app/start.sh && \\
+    echo '# Print environment for debugging' >> /usr/src/app/start.sh && \\
+    echo 'echo "==== CLOUD RUN CONTAINER STARTUP ====="' >> /usr/src/app/start.sh && \\
+    echo 'echo "PORT: \$PORT"' >> /usr/src/app/start.sh && \\
+    echo 'echo "NODE_ENV: \$NODE_ENV"' >> /usr/src/app/start.sh && \\
+    echo 'echo "HOST: \$HOST"' >> /usr/src/app/start.sh && \\
+    echo 'echo "DATABASE_URL exists: \$(if [ -n "\$DATABASE_URL" ]; then echo Yes; else echo No; fi)"' >> /usr/src/app/start.sh && \\
+    echo 'echo "Current directory: \$(pwd)"' >> /usr/src/app/start.sh && \\
+    echo 'echo "Dist directory contents:"' >> /usr/src/app/start.sh && \\
+    echo 'ls -la dist || echo "No dist directory found"' >> /usr/src/app/start.sh && \\
+    echo 'echo "=================================="' >> /usr/src/app/start.sh && \\
+    echo '' >> /usr/src/app/start.sh && \\
+    echo '# Start the server with explicitly hardcoded port and host' >> /usr/src/app/start.sh && \\
+    echo 'echo "Starting server on 0.0.0.0:8080"' >> /usr/src/app/start.sh && \\
+    echo 'export PORT=8080' >> /usr/src/app/start.sh && \\
+    echo 'export HOST=0.0.0.0' >> /usr/src/app/start.sh && \\
+    echo 'node dist/index.js' >> /usr/src/app/start.sh
+
+# Make startup script executable
+RUN chmod +x /usr/src/app/start.sh
+
+# Expose the port that will be used by Cloud Run (explicitly set to 8080)
 EXPOSE 8080
 
-# Use node to start the server (using the compiled JavaScript)
-CMD ["node", "dist/index.js"]
+# Use the startup script as the entry point
+CMD ["/usr/src/app/start.sh"]
 EOF
 
-echo "Created specialized Dockerfile and build script for Cloud Run deployment"
+echo "✅ Cloud Run Fixed Dockerfile created"
 
-# 3. Build and push the Docker image
-echo "3. Building and pushing Docker image..."
-# Use our custom Dockerfile.cloud
-echo "Building Docker image with Dockerfile.cloud..."
-gcloud builds submit --timeout=30m --config=cloudbuild.yaml --substitutions=_PROJECT_ID=$PROJECT_ID
+# Build the container
+echo "2. Building container image..."
+gcloud builds submit --tag=${IMAGE_NAME} --config=cloudbuild.yaml --substitutions=_DOCKERFILE="Dockerfile.cloud-run-fixed" --timeout=15m
 
-# 4. Deploy to Cloud Run
-echo "4. Deploying to Cloud Run..."
+echo "✅ Container build submitted to Cloud Build"
 
-# Check if DATABASE_URL is set in the environment
-if [ -n "$DATABASE_URL" ]; then
-  echo "Using DATABASE_URL from environment variables"
-  ENV_VARS="PORT=8080,HOST=0.0.0.0,NODE_ENV=production,DATABASE_URL=$DATABASE_URL"
+# Deploy to Cloud Run with improved settings
+echo "3. Deploying to Cloud Run..."
+gcloud run deploy ${SERVICE_NAME} \
+  --image ${IMAGE_NAME} \
+  --platform managed \
+  --region ${REGION} \
+  --port 8080 \
+  --set-env-vars "NODE_ENV=production,HOST=0.0.0.0,PORT=8080,DATABASE_URL=${DATABASE_URL}" \
+  --memory 1Gi \
+  --cpu 1 \
+  --allow-unauthenticated \
+  --timeout=15m \
+  --no-cpu-throttling \
+  --max-instances=5 \
+  --min-instances=1 \
+  --startup-cpu-boost \
+  --container-command="/usr/src/app/start.sh" \
+  --ingress=all
+
+echo "✅ Deployment command executed"
+
+# Get service status
+echo "4. Getting service status..."
+SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} --platform managed --region ${REGION} --format="value(status.url)")
+
+if [[ -n "${SERVICE_URL}" ]]; then
+  echo "✅ Service URL obtained: ${SERVICE_URL}"
 else
-  echo "No DATABASE_URL provided - using default configuration"
-  ENV_VARS="PORT=8080,HOST=0.0.0.0,NODE_ENV=production"
+  echo "⚠️ Unable to get service URL"
+  echo "Trying to continue anyway..."
 fi
 
-gcloud run deploy $SERVICE_NAME \
-  --image $IMAGE_NAME \
-  --platform managed \
-  --region $REGION \
-  --allow-unauthenticated \
-  --timeout=10m \
-  --update-env-vars="$ENV_VARS" \
-  --port=8080
+# Wait for the deployment to complete
+echo "5. Waiting for deployment to complete (this may take a few minutes)..."
+for i in {1..30}; do
+  SERVICE_STATUS=$(gcloud run services describe ${SERVICE_NAME} --platform managed --region ${REGION} --format="value(status.conditions[0].status)")
+  SERVICE_MESSAGE=$(gcloud run services describe ${SERVICE_NAME} --platform managed --region ${REGION} --format="value(status.conditions[0].message)")
+  
+  echo "Current status: ${SERVICE_STATUS} - ${SERVICE_MESSAGE}"
+  
+  if [[ "${SERVICE_STATUS}" == "True" ]]; then
+    echo "✅ Service is ready!"
+    break
+  fi
+  
+  echo "Waiting for service to be ready... (attempt ${i}/30)"
+  sleep 10
+done
 
-# 5. Get the deployed service URL
-echo "5. Getting service URL..."
-SERVICE_URL=$(gcloud run services describe $SERVICE_NAME \
-  --platform=managed \
-  --region=$REGION \
-  --format="value(status.url)")
+# Get latest revision
+LATEST_REVISION=$(gcloud run services describe ${SERVICE_NAME} --platform managed --region ${REGION} --format="value(status.latestCreatedRevisionName)")
+echo "Latest revision: ${LATEST_REVISION}"
 
-echo "Deployment successful!"
-echo "Service URL: $SERVICE_URL"
-echo "==========================================="
+# Get service health
+echo "6. Checking service health..."
+if [[ -n "${SERVICE_URL}" ]]; then
+  echo "Service URL: ${SERVICE_URL}"
+  
+  # Wait for the service to initialize
+  echo "   Waiting 30 seconds for service to initialize..."
+  sleep 30
+  
+  # Check if service health endpoint is available
+  echo "   Checking service health..."
+  HEALTH_CHECK_URL="${SERVICE_URL}/api/health"
+  echo "   Health endpoint: ${HEALTH_CHECK_URL}"
+  
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${HEALTH_CHECK_URL} || echo "failed")
+  
+  if [[ "${HTTP_STATUS}" == "200" ]]; then
+    echo "✅ Health check successful"
+    # Get more detailed health info
+    HEALTH_RESPONSE=$(curl -s ${HEALTH_CHECK_URL})
+    echo "Health response: ${HEALTH_RESPONSE}"
+    
+    # Display logs
+    echo "7. Fetching recent logs from the service..."
+    gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${SERVICE_NAME} AND resource.labels.revision_name=${LATEST_REVISION}" --limit=10
+    
+    echo ""
+    echo "===== DEPLOYMENT SUCCESSFUL ====="
+    echo "Your application is now deployed and running at: ${SERVICE_URL}"
+    echo ""
+  else
+    echo "⚠️ Health check returned status: ${HTTP_STATUS}"
+    echo "Service is deployed, but may not be fully functional yet."
+    
+    # Display logs to help debug
+    echo "7. Fetching recent logs to help debug..."
+    gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${SERVICE_NAME} AND resource.labels.revision_name=${LATEST_REVISION}" --limit=20
+    
+    echo ""
+    echo "⚠️ Health check failed. Please check the logs above for more information."
+    echo "You may also check the logs in Google Cloud Console:"
+    echo "https://console.cloud.google.com/run/detail/${REGION}/${SERVICE_NAME}/logs"
+  fi
+else
+  echo "⚠️ Deployment completed but could not retrieve service URL."
+  echo "Please check the Google Cloud Console for status:"
+  echo "https://console.cloud.google.com/run"
+fi
