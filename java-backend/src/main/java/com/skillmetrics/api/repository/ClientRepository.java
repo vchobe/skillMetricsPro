@@ -11,5 +11,5 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     
     List<Client> findByIndustry(String industry);
     
-    Client findByName(String name);
+    List<Client> findByNameContainingIgnoreCase(String keyword);
 }

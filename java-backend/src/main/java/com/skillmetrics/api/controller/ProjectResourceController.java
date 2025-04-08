@@ -1,11 +1,12 @@
 package com.skillmetrics.api.controller;
 
 import com.skillmetrics.api.dto.ProjectResourceDto;
-import com.skillmetrics.api.model.ResourceHistory;
 import com.skillmetrics.api.service.ProjectResourceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,17 +15,12 @@ import java.util.List;
 @RequestMapping("/api/project-resources")
 @RequiredArgsConstructor
 public class ProjectResourceController {
-    
+
     private final ProjectResourceService projectResourceService;
-    
-    @GetMapping
-    public ResponseEntity<List<ProjectResourceDto>> getAllProjectResources() {
-        return ResponseEntity.ok(projectResourceService.getAllProjectResources());
-    }
-    
+
     @GetMapping("/{id}")
-    public ResponseEntity<ProjectResourceDto> getProjectResourceById(@PathVariable Long id) {
-        return ResponseEntity.ok(projectResourceService.getProjectResourceById(id));
+    public ResponseEntity<ProjectResourceDto> getResourceById(@PathVariable Long id) {
+        return ResponseEntity.ok(projectResourceService.getResourceById(id));
     }
     
     @GetMapping("/project/{projectId}")
@@ -38,34 +34,23 @@ public class ProjectResourceController {
     }
     
     @PostMapping
-    public ResponseEntity<ProjectResourceDto> addResourceToProject(
-            @RequestBody ProjectResourceDto resourceDto,
-            @RequestParam Long performedById) {
-        return new ResponseEntity<>(
-            projectResourceService.addResourceToProject(resourceDto, performedById),
-            HttpStatus.CREATED);
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ProjectResourceDto> addResourceToProject(@Valid @RequestBody ProjectResourceDto resourceDto) {
+        return new ResponseEntity<>(projectResourceService.addResourceToProject(resourceDto), HttpStatus.CREATED);
     }
     
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ProjectResourceDto> updateProjectResource(
             @PathVariable Long id,
-            @RequestBody ProjectResourceDto resourceDto,
-            @RequestParam Long performedById) {
-        return ResponseEntity.ok(
-            projectResourceService.updateProjectResource(id, resourceDto, performedById));
+            @Valid @RequestBody ProjectResourceDto resourceDto) {
+        return ResponseEntity.ok(projectResourceService.updateProjectResource(id, resourceDto));
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> removeResourceFromProject(
-            @PathVariable Long id,
-            @RequestParam Long performedById,
-            @RequestParam(required = false) String note) {
-        projectResourceService.removeResourceFromProject(id, performedById, note);
-        return ResponseEntity.noContent().build();
-    }
-    
-    @GetMapping("/history/project/{projectId}")
-    public ResponseEntity<List<ResourceHistory>> getResourceHistoryByProjectId(@PathVariable Long projectId) {
-        return ResponseEntity.ok(projectResourceService.getResourceHistoryByProjectId(projectId));
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<Void> removeResourceFromProject(@PathVariable Long id) {
+        projectResourceService.removeResourceFromProject(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
