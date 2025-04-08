@@ -2,9 +2,10 @@ package com.skillmetrics.api.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -13,44 +14,27 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class ProjectSkill {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "project_id", nullable = false)
-    private Long projectId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
     
-    @Column(name = "skill_id", nullable = false)
-    private Long skillId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "skill_id", nullable = false)
+    private Skill skill;
     
-    @Column(name = "required_level", nullable = false)
-    private String requiredLevel; // beginner, intermediate, expert
+    @Column(nullable = false)
+    private String requiredLevel;
     
-    @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
     
-    @Column(name = "updated_at")
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
-    
-    @Transient
-    private String skillName; // From the join query
-    
-    @Transient
-    private String category; // From the join query
-    
-    @Transient
-    private String level; // From the join query
-    
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
-    
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

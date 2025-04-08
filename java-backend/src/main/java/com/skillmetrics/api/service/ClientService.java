@@ -1,96 +1,112 @@
 package com.skillmetrics.api.service;
 
 import com.skillmetrics.api.dto.ClientDto;
+import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.Client;
 import com.skillmetrics.api.repository.ClientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ClientService {
-    
+
     private final ClientRepository clientRepository;
+
+    @Transactional(readOnly = true)
+    public ClientDto getClientById(Long id) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
+        
+        return mapToDto(client);
+    }
     
+    @Transactional(readOnly = true)
     public List<ClientDto> getAllClients() {
         return clientRepository.findAll().stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
     
-    public ClientDto getClientById(Long id) {
-        return clientRepository.findById(id)
-            .map(this::convertToDto)
-            .orElseThrow(() -> new RuntimeException("Client not found with id " + id));
-    }
-    
-    public List<ClientDto> getClientsByIndustry(String industry) {
-        return clientRepository.findByIndustry(industry).stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
-    }
-    
+    @Transactional
     public ClientDto createClient(ClientDto clientDto) {
-        Client client = convertToEntity(clientDto);
-        client.setCreatedAt(LocalDateTime.now());
-        client = clientRepository.save(client);
-        return convertToDto(client);
+        Client client = new Client();
+        client.setName(clientDto.getName());
+        client.setIndustry(clientDto.getIndustry());
+        client.setContactName(clientDto.getContactName());
+        client.setContactEmail(clientDto.getContactEmail());
+        client.setContactPhone(clientDto.getContactPhone());
+        client.setWebsite(clientDto.getWebsite());
+        client.setDescription(clientDto.getDescription());
+        client.setAddress(clientDto.getAddress());
+        
+        Client savedClient = clientRepository.save(client);
+        
+        return mapToDto(savedClient);
     }
     
+    @Transactional
     public ClientDto updateClient(Long id, ClientDto clientDto) {
-        return clientRepository.findById(id)
-            .map(client -> {
-                client.setName(clientDto.getName());
-                client.setIndustry(clientDto.getIndustry());
-                client.setContactName(clientDto.getContactName());
-                client.setContactEmail(clientDto.getContactEmail());
-                client.setContactPhone(clientDto.getContactPhone());
-                client.setWebsite(clientDto.getWebsite());
-                client.setDescription(clientDto.getDescription());
-                client.setAddress(clientDto.getAddress());
-                client.setUpdatedAt(LocalDateTime.now());
-                return convertToDto(clientRepository.save(client));
-            })
-            .orElseThrow(() -> new RuntimeException("Client not found with id " + id));
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
+        
+        // Update client properties
+        client.setName(clientDto.getName());
+        client.setIndustry(clientDto.getIndustry());
+        client.setContactName(clientDto.getContactName());
+        client.setContactEmail(clientDto.getContactEmail());
+        client.setContactPhone(clientDto.getContactPhone());
+        client.setWebsite(clientDto.getWebsite());
+        client.setDescription(clientDto.getDescription());
+        client.setAddress(clientDto.getAddress());
+        
+        Client updatedClient = clientRepository.save(client);
+        
+        return mapToDto(updatedClient);
     }
     
+    @Transactional
     public void deleteClient(Long id) {
+        if (!clientRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Client", "id", id);
+        }
+        
         clientRepository.deleteById(id);
     }
     
-    private ClientDto convertToDto(Client client) {
-        return ClientDto.builder()
-            .id(client.getId())
-            .name(client.getName())
-            .industry(client.getIndustry())
-            .contactName(client.getContactName())
-            .contactEmail(client.getContactEmail())
-            .contactPhone(client.getContactPhone())
-            .website(client.getWebsite())
-            .description(client.getDescription())
-            .address(client.getAddress())
-            .createdAt(client.getCreatedAt())
-            .updatedAt(client.getUpdatedAt())
-            .build();
+    @Transactional(readOnly = true)
+    public List<ClientDto> getClientsByIndustry(String industry) {
+        return clientRepository.findByIndustry(industry).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
     
-    private Client convertToEntity(ClientDto clientDto) {
-        return Client.builder()
-            .id(clientDto.getId())
-            .name(clientDto.getName())
-            .industry(clientDto.getIndustry())
-            .contactName(clientDto.getContactName())
-            .contactEmail(clientDto.getContactEmail())
-            .contactPhone(clientDto.getContactPhone())
-            .website(clientDto.getWebsite())
-            .description(clientDto.getDescription())
-            .address(clientDto.getAddress())
-            .createdAt(clientDto.getCreatedAt())
-            .updatedAt(clientDto.getUpdatedAt())
-            .build();
+    @Transactional(readOnly = true)
+    public List<ClientDto> searchClientsByName(String keyword) {
+        return clientRepository.findByNameContainingIgnoreCase(keyword).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    // Helper method to map Client entity to ClientDto
+    private ClientDto mapToDto(Client client) {
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(client.getId());
+        clientDto.setName(client.getName());
+        clientDto.setIndustry(client.getIndustry());
+        clientDto.setContactName(client.getContactName());
+        clientDto.setContactEmail(client.getContactEmail());
+        clientDto.setContactPhone(client.getContactPhone());
+        clientDto.setWebsite(client.getWebsite());
+        clientDto.setDescription(client.getDescription());
+        clientDto.setAddress(client.getAddress());
+        clientDto.setCreatedAt(client.getCreatedAt());
+        clientDto.setUpdatedAt(client.getUpdatedAt());
+        
+        return clientDto;
     }
 }

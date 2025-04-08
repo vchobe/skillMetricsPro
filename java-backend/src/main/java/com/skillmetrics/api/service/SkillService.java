@@ -1,92 +1,132 @@
 package com.skillmetrics.api.service;
 
 import com.skillmetrics.api.dto.SkillDto;
+import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.Skill;
+import com.skillmetrics.api.model.User;
 import com.skillmetrics.api.repository.SkillRepository;
+import com.skillmetrics.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class SkillService {
-    
+
     private final SkillRepository skillRepository;
+    private final UserRepository userRepository;
+
+    @Transactional(readOnly = true)
+    public SkillDto getSkillById(Long id) {
+        Skill skill = skillRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Skill", "id", id));
+        
+        return mapToDto(skill);
+    }
     
+    @Transactional(readOnly = true)
     public List<SkillDto> getAllSkills() {
         return skillRepository.findAll().stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
     
-    public SkillDto getSkillById(Long id) {
-        return skillRepository.findById(id)
-            .map(this::convertToDto)
-            .orElseThrow(() -> new RuntimeException("Skill not found with id " + id));
-    }
-    
+    @Transactional(readOnly = true)
     public List<SkillDto> getSkillsByUserId(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("User", "id", userId);
+        }
+        
         return skillRepository.findByUserId(userId).stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
     
+    @Transactional
     public SkillDto createSkill(SkillDto skillDto) {
-        Skill skill = convertToEntity(skillDto);
-        skill.setCreatedAt(LocalDateTime.now());
-        skill = skillRepository.save(skill);
-        return convertToDto(skill);
+        User user = userRepository.findById(skillDto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", skillDto.getUserId()));
+        
+        Skill skill = new Skill();
+        skill.setUser(user);
+        skill.setName(skillDto.getName());
+        skill.setCategory(skillDto.getCategory());
+        skill.setLevel(skillDto.getLevel());
+        skill.setDescription(skillDto.getDescription());
+        skill.setCertification(skillDto.getCertification());
+        skill.setCredlyLink(skillDto.getCredlyLink());
+        
+        Skill savedSkill = skillRepository.save(skill);
+        
+        return mapToDto(savedSkill);
     }
     
+    @Transactional
     public SkillDto updateSkill(Long id, SkillDto skillDto) {
-        return skillRepository.findById(id)
-            .map(skill -> {
-                skill.setName(skillDto.getName());
-                skill.setCategory(skillDto.getCategory());
-                skill.setLevel(skillDto.getLevel());
-                skill.setDescription(skillDto.getDescription());
-                skill.setCertification(skillDto.getCertification());
-                skill.setCredlyLink(skillDto.getCredlyLink());
-                skill.setUpdatedAt(LocalDateTime.now());
-                return convertToDto(skillRepository.save(skill));
-            })
-            .orElseThrow(() -> new RuntimeException("Skill not found with id " + id));
+        Skill skill = skillRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Skill", "id", id));
+        
+        // Update skill properties
+        skill.setName(skillDto.getName());
+        skill.setCategory(skillDto.getCategory());
+        skill.setLevel(skillDto.getLevel());
+        skill.setDescription(skillDto.getDescription());
+        skill.setCertification(skillDto.getCertification());
+        skill.setCredlyLink(skillDto.getCredlyLink());
+        
+        Skill updatedSkill = skillRepository.save(skill);
+        
+        return mapToDto(updatedSkill);
     }
     
+    @Transactional
     public void deleteSkill(Long id) {
+        if (!skillRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Skill", "id", id);
+        }
+        
         skillRepository.deleteById(id);
     }
     
-    private SkillDto convertToDto(Skill skill) {
-        return SkillDto.builder()
-            .id(skill.getId())
-            .userId(skill.getUserId())
-            .name(skill.getName())
-            .category(skill.getCategory())
-            .level(skill.getLevel())
-            .description(skill.getDescription())
-            .certification(skill.getCertification())
-            .credlyLink(skill.getCredlyLink())
-            .createdAt(skill.getCreatedAt())
-            .updatedAt(skill.getUpdatedAt())
-            .build();
+    @Transactional(readOnly = true)
+    public List<SkillDto> getSkillsByCategory(String category) {
+        return skillRepository.findByCategory(category).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
     
-    private Skill convertToEntity(SkillDto skillDto) {
-        return Skill.builder()
-            .id(skillDto.getId())
-            .userId(skillDto.getUserId())
-            .name(skillDto.getName())
-            .category(skillDto.getCategory())
-            .level(skillDto.getLevel())
-            .description(skillDto.getDescription())
-            .certification(skillDto.getCertification())
-            .credlyLink(skillDto.getCredlyLink())
-            .createdAt(skillDto.getCreatedAt())
-            .updatedAt(skillDto.getUpdatedAt())
-            .build();
+    @Transactional(readOnly = true)
+    public List<SkillDto> getSkillsByLevel(String level) {
+        return skillRepository.findByLevel(level).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<SkillDto> searchSkillsByName(String keyword) {
+        return skillRepository.findByNameContainingIgnoreCase(keyword).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    // Helper method to map Skill entity to SkillDto
+    private SkillDto mapToDto(Skill skill) {
+        SkillDto skillDto = new SkillDto();
+        skillDto.setId(skill.getId());
+        skillDto.setUserId(skill.getUser().getId());
+        skillDto.setName(skill.getName());
+        skillDto.setCategory(skill.getCategory());
+        skillDto.setLevel(skill.getLevel());
+        skillDto.setDescription(skill.getDescription());
+        skillDto.setCertification(skill.getCertification());
+        skillDto.setCredlyLink(skill.getCredlyLink());
+        skillDto.setCreatedAt(skill.getCreatedAt());
+        skillDto.setUpdatedAt(skill.getUpdatedAt());
+        
+        return skillDto;
     }
 }
