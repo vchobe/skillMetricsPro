@@ -2,7 +2,9 @@ package com.skillmetrics.api.service;
 
 import com.skillmetrics.api.dto.ResourceHistoryDto;
 import com.skillmetrics.api.exception.ResourceNotFoundException;
+import com.skillmetrics.api.model.Project;
 import com.skillmetrics.api.model.ResourceHistory;
+import com.skillmetrics.api.model.User;
 import com.skillmetrics.api.repository.ProjectRepository;
 import com.skillmetrics.api.repository.ResourceHistoryRepository;
 import com.skillmetrics.api.repository.UserRepository;
@@ -10,7 +12,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,22 +27,14 @@ public class ResourceHistoryService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public ResourceHistoryDto getHistoryById(Long id) {
-        ResourceHistory history = resourceHistoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("ResourceHistory", "id", id));
-        
-        return mapToDto(history);
-    }
-    
-    @Transactional(readOnly = true)
     public List<ResourceHistoryDto> getHistoryByProjectId(Long projectId) {
         if (!projectRepository.existsById(projectId)) {
             throw new ResourceNotFoundException("Project", "id", projectId);
         }
         
-        return resourceHistoryRepository.findByProjectIdOrderByDateDesc(projectId).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<ResourceHistory> historyList = resourceHistoryRepository.findByProjectIdOrderByDateDesc(projectId);
+        
+        return enrichHistoryDtos(historyList);
     }
     
     @Transactional(readOnly = true)
@@ -46,13 +43,13 @@ public class ResourceHistoryService {
             throw new ResourceNotFoundException("User", "id", userId);
         }
         
-        return resourceHistoryRepository.findByUserIdOrderByDateDesc(userId).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<ResourceHistory> historyList = resourceHistoryRepository.findByUserIdOrderByDateDesc(userId);
+        
+        return enrichHistoryDtos(historyList);
     }
     
     @Transactional(readOnly = true)
-    public List<ResourceHistoryDto> getHistoryByProjectAndUser(Long projectId, Long userId) {
+    public List<ResourceHistoryDto> getHistoryByProjectIdAndUserId(Long projectId, Long userId) {
         if (!projectRepository.existsById(projectId)) {
             throw new ResourceNotFoundException("Project", "id", projectId);
         }
@@ -61,60 +58,99 @@ public class ResourceHistoryService {
             throw new ResourceNotFoundException("User", "id", userId);
         }
         
-        return resourceHistoryRepository.findByProjectIdAndUserIdOrderByDateDesc(projectId, userId).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<ResourceHistory> historyList = resourceHistoryRepository.findByProjectIdAndUserId(projectId, userId);
+        
+        return enrichHistoryDtos(historyList);
     }
     
     @Transactional(readOnly = true)
     public List<ResourceHistoryDto> getHistoryByAction(String action) {
-        return resourceHistoryRepository.findByActionOrderByDateDesc(action).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<ResourceHistory> historyList = resourceHistoryRepository.findByAction(action);
+        
+        return enrichHistoryDtos(historyList);
     }
     
     @Transactional(readOnly = true)
-    public List<ResourceHistoryDto> getAllHistory() {
-        return resourceHistoryRepository.findAllByOrderByDateDesc().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public List<ResourceHistoryDto> getHistoryByPerformedById(Long performedById) {
+        if (!userRepository.existsById(performedById)) {
+            throw new ResourceNotFoundException("User", "id", performedById);
+        }
+        
+        List<ResourceHistory> historyList = resourceHistoryRepository.findByPerformedById(performedById);
+        
+        return enrichHistoryDtos(historyList);
     }
     
-    // Helper method to map ResourceHistory entity to ResourceHistoryDto
-    private ResourceHistoryDto mapToDto(ResourceHistory history) {
-        ResourceHistoryDto historyDto = new ResourceHistoryDto();
-        historyDto.setId(history.getId());
-        historyDto.setProjectId(history.getProject().getId());
-        historyDto.setProjectName(history.getProject().getName());
-        historyDto.setUserId(history.getUser().getId());
+    @Transactional(readOnly = true)
+    public List<ResourceHistoryDto> getHistoryByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        List<ResourceHistory> historyList = resourceHistoryRepository.findByDateBetween(startDate, endDate);
         
-        // Combine first and last name if available, otherwise use username
-        String userName = history.getUser().getUsername();
-        if (history.getUser().getFirstName() != null && history.getUser().getLastName() != null) {
-            userName = history.getUser().getFirstName() + " " + history.getUser().getLastName();
-        }
-        historyDto.setUserName(userName);
+        return enrichHistoryDtos(historyList);
+    }
+    
+    // Helper method to enrich history DTOs with project and user names
+    private List<ResourceHistoryDto> enrichHistoryDtos(List<ResourceHistory> historyList) {
+        // Collect all project IDs and user IDs
+        List<Long> projectIds = historyList.stream()
+                .map(ResourceHistory::getProjectId)
+                .distinct()
+                .collect(Collectors.toList());
+                
+        List<Long> userIds = historyList.stream()
+                .flatMap(history -> {
+                    List<Long> ids = new java.util.ArrayList<>();
+                    ids.add(history.getUserId());
+                    if (history.getPerformedById() != null) {
+                        ids.add(history.getPerformedById());
+                    }
+                    return ids.stream();
+                })
+                .distinct()
+                .collect(Collectors.toList());
         
-        historyDto.setAction(history.getAction());
-        historyDto.setPreviousRole(history.getPreviousRole());
-        historyDto.setNewRole(history.getNewRole());
-        historyDto.setPreviousAllocation(history.getPreviousAllocation());
-        historyDto.setNewAllocation(history.getNewAllocation());
-        historyDto.setDate(history.getDate());
+        // Batch fetch projects and users
+        Map<Long, Project> projectMap = projectRepository.findAllById(projectIds).stream()
+                .collect(Collectors.toMap(Project::getId, Function.identity()));
+                
+        Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
         
-        if (history.getPerformedBy() != null) {
-            historyDto.setPerformedById(history.getPerformedBy().getId());
-            
-            // Combine first and last name if available, otherwise use username
-            String performedByName = history.getPerformedBy().getUsername();
-            if (history.getPerformedBy().getFirstName() != null && history.getPerformedBy().getLastName() != null) {
-                performedByName = history.getPerformedBy().getFirstName() + " " + history.getPerformedBy().getLastName();
-            }
-            historyDto.setPerformedByName(performedByName);
-        }
-        
-        historyDto.setNote(history.getNote());
-        
-        return historyDto;
+        // Convert and enrich history items
+        return historyList.stream()
+                .map(history -> {
+                    ResourceHistoryDto dto = new ResourceHistoryDto();
+                    dto.setId(history.getId());
+                    dto.setProjectId(history.getProjectId());
+                    dto.setUserId(history.getUserId());
+                    dto.setAction(history.getAction());
+                    dto.setPreviousRole(history.getPreviousRole());
+                    dto.setNewRole(history.getNewRole());
+                    dto.setPreviousAllocation(history.getPreviousAllocation());
+                    dto.setNewAllocation(history.getNewAllocation());
+                    dto.setDate(history.getDate());
+                    dto.setPerformedById(history.getPerformedById());
+                    dto.setNote(history.getNote());
+                    
+                    // Add project and user names
+                    Project project = projectMap.get(history.getProjectId());
+                    if (project != null) {
+                        dto.setProjectName(project.getName());
+                    }
+                    
+                    User user = userMap.get(history.getUserId());
+                    if (user != null) {
+                        dto.setUserName(user.getFirstName() + " " + user.getLastName());
+                    }
+                    
+                    if (history.getPerformedById() != null) {
+                        User performer = userMap.get(history.getPerformedById());
+                        if (performer != null) {
+                            dto.setPerformedByName(performer.getFirstName() + " " + performer.getLastName());
+                        }
+                    }
+                    
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 }

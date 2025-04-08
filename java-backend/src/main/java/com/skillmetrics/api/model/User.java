@@ -28,10 +28,10 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true)
     private String username;
     
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true)
     private String email;
     
     @Column(nullable = false)
@@ -41,16 +41,31 @@ public class User implements UserDetails {
     
     private String lastName;
     
-    private String role = "USER";
+    private String role; // ROLE_ADMIN, ROLE_MANAGER, ROLE_USER
     
     private String location;
     
-    private String project;
+    private String department;
     
-    private boolean enabled = true;
+    private String jobTitle;
+    
+    private String profilePicture;
+    
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+    
+    private String phone;
+    
+    private boolean enabled;
+    
+    private boolean accountNonExpired;
+    
+    private boolean accountNonLocked;
+    
+    private boolean credentialsNonExpired;
     
     @CreatedDate
-    @Column(updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
     @LastModifiedDate
@@ -59,32 +74,29 @@ public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        
-        // Add ROLE_ prefix for Spring Security to recognize it as a role
         if (role != null && !role.isEmpty()) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+            authorities.add(new SimpleGrantedAuthority(role));
         } else {
             authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
         }
-        
         return authorities;
     }
-    
+
     @Override
     public boolean isAccountNonExpired() {
-        return true;
+        return accountNonExpired;
     }
-    
+
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return accountNonLocked;
     }
-    
+
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;
+        return credentialsNonExpired;
     }
-    
+
     @Override
     public boolean isEnabled() {
         return enabled;

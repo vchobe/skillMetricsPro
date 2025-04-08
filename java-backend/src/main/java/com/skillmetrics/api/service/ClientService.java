@@ -1,6 +1,7 @@
 package com.skillmetrics.api.service;
 
 import com.skillmetrics.api.dto.ClientDto;
+import com.skillmetrics.api.exception.ResourceAlreadyExistsException;
 import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.Client;
 import com.skillmetrics.api.repository.ClientRepository;
@@ -18,6 +19,13 @@ public class ClientService {
     private final ClientRepository clientRepository;
 
     @Transactional(readOnly = true)
+    public List<ClientDto> getAllClients() {
+        return clientRepository.findAll().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
     public ClientDto getClientById(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
@@ -26,14 +34,40 @@ public class ClientService {
     }
     
     @Transactional(readOnly = true)
-    public List<ClientDto> getAllClients() {
-        return clientRepository.findAll().stream()
+    public List<ClientDto> searchClientsByName(String keyword) {
+        return clientRepository.findByNameContainingIgnoreCase(keyword).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<ClientDto> searchClientsByIndustry(String industry) {
+        return clientRepository.findByIndustryContainingIgnoreCase(industry).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<ClientDto> searchClientsByContactName(String contactName) {
+        return clientRepository.findByContactNameContainingIgnoreCase(contactName).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<ClientDto> searchClientsByContactEmail(String contactEmail) {
+        return clientRepository.findByContactEmailContainingIgnoreCase(contactEmail).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
     
     @Transactional
     public ClientDto createClient(ClientDto clientDto) {
+        // Check if client with same name already exists
+        if (clientRepository.existsByName(clientDto.getName())) {
+            throw new ResourceAlreadyExistsException("Client", "name", clientDto.getName());
+        }
+        
         Client client = new Client();
         client.setName(clientDto.getName());
         client.setIndustry(clientDto.getIndustry());
@@ -54,7 +88,12 @@ public class ClientService {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
         
-        // Update client properties
+        // Check if client name is being changed and if new name is already taken by another client
+        if (!client.getName().equals(clientDto.getName()) && 
+                clientRepository.existsByName(clientDto.getName())) {
+            throw new ResourceAlreadyExistsException("Client", "name", clientDto.getName());
+        }
+        
         client.setName(clientDto.getName());
         client.setIndustry(clientDto.getIndustry());
         client.setContactName(clientDto.getContactName());
@@ -76,20 +115,6 @@ public class ClientService {
         }
         
         clientRepository.deleteById(id);
-    }
-    
-    @Transactional(readOnly = true)
-    public List<ClientDto> getClientsByIndustry(String industry) {
-        return clientRepository.findByIndustry(industry).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Transactional(readOnly = true)
-    public List<ClientDto> searchClientsByName(String keyword) {
-        return clientRepository.findByNameContainingIgnoreCase(keyword).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
     }
     
     // Helper method to map Client entity to ClientDto

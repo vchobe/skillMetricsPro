@@ -1,6 +1,7 @@
 package com.skillmetrics.api.service;
 
 import com.skillmetrics.api.dto.ProjectSkillDto;
+import com.skillmetrics.api.exception.ResourceAlreadyExistsException;
 import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.Project;
 import com.skillmetrics.api.model.ProjectSkill;
@@ -13,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +24,13 @@ public class ProjectSkillService {
     private final ProjectRepository projectRepository;
     private final SkillRepository skillRepository;
 
+    @Transactional(readOnly = true)
+    public List<ProjectSkillDto> getAllProjectSkills() {
+        return projectSkillRepository.findAll().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
     @Transactional(readOnly = true)
     public ProjectSkillDto getProjectSkillById(Long id) {
         ProjectSkill projectSkill = projectSkillRepository.findById(id)
@@ -54,20 +61,47 @@ public class ProjectSkillService {
                 .collect(Collectors.toList());
     }
     
+    @Transactional(readOnly = true)
+    public List<ProjectSkillDto> getProjectSkillsByRequiredLevel(String requiredLevel) {
+        return projectSkillRepository.findByRequiredLevel(requiredLevel).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<ProjectSkillDto> getProjectSkillsBySkillCategory(String category) {
+        return projectSkillRepository.findBySkillCategory(category).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<ProjectSkillDto> searchProjectSkillsByProjectName(String keyword) {
+        return projectSkillRepository.findByProjectNameContaining(keyword).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<ProjectSkillDto> searchProjectSkillsBySkillName(String keyword) {
+        return projectSkillRepository.findBySkillNameContaining(keyword).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
     @Transactional
-    public ProjectSkillDto addSkillToProject(ProjectSkillDto projectSkillDto) {
+    public ProjectSkillDto createProjectSkill(ProjectSkillDto projectSkillDto) {
         Project project = projectRepository.findById(projectSkillDto.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectSkillDto.getProjectId()));
         
         Skill skill = skillRepository.findById(projectSkillDto.getSkillId())
                 .orElseThrow(() -> new ResourceNotFoundException("Skill", "id", projectSkillDto.getSkillId()));
         
-        // Check if this skill is already added to the project
-        Optional<ProjectSkill> existingProjectSkill = 
-                projectSkillRepository.findByProjectIdAndSkillId(projectSkillDto.getProjectId(), projectSkillDto.getSkillId());
-        
-        if (existingProjectSkill.isPresent()) {
-            throw new IllegalStateException("This skill is already added to the project");
+        // Check if the project skill already exists
+        if (projectSkillRepository.existsByProjectIdAndSkillId(projectSkillDto.getProjectId(), projectSkillDto.getSkillId())) {
+            throw new ResourceAlreadyExistsException("ProjectSkill", 
+                "projectId and skillId", 
+                projectSkillDto.getProjectId() + " and " + projectSkillDto.getSkillId());
         }
         
         ProjectSkill projectSkill = new ProjectSkill();
@@ -85,7 +119,41 @@ public class ProjectSkillService {
         ProjectSkill projectSkill = projectSkillRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ProjectSkill", "id", id));
         
-        // Update required level
+        // Check if project and skill are changing and if they exist
+        if (projectSkillDto.getProjectId() != null && 
+                !projectSkill.getProject().getId().equals(projectSkillDto.getProjectId())) {
+            
+            Project project = projectRepository.findById(projectSkillDto.getProjectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectSkillDto.getProjectId()));
+            
+            // Check if the new project-skill combination already exists
+            if (projectSkillRepository.existsByProjectIdAndSkillId(
+                    projectSkillDto.getProjectId(), projectSkill.getSkill().getId())) {
+                throw new ResourceAlreadyExistsException("ProjectSkill", 
+                    "projectId and skillId", 
+                    projectSkillDto.getProjectId() + " and " + projectSkill.getSkill().getId());
+            }
+            
+            projectSkill.setProject(project);
+        }
+        
+        if (projectSkillDto.getSkillId() != null && 
+                !projectSkill.getSkill().getId().equals(projectSkillDto.getSkillId())) {
+            
+            Skill skill = skillRepository.findById(projectSkillDto.getSkillId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Skill", "id", projectSkillDto.getSkillId()));
+            
+            // Check if the new project-skill combination already exists
+            if (projectSkillRepository.existsByProjectIdAndSkillId(
+                    projectSkill.getProject().getId(), projectSkillDto.getSkillId())) {
+                throw new ResourceAlreadyExistsException("ProjectSkill", 
+                    "projectId and skillId", 
+                    projectSkill.getProject().getId() + " and " + projectSkillDto.getSkillId());
+            }
+            
+            projectSkill.setSkill(skill);
+        }
+        
         projectSkill.setRequiredLevel(projectSkillDto.getRequiredLevel());
         
         ProjectSkill updatedProjectSkill = projectSkillRepository.save(projectSkill);
@@ -94,7 +162,7 @@ public class ProjectSkillService {
     }
     
     @Transactional
-    public void removeSkillFromProject(Long id) {
+    public void deleteProjectSkill(Long id) {
         if (!projectSkillRepository.existsById(id)) {
             throw new ResourceNotFoundException("ProjectSkill", "id", id);
         }
@@ -102,26 +170,23 @@ public class ProjectSkillService {
         projectSkillRepository.deleteById(id);
     }
     
-    @Transactional(readOnly = true)
-    public List<ProjectSkillDto> getProjectSkillsByRequiredLevel(String requiredLevel) {
-        return projectSkillRepository.findByRequiredLevel(requiredLevel).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-    }
-    
     // Helper method to map ProjectSkill entity to ProjectSkillDto
     private ProjectSkillDto mapToDto(ProjectSkill projectSkill) {
-        ProjectSkillDto projectSkillDto = new ProjectSkillDto();
-        projectSkillDto.setId(projectSkill.getId());
-        projectSkillDto.setProjectId(projectSkill.getProject().getId());
-        projectSkillDto.setProjectName(projectSkill.getProject().getName());
-        projectSkillDto.setSkillId(projectSkill.getSkill().getId());
-        projectSkillDto.setSkillName(projectSkill.getSkill().getName());
-        projectSkillDto.setCategory(projectSkill.getSkill().getCategory());
-        projectSkillDto.setRequiredLevel(projectSkill.getRequiredLevel());
-        projectSkillDto.setCreatedAt(projectSkill.getCreatedAt());
-        projectSkillDto.setUpdatedAt(projectSkill.getUpdatedAt());
+        ProjectSkillDto dto = new ProjectSkillDto();
+        dto.setId(projectSkill.getId());
         
-        return projectSkillDto;
+        dto.setProjectId(projectSkill.getProject().getId());
+        dto.setProjectName(projectSkill.getProject().getName());
+        
+        dto.setSkillId(projectSkill.getSkill().getId());
+        dto.setSkillName(projectSkill.getSkill().getName());
+        dto.setCategory(projectSkill.getSkill().getCategory());
+        dto.setLevel(projectSkill.getSkill().getLevel());
+        
+        dto.setRequiredLevel(projectSkill.getRequiredLevel());
+        dto.setCreatedAt(projectSkill.getCreatedAt());
+        dto.setUpdatedAt(projectSkill.getUpdatedAt());
+        
+        return dto;
     }
 }
