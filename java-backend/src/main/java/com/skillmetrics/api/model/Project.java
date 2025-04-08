@@ -1,24 +1,25 @@
 package com.skillmetrics.api.model;
 
+import com.skillmetrics.api.model.enums.ProjectStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "projects")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class Project {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -26,7 +27,7 @@ public class Project {
     @Column(nullable = false)
     private String name;
     
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String description;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -49,26 +50,18 @@ public class Project {
     @JoinColumn(name = "delivery_lead_id")
     private User deliveryLead;
     
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private ProjectStatus status;
     
     private String hrCoordinatorEmail;
     
     private String financeTeamEmail;
     
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProjectResource> resources = new ArrayList<>();
-    
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProjectSkill> skills = new ArrayList<>();
-    
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ResourceHistory> resourceHistory = new ArrayList<>();
-    
-    @CreationTimestamp
-    @Column(updatable = false)
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
-    @UpdateTimestamp
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 }

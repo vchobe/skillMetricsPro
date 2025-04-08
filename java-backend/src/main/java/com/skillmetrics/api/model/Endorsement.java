@@ -10,14 +10,16 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "endorsements", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"skill_id", "endorser_id"})
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "endorsements")
 @EntityListeners(AuditingEntityListener.class)
 public class Endorsement {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -30,9 +32,11 @@ public class Endorsement {
     @JoinColumn(name = "endorser_id", nullable = false)
     private User endorser;
     
+    @Column(columnDefinition = "TEXT")
     private String comment;
     
-    private Integer rating;  // 1-5 stars
+    @Column(nullable = false)
+    private Integer rating; // 1-5 star rating
     
     @CreatedDate
     @Column(nullable = false, updatable = false)

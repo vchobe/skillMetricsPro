@@ -4,8 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -14,8 +15,9 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class ProjectSkill {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,12 +31,12 @@ public class ProjectSkill {
     private Skill skill;
     
     @Column(nullable = false)
-    private String requiredLevel;
+    private String requiredLevel; // beginner, intermediate, expert
     
-    @CreationTimestamp
-    @Column(updatable = false)
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
-    @UpdateTimestamp
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 }

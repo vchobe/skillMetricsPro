@@ -1,27 +1,29 @@
 package com.skillmetrics.api.repository;
 
 import com.skillmetrics.api.model.Notification;
-import com.skillmetrics.api.model.NotificationType;
+import com.skillmetrics.api.model.enums.NotificationType;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
+    
+    List<Notification> findByUserId(Long userId);
+    
+    List<Notification> findByUserIdAndRead(Long userId, boolean read);
+    
+    List<Notification> findByUserIdAndType(Long userId, NotificationType type);
+    
     List<Notification> findByUserIdOrderByCreatedAtDesc(Long userId);
     
     List<Notification> findByUserIdAndReadOrderByCreatedAtDesc(Long userId, boolean read);
     
-    List<Notification> findByUserIdAndTypeOrderByCreatedAtDesc(Long userId, NotificationType type);
+    List<Notification> findByCreatedAtAfter(LocalDateTime since);
     
-    @Modifying
-    @Query("UPDATE Notification n SET n.read = true WHERE n.user.id = :userId")
-    void markAllAsReadByUserId(@Param("userId") Long userId);
+    List<Notification> findByUserIdAndCreatedAtAfter(Long userId, LocalDateTime since);
     
-    @Query("SELECT COUNT(n) FROM Notification n WHERE n.user.id = :userId AND n.read = false")
-    Long countUnreadByUserId(@Param("userId") Long userId);
+    int countByUserIdAndRead(Long userId, boolean read);
 }
