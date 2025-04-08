@@ -18,17 +18,19 @@ public class ProjectSkillDto {
     @NotNull(message = "Project ID is required")
     private Long projectId;
     
-    private String projectName;
+    private String projectName; // For display purposes
     
     @NotNull(message = "Skill ID is required")
     private Long skillId;
     
-    private String skillName;
+    private String skillName; // For display purposes
     
-    private String category;
+    private String category; // For display purposes
+    
+    private String level; // For display purposes
     
     @NotBlank(message = "Required level is required")
-    private String requiredLevel;
+    private String requiredLevel; // beginner, intermediate, expert
     
     private LocalDateTime createdAt;
     

@@ -21,18 +21,18 @@ public class ProjectResourceDto {
     @NotNull(message = "Project ID is required")
     private Long projectId;
     
-    private String projectName;
+    private String projectName; // For display purposes
     
     @NotNull(message = "User ID is required")
     private Long userId;
     
-    private String userName;
+    private String userName; // For display purposes
     
     @NotBlank(message = "Role is required")
     private String role;
     
-    @Min(value = 0, message = "Allocation percentage must be at least 0")
-    @Max(value = 100, message = "Allocation percentage must be at most 100")
+    @Min(value = 0, message = "Allocation must be at least 0%")
+    @Max(value = 100, message = "Allocation cannot exceed 100%")
     private Integer allocation;
     
     private LocalDate startDate;
