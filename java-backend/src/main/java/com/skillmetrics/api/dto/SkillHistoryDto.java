@@ -1,5 +1,6 @@
 package com.skillmetrics.api.dto;
 
+import com.skillmetrics.api.model.enums.SkillLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,13 +10,13 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResourceHistoryDto {
+public class SkillHistoryDto {
     
     private Long id;
     
-    private Long projectId;
+    private Long skillId;
     
-    private String projectName; // For display purposes
+    private String skillName; // For display purposes
     
     private Long userId;
     
@@ -23,19 +24,19 @@ public class ResourceHistoryDto {
     
     private String action;
     
-    private String previousRole;
+    private SkillLevel previousLevel;
     
-    private String newRole;
+    private SkillLevel newLevel;
     
-    private Integer previousAllocation;
+    private String previousCategory;
     
-    private Integer newAllocation;
+    private String newCategory;
     
-    private LocalDateTime date;
+    private String notes;
     
     private Long performedById;
     
     private String performedByName; // For display purposes
     
-    private String note;
+    private LocalDateTime timestamp;
 }

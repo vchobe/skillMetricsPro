@@ -1,10 +1,12 @@
 package com.skillmetrics.api.model;
 
+import com.skillmetrics.api.model.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -13,40 +15,35 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@EntityListeners(AuditingEntityListener.class)
 public class Notification {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
     
     @Column(nullable = false)
-    private String type; // skill_endorsement, skill_update, profile_update, project_assignment
+    @Enumerated(EnumType.STRING)
+    private NotificationType type;
     
     @Column(nullable = false)
+    private String title;
+    
+    @Column(columnDefinition = "TEXT")
     private String message;
     
-    private Long relatedId; // e.g., skillId, projectId
+    private String link;
     
+    @Column(nullable = false)
     private boolean read;
     
-    @Column(name = "created_at", nullable = false)
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        read = false;
-    }
-    
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    private LocalDateTime readAt;
 }

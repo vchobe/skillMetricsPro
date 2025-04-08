@@ -1,10 +1,12 @@
 package com.skillmetrics.api.model;
 
+import com.skillmetrics.api.model.enums.SkillLevel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -13,39 +15,38 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@EntityListeners(AuditingEntityListener.class)
 public class SkillHistory {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false)
-    private Long skillId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "skill_id", nullable = false)
+    private Skill skill;
     
     @Column(nullable = false)
-    private Long userId;
+    private String action; // added, updated, verified, endorsed, deleted
     
-    @Column(nullable = false)
-    private String action; // added, updated, deleted
+    @Enumerated(EnumType.STRING)
+    private SkillLevel previousLevel;
     
-    private String previousLevel;
-    
-    private String newLevel;
+    @Enumerated(EnumType.STRING)
+    private SkillLevel newLevel;
     
     private String previousCategory;
     
     private String newCategory;
     
-    @Column(name = "timestamp", nullable = false)
+    @Column(columnDefinition = "TEXT")
+    private String notes;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "performed_by")
+    private User performedBy;
+    
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
     private LocalDateTime timestamp;
-    
-    private Long performedById;
-    
-    private String note;
-    
-    @PrePersist
-    protected void onCreate() {
-        timestamp = LocalDateTime.now();
-    }
 }
