@@ -24,7 +24,7 @@ RUN npm ci --omit=dev
 # Copy application code
 COPY . .
 
-# Build the application
+# Build the application with clean environment
 RUN npm run build
 
 # Create startup script with health check and better debugging
@@ -36,6 +36,7 @@ RUN echo '#!/bin/bash' > /usr/src/app/start.sh && \
     echo 'echo "PORT: $PORT"' >> /usr/src/app/start.sh && \
     echo 'echo "NODE_ENV: $NODE_ENV"' >> /usr/src/app/start.sh && \
     echo 'echo "HOST: $HOST"' >> /usr/src/app/start.sh && \
+    echo 'echo "DATABASE_URL exists: $(if [ -n \"$DATABASE_URL\" ]; then echo Yes; else echo No; fi)"' >> /usr/src/app/start.sh && \
     echo 'echo "Current directory: $(pwd)"' >> /usr/src/app/start.sh && \
     echo 'echo "Directory contents:"' >> /usr/src/app/start.sh && \
     echo 'ls -la' >> /usr/src/app/start.sh && \
@@ -43,15 +44,17 @@ RUN echo '#!/bin/bash' > /usr/src/app/start.sh && \
     echo 'ls -la dist || echo "No dist directory found"' >> /usr/src/app/start.sh && \
     echo 'echo "=================================="' >> /usr/src/app/start.sh && \
     echo '' >> /usr/src/app/start.sh && \
-    echo '# Start the server' >> /usr/src/app/start.sh && \
+    echo '# Start the server with explicit port and host' >> /usr/src/app/start.sh && \
     echo 'echo "Starting server on $HOST:$PORT"' >> /usr/src/app/start.sh && \
+    echo 'export PORT="${PORT:-8080}"' >> /usr/src/app/start.sh && \
+    echo 'export HOST="${HOST:-0.0.0.0}"' >> /usr/src/app/start.sh && \
     echo 'node dist/index.js' >> /usr/src/app/start.sh
 
 # Make startup script executable
 RUN chmod +x /usr/src/app/start.sh
 
-# Expose the port that will be used by Cloud Run
-EXPOSE ${PORT}
+# Expose the port that will be used by Cloud Run (explicitly set to 8080)
+EXPOSE 8080
 
 # Use the startup script as the entry point
 CMD ["/usr/src/app/start.sh"]

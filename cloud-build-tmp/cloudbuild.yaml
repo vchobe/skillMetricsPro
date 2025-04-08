@@ -1,0 +1,6 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-fixed:latest', '-f', 'Dockerfile.port8080', '.']
+images:
+  - 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-fixed:latest'
+timeout: '1800s'
