@@ -10,25 +10,27 @@ import java.util.Optional;
 
 @Repository
 public interface EndorsementRepository extends JpaRepository<Endorsement, Long> {
-    
-    @Query("SELECT e FROM Endorsement e ORDER BY e.createdAt DESC")
-    List<Endorsement> findAllOrderByCreatedAtDesc();
-    
-    @Query("SELECT e FROM Endorsement e WHERE e.skill.id = :skillId ORDER BY e.createdAt DESC")
-    List<Endorsement> findBySkillIdOrderByCreatedAtDesc(Long skillId);
+
+    List<Endorsement> findBySkillId(Long skillId);
     
     List<Endorsement> findByEndorserId(Long endorserId);
     
-    @Query("SELECT e FROM Endorsement e WHERE e.skill.user.id = :ownerId")
-    List<Endorsement> findBySkillOwnerId(Long ownerId);
-    
+    @Query("""
+           SELECT e FROM Endorsement e
+           WHERE e.skill.id = :skillId
+           AND e.endorser.id = :endorserId
+           """)
     Optional<Endorsement> findBySkillIdAndEndorserId(Long skillId, Long endorserId);
     
-    @Query("SELECT AVG(e.rating) FROM Endorsement e WHERE e.skill.id = :skillId")
-    Double getAverageRatingForSkill(Long skillId);
+    @Query("""
+           SELECT COUNT(e) FROM Endorsement e
+           WHERE e.skill.user.id = :userId
+           """)
+    Long countAllEndorsementsForUserSkills(Long userId);
     
-    @Query("SELECT COUNT(e) FROM Endorsement e WHERE e.skill.id = :skillId")
-    Integer getEndorsementCountForSkill(Long skillId);
-    
-    List<Endorsement> findByRatingGreaterThanEqual(Integer minimumRating);
+    @Query("""
+           SELECT COUNT(e) FROM Endorsement e
+           WHERE e.endorser.id = :userId
+           """)
+    Long countAllEndorsementsByUser(Long userId);
 }

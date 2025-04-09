@@ -3,47 +3,58 @@ package com.skillmetrics.api.model;
 import com.skillmetrics.api.model.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "notifications")
 @Data
+@Entity
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
+@Table(name = "notifications")
 public class Notification {
-
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
     
-    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private NotificationType type;
     
-    @Column(nullable = false)
     private String title;
     
-    @Column(columnDefinition = "TEXT")
-    private String message;
-    
-    private String link;
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String content;
     
     @Column(nullable = false)
-    private boolean read;
+    private boolean isRead;
     
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false)
     private LocalDateTime createdAt;
     
     private LocalDateTime readAt;
+    
+    @ManyToOne
+    @JoinColumn(name = "related_user_id")
+    private User relatedUser;
+    
+    @ManyToOne
+    @JoinColumn(name = "related_skill_id")
+    private Skill relatedSkill;
+    
+    private String link;
+    
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.isRead = false;
+    }
 }

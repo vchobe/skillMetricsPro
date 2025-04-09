@@ -7,32 +7,59 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProjectResourceRepository extends JpaRepository<ProjectResource, Long> {
-    
+
     List<ProjectResource> findByProjectId(Long projectId);
     
     List<ProjectResource> findByUserId(Long userId);
     
-    List<ProjectResource> findByProjectIdAndUserId(Long projectId, Long userId);
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.project.id = :projectId
+           AND r.user.id = :userId
+           """)
+    Optional<ProjectResource> findByProjectIdAndUserId(Long projectId, Long userId);
     
-    List<ProjectResource> findByRole(String role);
-    
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.project.id = :projectId
+           AND r.role = :role
+           """)
     List<ProjectResource> findByProjectIdAndRole(Long projectId, String role);
     
-    List<ProjectResource> findByStartDateAfter(LocalDate date);
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.user.id = :userId
+           AND ((r.startDate IS NULL OR r.startDate <= :date)
+           AND (r.endDate IS NULL OR r.endDate >= :date))
+           """)
+    List<ProjectResource> findCurrentResourcesForUser(Long userId, LocalDate date);
     
-    List<ProjectResource> findByEndDateBefore(LocalDate date);
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.project.id = :projectId
+           AND ((r.startDate IS NULL OR r.startDate <= :date)
+           AND (r.endDate IS NULL OR r.endDate >= :date))
+           """)
+    List<ProjectResource> findCurrentResourcesForProject(Long projectId, LocalDate date);
     
-    List<ProjectResource> findByStartDateBeforeAndEndDateAfterOrEndDateIsNull(LocalDate startBefore, LocalDate endAfter);
+    @Query("""
+           SELECT SUM(r.allocation) FROM ProjectResource r
+           WHERE r.user.id = :userId
+           AND ((r.startDate IS NULL OR r.startDate <= :date)
+           AND (r.endDate IS NULL OR r.endDate >= :date))
+           """)
+    Integer calculateUserTotalAllocation(Long userId, LocalDate date);
     
-    @Query("SELECT pr FROM ProjectResource pr WHERE pr.user.id = ?1 AND pr.allocation >= ?2")
-    List<ProjectResource> findByUserIdAndMinimumAllocation(Long userId, Integer minimumAllocation);
-    
-    @Query("SELECT pr FROM ProjectResource pr JOIN pr.project p WHERE p.name LIKE %?1%")
-    List<ProjectResource> findByProjectNameContaining(String keyword);
-    
-    @Query("SELECT pr FROM ProjectResource pr JOIN pr.user u WHERE u.firstName LIKE %?1% OR u.lastName LIKE %?1%")
-    List<ProjectResource> findByUserNameContaining(String keyword);
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.user.id = :userId
+           AND ((r.startDate IS NULL OR r.startDate <= CURRENT_DATE)
+           AND (r.endDate IS NULL OR r.endDate >= CURRENT_DATE))
+           ORDER BY r.project.id
+           """)
+    List<ProjectResource> findActiveResourcesByUserId(Long userId);
 }

@@ -2,22 +2,19 @@ package com.skillmetrics.api.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "endorsements", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"skill_id", "endorser_id"})
-})
+@Table(name = "endorsements")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
 public class Endorsement {
 
     @Id
@@ -32,16 +29,8 @@ public class Endorsement {
     @JoinColumn(name = "endorser_id", nullable = false)
     private User endorser;
     
-    @Column(columnDefinition = "TEXT")
     private String comment;
     
-    @Column(nullable = false)
-    private Integer rating; // 1-5 star rating
-    
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
     private LocalDateTime createdAt;
-    
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
 }

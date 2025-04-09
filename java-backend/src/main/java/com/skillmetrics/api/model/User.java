@@ -2,27 +2,23 @@ package com.skillmetrics.api.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 @Entity
 @Table(name = "users")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
-public class User implements UserDetails {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,64 +37,57 @@ public class User implements UserDetails {
     
     private String lastName;
     
-    private String role; // ROLE_ADMIN, ROLE_MANAGER, ROLE_USER
+    private String jobTitle;
     
     private String location;
     
     private String department;
     
-    private String jobTitle;
-    
-    private String profilePicture;
-    
-    @Column(columnDefinition = "TEXT")
     private String bio;
     
-    private String phone;
+    private String profileImageUrl;
     
-    private boolean enabled;
+    @Column(nullable = false)
+    private String role; // USER, ADMIN, PROJECT_MANAGER, etc.
     
-    private boolean accountNonExpired;
+    private Boolean isActive;
     
-    private boolean accountNonLocked;
+    private String resetPasswordToken;
     
-    private boolean credentialsNonExpired;
+    private LocalDateTime resetPasswordTokenExpiry;
     
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
+    private String emailVerificationToken;
+    
+    private Boolean emailVerified;
+    
+    private LocalDateTime lastLogin;
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Skill> skills = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProjectResource> projectResources = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "endorser", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Endorsement> givenEndorsements = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Notification> notifications = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SkillExport> exports = new ArrayList<>();
+    
+    @ManyToMany
+    @JoinTable(
+        name = "user_favorite_skills",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "skill_id")
+    )
+    private List<Skill> favoriteSkills = new ArrayList<>();
+    
+    @CreationTimestamp
     private LocalDateTime createdAt;
     
-    @LastModifiedDate
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
-    
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        if (role != null && !role.isEmpty()) {
-            authorities.add(new SimpleGrantedAuthority(role));
-        } else {
-            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-        }
-        return authorities;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return accountNonExpired;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return accountNonLocked;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return credentialsNonExpired;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
 }

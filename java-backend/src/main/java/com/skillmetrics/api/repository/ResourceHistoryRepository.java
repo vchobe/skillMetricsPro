@@ -10,22 +10,33 @@ import java.util.List;
 
 @Repository
 public interface ResourceHistoryRepository extends JpaRepository<ResourceHistory, Long> {
-    
-    List<ResourceHistory> findByProjectId(Long projectId);
-    
-    List<ResourceHistory> findByUserId(Long userId);
-    
-    List<ResourceHistory> findByProjectIdAndUserId(Long projectId, Long userId);
-    
-    List<ResourceHistory> findByAction(String action);
-    
-    List<ResourceHistory> findByPerformedById(Long performedById);
-    
-    List<ResourceHistory> findByDateBetween(LocalDateTime startDate, LocalDateTime endDate);
-    
-    @Query("SELECT rh FROM ResourceHistory rh WHERE rh.projectId = ?1 ORDER BY rh.date DESC")
+
     List<ResourceHistory> findByProjectIdOrderByDateDesc(Long projectId);
     
-    @Query("SELECT rh FROM ResourceHistory rh WHERE rh.userId = ?1 ORDER BY rh.date DESC")
     List<ResourceHistory> findByUserIdOrderByDateDesc(Long userId);
+    
+    List<ResourceHistory> findByProjectResourceIdOrderByDateDesc(Long resourceId);
+    
+    @Query("""
+           SELECT h FROM ResourceHistory h
+           WHERE h.project.id = :projectId
+           AND h.action = :action
+           ORDER BY h.date DESC
+           """)
+    List<ResourceHistory> findByProjectIdAndAction(Long projectId, String action);
+    
+    @Query("""
+           SELECT h FROM ResourceHistory h
+           WHERE h.user.id = :userId
+           AND h.action = :action
+           ORDER BY h.date DESC
+           """)
+    List<ResourceHistory> findByUserIdAndAction(Long userId, String action);
+    
+    @Query("""
+           SELECT h FROM ResourceHistory h
+           WHERE h.date BETWEEN :startDate AND :endDate
+           ORDER BY h.date DESC
+           """)
+    List<ResourceHistory> findHistoryBetweenDates(LocalDateTime startDate, LocalDateTime endDate);
 }

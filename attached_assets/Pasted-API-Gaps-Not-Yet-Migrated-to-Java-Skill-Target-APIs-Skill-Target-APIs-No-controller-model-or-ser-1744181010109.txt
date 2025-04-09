@@ -1,0 +1,40 @@
+API Gaps Not Yet Migrated to Java
+Skill Target APIs
+Skill Target APIs - No controller, model, or service for skill targets exists in the Java backend
+Missing endpoints for /api/skill-targets, /api/admin/skill-targets, etc.
+Missing CRUD operations for skill targets
+Missing skill gap analysis functionality (endpoint /api/skill-gap-analysis)
+Pending Skill Updates
+Pending Skill Updates System - No controller, model, or service implementation
+Missing endpoints for /api/skills/pending for creating pending updates
+Missing endpoints for /api/user/pending-skills to view user's pending skills
+Missing admin approval/rejection endpoints (/api/admin/pending-skills/:id/approve, /api/admin/pending-skills/:id/reject)
+Advanced Analytics
+Advanced Analytics APIs - Analytics controller exists but lacks advanced analytics features
+Missing endpoint /api/admin/advanced-analytics
+Missing detailed skill analysis reports and visualizations
+Missing certification reports (/api/admin/certification-report)
+Profile-Specific APIs
+Profile History APIs - While user controller exists, profile history tracking isn't implemented
+Missing endpoint /api/user/profile/history
+Missing mechanism to track profile changes
+Project-User Relationship Endpoints
+User-Project Relationship APIs - While project and user controllers exist, specific relationship endpoints are missing
+Missing endpoint /api/users/:userId/projects
+Missing endpoint /api/users/:userId/projects/history
+Export Functionality
+Data Export APIs - Export controller exists but might not fully implement all export features
+Need to verify if endpoint /api/admin/export-data is fully implemented
+Need to verify all export types and formats
+Additional Missing Endpoints
+Skill History for Organization - Missing endpoint /api/org/skills/history
+All Skills APIs - Missing endpoints /api/all-skills and /api/skills/all
+Admin User Management - Missing endpoint /api/admin/users/delete-by-email
+Required New Java Components
+To fully migrate the application, you need to implement:
+
+SkillTargetController with associated models, repositories, and services
+PendingSkillUpdateController with associated models, repositories, and services
+Advanced Analytics features in the existing AnalyticsController
+Profile History tracking in UserController or a dedicated ProfileHistoryController
+User-Project relationship endpoints in either UserController or ProjectController

@@ -1,14 +1,11 @@
 package com.skillmetrics.api.service;
 
+import com.skillmetrics.api.dto.RegisterRequest;
 import com.skillmetrics.api.dto.UserDto;
-import com.skillmetrics.api.exception.ResourceAlreadyExistsException;
 import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.User;
 import com.skillmetrics.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,160 +15,183 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class UserService implements UserDetailsService {
+public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
-    @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+    public List<UserDto> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
     
     @Transactional(readOnly = true)
     public UserDto getUserById(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
         
-        return mapToDto(user);
+        return convertToDto(user);
     }
     
     @Transactional(readOnly = true)
     public UserDto getUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username " + username));
         
-        return mapToDto(user);
+        return convertToDto(user);
     }
     
     @Transactional(readOnly = true)
     public UserDto getUserByEmail(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email " + email));
         
-        return mapToDto(user);
+        return convertToDto(user);
     }
     
     @Transactional(readOnly = true)
-    public List<UserDto> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(this::mapToDto)
+    public List<UserDto> getUsersByRole(String role) {
+        String prefixedRole = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+        
+        return userRepository.findByRole(prefixedRole).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<UserDto> searchUsers(String term) {
+        return userRepository.searchUsers(term).stream()
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
     
     @Transactional
-    public UserDto createUser(UserDto userDto) {
-        // Check if username already exists
-        if (userRepository.existsByUsername(userDto.getUsername())) {
-            throw new ResourceAlreadyExistsException("User", "username", userDto.getUsername());
+    public UserDto registerUser(RegisterRequest registerRequest) {
+        // Check if username is already taken
+        if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("Username is already taken");
         }
         
-        // Check if email already exists
-        if (userRepository.existsByEmail(userDto.getEmail())) {
-            throw new ResourceAlreadyExistsException("User", "email", userDto.getEmail());
+        // Check if email is already registered
+        if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email is already registered");
         }
         
         User user = new User();
-        user.setUsername(userDto.getUsername());
-        user.setEmail(userDto.getEmail());
-        user.setPassword(passwordEncoder.encode(userDto.getPassword()));
-        user.setFirstName(userDto.getFirstName());
-        user.setLastName(userDto.getLastName());
-        user.setRole(userDto.getRole() != null ? userDto.getRole() : "USER");
-        user.setLocation(userDto.getLocation());
-        user.setProject(userDto.getProject());
-        user.setEnabled(true);
+        user.setUsername(registerRequest.getUsername());
+        user.setEmail(registerRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setFirstName(registerRequest.getFirstName());
+        user.setLastName(registerRequest.getLastName());
+        user.setRole("ROLE_USER"); // Default role for new registrations
+        user.setLocation(registerRequest.getLocation());
+        user.setDepartment(registerRequest.getDepartment());
+        user.setJobTitle(registerRequest.getJobTitle());
         
         User savedUser = userRepository.save(user);
         
-        return mapToDto(savedUser);
+        // Send welcome email
+        emailService.sendWelcomeEmail(
+                user.getEmail(), 
+                (user.getFirstName() != null ? user.getFirstName() : user.getUsername())
+        );
+        
+        return convertToDto(savedUser);
     }
     
     @Transactional
     public UserDto updateUser(Long id, UserDto userDto) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
         
-        // Check if new username is already taken by another user
-        if (!user.getUsername().equals(userDto.getUsername()) && 
-                userRepository.existsByUsername(userDto.getUsername())) {
-            throw new ResourceAlreadyExistsException("User", "username", userDto.getUsername());
-        }
-        
-        // Check if new email is already taken by another user
+        // If email is being changed, check if it's already in use
         if (!user.getEmail().equals(userDto.getEmail()) && 
-                userRepository.existsByEmail(userDto.getEmail())) {
-            throw new ResourceAlreadyExistsException("User", "email", userDto.getEmail());
+                userRepository.findByEmail(userDto.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email is already registered");
         }
         
-        // Update user properties
+        // If username is being changed, check if it's already taken
+        if (!user.getUsername().equals(userDto.getUsername()) && 
+                userRepository.findByUsername(userDto.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("Username is already taken");
+        }
+        
         user.setUsername(userDto.getUsername());
         user.setEmail(userDto.getEmail());
         
-        // Only update password if it's provided
+        // Only update password if it's provided and not empty
         if (userDto.getPassword() != null && !userDto.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         }
         
         user.setFirstName(userDto.getFirstName());
         user.setLastName(userDto.getLastName());
-        user.setRole(userDto.getRole());
+        
+        // Only allow role changes for admin users (should be checked in controller)
+        if (userDto.getRole() != null && !userDto.getRole().isEmpty()) {
+            String prefixedRole = userDto.getRole().startsWith("ROLE_") ? 
+                    userDto.getRole() : "ROLE_" + userDto.getRole();
+            user.setRole(prefixedRole);
+        }
+        
         user.setLocation(userDto.getLocation());
-        user.setProject(userDto.getProject());
-        user.setEnabled(userDto.isEnabled());
+        user.setDepartment(userDto.getDepartment());
+        user.setJobTitle(userDto.getJobTitle());
+        user.setBio(userDto.getBio());
+        user.setProfileImageUrl(userDto.getProfileImageUrl());
         
         User updatedUser = userRepository.save(user);
         
-        return mapToDto(updatedUser);
+        return convertToDto(updatedUser);
+    }
+    
+    @Transactional
+    public UserDto updatePassword(Long id, String currentPassword, String newPassword) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
+        
+        // Verify current password
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+        
+        // Update password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        
+        User updatedUser = userRepository.save(user);
+        
+        return convertToDto(updatedUser);
     }
     
     @Transactional
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("User", "id", id);
-        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
         
-        userRepository.deleteById(id);
+        userRepository.delete(user);
     }
     
-    @Transactional(readOnly = true)
-    public List<UserDto> searchUsersByUsername(String keyword) {
-        return userRepository.findByUsernameContainingIgnoreCase(keyword).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-    }
+    // Helper methods
     
-    @Transactional(readOnly = true)
-    public List<UserDto> getUsersByRole(String role) {
-        return userRepository.findByRole(role).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Transactional(readOnly = true)
-    public List<UserDto> getUsersByLocation(String location) {
-        return userRepository.findByLocation(location).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-    }
-    
-    // Helper method to map User entity to UserDto
-    private UserDto mapToDto(User user) {
-        UserDto userDto = new UserDto();
-        userDto.setId(user.getId());
-        userDto.setUsername(user.getUsername());
-        userDto.setEmail(user.getEmail());
-        userDto.setFirstName(user.getFirstName());
-        userDto.setLastName(user.getLastName());
-        userDto.setRole(user.getRole());
-        userDto.setLocation(user.getLocation());
-        userDto.setProject(user.getProject());
-        userDto.setEnabled(user.isEnabled());
-        userDto.setCreatedAt(user.getCreatedAt());
-        userDto.setUpdatedAt(user.getUpdatedAt());
-        
-        return userDto;
+    private UserDto convertToDto(User user) {
+        return UserDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                // Don't include password in DTO for security reasons
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole())
+                .location(user.getLocation())
+                .department(user.getDepartment())
+                .jobTitle(user.getJobTitle())
+                .bio(user.getBio())
+                .profileImageUrl(user.getProfileImageUrl())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
     }
 }
