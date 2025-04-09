@@ -1,6 +1,5 @@
 package com.skillmetrics.api.model;
 
-import com.skillmetrics.api.model.enums.SkillLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,39 +21,35 @@ public class SkillTarget {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+    
+    @Column(name = "skill_id")
+    private Long skillId;
     
     @Column(name = "skill_name", nullable = false)
     private String skillName;
     
-    @Column(name = "category")
-    private String category;
+    @Column(name = "skill_category", nullable = false)
+    private String skillCategory;
     
-    @Enumerated(EnumType.STRING)
     @Column(name = "current_level")
-    private SkillLevel currentLevel;
+    private String currentLevel;
     
-    @Enumerated(EnumType.STRING)
     @Column(name = "target_level", nullable = false)
-    private SkillLevel targetLevel;
+    private String targetLevel;
     
     @Column(name = "target_date", nullable = false)
     private LocalDate targetDate;
     
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
-    
-    @Column(name = "resources", columnDefinition = "TEXT")
-    private String resources;
-    
     @Column(name = "status", nullable = false)
-    private String status; // IN_PROGRESS, COMPLETED, CANCELLED, POSTPONED
+    private String status; // IN_PROGRESS, ACHIEVED, EXPIRED
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_id")
-    private User createdBy;
+    @Column(name = "progress_notes")
+    private String progressNotes;
+    
+    @Column(name = "resources")
+    private String resources;
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -62,13 +57,13 @@ public class SkillTarget {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    @Column(name = "completed_at")
-    private LocalDateTime completedAt;
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "skill_id")
-    private Skill skill;
-    
-    @Column(name = "progress")
-    private Integer progress; // 0-100 percentage
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

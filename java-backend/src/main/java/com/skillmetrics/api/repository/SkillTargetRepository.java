@@ -7,28 +7,30 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SkillTargetRepository extends JpaRepository<SkillTarget, Long> {
     
     List<SkillTarget> findByUserId(Long userId);
     
+    Optional<SkillTarget> findByUserIdAndSkillId(Long userId, Long skillId);
+    
     List<SkillTarget> findByUserIdAndStatus(Long userId, String status);
     
-    List<SkillTarget> findByCreatedById(Long createdById);
+    List<SkillTarget> findByStatus(String status);
     
-    List<SkillTarget> findBySkillId(Long skillId);
+    List<SkillTarget> findBySkillCategory(String category);
     
-    List<SkillTarget> findBySkillNameContainingIgnoreCase(String skillName);
+    @Query("SELECT st FROM SkillTarget st WHERE st.targetDate <= ?1 AND st.status = 'IN_PROGRESS'")
+    List<SkillTarget> findExpiredTargets(LocalDate currentDate);
     
-    List<SkillTarget> findByCategoryContainingIgnoreCase(String category);
+    @Query("SELECT st FROM SkillTarget st WHERE st.userId = ?1 AND st.targetDate <= ?2 AND st.status = 'IN_PROGRESS'")
+    List<SkillTarget> findExpiredTargetsForUser(Long userId, LocalDate currentDate);
     
-    @Query("SELECT st FROM SkillTarget st WHERE st.targetDate <= :date AND st.status = 'IN_PROGRESS'")
-    List<SkillTarget> findUpcomingTargets(LocalDate date);
+    @Query("SELECT st FROM SkillTarget st WHERE st.userId = ?1 AND st.targetDate BETWEEN ?2 AND ?3")
+    List<SkillTarget> findTargetsInDateRange(Long userId, LocalDate startDate, LocalDate endDate);
     
-    @Query("SELECT st FROM SkillTarget st WHERE st.status = 'IN_PROGRESS' AND st.progress >= 80")
-    List<SkillTarget> findNearCompletionTargets();
-    
-    @Query("SELECT DISTINCT st.category FROM SkillTarget st WHERE st.category IS NOT NULL")
-    List<String> findAllCategories();
+    @Query("SELECT COUNT(st) FROM SkillTarget st WHERE st.userId = ?1 AND st.status = ?2")
+    long countByUserIdAndStatus(Long userId, String status);
 }
