@@ -10,22 +10,37 @@ import java.util.List;
 
 @Repository
 public interface SkillHistoryRepository extends JpaRepository<SkillHistory, Long> {
-    
+
     List<SkillHistory> findBySkillId(Long skillId);
     
-    @Query("SELECT sh FROM SkillHistory sh WHERE sh.skill.id = :skillId ORDER BY sh.timestamp DESC")
-    List<SkillHistory> findBySkillIdOrderByTimestampDesc(Long skillId);
+    List<SkillHistory> findByUserId(Long userId);
     
-    @Query("SELECT sh FROM SkillHistory sh WHERE sh.skill.user.id = :userId ORDER BY sh.timestamp DESC")
-    List<SkillHistory> findByUserIdOrderByTimestampDesc(Long userId);
+    @Query("""
+           SELECT h FROM SkillHistory h
+           WHERE h.skill.id = :skillId
+           ORDER BY h.timestamp DESC
+           """)
+    List<SkillHistory> findSkillHistoryBySkillIdOrderByTimestampDesc(Long skillId);
     
-    @Query("SELECT sh FROM SkillHistory sh WHERE sh.skill.user.id = :userId AND sh.action = :action ORDER BY sh.timestamp DESC")
-    List<SkillHistory> findByUserIdAndActionOrderByTimestampDesc(Long userId, String action);
+    @Query("""
+           SELECT h FROM SkillHistory h
+           WHERE h.user.id = :userId
+           ORDER BY h.timestamp DESC
+           """)
+    List<SkillHistory> findSkillHistoryByUserIdOrderByTimestampDesc(Long userId);
     
-    List<SkillHistory> findByPerformedById(Long performedById);
+    @Query("""
+           SELECT h FROM SkillHistory h
+           WHERE h.timestamp BETWEEN :startDate AND :endDate
+           ORDER BY h.timestamp DESC
+           """)
+    List<SkillHistory> findHistoryBetweenDates(LocalDateTime startDate, LocalDateTime endDate);
     
-    List<SkillHistory> findByTimestampAfter(LocalDateTime since);
-    
-    @Query("SELECT sh FROM SkillHistory sh WHERE sh.skill.id = :skillId AND sh.action = :action")
-    List<SkillHistory> findBySkillIdAndAction(Long skillId, String action);
+    @Query("""
+           SELECT h FROM SkillHistory h
+           WHERE h.user.id = :userId
+           AND h.action = :action
+           ORDER BY h.timestamp DESC
+           """)
+    List<SkillHistory> findByUserIdAndAction(Long userId, String action);
 }

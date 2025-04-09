@@ -3,19 +3,21 @@ package com.skillmetrics.api.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class SkillDto {
-    
+
     private Long id;
     
-    @NotNull(message = "User ID is required")
     private Long userId;
     
     private String userName; // For display purposes
@@ -35,9 +37,11 @@ public class SkillDto {
     
     private String credlyLink;
     
-    private boolean verified;
+    private Long templateId;
     
-    private Integer endorsementCount;
+    private List<EndorsementDto> endorsements;
+    
+    private int endorsementCount;
     
     private LocalDateTime createdAt;
     

@@ -1,19 +1,18 @@
 package com.skillmetrics.api.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotBlank;
-
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class LoginRequest {
     
-    @NotBlank
-    private String usernameOrEmail;
+    @NotBlank(message = "Username is required")
+    private String username;
     
-    @NotBlank
+    @NotBlank(message = "Password is required")
     private String password;
 }
