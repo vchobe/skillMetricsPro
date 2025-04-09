@@ -1,22 +1,23 @@
 package com.skillmetrics.api.model;
 
-import com.skillmetrics.api.model.enums.SkillLevel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "skills")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
 public class Skill {
 
     @Id
@@ -34,36 +35,30 @@ public class Skill {
     private String category;
     
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private SkillLevel level;
+    private String level;
     
-    @Column(columnDefinition = "TEXT")
     private String description;
-    
-    private int yearsOfExperience;
     
     private String certification;
     
-    private String certificationAuthority;
-    
-    private LocalDateTime certificationDate;
-    
-    private LocalDateTime expirationDate;
-    
     private String credlyLink;
     
-    private boolean verified;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "template_id")
+    private SkillTemplate template;
     
-    private Long verifiedBy;
+    @OneToMany(mappedBy = "skill", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Endorsement> endorsements = new ArrayList<>();
     
-    private LocalDateTime verifiedAt;
+    @OneToMany(mappedBy = "skill", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SkillHistory> history = new ArrayList<>();
     
-    private Integer endorsementCount;
+    @OneToMany(mappedBy = "skill", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProjectSkill> projectSkills = new ArrayList<>();
     
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
     private LocalDateTime createdAt;
     
-    @LastModifiedDate
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 }
