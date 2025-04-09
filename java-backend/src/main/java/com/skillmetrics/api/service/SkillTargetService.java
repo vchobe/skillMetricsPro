@@ -9,19 +9,21 @@ import com.skillmetrics.api.repository.SkillRepository;
 import com.skillmetrics.api.repository.SkillTargetRepository;
 import com.skillmetrics.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SkillTargetService {
     
     private final SkillTargetRepository skillTargetRepository;
@@ -29,273 +31,322 @@ public class SkillTargetService {
     private final SkillRepository skillRepository;
     private final NotificationService notificationService;
     
-    @Transactional(readOnly = true)
+    /**
+     * Get all skill targets
+     */
     public List<SkillTargetDto> getAllSkillTargets() {
-        return skillTargetRepository.findAll().stream()
-                .map(this::convertToDto)
+        List<SkillTarget> targets = skillTargetRepository.findAll();
+        
+        // Get all users for enrichment
+        Map<Long, User> userMap = userRepository.findAllById(
+                targets.stream().map(SkillTarget::getUserId).collect(Collectors.toList())
+        ).stream().collect(Collectors.toMap(User::getId, user -> user));
+        
+        return targets.stream()
+                .map(target -> mapToDto(target, userMap.get(target.getUserId())))
                 .collect(Collectors.toList());
     }
     
-    @Transactional(readOnly = true)
+    /**
+     * Get skill targets by user ID
+     */
+    public List<SkillTargetDto> getSkillTargetsByUserId(Long userId) {
+        List<SkillTarget> targets = skillTargetRepository.findByUserId(userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        
+        return targets.stream()
+                .map(target -> mapToDto(target, user))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get skill targets by status
+     */
+    public List<SkillTargetDto> getSkillTargetsByStatus(String status) {
+        List<SkillTarget> targets = skillTargetRepository.findByStatus(status);
+        
+        // Get all users for enrichment
+        Map<Long, User> userMap = userRepository.findAllById(
+                targets.stream().map(SkillTarget::getUserId).collect(Collectors.toList())
+        ).stream().collect(Collectors.toMap(User::getId, user -> user));
+        
+        return targets.stream()
+                .map(target -> mapToDto(target, userMap.get(target.getUserId())))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get skill targets by user ID and status
+     */
+    public List<SkillTargetDto> getSkillTargetsByUserIdAndStatus(Long userId, String status) {
+        List<SkillTarget> targets = skillTargetRepository.findByUserIdAndStatus(userId, status);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        
+        return targets.stream()
+                .map(target -> mapToDto(target, user))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get a skill target by ID
+     */
     public SkillTargetDto getSkillTargetById(Long id) {
-        SkillTarget skillTarget = skillTargetRepository.findById(id)
+        SkillTarget target = skillTargetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Skill target not found with id: " + id));
         
-        return convertToDto(skillTarget);
-    }
-    
-    @Transactional(readOnly = true)
-    public List<SkillTargetDto> getSkillTargetsByUserId(Long userId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        User user = userRepository.findById(target.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + target.getUserId()));
         
-        return skillTargetRepository.findByUserId(userId).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        return mapToDto(target, user);
     }
     
-    @Transactional(readOnly = true)
-    public List<SkillTargetDto> getSkillTargetsByUserIdAndStatus(Long userId, String status) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-        
-        return skillTargetRepository.findByUserIdAndStatus(userId, status).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Transactional(readOnly = true)
-    public List<SkillTargetDto> getUpcomingSkillTargets(int days) {
-        LocalDate targetDate = LocalDate.now().plusDays(days);
-        
-        return skillTargetRepository.findUpcomingTargets(targetDate).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Transactional(readOnly = true)
-    public List<SkillTargetDto> getNearCompletionTargets() {
-        return skillTargetRepository.findNearCompletionTargets().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-    
+    /**
+     * Create a new skill target
+     */
     @Transactional
-    public SkillTargetDto createSkillTarget(SkillTargetDto skillTargetDto, Long currentUserId) {
+    public SkillTargetDto createSkillTarget(SkillTargetDto skillTargetDto) {
+        // Check if user exists
         User user = userRepository.findById(skillTargetDto.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + skillTargetDto.getUserId()));
         
-        User createdBy = null;
-        if (currentUserId != null) {
-            createdBy = userRepository.findById(currentUserId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Created by user not found with id: " + currentUserId));
-        }
-        
-        Skill skill = null;
-        if (skillTargetDto.getSkillId() != null) {
-            skill = skillRepository.findById(skillTargetDto.getSkillId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Skill not found with id: " + skillTargetDto.getSkillId()));
-        }
-        
-        SkillTarget skillTarget = new SkillTarget();
-        skillTarget.setUser(user);
-        skillTarget.setSkillName(skillTargetDto.getSkillName());
-        skillTarget.setCategory(skillTargetDto.getCategory());
-        skillTarget.setCurrentLevel(skillTargetDto.getCurrentLevel());
-        skillTarget.setTargetLevel(skillTargetDto.getTargetLevel());
-        skillTarget.setTargetDate(skillTargetDto.getTargetDate());
-        skillTarget.setDescription(skillTargetDto.getDescription());
-        skillTarget.setResources(skillTargetDto.getResources());
-        skillTarget.setStatus("IN_PROGRESS"); // Default status for new targets
-        skillTarget.setCreatedBy(createdBy);
-        skillTarget.setCreatedAt(LocalDateTime.now());
-        skillTarget.setSkill(skill);
-        skillTarget.setProgress(0); // Start with 0% progress
-        
-        SkillTarget savedSkillTarget = skillTargetRepository.save(skillTarget);
-        
-        // Notify the user of the new skill target
-        notificationService.createNotification(
-                user.getId(),
-                "New skill development target created: " + skillTarget.getSkillName() + " - Target level: " + skillTarget.getTargetLevel(),
-                "/skill-targets/" + savedSkillTarget.getId(),
-                "skill_target"
-        );
-        
-        return convertToDto(savedSkillTarget);
-    }
-    
-    @Transactional
-    public SkillTargetDto updateSkillTarget(Long id, SkillTargetDto skillTargetDto) {
-        SkillTarget skillTarget = skillTargetRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Skill target not found with id: " + id));
-        
-        // Check if status is changing to COMPLETED
-        boolean isCompleting = "COMPLETED".equals(skillTargetDto.getStatus()) && !"COMPLETED".equals(skillTarget.getStatus());
-        
-        skillTarget.setSkillName(skillTargetDto.getSkillName());
-        skillTarget.setCategory(skillTargetDto.getCategory());
-        skillTarget.setCurrentLevel(skillTargetDto.getCurrentLevel());
-        skillTarget.setTargetLevel(skillTargetDto.getTargetLevel());
-        skillTarget.setTargetDate(skillTargetDto.getTargetDate());
-        skillTarget.setDescription(skillTargetDto.getDescription());
-        skillTarget.setResources(skillTargetDto.getResources());
-        skillTarget.setStatus(skillTargetDto.getStatus());
-        skillTarget.setUpdatedAt(LocalDateTime.now());
-        skillTarget.setProgress(skillTargetDto.getProgress());
-        
+        // If skillId is provided, check if skill exists and get its details
         if (skillTargetDto.getSkillId() != null) {
             Skill skill = skillRepository.findById(skillTargetDto.getSkillId())
                     .orElseThrow(() -> new ResourceNotFoundException("Skill not found with id: " + skillTargetDto.getSkillId()));
-            skillTarget.setSkill(skill);
-        } else {
-            skillTarget.setSkill(null);
+            
+            skillTargetDto.setSkillName(skill.getName());
+            skillTargetDto.setSkillCategory(skill.getCategory());
+            skillTargetDto.setCurrentLevel(skill.getLevel());
         }
         
-        // If target is being completed, set the completion date
-        if (isCompleting) {
-            skillTarget.setCompletedAt(LocalDateTime.now());
+        // Set default status if not provided
+        if (skillTargetDto.getStatus() == null || skillTargetDto.getStatus().isEmpty()) {
+            skillTargetDto.setStatus("IN_PROGRESS");
+        }
+        
+        SkillTarget skillTarget = mapToEntity(skillTargetDto);
+        skillTarget.setCreatedAt(LocalDateTime.now());
+        
+        SkillTarget savedTarget = skillTargetRepository.save(skillTarget);
+        
+        // Send notification to user
+        String message = "New skill target created: " + savedTarget.getSkillName() + 
+                " at " + savedTarget.getTargetLevel() + " level by " + 
+                savedTarget.getTargetDate() + ".";
+        
+        notificationService.createNotification(
+                savedTarget.getUserId(),
+                "New Skill Target",
+                message,
+                "/skill-targets/" + savedTarget.getId()
+        );
+        
+        return mapToDto(savedTarget, user);
+    }
+    
+    /**
+     * Update a skill target
+     */
+    @Transactional
+    public SkillTargetDto updateSkillTarget(Long id, SkillTargetDto skillTargetDto) {
+        SkillTarget existingTarget = skillTargetRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Skill target not found with id: " + id));
+        
+        // Get user
+        User user = userRepository.findById(existingTarget.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + existingTarget.getUserId()));
+        
+        // Check if status changed to ACHIEVED
+        boolean statusChangedToAchieved = "ACHIEVED".equals(skillTargetDto.getStatus()) && 
+                                         !"ACHIEVED".equals(existingTarget.getStatus());
+        
+        // Update fields
+        if (skillTargetDto.getSkillName() != null) {
+            existingTarget.setSkillName(skillTargetDto.getSkillName());
+        }
+        
+        if (skillTargetDto.getSkillCategory() != null) {
+            existingTarget.setSkillCategory(skillTargetDto.getSkillCategory());
+        }
+        
+        if (skillTargetDto.getCurrentLevel() != null) {
+            existingTarget.setCurrentLevel(skillTargetDto.getCurrentLevel());
+        }
+        
+        if (skillTargetDto.getTargetLevel() != null) {
+            existingTarget.setTargetLevel(skillTargetDto.getTargetLevel());
+        }
+        
+        if (skillTargetDto.getTargetDate() != null) {
+            existingTarget.setTargetDate(skillTargetDto.getTargetDate());
+        }
+        
+        if (skillTargetDto.getStatus() != null) {
+            existingTarget.setStatus(skillTargetDto.getStatus());
+        }
+        
+        if (skillTargetDto.getProgressNotes() != null) {
+            existingTarget.setProgressNotes(skillTargetDto.getProgressNotes());
+        }
+        
+        if (skillTargetDto.getResources() != null) {
+            existingTarget.setResources(skillTargetDto.getResources());
+        }
+        
+        existingTarget.setUpdatedAt(LocalDateTime.now());
+        
+        SkillTarget updatedTarget = skillTargetRepository.save(existingTarget);
+        
+        // If status changed to ACHIEVED, check if there's an associated skill to update
+        if (statusChangedToAchieved && updatedTarget.getSkillId() != null) {
+            Optional<Skill> skillOpt = skillRepository.findById(updatedTarget.getSkillId());
             
-            // Notify user of target completion
-            notificationService.createNotification(
-                    skillTarget.getUser().getId(),
-                    "Congratulations! You've completed your skill target for: " + skillTarget.getSkillName(),
-                    "/skill-targets/" + skillTarget.getId(),
-                    "skill_target_complete"
-            );
-            
-            // If target has an associated skill, check if we should update the skill level
-            if (skillTarget.getSkill() != null) {
-                // We could implement automatic skill level upgrading here if desired
-                // For now, just notify that this could be done
+            if (skillOpt.isPresent()) {
+                Skill skill = skillOpt.get();
+                skill.setLevel(updatedTarget.getTargetLevel());
+                skill.setUpdatedAt(LocalDateTime.now());
+                skillRepository.save(skill);
+                
+                // Send notification about skill level update
+                String message = "Your skill " + skill.getName() + 
+                        " has been updated to " + skill.getLevel() + " level based on achieved target.";
+                
                 notificationService.createNotification(
-                        skillTarget.getUser().getId(),
-                        "Consider updating your skill level for: " + skillTarget.getSkillName(),
-                        "/skills/" + skillTarget.getSkill().getId(),
-                        "skill_update_suggestion"
+                        updatedTarget.getUserId(),
+                        "Skill Level Updated",
+                        message,
+                        "/skills/" + skill.getId()
                 );
             }
         }
         
-        SkillTarget updatedSkillTarget = skillTargetRepository.save(skillTarget);
-        return convertToDto(updatedSkillTarget);
+        return mapToDto(updatedTarget, user);
     }
     
-    @Transactional
-    public SkillTargetDto updateSkillTargetProgress(Long id, Integer progress) {
-        SkillTarget skillTarget = skillTargetRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Skill target not found with id: " + id));
-        
-        // Validate progress value
-        if (progress < 0) {
-            progress = 0;
-        } else if (progress > 100) {
-            progress = 100;
-        }
-        
-        // Check if target is completed with this update
-        boolean isCompleting = progress == 100 && !"COMPLETED".equals(skillTarget.getStatus());
-        
-        skillTarget.setProgress(progress);
-        skillTarget.setUpdatedAt(LocalDateTime.now());
-        
-        // If progress is 100%, also mark as completed
-        if (isCompleting) {
-            skillTarget.setStatus("COMPLETED");
-            skillTarget.setCompletedAt(LocalDateTime.now());
-            
-            // Notify user of target completion
-            notificationService.createNotification(
-                    skillTarget.getUser().getId(),
-                    "Congratulations! You've completed your skill target for: " + skillTarget.getSkillName(),
-                    "/skill-targets/" + skillTarget.getId(),
-                    "skill_target_complete"
-            );
-        }
-        
-        SkillTarget updatedSkillTarget = skillTargetRepository.save(skillTarget);
-        return convertToDto(updatedSkillTarget);
-    }
-    
+    /**
+     * Delete a skill target
+     */
     @Transactional
     public void deleteSkillTarget(Long id) {
-        SkillTarget skillTarget = skillTargetRepository.findById(id)
+        SkillTarget target = skillTargetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Skill target not found with id: " + id));
         
-        skillTargetRepository.delete(skillTarget);
+        skillTargetRepository.delete(target);
     }
     
-    @Transactional(readOnly = true)
-    public Map<String, Object> getUserSkillTargetsSummary(Long userId) {
+    /**
+     * Get expired skill targets for a user
+     */
+    public List<SkillTargetDto> getExpiredTargetsForUser(Long userId) {
+        LocalDate currentDate = LocalDate.now();
+        List<SkillTarget> expiredTargets = skillTargetRepository.findExpiredTargetsForUser(userId, currentDate);
+        
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         
-        Map<String, Object> summary = new HashMap<>();
-        
-        List<SkillTarget> allTargets = skillTargetRepository.findByUserId(userId);
-        List<SkillTarget> activeTargets = skillTargetRepository.findByUserIdAndStatus(userId, "IN_PROGRESS");
-        List<SkillTarget> completedTargets = skillTargetRepository.findByUserIdAndStatus(userId, "COMPLETED");
-        
-        summary.put("userId", userId);
-        summary.put("userName", user.getFirstName() + " " + user.getLastName());
-        summary.put("totalTargets", allTargets.size());
-        summary.put("activeTargets", activeTargets.size());
-        summary.put("completedTargets", completedTargets.size());
-        
-        // Calculate overall progress across all active targets
-        double avgProgress = 0;
-        if (!activeTargets.isEmpty()) {
-            avgProgress = activeTargets.stream()
-                    .mapToInt(SkillTarget::getProgress)
-                    .average()
-                    .orElse(0);
-        }
-        summary.put("averageProgress", avgProgress);
-        
-        // Get upcoming targets (due in next 30 days)
-        LocalDate thirtyDaysFromNow = LocalDate.now().plusDays(30);
-        List<SkillTarget> upcomingTargets = activeTargets.stream()
-                .filter(target -> target.getTargetDate() != null && 
-                        target.getTargetDate().isBefore(thirtyDaysFromNow) &&
-                        target.getTargetDate().isAfter(LocalDate.now()))
+        return expiredTargets.stream()
+                .map(target -> mapToDto(target, user))
                 .collect(Collectors.toList());
-        
-        summary.put("upcomingTargets", upcomingTargets.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList()));
-        
-        // Get most recent targets
-        List<SkillTarget> recentTargets = allTargets.stream()
-                .sorted((t1, t2) -> t2.getCreatedAt().compareTo(t1.getCreatedAt()))
-                .limit(5)
-                .collect(Collectors.toList());
-        
-        summary.put("recentTargets", recentTargets.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList()));
-        
-        return summary;
     }
     
-    // Helper methods for entity <-> DTO conversion
-    
-    private SkillTargetDto convertToDto(SkillTarget skillTarget) {
-        SkillTargetDto dto = new SkillTargetDto();
-        BeanUtils.copyProperties(skillTarget, dto);
+    /**
+     * Update status of expired targets
+     * This is scheduled to run daily at midnight
+     */
+    @Scheduled(cron = "0 0 0 * * ?")
+    @Transactional
+    public void updateExpiredTargets() {
+        LocalDate currentDate = LocalDate.now();
+        List<SkillTarget> expiredTargets = skillTargetRepository.findExpiredTargets(currentDate);
         
-        dto.setUserId(skillTarget.getUser().getId());
-        dto.setUserName(skillTarget.getUser().getFirstName() + " " + skillTarget.getUser().getLastName());
-        dto.setUserEmail(skillTarget.getUser().getEmail());
-        
-        if (skillTarget.getCreatedBy() != null) {
-            dto.setCreatedById(skillTarget.getCreatedBy().getId());
-            dto.setCreatedByName(skillTarget.getCreatedBy().getFirstName() + " " + skillTarget.getCreatedBy().getLastName());
+        for (SkillTarget target : expiredTargets) {
+            target.setStatus("EXPIRED");
+            target.setUpdatedAt(LocalDateTime.now());
+            skillTargetRepository.save(target);
+            
+            // Send notification
+            String message = "Your skill target for " + target.getSkillName() + 
+                    " at " + target.getTargetLevel() + " level has expired.";
+            
+            notificationService.createNotification(
+                    target.getUserId(),
+                    "Skill Target Expired",
+                    message,
+                    "/skill-targets/" + target.getId()
+            );
         }
         
-        if (skillTarget.getSkill() != null) {
-            dto.setSkillId(skillTarget.getSkill().getId());
+        log.info("Updated {} expired skill targets", expiredTargets.size());
+    }
+    
+    /**
+     * Get skill targets by date range
+     */
+    public List<SkillTargetDto> getTargetsInDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
+        List<SkillTarget> targets = skillTargetRepository.findTargetsInDateRange(userId, startDate, endDate);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        
+        return targets.stream()
+                .map(target -> mapToDto(target, user))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Map entity to DTO
+     */
+    private SkillTargetDto mapToDto(SkillTarget skillTarget, User user) {
+        SkillTargetDto dto = new SkillTargetDto();
+        dto.setId(skillTarget.getId());
+        dto.setUserId(skillTarget.getUserId());
+        dto.setSkillId(skillTarget.getSkillId());
+        dto.setSkillName(skillTarget.getSkillName());
+        dto.setSkillCategory(skillTarget.getSkillCategory());
+        dto.setCurrentLevel(skillTarget.getCurrentLevel());
+        dto.setTargetLevel(skillTarget.getTargetLevel());
+        dto.setTargetDate(skillTarget.getTargetDate());
+        dto.setStatus(skillTarget.getStatus());
+        dto.setProgressNotes(skillTarget.getProgressNotes());
+        dto.setResources(skillTarget.getResources());
+        dto.setCreatedAt(skillTarget.getCreatedAt());
+        dto.setUpdatedAt(skillTarget.getUpdatedAt());
+        
+        // Set additional fields if user is available
+        if (user != null) {
+            dto.setUserName(user.getFirstName() + " " + user.getLastName());
+        }
+        
+        // Set skill description if skill ID is available
+        if (skillTarget.getSkillId() != null) {
+            skillRepository.findById(skillTarget.getSkillId())
+                    .ifPresent(skill -> dto.setSkillDescription(skill.getDescription()));
         }
         
         return dto;
+    }
+    
+    /**
+     * Map DTO to entity
+     */
+    private SkillTarget mapToEntity(SkillTargetDto dto) {
+        SkillTarget entity = new SkillTarget();
+        entity.setId(dto.getId());
+        entity.setUserId(dto.getUserId());
+        entity.setSkillId(dto.getSkillId());
+        entity.setSkillName(dto.getSkillName());
+        entity.setSkillCategory(dto.getSkillCategory());
+        entity.setCurrentLevel(dto.getCurrentLevel());
+        entity.setTargetLevel(dto.getTargetLevel());
+        entity.setTargetDate(dto.getTargetDate());
+        entity.setStatus(dto.getStatus());
+        entity.setProgressNotes(dto.getProgressNotes());
+        entity.setResources(dto.getResources());
+        
+        return entity;
     }
 }

@@ -1,70 +1,55 @@
 package com.skillmetrics.api.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.skillmetrics.api.model.enums.SkillLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PendingSkillUpdateDto {
     
     private Long id;
     
-    private Long skillId;
-    
     private Long userId;
     
-    private String currentName;
+    private Long skillId;
     
-    private String newName;
+    @NotBlank(message = "Skill name is required")
+    private String skillName;
     
-    private String currentCategory;
+    @NotBlank(message = "Skill category is required")
+    private String skillCategory;
     
-    private String newCategory;
+    private String currentLevel;
     
-    private SkillLevel currentLevel;
-    
-    private SkillLevel newLevel;
-    
-    private String currentDescription;
-    
-    private String newDescription;
-    
-    private String currentCertification;
-    
-    private String newCertification;
-    
-    private String currentCredlyLink;
-    
-    private String newCredlyLink;
+    @NotBlank(message = "Proposed level is required")
+    private String proposedLevel;
     
     private String justification;
     
     private String status;
     
-    private Long requestedById;
+    private Long reviewerId;
     
-    private Long approvedById;
-    
-    private String rejectionReason;
+    private String reviewerComments;
     
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
     
-    private LocalDateTime processedAt;
+    private LocalDateTime approvedAt;
     
-    // Additional fields for convenient display
-    private String skillName;
+    private LocalDateTime rejectedAt;
+    
+    // Additional fields for the DTO
     private String userName;
-    private String requestedByName;
-    private String approvedByName;
+    private String userEmail;
+    private String reviewerName;
+    private String reviewerEmail;
 }

@@ -1,12 +1,13 @@
 package com.skillmetrics.api.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.skillmetrics.api.model.enums.SkillLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.validation.constraints.Future;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -14,43 +15,40 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SkillTargetDto {
     
     private Long id;
     
     private Long userId;
     
+    private Long skillId;
+    
+    @NotBlank(message = "Skill name is required")
     private String skillName;
     
-    private String category;
+    @NotBlank(message = "Skill category is required")
+    private String skillCategory;
     
-    private SkillLevel currentLevel;
+    private String currentLevel;
     
-    private SkillLevel targetLevel;
+    @NotBlank(message = "Target level is required")
+    private String targetLevel;
     
+    @NotNull(message = "Target date is required")
+    @Future(message = "Target date must be in the future")
     private LocalDate targetDate;
-    
-    private String description;
-    
-    private String resources;
     
     private String status;
     
-    private Long createdById;
+    private String progressNotes;
+    
+    private String resources;
     
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
     
-    private LocalDateTime completedAt;
-    
-    private Long skillId;
-    
-    private Integer progress;
-    
-    // Additional fields for convenient display
+    // Additional fields for the DTO
     private String userName;
-    private String userEmail;
-    private String createdByName;
+    private String skillDescription;
 }

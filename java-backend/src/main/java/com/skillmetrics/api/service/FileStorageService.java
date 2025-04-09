@@ -1,8 +1,6 @@
 package com.skillmetrics.api.service;
 
-import com.skillmetrics.api.exception.ResourceNotFoundException;
-import com.skillmetrics.api.model.User;
-import com.skillmetrics.api.repository.UserRepository;
+import com.skillmetrics.api.exception.FileStorageException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,24 +12,21 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class FileStorageService {
 
-    private final UserRepository userRepository;
-
-    @Value("${file.upload-dir:uploads}")
+    @Value("${app.file-storage.upload-dir:uploads}")
     private String uploadDir;
 
     private Path fileStorageLocation;
@@ -43,134 +38,154 @@ public class FileStorageService {
         try {
             Files.createDirectories(this.fileStorageLocation);
         } catch (Exception ex) {
-            throw new RuntimeException("Could not create the directory where the uploaded files will be stored", ex);
+            throw new FileStorageException("Could not create the directory where the uploaded files will be stored.", ex);
         }
     }
 
-    public Map<String, Object> storeFile(MultipartFile file, String category, Long userId) {
-        User user = null;
-        if (userId != null) {
-            user = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-        }
-
+    /**
+     * Store a file
+     * @param file the file to store
+     * @param subdirectory Optional subdirectory to store the file in
+     * @return the name of the stored file
+     */
+    public String storeFile(MultipartFile file, String subdirectory) {
         // Normalize file name
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
-        String fileExtension = getFileExtension(originalFilename);
-        
-        // Generate a unique file name to prevent conflicts
-        String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
-        
-        // Create subdirectory based on category
-        Path categoryPath = this.fileStorageLocation.resolve(category);
-        try {
-            Files.createDirectories(categoryPath);
-        } catch (IOException ex) {
-            throw new RuntimeException("Could not create directory for category: " + category, ex);
-        }
-        
-        // Create user subdirectory if userId is provided
-        Path finalPath = categoryPath;
-        if (user != null) {
-            finalPath = categoryPath.resolve(user.getId().toString());
-            try {
-                Files.createDirectories(finalPath);
-            } catch (IOException ex) {
-                throw new RuntimeException("Could not create directory for user: " + user.getId(), ex);
-            }
-        }
+        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
 
         try {
-            // Check if the filename contains invalid characters
-            if (originalFilename.contains("..")) {
-                throw new RuntimeException("Filename contains invalid path sequence " + originalFilename);
+            // Check if the file's name contains invalid characters
+            if (fileName.contains("..")) {
+                throw new FileStorageException("Filename contains invalid path sequence: " + fileName);
             }
 
-            Path targetLocation = finalPath.resolve(uniqueFilename);
-            
-            try (InputStream inputStream = file.getInputStream()) {
-                Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            // Create subdirectory if provided
+            Path targetLocation;
+            if (subdirectory != null && !subdirectory.isEmpty()) {
+                Path subdir = this.fileStorageLocation.resolve(subdirectory);
+                Files.createDirectories(subdir);
+                targetLocation = subdir.resolve(fileName);
+            } else {
+                targetLocation = this.fileStorageLocation.resolve(fileName);
             }
-            
-            // Prepare result metadata
-            Map<String, Object> result = new HashMap<>();
-            result.put("fileName", uniqueFilename);
-            result.put("originalFileName", originalFilename);
-            result.put("fileType", file.getContentType());
-            result.put("size", file.getSize());
-            result.put("category", category);
-            
-            if (user != null) {
-                result.put("userId", user.getId());
-                result.put("userName", user.getFirstName() + " " + user.getLastName());
-            }
-            
-            // Calculate relative path for storage in DB
-            String relativePath = category;
-            if (user != null) {
-                relativePath = category + "/" + user.getId();
-            }
-            result.put("filePath", relativePath + "/" + uniqueFilename);
-            
-            return result;
+
+            // Copy file to the target location (replacing existing file with the same name)
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+            return fileName;
         } catch (IOException ex) {
-            throw new RuntimeException("Could not store file " + originalFilename + ". Please try again!", ex);
+            throw new FileStorageException("Could not store file " + fileName + ". Please try again!", ex);
         }
     }
 
-    public Resource loadFileAsResource(String filePath) {
+    /**
+     * Store a file with a specific name
+     * @param file the file to store
+     * @param newFileName the name to save the file with
+     * @param subdirectory Optional subdirectory to store the file in
+     * @return the name of the stored file
+     */
+    public String storeFileWithName(MultipartFile file, String newFileName, String subdirectory) {
         try {
-            Path resolvedPath = this.fileStorageLocation.resolve(filePath).normalize();
-            Resource resource = new UrlResource(resolvedPath.toUri());
+            // Check if the new file name contains invalid characters
+            if (newFileName.contains("..")) {
+                throw new FileStorageException("Filename contains invalid path sequence: " + newFileName);
+            }
+
+            // Create subdirectory if provided
+            Path targetLocation;
+            if (subdirectory != null && !subdirectory.isEmpty()) {
+                Path subdir = this.fileStorageLocation.resolve(subdirectory);
+                Files.createDirectories(subdir);
+                targetLocation = subdir.resolve(newFileName);
+            } else {
+                targetLocation = this.fileStorageLocation.resolve(newFileName);
+            }
+
+            // Copy file to the target location (replacing existing file with the same name)
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+            return newFileName;
+        } catch (IOException ex) {
+            throw new FileStorageException("Could not store file " + newFileName + ". Please try again!", ex);
+        }
+    }
+
+    /**
+     * Load a file as a resource
+     * @param fileName the name of the file to load
+     * @param subdirectory Optional subdirectory where the file is stored
+     * @return the file resource
+     */
+    public Resource loadFileAsResource(String fileName, String subdirectory) {
+        try {
+            Path filePath;
+            if (subdirectory != null && !subdirectory.isEmpty()) {
+                filePath = this.fileStorageLocation.resolve(subdirectory).resolve(fileName).normalize();
+            } else {
+                filePath = this.fileStorageLocation.resolve(fileName).normalize();
+            }
             
+            Resource resource = new UrlResource(filePath.toUri());
             if (resource.exists()) {
                 return resource;
             } else {
-                throw new ResourceNotFoundException("File not found: " + filePath);
+                throw new FileStorageException("File not found " + fileName);
             }
         } catch (MalformedURLException ex) {
-            throw new ResourceNotFoundException("File not found: " + filePath, ex);
+            throw new FileStorageException("File not found " + fileName, ex);
         }
     }
-    
-    public boolean deleteFile(String filePath) {
+
+    /**
+     * Delete a file
+     * @param fileName the name of the file to delete
+     * @param subdirectory Optional subdirectory where the file is stored
+     * @return true if the file was deleted, false otherwise
+     */
+    public boolean deleteFile(String fileName, String subdirectory) {
         try {
-            Path resolvedPath = this.fileStorageLocation.resolve(filePath).normalize();
-            return Files.deleteIfExists(resolvedPath);
+            Path filePath;
+            if (subdirectory != null && !subdirectory.isEmpty()) {
+                filePath = this.fileStorageLocation.resolve(subdirectory).resolve(fileName).normalize();
+            } else {
+                filePath = this.fileStorageLocation.resolve(fileName).normalize();
+            }
+            
+            return Files.deleteIfExists(filePath);
         } catch (IOException ex) {
-            log.error("Error deleting file: {}", filePath, ex);
+            log.error("Error deleting file", ex);
             return false;
         }
     }
-    
-    public Map<String, String> getFileMetadata(String filePath) {
+
+    /**
+     * List all files in a directory
+     * @param subdirectory Optional subdirectory to list files from
+     * @return a list of file names
+     */
+    public List<String> listFiles(String subdirectory) {
         try {
-            Path resolvedPath = this.fileStorageLocation.resolve(filePath).normalize();
-            
-            if (!Files.exists(resolvedPath)) {
-                throw new ResourceNotFoundException("File not found: " + filePath);
+            Path dirPath;
+            if (subdirectory != null && !subdirectory.isEmpty()) {
+                dirPath = this.fileStorageLocation.resolve(subdirectory);
+                // Create directory if it doesn't exist
+                if (!Files.exists(dirPath)) {
+                    Files.createDirectories(dirPath);
+                }
+            } else {
+                dirPath = this.fileStorageLocation;
             }
             
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put("fileName", resolvedPath.getFileName().toString());
-            metadata.put("fileSize", String.valueOf(Files.size(resolvedPath)));
-            metadata.put("lastModified", Files.getLastModifiedTime(resolvedPath).toString());
-            metadata.put("fullPath", resolvedPath.toAbsolutePath().toString());
-            
-            // Try to determine content type
-            String contentType = Files.probeContentType(resolvedPath);
-            metadata.put("contentType", contentType != null ? contentType : "application/octet-stream");
-            
-            return metadata;
+            try (Stream<Path> paths = Files.list(dirPath)) {
+                return paths
+                        .filter(Files::isRegularFile)
+                        .map(Path::getFileName)
+                        .map(Path::toString)
+                        .collect(Collectors.toList());
+            }
         } catch (IOException ex) {
-            throw new RuntimeException("Error getting file metadata: " + filePath, ex);
+            log.error("Error listing files", ex);
+            return List.of();
         }
-    }
-    
-    private String getFileExtension(String filename) {
-        if (filename == null || filename.lastIndexOf(".") == -1) {
-            return "";
-        }
-        return filename.substring(filename.lastIndexOf("."));
     }
 }

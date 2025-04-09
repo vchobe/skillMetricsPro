@@ -1,330 +1,559 @@
 package com.skillmetrics.api.service;
 
 import com.skillmetrics.api.dto.PendingSkillUpdateDto;
-import com.skillmetrics.api.dto.SkillHistoryDto;
+import com.skillmetrics.api.exception.BadRequestException;
 import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.PendingSkillUpdate;
 import com.skillmetrics.api.model.Skill;
+import com.skillmetrics.api.model.SkillHistory;
 import com.skillmetrics.api.model.User;
-import com.skillmetrics.api.model.enums.SkillLevel;
 import com.skillmetrics.api.repository.PendingSkillUpdateRepository;
+import com.skillmetrics.api.repository.SkillHistoryRepository;
 import com.skillmetrics.api.repository.SkillRepository;
 import com.skillmetrics.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PendingSkillUpdateService {
     
     private final PendingSkillUpdateRepository pendingSkillUpdateRepository;
-    private final SkillRepository skillRepository;
     private final UserRepository userRepository;
+    private final SkillRepository skillRepository;
+    private final SkillHistoryRepository skillHistoryRepository;
     private final NotificationService notificationService;
-    private final SkillHistoryService skillHistoryService;
+    private final EmailService emailService;
     
-    @Transactional(readOnly = true)
-    public List<PendingSkillUpdateDto> getAllPendingUpdates() {
-        return pendingSkillUpdateRepository.findAll().stream()
-                .map(this::convertToDto)
+    /**
+     * Get all pending skill updates
+     */
+    public List<PendingSkillUpdateDto> getAllPendingSkillUpdates() {
+        List<PendingSkillUpdate> updates = pendingSkillUpdateRepository.findAll();
+        
+        // Get all users for enrichment
+        List<Long> userIds = updates.stream()
+                .flatMap(update -> {
+                    if (update.getReviewerId() != null) {
+                        return List.of(update.getUserId(), update.getReviewerId()).stream();
+                    } else {
+                        return List.of(update.getUserId()).stream();
+                    }
+                })
+                .distinct()
+                .collect(Collectors.toList());
+        
+        Map<Long, User> userMap = userRepository.findAllById(userIds)
+                .stream().collect(Collectors.toMap(User::getId, user -> user));
+        
+        return updates.stream()
+                .map(update -> mapToDto(update, userMap))
                 .collect(Collectors.toList());
     }
     
-    @Transactional(readOnly = true)
-    public PendingSkillUpdateDto getPendingUpdateById(Long id) {
-        PendingSkillUpdate pendingUpdate = pendingSkillUpdateRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Pending skill update not found with id: " + id));
+    /**
+     * Get pending skill updates by status
+     */
+    public List<PendingSkillUpdateDto> getPendingSkillUpdatesByStatus(String status) {
+        List<PendingSkillUpdate> updates = pendingSkillUpdateRepository.findByStatus(status);
         
-        return convertToDto(pendingUpdate);
+        // Get all users for enrichment
+        List<Long> userIds = updates.stream()
+                .flatMap(update -> {
+                    if (update.getReviewerId() != null) {
+                        return List.of(update.getUserId(), update.getReviewerId()).stream();
+                    } else {
+                        return List.of(update.getUserId()).stream();
+                    }
+                })
+                .distinct()
+                .collect(Collectors.toList());
+        
+        Map<Long, User> userMap = userRepository.findAllById(userIds)
+                .stream().collect(Collectors.toMap(User::getId, user -> user));
+        
+        return updates.stream()
+                .map(update -> mapToDto(update, userMap))
+                .collect(Collectors.toList());
     }
     
-    @Transactional(readOnly = true)
-    public List<PendingSkillUpdateDto> getPendingUpdatesByUserId(Long userId) {
-        userRepository.findById(userId)
+    /**
+     * Get pending skill updates by user ID
+     */
+    public List<PendingSkillUpdateDto> getPendingSkillUpdatesByUserId(Long userId) {
+        // Check if user exists
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         
-        return pendingSkillUpdateRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(this::convertToDto)
+        List<PendingSkillUpdate> updates = pendingSkillUpdateRepository.findByUserId(userId);
+        
+        // Get all reviewers for enrichment
+        List<Long> reviewerIds = updates.stream()
+                .map(PendingSkillUpdate::getReviewerId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        Map<Long, User> reviewerMap = userRepository.findAllById(reviewerIds)
+                .stream().collect(Collectors.toMap(User::getId, reviewer -> reviewer));
+        
+        Map<Long, User> userMap = Map.of(userId, user);
+        userMap.putAll(reviewerMap);
+        
+        return updates.stream()
+                .map(update -> mapToDto(update, userMap))
                 .collect(Collectors.toList());
     }
     
-    @Transactional(readOnly = true)
-    public List<PendingSkillUpdateDto> getPendingUpdatesBySkillId(Long skillId) {
-        skillRepository.findById(skillId)
-                .orElseThrow(() -> new ResourceNotFoundException("Skill not found with id: " + skillId));
+    /**
+     * Get pending skill updates by user ID and status
+     */
+    public List<PendingSkillUpdateDto> getPendingSkillUpdatesByUserIdAndStatus(Long userId, String status) {
+        // Check if user exists
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         
-        return pendingSkillUpdateRepository.findBySkillIdOrderByCreatedAtDesc(skillId).stream()
-                .map(this::convertToDto)
+        List<PendingSkillUpdate> updates = pendingSkillUpdateRepository.findByUserIdAndStatus(userId, status);
+        
+        // Get all reviewers for enrichment
+        List<Long> reviewerIds = updates.stream()
+                .map(PendingSkillUpdate::getReviewerId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        Map<Long, User> reviewerMap = userRepository.findAllById(reviewerIds)
+                .stream().collect(Collectors.toMap(User::getId, reviewer -> reviewer));
+        
+        Map<Long, User> userMap = Map.of(userId, user);
+        userMap.putAll(reviewerMap);
+        
+        return updates.stream()
+                .map(update -> mapToDto(update, userMap))
                 .collect(Collectors.toList());
     }
     
-    @Transactional(readOnly = true)
-    public List<PendingSkillUpdateDto> getPendingUpdatesByStatus(String status) {
-        return pendingSkillUpdateRepository.findByStatusOrderByCreatedAtDesc(status).stream()
-                .map(this::convertToDto)
+    /**
+     * Get pending skill updates assigned to a reviewer
+     */
+    public List<PendingSkillUpdateDto> getPendingSkillUpdatesByReviewerId(Long reviewerId) {
+        // Check if reviewer exists
+        User reviewer = userRepository.findById(reviewerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reviewer not found with id: " + reviewerId));
+        
+        List<PendingSkillUpdate> updates = pendingSkillUpdateRepository.findByReviewerId(reviewerId);
+        
+        // Get all users for enrichment
+        List<Long> userIds = updates.stream()
+                .map(PendingSkillUpdate::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        Map<Long, User> userMap = userRepository.findAllById(userIds)
+                .stream().collect(Collectors.toMap(User::getId, user -> user));
+        
+        userMap.put(reviewerId, reviewer);
+        
+        return updates.stream()
+                .map(update -> mapToDto(update, userMap))
                 .collect(Collectors.toList());
     }
     
-    @Transactional
-    public PendingSkillUpdateDto createPendingUpdate(PendingSkillUpdateDto pendingUpdateDto, Long currentUserId) {
-        Skill skill = skillRepository.findById(pendingUpdateDto.getSkillId())
-                .orElseThrow(() -> new ResourceNotFoundException("Skill not found with id: " + pendingUpdateDto.getSkillId()));
-        
-        User user = skill.getUser();
-        
-        // Only the skill owner, admins, or managers can request updates
-        User requestedBy = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUserId));
-        
-        // Create the pending update record with current and new values
-        PendingSkillUpdate pendingUpdate = new PendingSkillUpdate();
-        pendingUpdate.setSkill(skill);
-        pendingUpdate.setUser(user);
-        
-        // Set current values
-        pendingUpdate.setCurrentName(skill.getName());
-        pendingUpdate.setCurrentCategory(skill.getCategory());
-        pendingUpdate.setCurrentLevel(skill.getLevel());
-        pendingUpdate.setCurrentDescription(skill.getDescription());
-        pendingUpdate.setCurrentCertification(skill.getCertification());
-        pendingUpdate.setCurrentCredlyLink(skill.getCredlyLink());
-        
-        // Set new values from the DTO
-        pendingUpdate.setNewName(pendingUpdateDto.getNewName());
-        pendingUpdate.setNewCategory(pendingUpdateDto.getNewCategory());
-        pendingUpdate.setNewLevel(pendingUpdateDto.getNewLevel());
-        pendingUpdate.setNewDescription(pendingUpdateDto.getNewDescription());
-        pendingUpdate.setNewCertification(pendingUpdateDto.getNewCertification());
-        pendingUpdate.setNewCredlyLink(pendingUpdateDto.getNewCredlyLink());
-        
-        pendingUpdate.setJustification(pendingUpdateDto.getJustification());
-        pendingUpdate.setStatus("PENDING");
-        pendingUpdate.setRequestedBy(requestedBy);
-        pendingUpdate.setCreatedAt(LocalDateTime.now());
-        
-        PendingSkillUpdate savedPendingUpdate = pendingSkillUpdateRepository.save(pendingUpdate);
-        
-        // Notify admins and managers of the pending skill update
-        List<User> adminsAndManagers = userRepository.findByRoleIn(List.of("ROLE_ADMIN", "ROLE_MANAGER"));
-        for (User admin : adminsAndManagers) {
-            notificationService.createNotification(
-                    admin.getId(),
-                    "New skill update request for " + skill.getName() + " from " + user.getFirstName() + " " + user.getLastName(),
-                    "/pending-updates/" + savedPendingUpdate.getId(),
-                    "skill_update_request"
-            );
-        }
-        
-        // Notify the skill owner if they didn't create the request themselves
-        if (!user.getId().equals(currentUserId)) {
-            notificationService.createNotification(
-                    user.getId(),
-                    "A skill update has been requested for your skill: " + skill.getName(),
-                    "/pending-updates/" + savedPendingUpdate.getId(),
-                    "skill_update_request"
-            );
-        }
-        
-        return convertToDto(savedPendingUpdate);
-    }
-    
-    @Transactional
-    public PendingSkillUpdateDto approvePendingUpdate(Long id, Long approverId) {
-        PendingSkillUpdate pendingUpdate = pendingSkillUpdateRepository.findById(id)
+    /**
+     * Get a pending skill update by ID
+     */
+    public PendingSkillUpdateDto getPendingSkillUpdateById(Long id) {
+        PendingSkillUpdate update = pendingSkillUpdateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pending skill update not found with id: " + id));
         
-        // Only allow approving if status is PENDING
-        if (!"PENDING".equals(pendingUpdate.getStatus())) {
-            throw new IllegalStateException("Cannot approve a pending update that is not in PENDING status");
+        // Get user and reviewer
+        User user = userRepository.findById(update.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + update.getUserId()));
+        
+        Map<Long, User> userMap = Map.of(update.getUserId(), user);
+        
+        if (update.getReviewerId() != null) {
+            userRepository.findById(update.getReviewerId())
+                    .ifPresent(reviewer -> userMap.put(update.getReviewerId(), reviewer));
         }
         
-        User approver = userRepository.findById(approverId)
-                .orElseThrow(() -> new ResourceNotFoundException("Approver not found with id: " + approverId));
+        return mapToDto(update, userMap);
+    }
+    
+    /**
+     * Create a new pending skill update
+     */
+    @Transactional
+    public PendingSkillUpdateDto createPendingSkillUpdate(PendingSkillUpdateDto dto) {
+        // Check if user exists
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
         
-        Skill skill = pendingUpdate.getSkill();
-        
-        // Save original values for history
-        String oldName = skill.getName();
-        String oldCategory = skill.getCategory();
-        SkillLevel oldLevel = skill.getLevel();
-        String oldDescription = skill.getDescription();
-        String oldCertification = skill.getCertification();
-        String oldCredlyLink = skill.getCredlyLink();
-        
-        // Update the skill with new values
-        if (pendingUpdate.getNewName() != null) {
-            skill.setName(pendingUpdate.getNewName());
+        // If skillId is provided, check if skill exists and get its details
+        if (dto.getSkillId() != null) {
+            Skill skill = skillRepository.findById(dto.getSkillId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Skill not found with id: " + dto.getSkillId()));
+            
+            // Check if there's already a pending update for this skill
+            Optional<PendingSkillUpdate> existingUpdate = pendingSkillUpdateRepository
+                    .findByUserIdAndSkillIdAndStatus(dto.getUserId(), dto.getSkillId(), "PENDING");
+            
+            if (existingUpdate.isPresent()) {
+                throw new BadRequestException("A pending update already exists for this skill");
+            }
+            
+            dto.setSkillName(skill.getName());
+            dto.setSkillCategory(skill.getCategory());
+            dto.setCurrentLevel(skill.getLevel());
         }
         
-        if (pendingUpdate.getNewCategory() != null) {
-            skill.setCategory(pendingUpdate.getNewCategory());
+        // Set default status if not provided
+        if (dto.getStatus() == null || dto.getStatus().isEmpty()) {
+            dto.setStatus("PENDING");
         }
         
-        if (pendingUpdate.getNewLevel() != null) {
-            skill.setLevel(pendingUpdate.getNewLevel());
+        // Map DTO to entity
+        PendingSkillUpdate pendingSkillUpdate = mapToEntity(dto);
+        pendingSkillUpdate.setCreatedAt(LocalDateTime.now());
+        
+        // Save entity
+        PendingSkillUpdate savedUpdate = pendingSkillUpdateRepository.save(pendingSkillUpdate);
+        
+        // Find managers to notify about the pending update
+        List<User> managers = userRepository.findByRole("ROLE_MANAGER");
+        
+        // Send notifications to managers
+        for (User manager : managers) {
+            String message = "New skill level update request from " + 
+                    user.getFirstName() + " " + user.getLastName() + 
+                    " for " + savedUpdate.getSkillName() + " to " + 
+                    savedUpdate.getProposedLevel() + " level.";
+            
+            notificationService.createNotification(
+                    manager.getId(),
+                    "New Skill Update Request",
+                    message,
+                    "/pending-updates/" + savedUpdate.getId()
+            );
+            
+            // Send email notification
+            emailService.sendNotificationEmail(
+                    manager,
+                    "New Skill Update Request",
+                    message
+            );
         }
         
-        if (pendingUpdate.getNewDescription() != null) {
-            skill.setDescription(pendingUpdate.getNewDescription());
+        Map<Long, User> userMap = Map.of(savedUpdate.getUserId(), user);
+        return mapToDto(savedUpdate, userMap);
+    }
+    
+    /**
+     * Assign a reviewer to a pending skill update
+     */
+    @Transactional
+    public PendingSkillUpdateDto assignReviewer(Long id, Long reviewerId) {
+        PendingSkillUpdate update = pendingSkillUpdateRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pending skill update not found with id: " + id));
+        
+        // Check if reviewer exists
+        User reviewer = userRepository.findById(reviewerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reviewer not found with id: " + reviewerId));
+        
+        // Check if the update is still pending
+        if (!"PENDING".equals(update.getStatus())) {
+            throw new BadRequestException("Cannot assign reviewer to a non-pending update");
         }
         
-        if (pendingUpdate.getNewCertification() != null) {
-            skill.setCertification(pendingUpdate.getNewCertification());
-        }
+        update.setReviewerId(reviewerId);
+        update.setUpdatedAt(LocalDateTime.now());
         
-        if (pendingUpdate.getNewCredlyLink() != null) {
-            skill.setCredlyLink(pendingUpdate.getNewCredlyLink());
-        }
+        PendingSkillUpdate savedUpdate = pendingSkillUpdateRepository.save(update);
         
-        skill.setUpdatedAt(LocalDateTime.now());
+        // Get the user who requested the update
+        User user = userRepository.findById(savedUpdate.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + savedUpdate.getUserId()));
         
-        // Save the updated skill
-        skillRepository.save(skill);
+        // Send notification to the user
+        String message = reviewer.getFirstName() + " " + reviewer.getLastName() + 
+                " has been assigned to review your skill update request for " + 
+                savedUpdate.getSkillName() + ".";
         
-        // Update the pending update status
-        pendingUpdate.setStatus("APPROVED");
-        pendingUpdate.setApprovedBy(approver);
-        pendingUpdate.setProcessedAt(LocalDateTime.now());
-        pendingUpdate.setUpdatedAt(LocalDateTime.now());
-        
-        // Create skill history record
-        if (!oldName.equals(skill.getName())) {
-            skillHistoryService.createSkillHistory(SkillHistoryDto.builder()
-                    .skillId(skill.getId())
-                    .userId(skill.getUser().getId())
-                    .changeType("name")
-                    .previousValue(oldName)
-                    .newValue(skill.getName())
-                    .build());
-        }
-        
-        if (oldCategory != null && !oldCategory.equals(skill.getCategory())) {
-            skillHistoryService.createSkillHistory(SkillHistoryDto.builder()
-                    .skillId(skill.getId())
-                    .userId(skill.getUser().getId())
-                    .changeType("category")
-                    .previousValue(oldCategory)
-                    .newValue(skill.getCategory())
-                    .build());
-        }
-        
-        if (oldLevel != skill.getLevel()) {
-            skillHistoryService.createSkillHistory(SkillHistoryDto.builder()
-                    .skillId(skill.getId())
-                    .userId(skill.getUser().getId())
-                    .changeType("level")
-                    .previousLevel(oldLevel)
-                    .newLevel(skill.getLevel())
-                    .build());
-        }
-        
-        // Notify the skill owner
         notificationService.createNotification(
-                skill.getUser().getId(),
-                "Your skill update for " + skill.getName() + " has been approved",
-                "/skills/" + skill.getId(),
-                "skill_update_approved"
+                user.getId(),
+                "Reviewer Assigned",
+                message,
+                "/pending-updates/" + savedUpdate.getId()
         );
         
-        // Notify the requester if different from the owner
-        if (pendingUpdate.getRequestedBy() != null && 
-                !pendingUpdate.getRequestedBy().getId().equals(skill.getUser().getId())) {
-            notificationService.createNotification(
-                    pendingUpdate.getRequestedBy().getId(),
-                    "The skill update you requested for " + skill.getName() + " has been approved",
-                    "/skills/" + skill.getId(),
-                    "skill_update_approved"
-            );
-        }
-        
-        PendingSkillUpdate updatedPendingUpdate = pendingSkillUpdateRepository.save(pendingUpdate);
-        return convertToDto(updatedPendingUpdate);
-    }
-    
-    @Transactional
-    public PendingSkillUpdateDto rejectPendingUpdate(Long id, String rejectionReason, Long rejecterId) {
-        PendingSkillUpdate pendingUpdate = pendingSkillUpdateRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Pending skill update not found with id: " + id));
-        
-        // Only allow rejecting if status is PENDING
-        if (!"PENDING".equals(pendingUpdate.getStatus())) {
-            throw new IllegalStateException("Cannot reject a pending update that is not in PENDING status");
-        }
-        
-        User rejecter = userRepository.findById(rejecterId)
-                .orElseThrow(() -> new ResourceNotFoundException("Rejecter not found with id: " + rejecterId));
-        
-        // Update the pending update status
-        pendingUpdate.setStatus("REJECTED");
-        pendingUpdate.setRejectionReason(rejectionReason);
-        pendingUpdate.setApprovedBy(rejecter); // Use the same field for rejecter
-        pendingUpdate.setProcessedAt(LocalDateTime.now());
-        pendingUpdate.setUpdatedAt(LocalDateTime.now());
-        
-        // Notify the skill owner
-        notificationService.createNotification(
-                pendingUpdate.getUser().getId(),
-                "Your skill update for " + pendingUpdate.getSkill().getName() + " has been rejected",
-                "/pending-updates/" + pendingUpdate.getId(),
-                "skill_update_rejected"
+        Map<Long, User> userMap = Map.of(
+                savedUpdate.getUserId(), user,
+                reviewerId, reviewer
         );
         
-        // Notify the requester if different from the owner
-        if (pendingUpdate.getRequestedBy() != null && 
-                !pendingUpdate.getRequestedBy().getId().equals(pendingUpdate.getUser().getId())) {
-            notificationService.createNotification(
-                    pendingUpdate.getRequestedBy().getId(),
-                    "The skill update you requested for " + pendingUpdate.getSkill().getName() + " has been rejected",
-                    "/pending-updates/" + pendingUpdate.getId(),
-                    "skill_update_rejected"
-            );
-        }
-        
-        PendingSkillUpdate updatedPendingUpdate = pendingSkillUpdateRepository.save(pendingUpdate);
-        return convertToDto(updatedPendingUpdate);
+        return mapToDto(savedUpdate, userMap);
     }
     
+    /**
+     * Approve a pending skill update
+     */
     @Transactional
-    public void deletePendingUpdate(Long id) {
-        PendingSkillUpdate pendingUpdate = pendingSkillUpdateRepository.findById(id)
+    public PendingSkillUpdateDto approvePendingSkillUpdate(Long id, String comments, Long approverId) {
+        PendingSkillUpdate update = pendingSkillUpdateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pending skill update not found with id: " + id));
         
-        // Only allow deleting if status is PENDING
-        if (!"PENDING".equals(pendingUpdate.getStatus())) {
-            throw new IllegalStateException("Cannot delete a pending update that is not in PENDING status");
+        // Check if the update is still pending
+        if (!"PENDING".equals(update.getStatus())) {
+            throw new BadRequestException("Cannot approve a non-pending update");
         }
         
-        pendingSkillUpdateRepository.delete(pendingUpdate);
+        // Set reviewer if not already set
+        if (update.getReviewerId() == null) {
+            update.setReviewerId(approverId);
+        }
+        
+        // Update status and reviewer comments
+        update.setStatus("APPROVED");
+        update.setReviewerComments(comments);
+        update.setApprovedAt(LocalDateTime.now());
+        update.setUpdatedAt(LocalDateTime.now());
+        
+        PendingSkillUpdate savedUpdate = pendingSkillUpdateRepository.save(update);
+        
+        // If skillId is provided, update the skill
+        if (savedUpdate.getSkillId() != null) {
+            Optional<Skill> skillOpt = skillRepository.findById(savedUpdate.getSkillId());
+            
+            if (skillOpt.isPresent()) {
+                Skill skill = skillOpt.get();
+                String oldLevel = skill.getLevel();
+                skill.setLevel(savedUpdate.getProposedLevel());
+                skill.setUpdatedAt(LocalDateTime.now());
+                skillRepository.save(skill);
+                
+                // Create skill history entry
+                SkillHistory history = new SkillHistory();
+                history.setSkillId(skill.getId());
+                history.setUserId(skill.getUserId());
+                history.setField("level");
+                history.setOldValue(oldLevel);
+                history.setNewValue(savedUpdate.getProposedLevel());
+                history.setChangedBy(approverId);
+                history.setChangeReason("Approved skill update request");
+                history.setCreatedAt(LocalDateTime.now());
+                
+                skillHistoryRepository.save(history);
+            }
+        } else {
+            // If skillId is not provided, create a new skill
+            Skill newSkill = new Skill();
+            newSkill.setUserId(savedUpdate.getUserId());
+            newSkill.setName(savedUpdate.getSkillName());
+            newSkill.setCategory(savedUpdate.getSkillCategory());
+            newSkill.setLevel(savedUpdate.getProposedLevel());
+            newSkill.setCreatedAt(LocalDateTime.now());
+            
+            Skill savedSkill = skillRepository.save(newSkill);
+            
+            // Create skill history entry
+            SkillHistory history = new SkillHistory();
+            history.setSkillId(savedSkill.getId());
+            history.setUserId(savedSkill.getUserId());
+            history.setField("skill");
+            history.setOldValue(null);
+            history.setNewValue("Created with level " + savedSkill.getLevel());
+            history.setChangedBy(approverId);
+            history.setChangeReason("Approved new skill request");
+            history.setCreatedAt(LocalDateTime.now());
+            
+            skillHistoryRepository.save(history);
+        }
+        
+        // Get user and reviewer for enrichment
+        User user = userRepository.findById(savedUpdate.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + savedUpdate.getUserId()));
+        
+        User reviewer = userRepository.findById(approverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reviewer not found with id: " + approverId));
+        
+        // Send notification to the user
+        String message = "Your skill update request for " + savedUpdate.getSkillName() + 
+                " to " + savedUpdate.getProposedLevel() + " level has been approved.";
+        
+        notificationService.createNotification(
+                user.getId(),
+                "Skill Update Approved",
+                message,
+                "/skills"
+        );
+        
+        // Send email notification
+        emailService.sendNotificationEmail(
+                user,
+                "Skill Update Approved",
+                message + "\n\nReviewer Comments: " + 
+                        (comments != null ? comments : "No comments provided.")
+        );
+        
+        Map<Long, User> userMap = Map.of(
+                savedUpdate.getUserId(), user,
+                approverId, reviewer
+        );
+        
+        return mapToDto(savedUpdate, userMap);
     }
     
-    // Helper methods for entity <-> DTO conversion
+    /**
+     * Reject a pending skill update
+     */
+    @Transactional
+    public PendingSkillUpdateDto rejectPendingSkillUpdate(Long id, String comments, Long rejecterId) {
+        PendingSkillUpdate update = pendingSkillUpdateRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pending skill update not found with id: " + id));
+        
+        // Check if the update is still pending
+        if (!"PENDING".equals(update.getStatus())) {
+            throw new BadRequestException("Cannot reject a non-pending update");
+        }
+        
+        // Set reviewer if not already set
+        if (update.getReviewerId() == null) {
+            update.setReviewerId(rejecterId);
+        }
+        
+        // Update status and reviewer comments
+        update.setStatus("REJECTED");
+        update.setReviewerComments(comments);
+        update.setRejectedAt(LocalDateTime.now());
+        update.setUpdatedAt(LocalDateTime.now());
+        
+        PendingSkillUpdate savedUpdate = pendingSkillUpdateRepository.save(update);
+        
+        // Get user and reviewer for enrichment
+        User user = userRepository.findById(savedUpdate.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + savedUpdate.getUserId()));
+        
+        User reviewer = userRepository.findById(rejecterId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reviewer not found with id: " + rejecterId));
+        
+        // Send notification to the user
+        String message = "Your skill update request for " + savedUpdate.getSkillName() + 
+                " to " + savedUpdate.getProposedLevel() + " level has been rejected.";
+        
+        notificationService.createNotification(
+                user.getId(),
+                "Skill Update Rejected",
+                message,
+                "/pending-updates/" + savedUpdate.getId()
+        );
+        
+        // Send email notification
+        emailService.sendNotificationEmail(
+                user,
+                "Skill Update Rejected",
+                message + "\n\nReviewer Comments: " + 
+                        (comments != null ? comments : "No comments provided.")
+        );
+        
+        Map<Long, User> userMap = Map.of(
+                savedUpdate.getUserId(), user,
+                rejecterId, reviewer
+        );
+        
+        return mapToDto(savedUpdate, userMap);
+    }
     
-    private PendingSkillUpdateDto convertToDto(PendingSkillUpdate pendingUpdate) {
+    /**
+     * Delete a pending skill update
+     */
+    @Transactional
+    public void deletePendingSkillUpdate(Long id) {
+        PendingSkillUpdate update = pendingSkillUpdateRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pending skill update not found with id: " + id));
+        
+        pendingSkillUpdateRepository.delete(update);
+    }
+    
+    /**
+     * Count pending updates
+     */
+    public long countPendingUpdates() {
+        return pendingSkillUpdateRepository.countPendingUpdates();
+    }
+    
+    /**
+     * Count pending updates for a user
+     */
+    public long countPendingUpdatesForUser(Long userId) {
+        return pendingSkillUpdateRepository.countPendingUpdatesForUser(userId);
+    }
+    
+    /**
+     * Map entity to DTO
+     */
+    private PendingSkillUpdateDto mapToDto(PendingSkillUpdate entity, Map<Long, User> userMap) {
         PendingSkillUpdateDto dto = new PendingSkillUpdateDto();
-        BeanUtils.copyProperties(pendingUpdate, dto);
+        dto.setId(entity.getId());
+        dto.setUserId(entity.getUserId());
+        dto.setSkillId(entity.getSkillId());
+        dto.setSkillName(entity.getSkillName());
+        dto.setSkillCategory(entity.getSkillCategory());
+        dto.setCurrentLevel(entity.getCurrentLevel());
+        dto.setProposedLevel(entity.getProposedLevel());
+        dto.setJustification(entity.getJustification());
+        dto.setStatus(entity.getStatus());
+        dto.setReviewerId(entity.getReviewerId());
+        dto.setReviewerComments(entity.getReviewerComments());
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
+        dto.setApprovedAt(entity.getApprovedAt());
+        dto.setRejectedAt(entity.getRejectedAt());
         
-        dto.setSkillId(pendingUpdate.getSkill().getId());
-        dto.setUserId(pendingUpdate.getUser().getId());
-        
-        dto.setSkillName(pendingUpdate.getSkill().getName());
-        dto.setUserName(pendingUpdate.getUser().getFirstName() + " " + pendingUpdate.getUser().getLastName());
-        
-        if (pendingUpdate.getRequestedBy() != null) {
-            dto.setRequestedById(pendingUpdate.getRequestedBy().getId());
-            dto.setRequestedByName(pendingUpdate.getRequestedBy().getFirstName() + " " + pendingUpdate.getRequestedBy().getLastName());
+        // Add user information if available
+        User user = userMap.get(entity.getUserId());
+        if (user != null) {
+            dto.setUserName(user.getFirstName() + " " + user.getLastName());
+            dto.setUserEmail(user.getEmail());
         }
         
-        if (pendingUpdate.getApprovedBy() != null) {
-            dto.setApprovedById(pendingUpdate.getApprovedBy().getId());
-            dto.setApprovedByName(pendingUpdate.getApprovedBy().getFirstName() + " " + pendingUpdate.getApprovedBy().getLastName());
+        // Add reviewer information if available
+        if (entity.getReviewerId() != null) {
+            User reviewer = userMap.get(entity.getReviewerId());
+            if (reviewer != null) {
+                dto.setReviewerName(reviewer.getFirstName() + " " + reviewer.getLastName());
+                dto.setReviewerEmail(reviewer.getEmail());
+            }
         }
         
         return dto;
+    }
+    
+    /**
+     * Map DTO to entity
+     */
+    private PendingSkillUpdate mapToEntity(PendingSkillUpdateDto dto) {
+        PendingSkillUpdate entity = new PendingSkillUpdate();
+        entity.setId(dto.getId());
+        entity.setUserId(dto.getUserId());
+        entity.setSkillId(dto.getSkillId());
+        entity.setSkillName(dto.getSkillName());
+        entity.setSkillCategory(dto.getSkillCategory());
+        entity.setCurrentLevel(dto.getCurrentLevel());
+        entity.setProposedLevel(dto.getProposedLevel());
+        entity.setJustification(dto.getJustification());
+        entity.setStatus(dto.getStatus());
+        entity.setReviewerId(dto.getReviewerId());
+        entity.setReviewerComments(dto.getReviewerComments());
+        
+        return entity;
     }
 }
