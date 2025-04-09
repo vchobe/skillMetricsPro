@@ -1,20 +1,21 @@
 package com.skillmetrics.api.dto;
 
-import com.skillmetrics.api.model.enums.ProjectStatus;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProjectDto {
-    
+
     private Long id;
     
     @NotBlank(message = "Project name is required")
@@ -42,12 +43,16 @@ public class ProjectDto {
     
     private String deliveryLeadName; // For display purposes
     
-    @NotNull(message = "Project status is required")
-    private ProjectStatus status;
+    @NotBlank(message = "Project status is required")
+    private String status;
     
     private String hrCoordinatorEmail;
     
     private String financeTeamEmail;
+    
+    private List<ProjectResourceDto> resources;
+    
+    private List<ProjectSkillDto> skills;
     
     private LocalDateTime createdAt;
     

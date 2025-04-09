@@ -1,17 +1,21 @@
 package com.skillmetrics.api.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResourceHistoryDto {
-    
+
     private Long id;
+    
+    private Long projectResourceId;
     
     private Long projectId;
     
@@ -21,7 +25,7 @@ public class ResourceHistoryDto {
     
     private String userName; // For display purposes
     
-    private String action;
+    private String action; // added, removed, role_changed, allocation_changed
     
     private String previousRole;
     
@@ -31,11 +35,11 @@ public class ResourceHistoryDto {
     
     private Integer newAllocation;
     
-    private LocalDateTime date;
-    
     private Long performedById;
     
     private String performedByName; // For display purposes
     
     private String note;
+    
+    private LocalDateTime date;
 }

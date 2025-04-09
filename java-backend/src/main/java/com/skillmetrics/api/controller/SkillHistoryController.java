@@ -18,27 +18,13 @@ public class SkillHistoryController {
 
     @GetMapping("/skill/{skillId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<SkillHistoryDto>> getHistoryForSkill(@PathVariable Long skillId) {
-        return ResponseEntity.ok(skillHistoryService.getHistoryForSkill(skillId));
+    public ResponseEntity<List<SkillHistoryDto>> getHistoryBySkillId(@PathVariable Long skillId) {
+        return ResponseEntity.ok(skillHistoryService.getHistoryBySkillId(skillId));
     }
     
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<SkillHistoryDto>> getHistoryForUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(skillHistoryService.getHistoryForUser(userId));
-    }
-    
-    @GetMapping("/user/{userId}/action/{action}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<SkillHistoryDto>> getHistoryByAction(
-            @PathVariable Long userId, @PathVariable String action) {
-        return ResponseEntity.ok(skillHistoryService.getHistoryByAction(userId, action));
-    }
-    
-    @GetMapping("/recent")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<List<SkillHistoryDto>> getRecentHistory(
-            @RequestParam(defaultValue = "30") int days) {
-        return ResponseEntity.ok(skillHistoryService.getRecentHistory(days));
+    public ResponseEntity<List<SkillHistoryDto>> getHistoryByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(skillHistoryService.getHistoryByUserId(userId));
     }
 }

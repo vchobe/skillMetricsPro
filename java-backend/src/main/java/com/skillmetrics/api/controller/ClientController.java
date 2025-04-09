@@ -1,6 +1,7 @@
 package com.skillmetrics.api.controller;
 
 import com.skillmetrics.api.dto.ClientDto;
+import com.skillmetrics.api.dto.ProjectDto;
 import com.skillmetrics.api.service.ClientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,28 +30,28 @@ public class ClientController {
         return ResponseEntity.ok(clientService.getClientById(id));
     }
     
+    @GetMapping("/industry/{industry}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
+    public ResponseEntity<List<ClientDto>> getClientsByIndustry(@PathVariable String industry) {
+        return ResponseEntity.ok(clientService.getClientsByIndustry(industry));
+    }
+    
+    @GetMapping("/industries")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
+    public ResponseEntity<List<String>> getAllIndustries() {
+        return ResponseEntity.ok(clientService.getAllIndustries());
+    }
+    
     @GetMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<ClientDto>> searchClientsByName(@RequestParam String keyword) {
-        return ResponseEntity.ok(clientService.searchClientsByName(keyword));
+    public ResponseEntity<List<ClientDto>> searchClients(@RequestParam String term) {
+        return ResponseEntity.ok(clientService.searchClients(term));
     }
     
-    @GetMapping("/industry")
+    @GetMapping("/{id}/projects")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<ClientDto>> searchClientsByIndustry(@RequestParam String industry) {
-        return ResponseEntity.ok(clientService.searchClientsByIndustry(industry));
-    }
-    
-    @GetMapping("/contact-name")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<ClientDto>> searchClientsByContactName(@RequestParam String contactName) {
-        return ResponseEntity.ok(clientService.searchClientsByContactName(contactName));
-    }
-    
-    @GetMapping("/contact-email")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<ClientDto>> searchClientsByContactEmail(@RequestParam String contactEmail) {
-        return ResponseEntity.ok(clientService.searchClientsByContactEmail(contactEmail));
+    public ResponseEntity<List<ProjectDto>> getProjectsByClientId(@PathVariable Long id) {
+        return ResponseEntity.ok(clientService.getProjectsByClientId(id));
     }
     
     @PostMapping
@@ -62,8 +63,7 @@ public class ClientController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ClientDto> updateClient(
-            @PathVariable Long id, 
-            @Valid @RequestBody ClientDto clientDto) {
+            @PathVariable Long id, @Valid @RequestBody ClientDto clientDto) {
         return ResponseEntity.ok(clientService.updateClient(id, clientDto));
     }
     

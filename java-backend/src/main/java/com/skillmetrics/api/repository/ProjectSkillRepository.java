@@ -6,27 +6,39 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProjectSkillRepository extends JpaRepository<ProjectSkill, Long> {
-    
+
     List<ProjectSkill> findByProjectId(Long projectId);
     
     List<ProjectSkill> findBySkillId(Long skillId);
     
-    List<ProjectSkill> findByProjectIdAndSkillId(Long projectId, Long skillId);
+    Optional<ProjectSkill> findByProjectIdAndSkillId(Long projectId, Long skillId);
     
-    List<ProjectSkill> findByRequiredLevel(String requiredLevel);
+    @Query("""
+           SELECT ps FROM ProjectSkill ps
+           JOIN FETCH ps.skill s
+           WHERE ps.project.id = :projectId
+           ORDER BY s.name
+           """)
+    List<ProjectSkill> findByProjectIdWithSkillDetails(Long projectId);
     
-    @Query("SELECT ps FROM ProjectSkill ps JOIN ps.skill s WHERE s.category = ?1")
-    List<ProjectSkill> findBySkillCategory(String category);
+    @Query("""
+           SELECT DISTINCT ps.requiredLevel FROM ProjectSkill ps
+           """)
+    List<String> findAllRequiredLevels();
     
-    @Query("SELECT ps FROM ProjectSkill ps JOIN ps.project p WHERE p.name LIKE %?1%")
-    List<ProjectSkill> findByProjectNameContaining(String keyword);
+    @Query("""
+           SELECT COUNT(ps) FROM ProjectSkill ps
+           WHERE ps.skill.category = :category
+           """)
+    Long countBySkillCategory(String category);
     
-    @Query("SELECT ps FROM ProjectSkill ps JOIN ps.skill s WHERE s.name LIKE %?1%")
-    List<ProjectSkill> findBySkillNameContaining(String keyword);
-    
-    @Query("SELECT COUNT(ps) > 0 FROM ProjectSkill ps WHERE ps.project.id = ?1 AND ps.skill.id = ?2")
-    boolean existsByProjectIdAndSkillId(Long projectId, Long skillId);
+    @Query("""
+           SELECT COUNT(ps) FROM ProjectSkill ps
+           WHERE ps.requiredLevel = :level
+           """)
+    Long countByRequiredLevel(String level);
 }

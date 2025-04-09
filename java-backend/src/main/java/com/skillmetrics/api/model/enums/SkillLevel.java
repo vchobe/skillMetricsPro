@@ -1,8 +1,8 @@
 package com.skillmetrics.api.model.enums;
 
 public enum SkillLevel {
-    BEGINNER, 
-    INTERMEDIATE, 
-    ADVANCED, 
+    BEGINNER,
+    INTERMEDIATE,
+    ADVANCED,
     EXPERT
 }

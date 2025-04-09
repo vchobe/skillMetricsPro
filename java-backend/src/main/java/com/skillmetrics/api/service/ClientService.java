@@ -1,7 +1,7 @@
 package com.skillmetrics.api.service;
 
 import com.skillmetrics.api.dto.ClientDto;
-import com.skillmetrics.api.exception.ResourceAlreadyExistsException;
+import com.skillmetrics.api.dto.ProjectDto;
 import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.Client;
 import com.skillmetrics.api.repository.ClientRepository;
@@ -17,57 +17,44 @@ import java.util.stream.Collectors;
 public class ClientService {
 
     private final ClientRepository clientRepository;
+    private final ProjectService projectService;
 
     @Transactional(readOnly = true)
     public List<ClientDto> getAllClients() {
         return clientRepository.findAll().stream()
-                .map(this::mapToDto)
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
     
     @Transactional(readOnly = true)
     public ClientDto getClientById(Long id) {
         Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with id " + id));
         
-        return mapToDto(client);
+        return convertToDto(client);
     }
     
     @Transactional(readOnly = true)
-    public List<ClientDto> searchClientsByName(String keyword) {
-        return clientRepository.findByNameContainingIgnoreCase(keyword).stream()
-                .map(this::mapToDto)
+    public List<ClientDto> getClientsByIndustry(String industry) {
+        return clientRepository.findByIndustry(industry).stream()
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
     
     @Transactional(readOnly = true)
-    public List<ClientDto> searchClientsByIndustry(String industry) {
-        return clientRepository.findByIndustryContainingIgnoreCase(industry).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public List<String> getAllIndustries() {
+        return clientRepository.findAllIndustries();
     }
     
     @Transactional(readOnly = true)
-    public List<ClientDto> searchClientsByContactName(String contactName) {
-        return clientRepository.findByContactNameContainingIgnoreCase(contactName).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Transactional(readOnly = true)
-    public List<ClientDto> searchClientsByContactEmail(String contactEmail) {
-        return clientRepository.findByContactEmailContainingIgnoreCase(contactEmail).stream()
-                .map(this::mapToDto)
+    public List<ClientDto> searchClients(String term) {
+        return clientRepository.searchClients(term).stream()
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
     
     @Transactional
     public ClientDto createClient(ClientDto clientDto) {
-        // Check if client with same name already exists
-        if (clientRepository.existsByName(clientDto.getName())) {
-            throw new ResourceAlreadyExistsException("Client", "name", clientDto.getName());
-        }
-        
         Client client = new Client();
         client.setName(clientDto.getName());
         client.setIndustry(clientDto.getIndustry());
@@ -77,22 +64,17 @@ public class ClientService {
         client.setWebsite(clientDto.getWebsite());
         client.setDescription(clientDto.getDescription());
         client.setAddress(clientDto.getAddress());
+        client.setLogoUrl(clientDto.getLogoUrl());
         
         Client savedClient = clientRepository.save(client);
         
-        return mapToDto(savedClient);
+        return convertToDto(savedClient);
     }
     
     @Transactional
     public ClientDto updateClient(Long id, ClientDto clientDto) {
         Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
-        
-        // Check if client name is being changed and if new name is already taken by another client
-        if (!client.getName().equals(clientDto.getName()) && 
-                clientRepository.existsByName(clientDto.getName())) {
-            throw new ResourceAlreadyExistsException("Client", "name", clientDto.getName());
-        }
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with id " + id));
         
         client.setName(clientDto.getName());
         client.setIndustry(clientDto.getIndustry());
@@ -102,36 +84,50 @@ public class ClientService {
         client.setWebsite(clientDto.getWebsite());
         client.setDescription(clientDto.getDescription());
         client.setAddress(clientDto.getAddress());
+        client.setLogoUrl(clientDto.getLogoUrl());
         
         Client updatedClient = clientRepository.save(client);
         
-        return mapToDto(updatedClient);
+        return convertToDto(updatedClient);
     }
     
     @Transactional
     public void deleteClient(Long id) {
-        if (!clientRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Client", "id", id);
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with id " + id));
+        
+        // Check if client has any projects
+        if (client.getProjects() != null && !client.getProjects().isEmpty()) {
+            throw new IllegalStateException("Cannot delete client that has associated projects");
         }
         
-        clientRepository.deleteById(id);
+        clientRepository.delete(client);
     }
     
-    // Helper method to map Client entity to ClientDto
-    private ClientDto mapToDto(Client client) {
-        ClientDto clientDto = new ClientDto();
-        clientDto.setId(client.getId());
-        clientDto.setName(client.getName());
-        clientDto.setIndustry(client.getIndustry());
-        clientDto.setContactName(client.getContactName());
-        clientDto.setContactEmail(client.getContactEmail());
-        clientDto.setContactPhone(client.getContactPhone());
-        clientDto.setWebsite(client.getWebsite());
-        clientDto.setDescription(client.getDescription());
-        clientDto.setAddress(client.getAddress());
-        clientDto.setCreatedAt(client.getCreatedAt());
-        clientDto.setUpdatedAt(client.getUpdatedAt());
+    @Transactional(readOnly = true)
+    public List<ProjectDto> getProjectsByClientId(Long clientId) {
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with id " + clientId));
         
-        return clientDto;
+        return projectService.getProjectsByClientId(clientId);
+    }
+    
+    // Helper methods
+    
+    private ClientDto convertToDto(Client client) {
+        return ClientDto.builder()
+                .id(client.getId())
+                .name(client.getName())
+                .industry(client.getIndustry())
+                .contactName(client.getContactName())
+                .contactEmail(client.getContactEmail())
+                .contactPhone(client.getContactPhone())
+                .website(client.getWebsite())
+                .description(client.getDescription())
+                .address(client.getAddress())
+                .logoUrl(client.getLogoUrl())
+                .createdAt(client.getCreatedAt())
+                .updatedAt(client.getUpdatedAt())
+                .build();
     }
 }
