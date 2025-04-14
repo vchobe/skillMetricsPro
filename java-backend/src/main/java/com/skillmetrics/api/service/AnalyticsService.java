@@ -1,9 +1,10 @@
 package com.skillmetrics.api.service;
 
-import com.skillmetrics.api.model.Skill;
-import com.skillmetrics.api.model.enums.SkillLevel;
+import com.skillmetrics.api.model.*;
 import com.skillmetrics.api.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,622 +12,549 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AnalyticsService {
 
     private final UserRepository userRepository;
     private final SkillRepository skillRepository;
     private final ProjectRepository projectRepository;
-    private final EndorsementRepository endorsementRepository;
-    private final SkillHistoryRepository skillHistoryRepository;
-    private final ProjectResourceRepository projectResourceRepository;
+    private final ProjectResourceRepository resourceRepository;
     private final ProjectSkillRepository projectSkillRepository;
-    private final ProfileHistoryRepository profileHistoryRepository;
+    private final SkillHistoryRepository skillHistoryRepository;
+    private final EndorsementRepository endorsementRepository;
+    private final SkillTargetRepository skillTargetRepository;
+    private final PendingSkillUpdateRepository pendingSkillUpdateRepository;
 
+    /**
+     * Get overview of system analytics
+     */
+    @Cacheable(value = "analyticsCache", key = "'overview'")
     @Transactional(readOnly = true)
-    public Map<String, Object> getDashboardStats() {
-        Map<String, Object> stats = new HashMap<>();
+    public Map<String, Object> getOverviewAnalytics() {
+        Map<String, Object> result = new HashMap<>();
         
-        // User statistics
-        stats.put("totalUsers", userRepository.count());
-        stats.put("adminCount", userRepository.countUsersByRole("ROLE_ADMIN"));
-        stats.put("managerCount", userRepository.countUsersByRole("ROLE_MANAGER"));
-        stats.put("userCount", userRepository.countUsersByRole("ROLE_USER"));
+        // Count total users, skills, projects, etc.
+        result.put("totalUsers", userRepository.count());
+        result.put("totalSkills", skillRepository.count());
+        result.put("totalProjects", projectRepository.count());
+        result.put("totalEndorsements", endorsementRepository.count());
         
-        // Skill statistics
-        stats.put("totalSkills", skillRepository.count());
-        stats.put("verifiedSkillsCount", skillRepository.findAllVerifiedSkills().size());
-        stats.put("skillCategoriesCount", skillRepository.findAllCategories().size());
+        // Count by status
+        Map<String, Long> projectsByStatus = projectRepository.findAll().stream()
+                .collect(Collectors.groupingBy(Project::getStatus, Collectors.counting()));
+        result.put("projectsByStatus", projectsByStatus);
         
-        // Project statistics
-        stats.put("totalProjects", projectRepository.count());
-        stats.put("activeProjectsCount", projectRepository.countByStatus("ACTIVE"));
-        stats.put("completedProjectsCount", projectRepository.countByStatus("COMPLETED"));
+        // Count pending skill updates
+        result.put("pendingSkillUpdates", pendingSkillUpdateRepository.countPendingUpdates());
         
-        // Endorsement statistics
-        stats.put("totalEndorsements", endorsementRepository.count());
+        // Count skill targets by status
+        Map<String, Long> skillTargetsByStatus = skillTargetRepository.findAll().stream()
+                .collect(Collectors.groupingBy(SkillTarget::getStatus, Collectors.counting()));
+        result.put("skillTargetsByStatus", skillTargetsByStatus);
         
-        return stats;
+        return result;
     }
-    
+
+    /**
+     * Get skill distribution by category
+     */
+    @Cacheable(value = "analyticsCache", key = "'skillsByCategory'")
     @Transactional(readOnly = true)
-    public Map<String, Integer> getSkillDistributionByLevel() {
-        Map<String, Integer> distribution = new HashMap<>();
+    public Map<String, Object> getSkillDistributionByCategory() {
+        Map<String, Object> result = new HashMap<>();
         
-        distribution.put("BEGINNER", getSkillCountByLevel(SkillLevel.BEGINNER));
-        distribution.put("INTERMEDIATE", getSkillCountByLevel(SkillLevel.INTERMEDIATE));
-        distribution.put("ADVANCED", getSkillCountByLevel(SkillLevel.ADVANCED));
-        distribution.put("EXPERT", getSkillCountByLevel(SkillLevel.EXPERT));
+        List<Skill> allSkills = skillRepository.findAll();
         
-        return distribution;
-    }
-    
-    @Transactional(readOnly = true)
-    public Map<String, Integer> getSkillDistributionByCategory() {
-        Map<String, Integer> distribution = new HashMap<>();
+        // Get distribution by category
+        Map<String, Long> distributionByCategory = allSkills.stream()
+                .collect(Collectors.groupingBy(Skill::getCategory, Collectors.counting()));
         
-        List<String> categories = skillRepository.findAllCategories();
-        for (String category : categories) {
-            int count = skillRepository.findByCategoryContainingIgnoreCase(category).size();
-            distribution.put(category, count);
-        }
+        // Calculate percentages
+        long total = allSkills.size();
+        Map<String, Double> percentageByCategory = new HashMap<>();
         
-        return distribution;
-    }
-    
-    @Transactional(readOnly = true)
-    public Map<String, Integer> getProjectDistributionByStatus() {
-        Map<String, Integer> distribution = new HashMap<>();
-        
-        List<String> statuses = projectRepository.findAllStatuses();
-        for (String status : statuses) {
-            int count = projectRepository.countByStatus(status);
-            distribution.put(status, count);
-        }
-        
-        return distribution;
-    }
-    
-    @Transactional(readOnly = true)
-    public Map<String, Double> getAverageSkillsPerUser() {
-        Map<String, Double> averages = new HashMap<>();
-        
-        long totalUsers = userRepository.count();
-        if (totalUsers > 0) {
-            double avgTotal = (double) skillRepository.count() / totalUsers;
-            averages.put("TOTAL", avgTotal);
-            
-            double avgBeginner = (double) getSkillCountByLevel(SkillLevel.BEGINNER) / totalUsers;
-            averages.put("BEGINNER", avgBeginner);
-            
-            double avgIntermediate = (double) getSkillCountByLevel(SkillLevel.INTERMEDIATE) / totalUsers;
-            averages.put("INTERMEDIATE", avgIntermediate);
-            
-            double avgAdvanced = (double) getSkillCountByLevel(SkillLevel.ADVANCED) / totalUsers;
-            averages.put("ADVANCED", avgAdvanced);
-            
-            double avgExpert = (double) getSkillCountByLevel(SkillLevel.EXPERT) / totalUsers;
-            averages.put("EXPERT", avgExpert);
-        }
-        
-        return averages;
-    }
-    
-    @Transactional(readOnly = true)
-    public Map<String, Integer> getTopSkillCategories(int limit) {
-        Map<String, Integer> topCategories = new HashMap<>();
-        
-        List<String> categories = skillRepository.findAllCategories();
-        
-        // Sort categories by skill count
-        categories.sort((c1, c2) -> {
-            int count1 = skillRepository.findByCategoryContainingIgnoreCase(c1).size();
-            int count2 = skillRepository.findByCategoryContainingIgnoreCase(c2).size();
-            return Integer.compare(count2, count1); // Descending order
+        distributionByCategory.forEach((category, count) -> {
+            percentageByCategory.put(category, (count.doubleValue() / total) * 100);
         });
         
-        // Take the top 'limit' categories
-        categories.stream()
-                .limit(limit)
-                .forEach(category -> {
-                    int count = skillRepository.findByCategoryContainingIgnoreCase(category).size();
-                    topCategories.put(category, count);
-                });
+        result.put("total", total);
+        result.put("distribution", distributionByCategory);
+        result.put("percentage", percentageByCategory);
         
-        return topCategories;
+        return result;
     }
-    
-    // Advanced analytics methods
-    
+
+    /**
+     * Get skill distribution by level
+     */
+    @Cacheable(value = "analyticsCache", key = "'skillsByLevel'")
     @Transactional(readOnly = true)
-    public Map<String, Object> getAdvancedAnalytics(LocalDate startDate, LocalDate endDate) {
-        Map<String, Object> advancedStats = new HashMap<>();
+    public Map<String, Object> getSkillDistributionByLevel() {
+        Map<String, Object> result = new HashMap<>();
         
-        LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : LocalDate.now().minusYears(1).atStartOfDay();
-        LocalDateTime endDateTime = endDate != null ? endDate.atStartOfDay().plusDays(1) : LocalDateTime.now();
+        List<Skill> allSkills = skillRepository.findAll();
         
-        // Get skill growth over time
-        advancedStats.put("skillGrowth", getSkillGrowthTrend(startDate, endDate));
-        
-        // Get endorsement statistics
-        advancedStats.put("endorsementTrend", getEndorsementsTrend());
-        
-        // Get skill distribution by project demand
-        advancedStats.put("projectSkillDemand", getProjectSkillDemand());
-        
-        // Get certification statistics
-        advancedStats.put("certificationStats", getCertificationReport());
-        
-        // Get skill level progression statistics
-        advancedStats.put("skillLevelProgressions", getSkillLevelProgressions(startDateTime, endDateTime));
-        
-        // Get user activity metrics
-        advancedStats.put("userActivityMetrics", getUserActivityMetrics(startDateTime, endDateTime));
-        
-        // Get skill category growth rates
-        advancedStats.put("categoryGrowthRates", getCategoryGrowthRates(startDateTime, endDateTime));
-        
-        return advancedStats;
-    }
-    
-    @Transactional(readOnly = true)
-    public Map<String, Object> getCertificationReport() {
-        Map<String, Object> report = new HashMap<>();
-        
-        // Get all skills with certifications
-        List<Skill> certifiedSkills = skillRepository.findAllCertifiedSkills();
-        
-        // Total certifications
-        report.put("totalCertifications", certifiedSkills.size());
-        
-        // Certifications by category
-        Map<String, Long> certsByCategory = certifiedSkills.stream()
-                .collect(Collectors.groupingBy(Skill::getCategory, Collectors.counting()));
-        report.put("certificationsByCategory", certsByCategory);
-        
-        // Certifications by level
-        Map<SkillLevel, Long> certsByLevel = certifiedSkills.stream()
+        // Get distribution by level
+        Map<String, Long> distributionByLevel = allSkills.stream()
                 .collect(Collectors.groupingBy(Skill::getLevel, Collectors.counting()));
         
-        Map<String, Long> certsByLevelString = new HashMap<>();
-        certsByLevel.forEach((key, value) -> certsByLevelString.put(key.toString(), value));
-        report.put("certificationsByLevel", certsByLevelString);
+        // Calculate percentages
+        long total = allSkills.size();
+        Map<String, Double> percentageByLevel = new HashMap<>();
         
-        // Expiring certifications (within next 90 days)
-        LocalDateTime ninetyDaysFromNow = LocalDateTime.now().plusDays(90);
-        List<Skill> expiringCerts = certifiedSkills.stream()
-                .filter(skill -> skill.getExpirationDate() != null && 
-                        skill.getExpirationDate().isBefore(ninetyDaysFromNow) &&
-                        skill.getExpirationDate().isAfter(LocalDateTime.now()))
-                .collect(Collectors.toList());
-        
-        report.put("expiringCertificationsCount", expiringCerts.size());
-        
-        // Format expiring certifications for display
-        List<Map<String, Object>> expiringCertDetails = expiringCerts.stream()
-                .map(skill -> {
-                    Map<String, Object> details = new HashMap<>();
-                    details.put("skillId", skill.getId());
-                    details.put("skillName", skill.getName());
-                    details.put("userId", skill.getUser().getId());
-                    details.put("userName", skill.getUser().getFirstName() + " " + skill.getUser().getLastName());
-                    details.put("expirationDate", skill.getExpirationDate().format(DateTimeFormatter.ISO_DATE));
-                    return details;
-                })
-                .collect(Collectors.toList());
-        
-        report.put("expiringCertifications", expiringCertDetails);
-        
-        // Top certification types
-        Map<String, Long> certTypes = certifiedSkills.stream()
-                .filter(skill -> skill.getCertification() != null && !skill.getCertification().isEmpty())
-                .collect(Collectors.groupingBy(Skill::getCertification, Collectors.counting()));
-        
-        report.put("topCertificationTypes", 
-                certTypes.entrySet().stream()
-                        .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                        .limit(10)
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                Map.Entry::getValue,
-                                (e1, e2) -> e1,
-                                LinkedHashMap::new)));
-        
-        return report;
-    }
-    
-    @Transactional(readOnly = true)
-    public Map<String, Object> getSkillHistoryAnalytics(LocalDate startDate, LocalDate endDate) {
-        Map<String, Object> historyAnalytics = new HashMap<>();
-        
-        LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : LocalDate.now().minusYears(1).atStartOfDay();
-        LocalDateTime endDateTime = endDate != null ? endDate.atStartOfDay().plusDays(1) : LocalDateTime.now();
-        
-        // Get skill history within date range
-        var skillHistories = skillHistoryRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(startDateTime, endDateTime);
-        
-        historyAnalytics.put("totalHistoryRecords", skillHistories.size());
-        
-        // Count level progressions
-        Map<String, Integer> levelProgressions = new HashMap<>();
-        levelProgressions.put("BEGINNER_TO_INTERMEDIATE", 0);
-        levelProgressions.put("INTERMEDIATE_TO_ADVANCED", 0);
-        levelProgressions.put("ADVANCED_TO_EXPERT", 0);
-        
-        skillHistories.forEach(history -> {
-            if (history.getPreviousLevel() != null) {
-                if (history.getPreviousLevel() == SkillLevel.BEGINNER && history.getNewLevel() == SkillLevel.INTERMEDIATE) {
-                    levelProgressions.put("BEGINNER_TO_INTERMEDIATE", levelProgressions.get("BEGINNER_TO_INTERMEDIATE") + 1);
-                } else if (history.getPreviousLevel() == SkillLevel.INTERMEDIATE && history.getNewLevel() == SkillLevel.ADVANCED) {
-                    levelProgressions.put("INTERMEDIATE_TO_ADVANCED", levelProgressions.get("INTERMEDIATE_TO_ADVANCED") + 1);
-                } else if (history.getPreviousLevel() == SkillLevel.ADVANCED && history.getNewLevel() == SkillLevel.EXPERT) {
-                    levelProgressions.put("ADVANCED_TO_EXPERT", levelProgressions.get("ADVANCED_TO_EXPERT") + 1);
-                }
-            }
+        distributionByLevel.forEach((level, count) -> {
+            percentageByLevel.put(level, (count.doubleValue() / total) * 100);
         });
         
-        historyAnalytics.put("levelProgressions", levelProgressions);
+        result.put("total", total);
+        result.put("distribution", distributionByLevel);
+        result.put("percentage", percentageByLevel);
         
-        // Group skill history by month
-        Map<String, Long> historyByMonth = skillHistories.stream()
-                .collect(Collectors.groupingBy(
-                        history -> history.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM")),
-                        Collectors.counting()));
-        
-        historyAnalytics.put("historyByMonth", historyByMonth);
-        
-        return historyAnalytics;
+        return result;
     }
-    
+
+    /**
+     * Get skill growth over time
+     */
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getUserProgressAnalytics() {
-        List<Map<String, Object>> userProgress = new ArrayList<>();
+    public Map<String, Object> getSkillGrowthOverTime(LocalDate startDate, LocalDate endDate) {
+        Map<String, Object> result = new HashMap<>();
         
-        // Get all users and their skills
-        var users = userRepository.findAll();
+        // Set default dates if not provided
+        LocalDateTime start = startDate != null 
+                ? startDate.atStartOfDay() 
+                : LocalDateTime.now().minusMonths(6);
         
-        for (var user : users) {
-            Map<String, Object> userStats = new HashMap<>();
-            userStats.put("userId", user.getId());
-            userStats.put("userName", user.getFirstName() + " " + user.getLastName());
-            
-            // Get user's skills
-            var skills = skillRepository.findByUserId(user.getId());
-            
-            // Count skills by level
-            Map<SkillLevel, Long> skillsByLevel = skills.stream()
-                    .collect(Collectors.groupingBy(Skill::getLevel, Collectors.counting()));
-            
-            Map<String, Long> skillsByLevelString = new HashMap<>();
-            skillsByLevel.forEach((key, value) -> skillsByLevelString.put(key.toString(), value));
-            
-            userStats.put("skillsByLevel", skillsByLevelString);
-            
-            // Get skill history for progress tracking
-            var skillHistory = skillHistoryRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
-            userStats.put("skillHistoryCount", skillHistory.size());
-            
-            // Count level progressions for this user
-            long progressions = skillHistory.stream()
-                    .filter(history -> history.getPreviousLevel() != null && 
-                            history.getNewLevel().compareTo(history.getPreviousLevel()) > 0)
-                    .count();
-            
-            userStats.put("levelProgressions", progressions);
-            
-            // Calculate progression rate (progressions per skill)
-            double progressionRate = skills.isEmpty() ? 0 : (double) progressions / skills.size();
-            userStats.put("progressionRate", progressionRate);
-            
-            userProgress.add(userStats);
-        }
+        LocalDateTime end = endDate != null 
+                ? endDate.atTime(23, 59, 59) 
+                : LocalDateTime.now();
         
-        // Sort by progression rate (highest first)
-        userProgress.sort((u1, u2) -> 
-                Double.compare((Double) u2.get("progressionRate"), (Double) u1.get("progressionRate")));
+        // Get all skills created within date range
+        List<Skill> skills = skillRepository.findAll().stream()
+                .filter(skill -> skill.getCreatedAt().isAfter(start) && skill.getCreatedAt().isBefore(end))
+                .collect(Collectors.toList());
         
-        return userProgress;
-    }
-    
-    @Transactional(readOnly = true)
-    public Map<String, Object> getSkillGrowthTrend(LocalDate startDate, LocalDate endDate) {
-        Map<String, Object> growthTrend = new HashMap<>();
-        
-        LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : LocalDate.now().minusYears(1).atStartOfDay();
-        LocalDateTime endDateTime = endDate != null ? endDate.atStartOfDay().plusDays(1) : LocalDateTime.now();
-        
-        // Get all skills created within the date range
-        var skills = skillRepository.findByCreatedAtBetween(startDateTime, endDateTime);
-        
-        // Group skills by month of creation
+        // Group by month
         Map<String, Long> skillsByMonth = skills.stream()
                 .collect(Collectors.groupingBy(
                         skill -> skill.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM")),
-                        Collectors.counting()));
+                        Collectors.counting()
+                ));
         
-        growthTrend.put("skillCreationByMonth", skillsByMonth);
+        // Get skill history for changes within date range
+        List<SkillHistory> history = skillHistoryRepository.findAll().stream()
+                .filter(h -> h.getCreatedAt().isAfter(start) && h.getCreatedAt().isBefore(end))
+                .collect(Collectors.toList());
         
-        // Group skills by category
-        Map<String, Long> skillsByCategory = skills.stream()
-                .collect(Collectors.groupingBy(Skill::getCategory, Collectors.counting()));
-        
-        growthTrend.put("skillsByCategory", skillsByCategory);
-        
-        // Group skills by level
-        Map<SkillLevel, Long> skillsByLevel = skills.stream()
-                .collect(Collectors.groupingBy(Skill::getLevel, Collectors.counting()));
-        
-        Map<String, Long> skillsByLevelString = new HashMap<>();
-        skillsByLevel.forEach((key, value) -> skillsByLevelString.put(key.toString(), value));
-        
-        growthTrend.put("skillsByLevel", skillsByLevelString);
-        
-        return growthTrend;
-    }
-    
-    @Transactional(readOnly = true)
-    public Map<String, Object> getEndorsementsTrend() {
-        Map<String, Object> endorsementTrend = new HashMap<>();
-        
-        // Get all endorsements
-        var endorsements = endorsementRepository.findAll();
-        
-        endorsementTrend.put("totalEndorsements", endorsements.size());
-        
-        // Group endorsements by month
-        Map<String, Long> endorsementsByMonth = endorsements.stream()
+        // Group history by month
+        Map<String, Long> changesByMonth = history.stream()
                 .collect(Collectors.groupingBy(
-                        endorsement -> endorsement.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM")),
-                        Collectors.counting()));
+                        h -> h.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM")),
+                        Collectors.counting()
+                ));
         
-        endorsementTrend.put("endorsementsByMonth", endorsementsByMonth);
+        result.put("startDate", start.toLocalDate());
+        result.put("endDate", end.toLocalDate());
+        result.put("skillsByMonth", skillsByMonth);
+        result.put("changesByMonth", changesByMonth);
         
-        // Get top endorsed skill categories
-        Map<String, Long> topEndorsedCategories = new HashMap<>();
-        
-        endorsements.forEach(endorsement -> {
-            var skill = endorsement.getSkill();
-            String category = skill.getCategory();
-            
-            topEndorsedCategories.put(category, topEndorsedCategories.getOrDefault(category, 0L) + 1);
-        });
-        
-        // Sort and limit to top 10
-        Map<String, Long> top10Categories = topEndorsedCategories.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(10)
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (e1, e2) -> e1,
-                        LinkedHashMap::new));
-        
-        endorsementTrend.put("topEndorsedCategories", top10Categories);
-        
-        return endorsementTrend;
+        return result;
     }
-    
+
+    /**
+     * Get top skills by user count
+     */
+    @Cacheable(value = "analyticsCache", key = "'topSkills'")
     @Transactional(readOnly = true)
-    public Map<String, Object> getProjectSkillDemand() {
-        Map<String, Object> skillDemand = new HashMap<>();
+    public Map<String, Object> getTopSkills(int limit) {
+        Map<String, Object> result = new HashMap<>();
         
-        // Get all project skills
-        var projectSkills = projectSkillRepository.findAll();
+        List<Skill> allSkills = skillRepository.findAll();
         
-        // Group by skill category
-        Map<String, Long> demandByCategory = new HashMap<>();
+        // Group skills by name and category
+        Map<String, List<Skill>> skillGroups = allSkills.stream()
+                .collect(Collectors.groupingBy(skill -> skill.getName() + "|" + skill.getCategory()));
         
-        projectSkills.forEach(projectSkill -> {
-            var skill = projectSkill.getSkill();
-            String category = skill.getCategory();
-            
-            demandByCategory.put(category, demandByCategory.getOrDefault(category, 0L) + 1);
-        });
+        // Sort by count in descending order
+        List<Map<String, Object>> topSkills = skillGroups.entrySet().stream()
+                .map(entry -> {
+                    String[] parts = entry.getKey().split("\\|");
+                    String name = parts[0];
+                    String category = parts.length > 1 ? parts[1] : "";
+                    List<Skill> skills = entry.getValue();
+                    
+                    Map<String, Object> skillData = new HashMap<>();
+                    skillData.put("name", name);
+                    skillData.put("category", category);
+                    skillData.put("count", skills.size());
+                    
+                    // Get level distribution
+                    Map<String, Long> levelDistribution = skills.stream()
+                            .collect(Collectors.groupingBy(Skill::getLevel, Collectors.counting()));
+                    skillData.put("levelDistribution", levelDistribution);
+                    
+                    return skillData;
+                })
+                .sorted(Comparator.comparingInt(skill -> -((Integer) ((Map<String, Object>) skill).get("count"))))
+                .limit(limit)
+                .collect(Collectors.toList());
         
-        skillDemand.put("demandByCategory", demandByCategory);
+        result.put("topSkills", topSkills);
         
-        // Group by required level
-        Map<SkillLevel, Long> demandByLevel = projectSkills.stream()
-                .collect(Collectors.groupingBy(ps -> ps.getRequiredLevel(), Collectors.counting()));
-        
-        Map<String, Long> demandByLevelString = new HashMap<>();
-        demandByLevel.forEach((key, value) -> demandByLevelString.put(key.toString(), value));
-        
-        skillDemand.put("demandByLevel", demandByLevelString);
-        
-        // Calculate most in-demand specific skills
-        Map<String, Long> demandBySkillName = new HashMap<>();
-        
-        projectSkills.forEach(projectSkill -> {
-            var skill = projectSkill.getSkill();
-            String skillName = skill.getName();
-            
-            demandBySkillName.put(skillName, demandBySkillName.getOrDefault(skillName, 0L) + 1);
-        });
-        
-        // Sort and limit to top 20
-        Map<String, Long> top20Skills = demandBySkillName.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(20)
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (e1, e2) -> e1,
-                        LinkedHashMap::new));
-        
-        skillDemand.put("topInDemandSkills", top20Skills);
-        
-        return skillDemand;
+        return result;
     }
-    
+
+    /**
+     * Get skill gap analysis (skills needed vs. available)
+     */
     @Transactional(readOnly = true)
-    public Map<String, Object> getOrganizationSkillHistory(LocalDate startDate, LocalDate endDate) {
-        Map<String, Object> orgHistory = new HashMap<>();
+    public Map<String, Object> getSkillGapAnalysis() {
+        Map<String, Object> result = new HashMap<>();
         
-        LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : LocalDate.now().minusYears(1).atStartOfDay();
-        LocalDateTime endDateTime = endDate != null ? endDate.atStartOfDay().plusDays(1) : LocalDateTime.now();
+        // Get all project skills (required skills)
+        List<ProjectSkill> projectSkills = projectSkillRepository.findAll();
         
-        // Get all skill history records in the date range
-        var skillHistories = skillHistoryRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(startDateTime, endDateTime);
+        // Group project skills by name and category
+        Map<String, List<ProjectSkill>> requiredSkills = projectSkills.stream()
+                .collect(Collectors.groupingBy(
+                        projectSkill -> projectSkill.getSkillName() + "|" + projectSkill.getCategory()
+                ));
         
-        // Organization-wide skill level changes
-        Map<String, Integer> levelChanges = new HashMap<>();
-        skillHistories.forEach(history -> {
-            if (history.getPreviousLevel() != null) {
-                String changeKey = history.getPreviousLevel() + "_TO_" + history.getNewLevel();
-                levelChanges.put(changeKey, levelChanges.getOrDefault(changeKey, 0) + 1);
+        // Get all employee skills
+        List<Skill> employeeSkills = skillRepository.findAll();
+        
+        // Group employee skills by name and category
+        Map<String, List<Skill>> availableSkills = employeeSkills.stream()
+                .collect(Collectors.groupingBy(
+                        skill -> skill.getName() + "|" + skill.getCategory()
+                ));
+        
+        // Find gaps and overlaps
+        List<Map<String, Object>> gaps = new ArrayList<>();
+        List<Map<String, Object>> overlaps = new ArrayList<>();
+        
+        requiredSkills.forEach((key, required) -> {
+            String[] parts = key.split("\\|");
+            String name = parts[0];
+            String category = parts.length > 1 ? parts[1] : "";
+            
+            Map<String, Object> skillData = new HashMap<>();
+            skillData.put("name", name);
+            skillData.put("category", category);
+            skillData.put("requiredCount", required.size());
+            
+            List<Skill> available = availableSkills.getOrDefault(key, Collections.emptyList());
+            skillData.put("availableCount", available.size());
+            
+            int diff = available.size() - required.size();
+            skillData.put("gap", diff);
+            
+            if (diff < 0) {
+                gaps.add(skillData);
+            } else if (diff > 0) {
+                overlaps.add(skillData);
             }
         });
         
-        orgHistory.put("skillLevelChanges", levelChanges);
+        // Sort gaps by largest deficit
+        gaps.sort(Comparator.comparingInt(gap -> (Integer) gap.get("gap")));
         
-        // Monthly skill progression trends
-        Map<String, Map<String, Integer>> monthlyProgressions = new HashMap<>();
+        // Sort overlaps by largest surplus
+        overlaps.sort(Comparator.comparingInt(overlap -> -((Integer) overlap.get("gap"))));
         
-        skillHistories.forEach(history -> {
-            String month = history.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        result.put("gaps", gaps);
+        result.put("overlaps", overlaps);
+        
+        return result;
+    }
+
+    /**
+     * Get project resource allocation statistics
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getProjectAllocationStats() {
+        Map<String, Object> result = new HashMap<>();
+        
+        List<Project> projects = projectRepository.findAll();
+        List<Map<String, Object>> projectStats = new ArrayList<>();
+        
+        for (Project project : projects) {
+            List<ProjectResource> resources = resourceRepository.findByProjectId(project.getId());
             
-            if (!monthlyProgressions.containsKey(month)) {
-                monthlyProgressions.put(month, new HashMap<>());
+            if (resources.isEmpty()) {
+                continue;
             }
             
-            if (history.getPreviousLevel() != null) {
-                String changeKey = history.getPreviousLevel() + "_TO_" + history.getNewLevel();
-                Map<String, Integer> monthChanges = monthlyProgressions.get(month);
-                monthChanges.put(changeKey, monthChanges.getOrDefault(changeKey, 0) + 1);
-            }
-        });
-        
-        orgHistory.put("monthlyProgressions", monthlyProgressions);
-        
-        return orgHistory;
-    }
-    
-    // Additional helper methods for advanced analytics
-    
-    private Map<String, Object> getSkillLevelProgressions(LocalDateTime startDateTime, LocalDateTime endDateTime) {
-        Map<String, Object> progressions = new HashMap<>();
-        
-        // Get all skill histories in date range
-        var histories = skillHistoryRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(startDateTime, endDateTime);
-        
-        // Filter to only progression histories (level improvements)
-        var levelProgressions = histories.stream()
-                .filter(h -> h.getPreviousLevel() != null && h.getNewLevel().compareTo(h.getPreviousLevel()) > 0)
-                .collect(Collectors.toList());
-        
-        progressions.put("totalProgressions", levelProgressions.size());
-        
-        // Group progressions by user
-        Map<Long, Integer> progressionsByUser = new HashMap<>();
-        
-        levelProgressions.forEach(history -> {
-            Long userId = history.getUser().getId();
-            progressionsByUser.put(userId, progressionsByUser.getOrDefault(userId, 0) + 1);
-        });
-        
-        // Find users with most progressions
-        List<Map<String, Object>> topProgressingUsers = progressionsByUser.entrySet().stream()
-                .sorted(Map.Entry.<Long, Integer>comparingByValue().reversed())
-                .limit(10)
-                .map(entry -> {
-                    var user = userRepository.findById(entry.getKey()).orElse(null);
-                    Map<String, Object> userProgression = new HashMap<>();
-                    userProgression.put("userId", entry.getKey());
-                    userProgression.put("userName", user != null ? user.getFirstName() + " " + user.getLastName() : "Unknown");
-                    userProgression.put("progressionCount", entry.getValue());
-                    return userProgression;
-                })
-                .collect(Collectors.toList());
-        
-        progressions.put("topProgressingUsers", topProgressingUsers);
-        
-        return progressions;
-    }
-    
-    private Map<String, Object> getUserActivityMetrics(LocalDateTime startDateTime, LocalDateTime endDateTime) {
-        Map<String, Object> activityMetrics = new HashMap<>();
-        
-        // Get all profile and skill history in date range
-        var profileHistories = profileHistoryRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(startDateTime, endDateTime);
-        var skillHistories = skillHistoryRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(startDateTime, endDateTime);
-        
-        // Combine to get overall user activity
-        Map<Long, Integer> activityByUser = new HashMap<>();
-        
-        profileHistories.forEach(history -> {
-            Long userId = history.getUser().getId();
-            activityByUser.put(userId, activityByUser.getOrDefault(userId, 0) + 1);
-        });
-        
-        skillHistories.forEach(history -> {
-            Long userId = history.getUser().getId();
-            activityByUser.put(userId, activityByUser.getOrDefault(userId, 0) + 1);
-        });
-        
-        // Find most active users
-        List<Map<String, Object>> mostActiveUsers = activityByUser.entrySet().stream()
-                .sorted(Map.Entry.<Long, Integer>comparingByValue().reversed())
-                .limit(10)
-                .map(entry -> {
-                    var user = userRepository.findById(entry.getKey()).orElse(null);
-                    Map<String, Object> userActivity = new HashMap<>();
-                    userActivity.put("userId", entry.getKey());
-                    userActivity.put("userName", user != null ? user.getFirstName() + " " + user.getLastName() : "Unknown");
-                    userActivity.put("activityCount", entry.getValue());
-                    return userActivity;
-                })
-                .collect(Collectors.toList());
-        
-        activityMetrics.put("mostActiveUsers", mostActiveUsers);
-        
-        return activityMetrics;
-    }
-    
-    private Map<String, Object> getCategoryGrowthRates(LocalDateTime startDateTime, LocalDateTime endDateTime) {
-        Map<String, Object> growthRates = new HashMap<>();
-        
-        // Get historical skill counts by category (at start date)
-        var historicalSkills = skillRepository.findByCreatedAtBefore(startDateTime);
-        Map<String, Long> historicalCounts = historicalSkills.stream()
-                .collect(Collectors.groupingBy(Skill::getCategory, Collectors.counting()));
-        
-        // Get new skills by category (during period)
-        var newSkills = skillRepository.findByCreatedAtBetween(startDateTime, endDateTime);
-        Map<String, Long> newCounts = newSkills.stream()
-                .collect(Collectors.groupingBy(Skill::getCategory, Collectors.counting()));
-        
-        // Calculate growth rates
-        Map<String, Double> growthRateByCategory = new HashMap<>();
-        
-        for (var category : newCounts.keySet()) {
-            long historicalCount = historicalCounts.getOrDefault(category, 0L);
-            long newCount = newCounts.get(category);
+            Map<String, Object> projectData = new HashMap<>();
+            projectData.put("projectId", project.getId());
+            projectData.put("projectName", project.getName());
+            projectData.put("status", project.getStatus());
+            projectData.put("resourceCount", resources.size());
             
-            double growthRate = historicalCount == 0 ? 100.0 : (newCount / (double) historicalCount) * 100.0;
-            growthRateByCategory.put(category, growthRate);
+            double totalAllocation = resources.stream()
+                    .mapToDouble(resource -> resource.getAllocation() != null ? resource.getAllocation() : 0)
+                    .sum();
+            
+            double averageAllocation = totalAllocation / resources.size();
+            
+            projectData.put("totalAllocation", totalAllocation);
+            projectData.put("averageAllocation", averageAllocation);
+            
+            // Role distribution
+            Map<String, Long> roleDistribution = resources.stream()
+                    .collect(Collectors.groupingBy(ProjectResource::getRole, Collectors.counting()));
+            
+            projectData.put("roleDistribution", roleDistribution);
+            
+            projectStats.add(projectData);
         }
         
-        // Sort by growth rate (highest first)
-        Map<String, Double> sortedGrowthRates = growthRateByCategory.entrySet().stream()
-                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (e1, e2) -> e1,
-                        LinkedHashMap::new));
+        // Sort by resource count in descending order
+        projectStats.sort(Comparator.comparingInt(stats -> -((Integer) stats.get("resourceCount"))));
         
-        growthRates.put("categoryGrowthRates", sortedGrowthRates);
+        result.put("projectStats", projectStats);
+        result.put("totalProjects", projects.size());
+        result.put("totalProjectsWithResources", projectStats.size());
         
-        return growthRates;
+        return result;
     }
-    
-    // Original helper methods
-    
-    private int getSkillCountByLevel(SkillLevel level) {
-        return skillRepository.findByLevel(level).size();
+
+    /**
+     * Get user skill development analytics
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getUserDevelopmentAnalytics(Long userId) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // Get user skills
+        List<Skill> userSkills = skillRepository.findByUserId(userId);
+        
+        // Get skill history for the user
+        List<SkillHistory> skillHistory = skillHistoryRepository.findByUserId(userId);
+        
+        // Get skill targets for the user
+        List<SkillTarget> skillTargets = skillTargetRepository.findByUserId(userId);
+        
+        // Group skills by category
+        Map<String, List<Skill>> skillsByCategory = userSkills.stream()
+                .collect(Collectors.groupingBy(Skill::getCategory));
+        
+        Map<String, Long> skillCountByCategory = skillsByCategory.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> (long) entry.getValue().size()));
+        
+        // Group skills by level
+        Map<String, Long> skillCountByLevel = userSkills.stream()
+                .collect(Collectors.groupingBy(Skill::getLevel, Collectors.counting()));
+        
+        // Skill growth over time (last 12 months)
+        LocalDateTime twelveMonthsAgo = LocalDateTime.now().minusMonths(12);
+        
+        Map<String, Long> skillCreationByMonth = userSkills.stream()
+                .filter(skill -> skill.getCreatedAt().isAfter(twelveMonthsAgo))
+                .collect(Collectors.groupingBy(
+                        skill -> skill.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM")),
+                        Collectors.counting()
+                ));
+        
+        // Skill level changes over time
+        Map<String, List<SkillHistory>> levelChangesByMonth = skillHistory.stream()
+                .filter(history -> "level".equals(history.getField()) && history.getCreatedAt().isAfter(twelveMonthsAgo))
+                .collect(Collectors.groupingBy(
+                        history -> history.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM"))
+                ));
+        
+        // Skill target statistics
+        Map<String, Long> targetCountByStatus = skillTargets.stream()
+                .collect(Collectors.groupingBy(SkillTarget::getStatus, Collectors.counting()));
+        
+        result.put("userId", userId);
+        result.put("totalSkills", userSkills.size());
+        result.put("skillsByCategory", skillCountByCategory);
+        result.put("skillsByLevel", skillCountByLevel);
+        result.put("skillCreationByMonth", skillCreationByMonth);
+        result.put("skillLevelChangeCount", skillHistory.size());
+        result.put("targetsByStatus", targetCountByStatus);
+        
+        return result;
+    }
+
+    /**
+     * Get endorsement statistics
+     */
+    @Cacheable(value = "analyticsCache", key = "'endorsementStats'")
+    @Transactional(readOnly = true)
+    public Map<String, Object> getEndorsementStatistics() {
+        Map<String, Object> result = new HashMap<>();
+        
+        List<Endorsement> endorsements = endorsementRepository.findAll();
+        
+        // Count total endorsements
+        result.put("totalEndorsements", endorsements.size());
+        
+        // Get most endorsed skills
+        Map<Long, Long> endorsementsBySkill = endorsements.stream()
+                .collect(Collectors.groupingBy(Endorsement::getSkillId, Collectors.counting()));
+        
+        // Get top 10 most endorsed skills
+        List<Map<String, Object>> topEndorsedSkills = new ArrayList<>();
+        
+        endorsementsBySkill.entrySet().stream()
+                .sorted(Map.Entry.<Long, Long>comparingByValue().reversed())
+                .limit(10)
+                .forEach(entry -> {
+                    Long skillId = entry.getKey();
+                    Long count = entry.getValue();
+                    
+                    Optional<Skill> skillOpt = skillRepository.findById(skillId);
+                    if (skillOpt.isPresent()) {
+                        Skill skill = skillOpt.get();
+                        Map<String, Object> skillData = new HashMap<>();
+                        skillData.put("skillId", skillId);
+                        skillData.put("skillName", skill.getName());
+                        skillData.put("category", skill.getCategory());
+                        skillData.put("endorsementCount", count);
+                        
+                        topEndorsedSkills.add(skillData);
+                    }
+                });
+        
+        result.put("topEndorsedSkills", topEndorsedSkills);
+        
+        // Get most active endorsers
+        Map<Long, Long> endorserCounts = endorsements.stream()
+                .collect(Collectors.groupingBy(Endorsement::getEndorserId, Collectors.counting()));
+        
+        List<Map<String, Object>> topEndorsers = new ArrayList<>();
+        
+        endorserCounts.entrySet().stream()
+                .sorted(Map.Entry.<Long, Long>comparingByValue().reversed())
+                .limit(10)
+                .forEach(entry -> {
+                    Long userId = entry.getKey();
+                    Long count = entry.getValue();
+                    
+                    Optional<User> userOpt = userRepository.findById(userId);
+                    if (userOpt.isPresent()) {
+                        User user = userOpt.get();
+                        Map<String, Object> userData = new HashMap<>();
+                        userData.put("userId", userId);
+                        userData.put("name", user.getFirstName() + " " + user.getLastName());
+                        userData.put("endorsementCount", count);
+                        
+                        topEndorsers.add(userData);
+                    }
+                });
+        
+        result.put("topEndorsers", topEndorsers);
+        
+        return result;
+    }
+
+    /**
+     * Get project completion statistics
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getProjectCompletionStats() {
+        Map<String, Object> result = new HashMap<>();
+        
+        List<Project> projects = projectRepository.findAll();
+        
+        // Count by status
+        Map<String, Long> projectsByStatus = projects.stream()
+                .collect(Collectors.groupingBy(Project::getStatus, Collectors.counting()));
+        
+        result.put("projectsByStatus", projectsByStatus);
+        
+        // Calculate completion rate
+        long totalProjects = projects.size();
+        long completedProjects = projectsByStatus.getOrDefault("COMPLETED", 0L);
+        double completionRate = totalProjects > 0 ? (completedProjects * 100.0) / totalProjects : 0;
+        
+        result.put("totalProjects", totalProjects);
+        result.put("completedProjects", completedProjects);
+        result.put("completionRate", completionRate);
+        
+        // Group by month
+        Map<String, Long> projectsByMonth = projects.stream()
+                .filter(project -> project.getCreatedAt() != null)
+                .collect(Collectors.groupingBy(
+                        project -> project.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM")),
+                        Collectors.counting()
+                ));
+        
+        result.put("projectsByMonth", projectsByMonth);
+        
+        return result;
+    }
+
+    /**
+     * Get skill category comparison by project
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getProjectSkillCategoryComparison(Long projectId) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // Get project
+        Optional<Project> projectOpt = projectRepository.findById(projectId);
+        if (!projectOpt.isPresent()) {
+            result.put("error", "Project not found");
+            return result;
+        }
+        
+        Project project = projectOpt.get();
+        result.put("projectId", project.getId());
+        result.put("projectName", project.getName());
+        
+        // Get project skills
+        List<ProjectSkill> projectSkills = projectSkillRepository.findByProjectId(projectId);
+        
+        // Group by category
+        Map<String, Long> projectSkillsByCategory = projectSkills.stream()
+                .collect(Collectors.groupingBy(ProjectSkill::getCategory, Collectors.counting()));
+        
+        result.put("skillCategoryDistribution", projectSkillsByCategory);
+        
+        // Get project resources
+        List<ProjectResource> resources = resourceRepository.findByProjectId(projectId);
+        
+        // Get user skills
+        List<Long> userIds = resources.stream()
+                .map(ProjectResource::getUserId)
+                .collect(Collectors.toList());
+        
+        List<Skill> userSkills = new ArrayList<>();
+        for (Long userId : userIds) {
+            userSkills.addAll(skillRepository.findByUserId(userId));
+        }
+        
+        // Group user skills by category
+        Map<String, Long> userSkillsByCategory = userSkills.stream()
+                .collect(Collectors.groupingBy(Skill::getCategory, Collectors.counting()));
+        
+        result.put("resourceSkillCategoryDistribution", userSkillsByCategory);
+        
+        // Calculate skill match percentage by category
+        Map<String, Object> categoryMatches = new HashMap<>();
+        
+        projectSkillsByCategory.forEach((category, requiredCount) -> {
+            Long availableCount = userSkillsByCategory.getOrDefault(category, 0L);
+            double matchPercentage = (availableCount * 100.0) / requiredCount;
+            
+            Map<String, Object> matchData = new HashMap<>();
+            matchData.put("required", requiredCount);
+            matchData.put("available", availableCount);
+            matchData.put("matchPercentage", matchPercentage);
+            
+            categoryMatches.put(category, matchData);
+        });
+        
+        result.put("categoryMatches", categoryMatches);
+        
+        return result;
     }
 }
