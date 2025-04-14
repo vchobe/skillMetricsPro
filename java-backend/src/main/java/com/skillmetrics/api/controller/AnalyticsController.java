@@ -1,113 +1,132 @@
 package com.skillmetrics.api.controller;
 
+import com.skillmetrics.api.security.CurrentUser;
+import com.skillmetrics.api.security.UserPrincipal;
 import com.skillmetrics.api.service.AnalyticsService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/analytics")
 @RequiredArgsConstructor
 public class AnalyticsController {
-    
+
     private final AnalyticsService analyticsService;
-    
-    @GetMapping("/dashboard")
+
+    /**
+     * Get overview of system analytics
+     */
+    @GetMapping("/overview")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Object>> getDashboardStats() {
-        return ResponseEntity.ok(analyticsService.getDashboardStats());
+    public ResponseEntity<Map<String, Object>> getOverviewAnalytics() {
+        return ResponseEntity.ok(analyticsService.getOverviewAnalytics());
     }
-    
-    @GetMapping("/skills/distribution/level")
+
+    /**
+     * Get skill distribution by category
+     */
+    @GetMapping("/skills/categories")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Integer>> getSkillDistributionByLevel() {
-        return ResponseEntity.ok(analyticsService.getSkillDistributionByLevel());
-    }
-    
-    @GetMapping("/skills/distribution/category")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Integer>> getSkillDistributionByCategory() {
+    public ResponseEntity<Map<String, Object>> getSkillDistributionByCategory() {
         return ResponseEntity.ok(analyticsService.getSkillDistributionByCategory());
     }
-    
-    @GetMapping("/projects/distribution/status")
+
+    /**
+     * Get skill distribution by level
+     */
+    @GetMapping("/skills/levels")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Integer>> getProjectDistributionByStatus() {
-        return ResponseEntity.ok(analyticsService.getProjectDistributionByStatus());
+    public ResponseEntity<Map<String, Object>> getSkillDistributionByLevel() {
+        return ResponseEntity.ok(analyticsService.getSkillDistributionByLevel());
     }
-    
-    @GetMapping("/skills/avg-per-user")
+
+    /**
+     * Get skill growth over time
+     */
+    @GetMapping("/skills/growth")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Double>> getAverageSkillsPerUser() {
-        return ResponseEntity.ok(analyticsService.getAverageSkillsPerUser());
+    public ResponseEntity<Map<String, Object>> getSkillGrowthOverTime(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate) {
+        return ResponseEntity.ok(analyticsService.getSkillGrowthOverTime(startDate, endDate));
     }
-    
-    @GetMapping("/skills/top-categories")
+
+    /**
+     * Get top skills by user count
+     */
+    @GetMapping("/skills/top")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Integer>> getTopSkillCategories(
-            @RequestParam(name = "limit", defaultValue = "5") int limit) {
-        return ResponseEntity.ok(analyticsService.getTopSkillCategories(limit));
+    public ResponseEntity<Map<String, Object>> getTopSkills(
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(analyticsService.getTopSkills(limit));
     }
-    
-    @GetMapping("/advanced")
+
+    /**
+     * Get skill gap analysis (skills needed vs. available)
+     */
+    @GetMapping("/skills/gaps")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Object>> getAdvancedAnalytics(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(analyticsService.getAdvancedAnalytics(startDate, endDate));
+    public ResponseEntity<Map<String, Object>> getSkillGapAnalysis() {
+        return ResponseEntity.ok(analyticsService.getSkillGapAnalysis());
     }
-    
-    @GetMapping("/certifications/report")
+
+    /**
+     * Get project resource allocation statistics
+     */
+    @GetMapping("/projects/allocation")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Object>> getCertificationReport() {
-        return ResponseEntity.ok(analyticsService.getCertificationReport());
+    public ResponseEntity<Map<String, Object>> getProjectAllocationStats() {
+        return ResponseEntity.ok(analyticsService.getProjectAllocationStats());
     }
-    
-    @GetMapping("/skills/history")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Object>> getSkillHistoryAnalytics(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(analyticsService.getSkillHistoryAnalytics(startDate, endDate));
+
+    /**
+     * Get user skill development analytics
+     */
+    @GetMapping("/users/{userId}/development")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER') or #userId == authentication.principal.id")
+    public ResponseEntity<Map<String, Object>> getUserDevelopmentAnalytics(@PathVariable Long userId) {
+        return ResponseEntity.ok(analyticsService.getUserDevelopmentAnalytics(userId));
     }
-    
-    @GetMapping("/users/progress")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<List<Map<String, Object>>> getUserProgressAnalytics() {
-        return ResponseEntity.ok(analyticsService.getUserProgressAnalytics());
+
+    /**
+     * Get current user's skill development analytics
+     */
+    @GetMapping("/me/development")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> getCurrentUserDevelopmentAnalytics(
+            @CurrentUser UserPrincipal currentUser) {
+        return ResponseEntity.ok(analyticsService.getUserDevelopmentAnalytics(currentUser.getId()));
     }
-    
-    @GetMapping("/skills/growth-trend")
+
+    /**
+     * Get skill endorsement statistics
+     */
+    @GetMapping("/endorsements")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Object>> getSkillGrowthTrend(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(analyticsService.getSkillGrowthTrend(startDate, endDate));
+    public ResponseEntity<Map<String, Object>> getEndorsementStatistics() {
+        return ResponseEntity.ok(analyticsService.getEndorsementStatistics());
     }
-    
-    @GetMapping("/endorsements/trend")
+
+    /**
+     * Get project completion statistics
+     */
+    @GetMapping("/projects/completion")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Object>> getEndorsementsTrend() {
-        return ResponseEntity.ok(analyticsService.getEndorsementsTrend());
+    public ResponseEntity<Map<String, Object>> getProjectCompletionStats() {
+        return ResponseEntity.ok(analyticsService.getProjectCompletionStats());
     }
-    
-    @GetMapping("/projects/skill-demand")
+
+    /**
+     * Get skill category comparison by project
+     */
+    @GetMapping("/projects/{projectId}/skills")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Object>> getProjectSkillDemand() {
-        return ResponseEntity.ok(analyticsService.getProjectSkillDemand());
-    }
-    
-    @GetMapping("/organization/skill-history")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Map<String, Object>> getOrganizationSkillHistory(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(analyticsService.getOrganizationSkillHistory(startDate, endDate));
+    public ResponseEntity<Map<String, Object>> getProjectSkillCategoryComparison(@PathVariable Long projectId) {
+        return ResponseEntity.ok(analyticsService.getProjectSkillCategoryComparison(projectId));
     }
 }
