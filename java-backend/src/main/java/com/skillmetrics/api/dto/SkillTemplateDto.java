@@ -1,23 +1,21 @@
 package com.skillmetrics.api.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class SkillTemplateDto {
-
+    
     private Long id;
     
-    @NotBlank(message = "Template name is required")
+    @NotBlank(message = "Name is required")
     private String name;
     
     @NotBlank(message = "Category is required")
@@ -25,16 +23,25 @@ public class SkillTemplateDto {
     
     private String description;
     
-    private String criteria;
+    private String defaultLevel;
     
-    private Long createdById;
+    private String creationSource;
+    
+    private Boolean isActive = true;
+    
+    private Boolean isCertificationRequired = false;
+    
+    private String certificationUrl;
+    
+    private Long createdBy;
     
     private String createdByName;
-    
-    @NotNull(message = "Active status is required")
-    private Boolean active;
     
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
+    
+    // Statistics fields - not stored in database but used for API responses
+    private Integer usageCount;
+    private Double certificationRate;
 }
