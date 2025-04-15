@@ -1,31 +1,65 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-
-// Get the API base URL - use relative URL for local development,
-// or absolute URL for deployed environments
-function getApiBaseUrl(): string {
-  // For local development, use a relative path
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return '';
-  }
-  
-  // For deployed environments, use the current origin
-  return window.location.origin;
-}
+import { API_BASE_URL, TOKEN_STORAGE_KEY, REFRESH_ERROR_CODES, LOGOUT_ERROR_CODES } from "../api/config";
+import { refreshToken } from "../api/auth";
 
 // Function to construct a full API URL
 function getFullApiUrl(path: string): string {
+  // Strip the /api prefix if it exists, since it's already in API_BASE_URL
+  const cleanPath = path.startsWith('/api') ? path.substring(4) : path;
+  
   // Make sure the path starts with a slash for consistency
-  const apiPath = path.startsWith('/') ? path : `/${path}`;
+  const apiPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
   
   // Join the base URL with the path
-  return `${getApiBaseUrl()}${apiPath}`;
+  return `${API_BASE_URL}${apiPath}`;
+}
+
+// Parse error response from the Java backend
+async function parseErrorResponse(res: Response): Promise<string> {
+  try {
+    const contentType = res.headers.get('Content-Type');
+    if (contentType && contentType.includes('application/json')) {
+      const errorJson = await res.json();
+      return errorJson.message || errorJson.error || res.statusText;
+    } else {
+      const text = await res.text();
+      return text || res.statusText;
+    }
+  } catch (e) {
+    return res.statusText;
+  }
 }
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const errorMessage = await parseErrorResponse(res);
+    throw new Error(`${res.status}: ${errorMessage}`);
   }
+}
+
+// Get the authentication token
+function getAuthToken(): string | null {
+  return localStorage.getItem(TOKEN_STORAGE_KEY);
+}
+
+// Handle authentication errors with token refresh
+async function handleAuthError(status: number): Promise<boolean> {
+  // If it's a token refresh error, try refreshing the token
+  if (REFRESH_ERROR_CODES.includes(status)) {
+    try {
+      await refreshToken();
+      return true; // Retry the request with the new token
+    } catch (error) {
+      // If refresh fails, redirect to login
+      window.location.href = '/login';
+      return false;
+    }
+  } else if (LOGOUT_ERROR_CODES.includes(status)) {
+    // If it's a forbidden error, redirect to login
+    window.location.href = '/login';
+    return false;
+  }
+  return false;
 }
 
 export async function apiRequest<T = any>(
@@ -37,15 +71,44 @@ export async function apiRequest<T = any>(
   const fullUrl = getFullApiUrl(url);
   console.log(`Making API request: ${method} ${fullUrl}`);
   
-  // Return the Response object directly instead of parsing JSON
-  // This allows the calling function to decide whether to read the body as JSON
-  // or handle empty responses (like 204 No Content from logout)
-  const res = await fetch(fullUrl, {
+  // Set up headers with auth token if available
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
+  
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  // Make the request to Java backend with CORS support
+  let res = await fetch(fullUrl, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
+    mode: "cors"
   });
+
+  // Handle auth errors and retry if necessary
+  if (!res.ok && (REFRESH_ERROR_CODES.includes(res.status) || LOGOUT_ERROR_CODES.includes(res.status))) {
+    const shouldRetry = await handleAuthError(res.status);
+    
+    if (shouldRetry) {
+      // Update the token and retry the request
+      const newToken = getAuthToken();
+      headers['Authorization'] = `Bearer ${newToken}`;
+      
+      res = await fetch(fullUrl, {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : undefined,
+        credentials: "include",
+        mode: "cors"
+      });
+    }
+  }
 
   await throwIfResNotOk(res);
   return res;
@@ -61,12 +124,43 @@ export const getQueryFn: <T>(options: {
     const fullUrl = getFullApiUrl(queryKey[0] as string);
     console.log(`Fetching data from: ${fullUrl}`);
     
-    const res = await fetch(fullUrl, {
+    // Set up headers with auth token if available
+    const headers: Record<string, string> = {
+      'Accept': 'application/json'
+    };
+    
+    const token = getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Make the initial request with CORS support for Java backend
+    let res = await fetch(fullUrl, {
+      headers,
       credentials: "include",
+      mode: "cors"
     });
 
+    // Handle auth errors with special unauthorized behavior
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
+    }
+    
+    // Try to refresh token if needed
+    if (!res.ok && (REFRESH_ERROR_CODES.includes(res.status) || LOGOUT_ERROR_CODES.includes(res.status))) {
+      const shouldRetry = await handleAuthError(res.status);
+      
+      if (shouldRetry) {
+        // Update the token and retry the request
+        const newToken = getAuthToken();
+        headers['Authorization'] = `Bearer ${newToken}`;
+        
+        res = await fetch(fullUrl, {
+          headers,
+          credentials: "include",
+          mode: "cors"
+        });
+      }
     }
 
     await throwIfResNotOk(res);
