@@ -1,21 +1,15 @@
 package com.skillmetrics.api.model;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
+import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
+@Data
 @Entity
 @Table(name = "skill_templates")
-@Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class SkillTemplate {
@@ -23,23 +17,36 @@ public class SkillTemplate {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false)
     private String name;
-    
+
     @Column(nullable = false)
     private String category;
-    
+
     private String description;
-    
-    private Boolean isActive;
-    
-    @OneToMany(mappedBy = "template", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Skill> skills = new ArrayList<>();
-    
-    @CreationTimestamp
+
+    @Column(name = "default_level")
+    private String defaultLevel;
+
+    @Column(name = "creation_source")
+    private String creationSource;  // SYSTEM, HR, MANAGER
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
+    @Column(name = "is_certification_required")
+    private Boolean isCertificationRequired = false;
+
+    @Column(name = "certification_url")
+    private String certificationUrl;
+
+    @Column(name = "created_by")
+    private Long createdBy;
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
-    
-    @UpdateTimestamp
+
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }

@@ -1,121 +1,176 @@
 package com.skillmetrics.api.controller;
 
 import com.skillmetrics.api.dto.NotificationDto;
-import com.skillmetrics.api.model.enums.NotificationType;
+import com.skillmetrics.api.exception.ResourceNotFoundException;
+import com.skillmetrics.api.model.Notification;
+import com.skillmetrics.api.repository.NotificationRepository;
+import com.skillmetrics.api.security.CurrentUser;
+import com.skillmetrics.api.security.UserPrincipal;
 import com.skillmetrics.api.service.NotificationService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import javax.validation.Valid;
+import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
 
+    private final NotificationRepository notificationRepository;
     private final NotificationService notificationService;
 
+    /**
+     * Get all notifications for the current user with pagination
+     */
+    @GetMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Page<NotificationDto>> getMyNotifications(
+            @CurrentUser UserPrincipal currentUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<NotificationDto> notifications = notificationService.getNotificationsForUser(currentUser.getId(), pageable);
+        
+        return ResponseEntity.ok(notifications);
+    }
+
+    /**
+     * Get unread notifications for the current user
+     */
+    @GetMapping("/unread")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<NotificationDto>> getMyUnreadNotifications(
+            @CurrentUser UserPrincipal currentUser) {
+        
+        List<NotificationDto> notifications = notificationService.getUnreadNotificationsForUser(currentUser.getId());
+        
+        return ResponseEntity.ok(notifications);
+    }
+
+    /**
+     * Get unread count for the current user
+     */
+    @GetMapping("/count")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Long>> getUnreadCount(
+            @CurrentUser UserPrincipal currentUser) {
+        
+        long count = notificationService.countUnreadNotifications(currentUser.getId());
+        
+        return ResponseEntity.ok(Map.of("unreadCount", count));
+    }
+
+    /**
+     * Get notifications for a specific user (admin only)
+     */
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<NotificationDto>> getAllNotificationsForUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(notificationService.getAllNotificationsForUser(userId));
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
+    public ResponseEntity<Page<NotificationDto>> getUserNotifications(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<NotificationDto> notifications = notificationService.getNotificationsForUser(userId, pageable);
+        
+        return ResponseEntity.ok(notifications);
     }
-    
-    @GetMapping("/user/{userId}/unread")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<NotificationDto>> getUnreadNotificationsForUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(notificationService.getUnreadNotificationsForUser(userId));
+
+    /**
+     * Get a specific notification
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("@securityService.isNotificationOwner(#id, authentication.principal.id) or hasRole('ADMIN')")
+    public ResponseEntity<NotificationDto> getNotification(@PathVariable Long id) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+        
+        return ResponseEntity.ok(notificationService.convertToDto(notification));
     }
-    
-    @GetMapping("/user/{userId}/type/{type}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<NotificationDto>> getNotificationsByType(
-            @PathVariable Long userId, @PathVariable NotificationType type) {
-        return ResponseEntity.ok(notificationService.getNotificationsByType(userId, type));
-    }
-    
-    @GetMapping("/user/{userId}/recent")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<NotificationDto>> getRecentNotifications(
-            @PathVariable Long userId, @RequestParam(defaultValue = "30") int days) {
-        return ResponseEntity.ok(notificationService.getRecentNotifications(userId, days));
-    }
-    
-    @GetMapping("/user/{userId}/unread/count")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<Integer> getUnreadNotificationCount(@PathVariable Long userId) {
-        return ResponseEntity.ok(notificationService.getUnreadNotificationCount(userId));
-    }
-    
+
+    /**
+     * Create a new notification (admin/system only)
+     */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<NotificationDto> createNotification(@Valid @RequestBody NotificationDto notificationDto) {
-        return ResponseEntity.ok(notificationService.createNotification(notificationDto));
+    @PreAuthorize("hasAnyRole('ADMIN', 'SYSTEM')")
+    public ResponseEntity<NotificationDto> createNotification(
+            @Valid @RequestBody NotificationDto notificationDto) {
+        
+        NotificationDto createdNotification = notificationService.createNotification(notificationDto);
+        
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(createdNotification.getId())
+                .toUri();
+        
+        return ResponseEntity.created(location).body(createdNotification);
     }
-    
-    @PatchMapping("/{id}/read")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<NotificationDto> markAsRead(@PathVariable Long id) {
-        return ResponseEntity.ok(notificationService.markAsRead(id));
+
+    /**
+     * Mark a notification as read
+     */
+    @PutMapping("/{id}/read")
+    @PreAuthorize("@securityService.isNotificationOwner(#id, authentication.principal.id) or hasRole('ADMIN')")
+    public ResponseEntity<?> markAsRead(@PathVariable Long id) {
+        // Verify notification exists
+        if (!notificationRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Notification not found with id: " + id);
+        }
+        
+        notificationService.markAsRead(id);
+        
+        return ResponseEntity.ok().build();
     }
-    
-    @PatchMapping("/user/{userId}/read-all")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<List<NotificationDto>> markAllAsRead(@PathVariable Long userId) {
-        return ResponseEntity.ok(notificationService.markAllAsRead(userId));
+
+    /**
+     * Mark all notifications as read for the current user
+     */
+    @PutMapping("/mark-all-read")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> markAllAsRead(@CurrentUser UserPrincipal currentUser) {
+        notificationService.markAllAsRead(currentUser.getId());
+        
+        return ResponseEntity.ok().build();
     }
-    
+
+    /**
+     * Get notification statistics for the current user
+     */
+    @GetMapping("/statistics")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> getNotificationStatistics(
+            @CurrentUser UserPrincipal currentUser) {
+        
+        Map<String, Object> stats = notificationService.getNotificationStats(currentUser.getId());
+        
+        return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Delete a notification (admin only)
+     */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
-        notificationService.deleteNotification(id);
-        return ResponseEntity.noContent().build();
-    }
-    
-    // Convenience endpoints for creating specific types of notifications
-    
-    @PostMapping("/endorsement")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')")
-    public ResponseEntity<NotificationDto> createEndorsementNotification(
-            @RequestParam Long userId, 
-            @RequestParam String endorserName, 
-            @RequestParam String skillName) {
-        return ResponseEntity.ok(
-            notificationService.createEndorsementNotification(userId, endorserName, skillName)
-        );
-    }
-    
-    @PostMapping("/skill-verified")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<NotificationDto> createSkillVerifiedNotification(
-            @RequestParam Long userId, 
-            @RequestParam String skillName) {
-        return ResponseEntity.ok(
-            notificationService.createSkillVerifiedNotification(userId, skillName)
-        );
-    }
-    
-    @PostMapping("/project-assigned")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<NotificationDto> createProjectAssignedNotification(
-            @RequestParam Long userId, 
-            @RequestParam String projectName, 
-            @RequestParam String role) {
-        return ResponseEntity.ok(
-            notificationService.createProjectAssignedNotification(userId, projectName, role)
-        );
-    }
-    
-    @PostMapping("/welcome")
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    public ResponseEntity<NotificationDto> createWelcomeNotification(
-            @RequestParam Long userId, 
-            @RequestParam String userName) {
-        return ResponseEntity.ok(
-            notificationService.createWelcomeNotification(userId, userName)
-        );
+    public ResponseEntity<?> deleteNotification(@PathVariable Long id) {
+        // Verify notification exists
+        if (!notificationRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Notification not found with id: " + id);
+        }
+        
+        notificationRepository.deleteById(id);
+        
+        return ResponseEntity.ok().build();
     }
 }
