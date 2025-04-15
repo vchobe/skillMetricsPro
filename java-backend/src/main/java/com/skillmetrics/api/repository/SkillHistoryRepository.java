@@ -53,4 +53,20 @@ public interface SkillHistoryRepository extends JpaRepository<SkillHistory, Long
            ORDER BY h.timestamp DESC
            """)
     List<SkillHistory> findBySkillUserId(Long userId);
+    
+    // New methods needed for controller compatibility
+    
+    List<SkillHistory> findBySkillIdOrderByCreatedAtDesc(Long skillId);
+    
+    List<SkillHistory> findByUserIdOrderByCreatedAtDesc(Long userId);
+    
+    List<SkillHistory> findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(
+            Long userId, LocalDateTime startDate, LocalDateTime endDate);
+
+    List<SkillHistory> findByFieldOrderByCreatedAtDesc(String field);
+    
+    List<SkillHistory> findByFieldAndCreatedAtBetweenOrderByCreatedAtDesc(
+            String field, LocalDateTime startDate, LocalDateTime endDate);
+            
+    List<SkillHistory> findTop20ByOrderByCreatedAtDesc();
 }

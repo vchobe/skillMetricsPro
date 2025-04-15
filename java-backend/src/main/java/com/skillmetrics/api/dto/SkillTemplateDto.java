@@ -29,11 +29,41 @@ public class SkillTemplateDto {
     
     private Boolean isActive = true;
     
+    /**
+     * Alias for isActive for backward compatibility
+     */
+    public Boolean getActive() {
+        return this.isActive;
+    }
+    
+    /**
+     * Alias for isActive for backward compatibility
+     */
+    public void setActive(Boolean active) {
+        this.isActive = active;
+    }
+    
     private Boolean isCertificationRequired = false;
     
     private String certificationUrl;
     
+    private String criteria;
+    
     private Long createdBy;
+    
+    /**
+     * Alias for createdBy for backward compatibility
+     */
+    public Long getCreatedById() {
+        return this.createdBy;
+    }
+    
+    /**
+     * Alias for createdBy for backward compatibility
+     */
+    public void setCreatedById(Long createdById) {
+        this.createdBy = createdById;
+    }
     
     private String createdByName;
     

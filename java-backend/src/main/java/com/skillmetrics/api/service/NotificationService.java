@@ -47,6 +47,21 @@ public class NotificationService {
         Notification savedNotification = notificationRepository.save(notification);
         return convertToDto(savedNotification);
     }
+    
+    /**
+     * Create a simple notification with minimal fields
+     */
+    @Transactional
+    public NotificationDto createNotification(Long userId, String title, String message, String link) {
+        NotificationDto notificationDto = new NotificationDto();
+        notificationDto.setUserId(userId);
+        notificationDto.setType("SYSTEM");
+        notificationDto.setTitle(title);
+        notificationDto.setMessage(message);
+        notificationDto.setLink(link);
+        
+        return createNotification(notificationDto);
+    }
 
     /**
      * Get notifications for a user with pagination

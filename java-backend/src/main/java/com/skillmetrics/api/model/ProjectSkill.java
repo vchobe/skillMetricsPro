@@ -34,6 +34,9 @@ public class ProjectSkill {
     @Column(columnDefinition = "TEXT")
     private String notes;
     
+    // Priority of this skill in the project (1-5, with 1 being highest priority)
+    private Integer priority;
+    
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

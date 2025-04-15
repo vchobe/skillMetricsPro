@@ -100,4 +100,55 @@ public class ResourceHistory {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.date = createdAt;
     }
+    
+    /**
+     * Convenience method to set project ID directly
+     * @param projectId the project ID
+     */
+    public void setProjectId(Long projectId) {
+        if (projectId == null) {
+            this.project = null;
+            return;
+        }
+        
+        if (this.project == null) {
+            this.project = new Project();
+        }
+        
+        this.project.setId(projectId);
+    }
+    
+    /**
+     * Convenience method to set user ID directly
+     * @param userId the user ID
+     */
+    public void setUserId(Long userId) {
+        if (userId == null) {
+            this.user = null;
+            return;
+        }
+        
+        if (this.user == null) {
+            this.user = new User();
+        }
+        
+        this.user.setId(userId);
+    }
+    
+    /**
+     * Convenience method to set performed by user ID directly
+     * @param performedById the user ID who performed the action
+     */
+    public void setPerformedById(Long performedById) {
+        if (performedById == null) {
+            this.performedBy = null;
+            return;
+        }
+        
+        if (this.performedBy == null) {
+            this.performedBy = new User();
+        }
+        
+        this.performedBy.setId(performedById);
+    }
 }

@@ -23,6 +23,8 @@ public class ProjectResourceDto {
     @NotNull(message = "Project ID is required")
     private Long projectId;
     
+    private String projectName; // For display purposes
+    
     @NotNull(message = "User ID is required")
     private Long userId;
     

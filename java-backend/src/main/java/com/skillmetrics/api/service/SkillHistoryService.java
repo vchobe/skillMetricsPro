@@ -4,6 +4,7 @@ import com.skillmetrics.api.dto.SkillHistoryDto;
 import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.Skill;
 import com.skillmetrics.api.model.SkillHistory;
+import com.skillmetrics.api.model.SkillLevel;
 import com.skillmetrics.api.repository.SkillHistoryRepository;
 import com.skillmetrics.api.repository.SkillRepository;
 import com.skillmetrics.api.repository.UserRepository;

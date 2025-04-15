@@ -38,4 +38,54 @@ public class Endorsement {
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
+    
+    /**
+     * Convenience method to get skill ID
+     * @return the skill ID or null if skill is null
+     */
+    public Long getSkillId() {
+        return this.skill != null ? this.skill.getId() : null;
+    }
+    
+    /**
+     * Convenience method to set skill ID directly
+     * @param skillId the skill ID to set
+     */
+    public void setSkillId(Long skillId) {
+        if (skillId == null) {
+            this.skill = null;
+            return;
+        }
+        
+        if (this.skill == null) {
+            this.skill = new Skill();
+        }
+        
+        this.skill.setId(skillId);
+    }
+    
+    /**
+     * Convenience method to get endorser ID
+     * @return the endorser ID or null if endorser is null
+     */
+    public Long getEndorserId() {
+        return this.endorser != null ? this.endorser.getId() : null;
+    }
+    
+    /**
+     * Convenience method to set endorser ID directly
+     * @param endorserId the endorser ID to set
+     */
+    public void setEndorserId(Long endorserId) {
+        if (endorserId == null) {
+            this.endorser = null;
+            return;
+        }
+        
+        if (this.endorser == null) {
+            this.endorser = new User();
+        }
+        
+        this.endorser.setId(endorserId);
+    }
 }

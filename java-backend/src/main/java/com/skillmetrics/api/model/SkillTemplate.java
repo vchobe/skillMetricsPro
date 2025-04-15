@@ -40,6 +40,9 @@ public class SkillTemplate {
 
     @Column(name = "certification_url")
     private String certificationUrl;
+    
+    @Column(name = "criteria", columnDefinition = "TEXT")
+    private String criteria;
 
     @Column(name = "created_by")
     private Long createdBy;
