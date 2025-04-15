@@ -74,4 +74,13 @@ public interface EndorsementRepository extends JpaRepository<Endorsement, Long> 
     
     // Find endorsements with rating greater than or equal to a specific value
     List<Endorsement> findByRatingGreaterThanEqual(Integer rating);
+    
+    /**
+     * Count endorsements for skills with IDs in the given list
+     */
+    @Query("""
+           SELECT COUNT(e) FROM Endorsement e
+           WHERE e.skill.id IN :skillIds
+           """)
+    Long countBySkillIdIn(List<Long> skillIds);
 }

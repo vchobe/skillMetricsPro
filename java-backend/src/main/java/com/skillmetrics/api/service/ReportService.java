@@ -9,7 +9,11 @@ import com.skillmetrics.api.model.*;
 import com.skillmetrics.api.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -21,11 +25,37 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.itextpdf.text.*;
-import com.itextpdf.text.pdf.*;
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Chunk;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font as PDFFont;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.PageSize;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 
 @Service
 @RequiredArgsConstructor
@@ -525,13 +555,13 @@ public class ReportService {
             document.open();
             
             // Add title
-            Font titleFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD);
+            PDFFont titleFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 18, PDFFont.BOLD);
             Paragraph title = new Paragraph(formatReportTitle(reportType), titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
             
             // Add generation timestamp
-            Font timestampFont = new Font(Font.FontFamily.HELVETICA, 10, Font.ITALIC);
+            PDFFont timestampFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 10, PDFFont.ITALIC);
             Paragraph timestamp = new Paragraph("Generated: " + 
                     ((LocalDateTime) reportData.get("generatedAt")).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
                     timestampFont);
@@ -652,9 +682,9 @@ public class ReportService {
     // Helper methods
     
     private void addSkillMatrixPdfContent(Document document, Map<String, Object> reportData) throws DocumentException {
-        Font sectionFont = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD);
-        Font normalFont = new Font(Font.FontFamily.HELVETICA, 10);
-        Font boldFont = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD);
+        PDFFont sectionFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 14, PDFFont.BOLD);
+        PDFFont normalFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 10);
+        PDFFont boldFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 10, PDFFont.BOLD);
         
         // Overview section
         Paragraph overview = new Paragraph("Overview", sectionFont);

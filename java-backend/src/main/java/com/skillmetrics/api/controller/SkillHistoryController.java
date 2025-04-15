@@ -1,12 +1,9 @@
 package com.skillmetrics.api.controller;
 
 import com.skillmetrics.api.dto.SkillHistoryDto;
-import com.skillmetrics.api.exception.ResourceNotFoundException;
-import com.skillmetrics.api.model.SkillHistory;
-import com.skillmetrics.api.repository.SkillHistoryRepository;
-import com.skillmetrics.api.repository.SkillRepository;
 import com.skillmetrics.api.security.CurrentUser;
 import com.skillmetrics.api.security.UserPrincipal;
+import com.skillmetrics.api.service.SkillHistoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,15 +11,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/skill-history")
 @RequiredArgsConstructor
 public class SkillHistoryController {
 
-    private final SkillHistoryRepository skillHistoryRepository;
-    private final SkillRepository skillRepository;
+    private final SkillHistoryService skillHistoryService;
 
     /**
      * Get history for a specific skill
@@ -30,14 +25,7 @@ public class SkillHistoryController {
     @GetMapping("/skill/{skillId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER') or @securityService.isSkillOwner(#skillId, authentication.principal.id)")
     public ResponseEntity<List<SkillHistoryDto>> getHistoryForSkill(@PathVariable Long skillId) {
-        // Verify skill exists
-        if (!skillRepository.existsById(skillId)) {
-            throw new ResourceNotFoundException("Skill not found with id: " + skillId);
-        }
-        
-        List<SkillHistory> history = skillHistoryRepository.findBySkillIdOrderByCreatedAtDesc(skillId);
-        
-        return ResponseEntity.ok(history.stream().map(this::convertToDto).collect(Collectors.toList()));
+        return ResponseEntity.ok(skillHistoryService.getHistoryForSkill(skillId));
     }
 
     /**
@@ -50,16 +38,7 @@ public class SkillHistoryController {
             @RequestParam(required = false) LocalDateTime startDate,
             @RequestParam(required = false) LocalDateTime endDate) {
         
-        List<SkillHistory> history;
-        
-        if (startDate != null && endDate != null) {
-            history = skillHistoryRepository.findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(
-                    userId, startDate, endDate);
-        } else {
-            history = skillHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        }
-        
-        return ResponseEntity.ok(history.stream().map(this::convertToDto).collect(Collectors.toList()));
+        return ResponseEntity.ok(skillHistoryService.getHistoryForUser(userId, startDate, endDate));
     }
 
     /**
@@ -72,16 +51,7 @@ public class SkillHistoryController {
             @RequestParam(required = false) LocalDateTime startDate,
             @RequestParam(required = false) LocalDateTime endDate) {
         
-        List<SkillHistory> history;
-        
-        if (startDate != null && endDate != null) {
-            history = skillHistoryRepository.findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(
-                    currentUser.getId(), startDate, endDate);
-        } else {
-            history = skillHistoryRepository.findByUserIdOrderByCreatedAtDesc(currentUser.getId());
-        }
-        
-        return ResponseEntity.ok(history.stream().map(this::convertToDto).collect(Collectors.toList()));
+        return ResponseEntity.ok(skillHistoryService.getHistoryForUser(currentUser.getId(), startDate, endDate));
     }
 
     /**
@@ -94,16 +64,7 @@ public class SkillHistoryController {
             @RequestParam(required = false) LocalDateTime startDate,
             @RequestParam(required = false) LocalDateTime endDate) {
         
-        List<SkillHistory> history;
-        
-        if (startDate != null && endDate != null) {
-            history = skillHistoryRepository.findByFieldAndCreatedAtBetweenOrderByCreatedAtDesc(
-                    field, startDate, endDate);
-        } else {
-            history = skillHistoryRepository.findByFieldOrderByCreatedAtDesc(field);
-        }
-        
-        return ResponseEntity.ok(history.stream().map(this::convertToDto).collect(Collectors.toList()));
+        return ResponseEntity.ok(skillHistoryService.getHistoryByField(field, startDate, endDate));
     }
 
     /**
@@ -114,27 +75,6 @@ public class SkillHistoryController {
     public ResponseEntity<List<SkillHistoryDto>> getRecentHistory(
             @RequestParam(defaultValue = "20") int limit) {
         
-        List<SkillHistory> history = skillHistoryRepository.findTop20ByOrderByCreatedAtDesc();
-        
-        // Apply custom limit if different from default
-        if (limit != 20 && history.size() > limit) {
-            history = history.subList(0, limit);
-        }
-        
-        return ResponseEntity.ok(history.stream().map(this::convertToDto).collect(Collectors.toList()));
-    }
-
-    // Helper method to convert entity to DTO
-    private SkillHistoryDto convertToDto(SkillHistory history) {
-        SkillHistoryDto dto = new SkillHistoryDto();
-        dto.setId(history.getId());
-        dto.setSkillId(history.getSkillId());
-        dto.setUserId(history.getUserId());
-        dto.setField(history.getField());
-        dto.setOldValue(history.getOldValue());
-        dto.setNewValue(history.getNewValue());
-        dto.setChangedBy(history.getChangedBy());
-        dto.setCreatedAt(history.getCreatedAt());
-        return dto;
+        return ResponseEntity.ok(skillHistoryService.getRecentHistory(limit));
     }
 }
