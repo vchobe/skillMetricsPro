@@ -87,4 +87,71 @@ public interface ProjectResourceRepository extends JpaRepository<ProjectResource
            AND (r.endDate IS NULL OR r.endDate >= :date))
            """)
     Integer getTotalAllocationForUserAtDate(Long userId, LocalDate date);
+    
+    /**
+     * Find project resources by role
+     */
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.role = :role
+           """)
+    List<ProjectResource> findByRole(String role);
+    
+    /**
+     * Find project resources with start date after specified date
+     */
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.startDate > :startDate
+           """)
+    List<ProjectResource> findByStartDateAfter(LocalDate startDate);
+    
+    /**
+     * Find project resources with end date before specified date
+     */
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.endDate < :endDate
+           """)
+    List<ProjectResource> findByEndDateBefore(LocalDate endDate);
+    
+    /**
+     * Find active project resources on a specified date
+     */
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE (r.startDate <= :date)
+           AND (r.endDate >= :date OR r.endDate IS NULL)
+           """)
+    List<ProjectResource> findByStartDateBeforeAndEndDateAfterOrEndDateIsNull(LocalDate date, LocalDate sameDate);
+    
+    /**
+     * Find resources with minimum allocation
+     */
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.user.id = :userId
+           AND r.allocation >= :minAllocation
+           """)
+    List<ProjectResource> findByUserIdAndMinimumAllocation(Long userId, Integer minAllocation);
+    
+    /**
+     * Find resources by project name containing text
+     */
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE LOWER(r.project.name) LIKE LOWER(CONCAT('%', :projectName, '%'))
+           """)
+    List<ProjectResource> findByProjectNameContaining(String projectName);
+    
+    /**
+     * Find resources by user name containing text
+     */
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE LOWER(r.user.firstName) LIKE LOWER(CONCAT('%', :userName, '%'))
+           OR LOWER(r.user.lastName) LIKE LOWER(CONCAT('%', :userName, '%'))
+           OR LOWER(CONCAT(r.user.firstName, ' ', r.user.lastName)) LIKE LOWER(CONCAT('%', :userName, '%'))
+           """)
+    List<ProjectResource> findByUserNameContaining(String userName);
 }

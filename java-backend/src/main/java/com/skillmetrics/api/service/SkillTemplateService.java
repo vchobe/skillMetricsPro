@@ -97,8 +97,8 @@ public class SkillTemplateService {
         template.setCategory(templateDto.getCategory());
         template.setDescription(templateDto.getDescription());
         template.setCriteria(templateDto.getCriteria());
-        template.setCreatedBy(creator);
-        template.setActive(templateDto.getActive());
+        template.setCreatedBy(creator.getId());
+        template.setIsActive(templateDto.getIsActive());
         
         SkillTemplate savedTemplate = skillTemplateRepository.save(template);
         
@@ -123,7 +123,7 @@ public class SkillTemplateService {
         template.setCategory(templateDto.getCategory());
         template.setDescription(templateDto.getDescription());
         template.setCriteria(templateDto.getCriteria());
-        template.setActive(templateDto.getActive());
+        template.setIsActive(templateDto.getIsActive());
         
         SkillTemplate updatedTemplate = skillTemplateRepository.save(template);
         
@@ -141,17 +141,17 @@ public class SkillTemplateService {
     // Helper methods
     
     private SkillTemplateDto convertToDto(SkillTemplate template) {
-        return SkillTemplateDto.builder()
-                .id(template.getId())
-                .name(template.getName())
-                .category(template.getCategory())
-                .description(template.getDescription())
-                .criteria(template.getCriteria())
-                .createdById(template.getCreatedBy().getId())
-                .createdByName(template.getCreatedBy().getFirstName() + " " + template.getCreatedBy().getLastName())
-                .active(template.getActive())
-                .createdAt(template.getCreatedAt())
-                .updatedAt(template.getUpdatedAt())
-                .build();
+        SkillTemplateDto dto = new SkillTemplateDto();
+        dto.setId(template.getId());
+        dto.setName(template.getName());
+        dto.setCategory(template.getCategory());
+        dto.setDescription(template.getDescription());
+        dto.setCriteria(template.getCriteria());
+        dto.setCreatedBy(template.getCreatedBy());
+        dto.setCreatedByName(""); // To be populated from User service if needed
+        dto.setIsActive(template.getIsActive());
+        dto.setCreatedAt(template.getCreatedAt());
+        dto.setUpdatedAt(template.getUpdatedAt());
+        return dto;
     }
 }

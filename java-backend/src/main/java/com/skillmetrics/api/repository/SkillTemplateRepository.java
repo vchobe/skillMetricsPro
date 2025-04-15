@@ -29,4 +29,20 @@ public interface SkillTemplateRepository extends JpaRepository<SkillTemplate, Lo
     List<SkillTemplate> findByCreationSource(String source);
     
     List<SkillTemplate> findByIsCertificationRequiredTrue();
+    
+    /**
+     * Find templates by active status
+     */
+    List<SkillTemplate> findByActiveTrue();
+    
+    /**
+     * Find templates by exact name
+     */
+    Optional<SkillTemplate> findByName(String name);
+    
+    /**
+     * Find templates created by a specific user
+     */
+    @Query("SELECT t FROM SkillTemplate t WHERE t.createdBy.id = :userId")
+    List<SkillTemplate> findByCreatedById(Long userId);
 }

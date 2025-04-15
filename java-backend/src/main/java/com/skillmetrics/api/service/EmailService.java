@@ -180,4 +180,20 @@ public class EmailService {
         
         sendEmail(email, "Project Assignment Removal: " + projectName, htmlBody);
     }
+    
+    /**
+     * Send skill endorsement email notification
+     */
+    @Async
+    public void sendSkillEndorsementEmail(String email, String skillOwnerName, String skillName, String endorserName) {
+        Context context = new Context();
+        context.setVariable("name", skillOwnerName);
+        context.setVariable("skillName", skillName);
+        context.setVariable("endorserName", endorserName);
+        context.setVariable("profileUrl", baseUrl + "/profile");
+        
+        String htmlBody = templateEngine.process("skill-endorsement", context);
+        
+        sendEmail(email, "Your Skill Has Been Endorsed", htmlBody);
+    }
 }

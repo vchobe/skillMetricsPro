@@ -1,6 +1,7 @@
 package com.skillmetrics.api.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @Table(name = "notifications")
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Notification {
 
     @Id
@@ -39,14 +41,36 @@ public class Notification {
     @Column(name = "entity_id")
     private Long entityId;
     
+    // For supporting older code that uses relatedId/relatedType
+    private Long relatedId;
+    private String relatedType;
+    
     private String link;
     
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
+    
+    /**
+     * For legacy code compatibility, allowing setRead in addition to setIsRead
+     */
+    public void setRead(Boolean read) {
+        this.isRead = read;
+    }
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
     @Column(name = "read_at")
     private LocalDateTime readAt;
+    
+    /**
+     * Set the user who will receive this notification
+     * @param user the user to set
+     * @param <T> type parameter for supporting generic User types
+     */
+    public <T extends User> void setUser(T user) {
+        if (user != null) {
+            this.userId = user.getId();
+        }
+    }
 }

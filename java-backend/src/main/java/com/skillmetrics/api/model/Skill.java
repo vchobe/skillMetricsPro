@@ -51,6 +51,9 @@ public class Skill {
     // Number of endorsements for this skill
     private Integer endorsementCount;
     
+    // Flag indicating if the skill has been verified by admin
+    private Boolean verified;
+    
     @OneToMany(mappedBy = "skill", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Endorsement> endorsements = new ArrayList<>();
     

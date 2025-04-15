@@ -49,7 +49,7 @@ public class ResourceHistoryService {
     }
     
     @Transactional(readOnly = true)
-    public List<ResourceHistoryDto> getHistoryByProjectIdAndUserId(Long projectId, Long userId) {
+    public List<ResourceHistoryDto> getHistoryByProjectAndUser(Long projectId, Long userId) {
         if (!projectRepository.existsById(projectId)) {
             throw new ResourceNotFoundException("Project", "id", projectId);
         }
@@ -84,6 +84,21 @@ public class ResourceHistoryService {
     @Transactional(readOnly = true)
     public List<ResourceHistoryDto> getHistoryByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
         List<ResourceHistory> historyList = resourceHistoryRepository.findByDateBetween(startDate, endDate);
+        
+        return enrichHistoryDtos(historyList);
+    }
+    
+    @Transactional(readOnly = true)
+    public ResourceHistoryDto getHistoryById(Long id) {
+        ResourceHistory history = resourceHistoryRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("ResourceHistory", "id", id));
+        
+        return enrichHistoryDtos(List.of(history)).get(0);
+    }
+    
+    @Transactional(readOnly = true)
+    public List<ResourceHistoryDto> getAllHistory() {
+        List<ResourceHistory> historyList = resourceHistoryRepository.findAll();
         
         return enrichHistoryDtos(historyList);
     }
