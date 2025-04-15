@@ -32,7 +32,7 @@ public class HealthController implements HealthIndicator {
      * Basic health check endpoint
      */
     @GetMapping
-    public ResponseEntity<Health> health() {
+    public ResponseEntity<Health> getHealth() {
         return ResponseEntity.ok(health());
     }
 
