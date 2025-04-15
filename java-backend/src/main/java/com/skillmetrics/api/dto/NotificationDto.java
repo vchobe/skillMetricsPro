@@ -1,45 +1,48 @@
 package com.skillmetrics.api.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.skillmetrics.api.model.enums.NotificationType;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class NotificationDto {
     
     private Long id;
     
+    @NotNull(message = "User ID is required")
     private Long userId;
     
-    private NotificationType type;
+    private Long createdBy;
     
+    private String createdByName;
+    
+    @NotBlank(message = "Notification type is required")
+    private String type;
+    
+    @NotBlank(message = "Title is required")
     private String title;
     
-    private String content;
+    private String message;
     
-    private boolean isRead;
+    private String entityType;
+    
+    private Long entityId;
+    
+    private String link;
+    
+    private Boolean isRead = false;
     
     private LocalDateTime createdAt;
     
     private LocalDateTime readAt;
     
-    private Long relatedUserId;
-    
-    private Long relatedSkillId;
-    
-    private String link;
-    
-    // Fields for convenience when returning detailed information
-    private UserDto user;
-    private UserDto relatedUser;
-    private SkillDto relatedSkill;
+    // Additional fields for better context in UI
+    private String entityName;
+    private String entityDescription;
 }
