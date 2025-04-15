@@ -8,24 +8,54 @@ import { useToast } from '@/hooks/use-toast';
 import { getAccessToken } from '../api/auth';
 
 const COMMON_ENDPOINTS = [
-  { name: 'Server Status', url: '/health', method: 'GET' },
-  { name: 'Java API Health', url: '/api/health', method: 'GET' },
-  { name: 'Get Current User', url: '/api/user', method: 'GET' },
+  { name: 'API Health', url: '/api/health', method: 'GET' },
+  { name: 'API Info', url: '/api/info', method: 'GET' },
+  { name: 'Get Current User', url: '/api/users/me', method: 'GET' },
+  { name: 'Get All Users', url: '/api/users', method: 'GET' },
   { name: 'User Skills', url: '/api/skills/user', method: 'GET' },
   { name: 'All Skills', url: '/api/skills', method: 'GET' },
+  { name: 'Skill Categories', url: '/api/skills/categories', method: 'GET' },
+  { name: 'Skill Templates', url: '/api/skills/templates', method: 'GET' },
   { name: 'All Projects', url: '/api/projects', method: 'GET' },
-  { name: 'Search Skills', url: '/api/search/skills?query=java', method: 'GET' }
+  { name: 'Project Details', url: '/api/projects/1', method: 'GET' },
+  { name: 'All Clients', url: '/api/clients', method: 'GET' },
+  { name: 'Notifications', url: '/api/notifications', method: 'GET' },
+  { name: 'Endorsements', url: '/api/endorsements', method: 'GET' },
+  { name: 'Search Skills', url: '/api/skills/search?query=java', method: 'GET' },
+  { name: 'Login', url: '/api/auth/login', method: 'POST' },
+  { name: 'Register', url: '/api/auth/register', method: 'POST' },
 ];
 
 const ApiTester: React.FC = () => {
   const { toast } = useToast();
-  const [endpoint, setEndpoint] = useState<string>('/api/user');
+  const [endpoint, setEndpoint] = useState<string>('/api/health');
   const [method, setMethod] = useState<string>('GET');
   const [requestBody, setRequestBody] = useState<string>('');
   const [response, setResponse] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const [backendUrl, setBackendUrl] = useState<string>('http://localhost:8080');
+  // In Replit, we should use the relative URL instead of localhost
+  const [backendUrl, setBackendUrl] = useState<string>('');
+  
+  // Default request bodies for common endpoints
+  const getRequestBody = (endpoint: string, method: string): string => {
+    if (method === 'POST' && endpoint === '/api/auth/login') {
+      return JSON.stringify({
+        usernameOrEmail: "user@example.com",
+        password: "password123"
+      }, null, 2);
+    }
+    if (method === 'POST' && endpoint === '/api/auth/register') {
+      return JSON.stringify({
+        username: "newuser",
+        email: "newuser@example.com",
+        password: "password123",
+        firstName: "New", 
+        lastName: "User"
+      }, null, 2);
+    }
+    return '';
+  };
 
   const testEndpoint = async () => {
     setLoading(true);
@@ -122,7 +152,7 @@ const ApiTester: React.FC = () => {
         title: 'Connection Error',
         description: error instanceof Error ? 
           `${error.constructor.name}: ${error.message}` : 
-          'Could not connect to the Java backend server',
+          'Could not connect to the backend server. Try using a relative URL (empty field) instead of localhost.',
       });
     } finally {
       setLoading(false);
@@ -150,7 +180,7 @@ const ApiTester: React.FC = () => {
                   <Input
                     value={backendUrl}
                     onChange={(e) => setBackendUrl(e.target.value)}
-                    placeholder="http://localhost:8080"
+                    placeholder="Use empty for relative URLs or http://localhost:8080 for direct"
                   />
                 </div>
               </div>
@@ -160,7 +190,7 @@ const ApiTester: React.FC = () => {
                   <Input
                     value={endpoint}
                     onChange={(e) => setEndpoint(e.target.value)}
-                    placeholder="/api/user"
+                    placeholder="/api/health"
                   />
                 </div>
                 <div className="w-1/4">
@@ -219,7 +249,7 @@ const ApiTester: React.FC = () => {
                     onClick={() => {
                       setEndpoint(ep.url);
                       setMethod(ep.method);
-                      setRequestBody('');
+                      setRequestBody(getRequestBody(ep.url, ep.method));
                     }}
                     className="justify-start"
                   >
