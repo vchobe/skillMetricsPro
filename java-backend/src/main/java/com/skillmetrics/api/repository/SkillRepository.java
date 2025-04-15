@@ -16,6 +16,18 @@ public interface SkillRepository extends JpaRepository<Skill, Long> {
     
     List<Skill> findByUserIdAndLevel(Long userId, String level);
     
+    @Query("SELECT COUNT(s) FROM Skill s WHERE s.name = :name AND s.category = :category")
+    Long countByNameAndCategory(String name, String category);
+    
+    @Query("SELECT COUNT(s) FROM Skill s WHERE s.name = :name AND s.category = :category AND s.certification IS NOT NULL")
+    Long countByNameAndCategoryAndCertificationIsNotNull(String name, String category);
+    
+    @Query("SELECT s FROM Skill s WHERE s.name = :name AND s.category = :category")
+    List<Skill> findByNameAndCategory(String name, String category);
+    
+    @Query("SELECT s FROM Skill s WHERE s.user.id = :userId AND s.name = :name AND s.category = :category")
+    List<Skill> findByUserIdAndNameAndCategory(Long userId, String name, String category);
+    
     @Query("""
            SELECT s FROM Skill s 
            WHERE s.name = :name 

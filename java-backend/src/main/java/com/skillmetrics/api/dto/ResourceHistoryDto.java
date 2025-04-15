@@ -42,4 +42,7 @@ public class ResourceHistoryDto {
     private String note;
     
     private LocalDateTime date;
+    
+    // Alias for date to maintain compatibility with standard naming conventions
+    private LocalDateTime createdAt;
 }

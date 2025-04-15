@@ -19,6 +19,10 @@ public class ResourceHistory {
     private Long id;
     
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_resource_id")
+    private ProjectResource projectResource;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
     
@@ -50,4 +54,50 @@ public class ResourceHistory {
     
     @Column(columnDefinition = "TEXT")
     private String note;
+    
+    /**
+     * Convenience method to get project ID
+     */
+    public Long getProjectId() {
+        return this.project != null ? this.project.getId() : null;
+    }
+    
+    /**
+     * Convenience method to get user ID
+     */
+    public Long getUserId() {
+        return this.user != null ? this.user.getId() : null;
+    }
+    
+    /**
+     * Convenience method to get performed by user ID
+     */
+    public Long getPerformedById() {
+        return this.performedBy != null ? this.performedBy.getId() : null;
+    }
+    
+    /**
+     * Convenience method to set project resource
+     */
+    public void setProjectResource(ProjectResource projectResource) {
+        this.projectResource = projectResource;
+        if (projectResource != null) {
+            this.project = projectResource.getProject();
+            this.user = projectResource.getUser();
+        }
+    }
+    
+    /**
+     * Alias for getDate() to provide compatibility with standard naming conventions
+     */
+    public LocalDateTime getCreatedAt() {
+        return this.date;
+    }
+    
+    /**
+     * Alias for setDate() to provide compatibility with standard naming conventions
+     */
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.date = createdAt;
+    }
 }

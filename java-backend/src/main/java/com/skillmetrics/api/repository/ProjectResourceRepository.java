@@ -62,4 +62,29 @@ public interface ProjectResourceRepository extends JpaRepository<ProjectResource
            ORDER BY r.project.id
            """)
     List<ProjectResource> findActiveResourcesByUserId(Long userId);
+    
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.user.id = :userId
+           AND ((r.startDate IS NULL OR r.startDate <= :date)
+           AND (r.endDate IS NULL OR r.endDate >= :date))
+           ORDER BY r.project.id
+           """)
+    List<ProjectResource> findActiveResourcesByUserIdAtDate(Long userId, LocalDate date);
+    
+    @Query("""
+           SELECT r FROM ProjectResource r
+           WHERE r.project.id = :projectId
+           AND r.user.id = :userId
+           AND r.role = :role
+           """)
+    Optional<ProjectResource> findByProjectIdAndUserIdAndRole(Long projectId, Long userId, String role);
+    
+    @Query("""
+           SELECT SUM(r.allocation) FROM ProjectResource r
+           WHERE r.user.id = :userId
+           AND ((r.startDate IS NULL OR r.startDate <= :date)
+           AND (r.endDate IS NULL OR r.endDate >= :date))
+           """)
+    Integer getTotalAllocationForUserAtDate(Long userId, LocalDate date);
 }

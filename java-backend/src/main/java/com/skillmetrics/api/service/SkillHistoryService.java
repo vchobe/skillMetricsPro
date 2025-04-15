@@ -42,6 +42,32 @@ public class SkillHistoryService {
                 .collect(Collectors.toList());
     }
     
+    @Transactional
+    public SkillHistory createSkillHistory(
+            Skill skill, 
+            String action, 
+            String previousValue, 
+            String newValue, 
+            String previousLevel, 
+            String newLevel, 
+            String notes, 
+            com.skillmetrics.api.model.User performedBy) {
+        
+        SkillHistory history = SkillHistory.builder()
+                .skill(skill)
+                .user(skill.getUser())
+                .action(action)
+                .previousValue(previousValue)
+                .newValue(newValue)
+                .previousLevel(previousLevel)
+                .newLevel(newLevel)
+                .notes(notes)
+                .performedBy(performedBy)
+                .build();
+        
+        return skillHistoryRepository.save(history);
+    }
+    
     // Helper methods
     
     private SkillHistoryDto convertToDto(SkillHistory history) {

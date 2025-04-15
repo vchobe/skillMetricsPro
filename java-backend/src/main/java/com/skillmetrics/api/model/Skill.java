@@ -11,6 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Table(name = "skills")
@@ -47,6 +48,9 @@ public class Skill {
     @JoinColumn(name = "template_id")
     private SkillTemplate template;
     
+    // Number of endorsements for this skill
+    private Integer endorsementCount;
+    
     @OneToMany(mappedBy = "skill", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Endorsement> endorsements = new ArrayList<>();
     
@@ -61,4 +65,29 @@ public class Skill {
     
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+    
+    /**
+     * Convenience method to set user by ID
+     * @param userId the user ID
+     */
+    public void setUserId(Long userId) {
+        if (userId == null) {
+            this.user = null;
+            return;
+        }
+        
+        if (this.user == null) {
+            this.user = new User();
+        }
+        
+        this.user.setId(userId);
+    }
+    
+    /**
+     * Convenience method to get user ID
+     * @return the user ID
+     */
+    public Long getUserId() {
+        return this.user != null ? this.user.getId() : null;
+    }
 }

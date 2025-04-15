@@ -36,6 +36,14 @@ public class SkillHistory {
     
     private String newValue;
     
+    // For level changes specifically
+    private String previousLevel;
+    
+    private String newLevel;
+    
+    // Additional notes about the history entry
+    private String notes;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "performed_by_id")
     private User performedBy;
