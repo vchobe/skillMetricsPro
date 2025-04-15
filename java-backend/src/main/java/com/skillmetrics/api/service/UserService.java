@@ -5,7 +5,11 @@ import com.skillmetrics.api.dto.UserDto;
 import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.User;
 import com.skillmetrics.api.repository.UserRepository;
+import com.skillmetrics.api.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -193,5 +197,18 @@ public class UserService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
+    }
+    
+    /**
+     * Implementation of UserDetailsService interface method
+     * Used by Spring Security for authentication
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+        
+        return new UserPrincipal(user);
     }
 }

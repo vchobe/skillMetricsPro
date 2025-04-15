@@ -31,6 +31,11 @@ public class Endorsement {
     
     private String comment;
     
+    // Rating from 1-5 stars
+    private Integer rating;
+    
     @CreationTimestamp
     private LocalDateTime createdAt;
+    
+    private LocalDateTime updatedAt;
 }

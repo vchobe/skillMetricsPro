@@ -50,4 +50,10 @@ public class UserDto {
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
+    
+    // Used for skill matching algorithms
+    private Double matchPercentage;
+    
+    // Used for skill count in reports and search
+    private Integer skillCount;
 }

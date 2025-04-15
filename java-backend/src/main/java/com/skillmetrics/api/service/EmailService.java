@@ -14,6 +14,8 @@ import org.thymeleaf.context.Context;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -103,5 +105,79 @@ public class EmailService {
         String htmlBody = templateEngine.process("notification", context);
         
         sendEmail(user.getEmail(), subject, htmlBody);
+    }
+    
+    /**
+     * Send project assignment email notification
+     */
+    @Async
+    public void sendProjectAssignmentEmail(String email, String userName, String projectName, 
+                                         String role, String allocation, String location,
+                                         LocalDate startDate, LocalDate endDate) {
+        Context context = new Context();
+        context.setVariable("name", userName);
+        context.setVariable("projectName", projectName);
+        context.setVariable("role", role);
+        context.setVariable("allocation", allocation);
+        context.setVariable("location", location);
+        
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, yyyy");
+        context.setVariable("startDate", startDate != null ? startDate.format(formatter) : "Not specified");
+        context.setVariable("endDate", endDate != null ? endDate.format(formatter) : "Not specified");
+        
+        context.setVariable("dashboardUrl", baseUrl + "/dashboard");
+        
+        String htmlBody = templateEngine.process("project-assignment", context);
+        
+        sendEmail(email, "Project Assignment: " + projectName, htmlBody);
+    }
+    
+    /**
+     * Send project update email notification
+     */
+    @Async
+    public void sendProjectUpdateEmail(String email, String userName, String projectName,
+                                     String oldRole, String newRole,
+                                     Integer oldAllocation, Integer newAllocation) {
+        Context context = new Context();
+        context.setVariable("name", userName);
+        context.setVariable("projectName", projectName);
+        
+        boolean isRoleChanged = oldRole != null && newRole != null && !oldRole.equals(newRole);
+        boolean isAllocationChanged = oldAllocation != null && newAllocation != null && !oldAllocation.equals(newAllocation);
+        
+        context.setVariable("isRoleChanged", isRoleChanged);
+        context.setVariable("isAllocationChanged", isAllocationChanged);
+        
+        if (isRoleChanged) {
+            context.setVariable("oldRole", oldRole);
+            context.setVariable("newRole", newRole);
+        }
+        
+        if (isAllocationChanged) {
+            context.setVariable("oldAllocation", oldAllocation + "%");
+            context.setVariable("newAllocation", newAllocation + "%");
+        }
+        
+        context.setVariable("dashboardUrl", baseUrl + "/dashboard");
+        
+        String htmlBody = templateEngine.process("project-update", context);
+        
+        sendEmail(email, "Project Assignment Update: " + projectName, htmlBody);
+    }
+    
+    /**
+     * Send project removal email notification
+     */
+    @Async
+    public void sendProjectRemovalEmail(String email, String userName, String projectName) {
+        Context context = new Context();
+        context.setVariable("name", userName);
+        context.setVariable("projectName", projectName);
+        context.setVariable("dashboardUrl", baseUrl + "/dashboard");
+        
+        String htmlBody = templateEngine.process("project-removal", context);
+        
+        sendEmail(email, "Project Assignment Removal: " + projectName, htmlBody);
     }
 }

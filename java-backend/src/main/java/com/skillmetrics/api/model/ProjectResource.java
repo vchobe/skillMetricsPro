@@ -52,4 +52,18 @@ public class ProjectResource {
     
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+    
+    /**
+     * Convenience method to get user ID
+     */
+    public Long getUserId() {
+        return this.user != null ? this.user.getId() : null;
+    }
+    
+    /**
+     * Convenience method to get project ID
+     */
+    public Long getProjectId() {
+        return this.project != null ? this.project.getId() : null;
+    }
 }

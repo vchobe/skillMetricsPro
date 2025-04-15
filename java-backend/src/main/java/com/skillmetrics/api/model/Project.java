@@ -67,4 +67,25 @@ public class Project {
     
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+    
+    /**
+     * Convenience method to get client ID
+     */
+    public Long getClientId() {
+        return this.client != null ? this.client.getId() : null;
+    }
+    
+    /**
+     * Convenience method to get lead ID
+     */
+    public Long getLeadId() {
+        return this.lead != null ? this.lead.getId() : null;
+    }
+    
+    /**
+     * Convenience method to get delivery lead ID
+     */
+    public Long getDeliveryLeadId() {
+        return this.deliveryLead != null ? this.deliveryLead.getId() : null;
+    }
 }

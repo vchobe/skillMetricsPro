@@ -3,6 +3,7 @@ package com.skillmetrics.api.controller;
 import com.skillmetrics.api.dto.SkillTemplateDto;
 import com.skillmetrics.api.exception.BadRequestException;
 import com.skillmetrics.api.exception.ResourceNotFoundException;
+import com.skillmetrics.api.model.Skill;
 import com.skillmetrics.api.model.SkillTemplate;
 import com.skillmetrics.api.model.User;
 import com.skillmetrics.api.repository.SkillRepository;
@@ -226,7 +227,7 @@ public class SkillTemplateController {
         Map<String, Long> levelDistribution = skillRepository.findByNameAndCategory(
                 template.getName(), template.getCategory())
                 .stream()
-                .collect(Collectors.groupingBy(s -> s.getLevel(), Collectors.counting()));
+                .collect(Collectors.groupingBy(s -> ((Skill) s).getLevel(), Collectors.counting()));
         statistics.put("levelDistribution", levelDistribution);
         
         return ResponseEntity.ok(statistics);

@@ -57,4 +57,10 @@ public class ProjectDto {
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
+    
+    // Used for resource counting in reports
+    private Integer resourceCount;
+    
+    // Used for skill counting in reports
+    private Integer skillCount;
 }

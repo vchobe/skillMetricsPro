@@ -43,4 +43,14 @@ public interface SkillHistoryRepository extends JpaRepository<SkillHistory, Long
            ORDER BY h.timestamp DESC
            """)
     List<SkillHistory> findByUserIdAndAction(Long userId, String action);
+    
+    /**
+     * Find history entries for skills owned by a specific user
+     */
+    @Query("""
+           SELECT h FROM SkillHistory h
+           WHERE h.skill.user.id = :userId
+           ORDER BY h.timestamp DESC
+           """)
+    List<SkillHistory> findBySkillUserId(Long userId);
 }
