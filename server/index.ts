@@ -42,15 +42,53 @@ app.use((req, res, next) => {
 const createApiProxy = (app: express.Express) => {
   app.use('/api', async (req: Request, res: Response) => {
     const javaBackendUrl = `http://localhost:8080${req.url}`;
-    console.log(`Proxying request to Java backend: ${req.method} ${javaBackendUrl}`);
+    
+    // Add extra debug logging for skills-related endpoints
+    const isSkillEndpoint = req.url.includes('/skill') || req.url.includes('/skills');
+    if (isSkillEndpoint) {
+      console.log(`----- SKILL API REQUEST -----`);
+      console.log(`Method: ${req.method}`);
+      console.log(`URL: ${javaBackendUrl}`);
+      console.log(`Headers: ${JSON.stringify(req.headers)}`);
+      console.log(`Body: ${JSON.stringify(req.body)}`);
+      console.log(`----------------------------`);
+    } else {
+      console.log(`Proxying request to Java backend: ${req.method} ${javaBackendUrl}`);
+    }
     
     try {
+      // Detect skill update request specifically (PATCH /api/skills/:id)
+      const isSkillUpdateRequest = req.method === 'PATCH' && req.url.match(/^\/skills\/\d+/);
+      
+      // Modify the request body for skill updates if needed
+      let requestBody = req.body;
+      if (isSkillUpdateRequest) {
+        console.log(`Special handling for skill update request detected`);
+        console.log(`Original request body:`, JSON.stringify(req.body));
+        
+        // Make sure the skill update body is in the format expected by Java backend
+        // Example transformation if needed:
+        // requestBody = {
+        //   name: req.body.name,
+        //   category: req.body.category,
+        //   level: req.body.level,
+        //   // Add any other fields needed by Java backend
+        // };
+        
+        console.log(`Transformed request body:`, JSON.stringify(requestBody));
+      }
+      
       // Create request options
       const requestOptions = {
         method: req.method,
         url: javaBackendUrl,
-        headers: { ...req.headers, host: 'localhost:8080' },
-        data: req.body,
+        headers: { 
+          ...req.headers, 
+          host: 'localhost:8080',
+          // Ensure content-type is set correctly
+          'content-type': req.headers['content-type'] || 'application/json'
+        },
+        data: requestBody,
         responseType: 'arraybuffer' as 'arraybuffer',
         validateStatus: () => true // Don't throw on any status code
       };
@@ -58,14 +96,71 @@ const createApiProxy = (app: express.Express) => {
       // Forward the request to Java backend
       const response = await axios(requestOptions);
       
-      // Send the response back to the client
-      res.status(response.status);
-      for (const [key, value] of Object.entries(response.headers)) {
-        res.setHeader(key, value as string);
+      // Add special handling for skills endpoints to debug issues
+      if (isSkillEndpoint) {
+        console.log(`----- SKILL API RESPONSE -----`);
+        console.log(`Status: ${response.status}`);
+        console.log(`Headers: ${JSON.stringify(response.headers)}`);
+        
+        // Try to convert and log the response body if it's JSON
+        try {
+          const responseBody = Buffer.from(response.data).toString('utf8');
+          console.log(`Body: ${responseBody}`);
+          
+          if (response.status >= 400) {
+            console.error(`Error response from Java backend for skill endpoint: ${responseBody}`);
+          }
+        } catch (err) {
+          console.log(`Body: [Binary data]`);
+        }
+        console.log(`------------------------------`);
       }
-      res.send(response.data);
+      
+      // Check if this is a successful skill update response that needs special handling
+      const isSuccessfulSkillUpdate = isSkillUpdateRequest && response.status >= 200 && response.status < 300;
+      
+      if (isSuccessfulSkillUpdate) {
+        try {
+          // Parse the response to get the updated skill
+          const responseBody = JSON.parse(Buffer.from(response.data).toString('utf8'));
+          console.log(`Successful skill update detected. Response:`, JSON.stringify(responseBody));
+          
+          // If Java backend doesn't create skill history, we can do it here
+          // This is a temporary measure until Java backend implements SkillHistoryController
+          console.log(`Note: Java backend may be missing SkillHistoryController - history tracking may not be complete`);
+          
+          // Send the successful response back to the client
+          res.status(response.status);
+          for (const [key, value] of Object.entries(response.headers)) {
+            if (key !== 'content-length') { // Skip content-length as we might modify the body
+              res.setHeader(key, value as string);
+            }
+          }
+          res.json(responseBody);
+        } catch (err) {
+          // If we couldn't parse the response, just send it as-is
+          console.error('Error handling skill update response:', err);
+          res.status(response.status);
+          for (const [key, value] of Object.entries(response.headers)) {
+            res.setHeader(key, value as string);
+          }
+          res.send(response.data);
+        }
+      } else {
+        // For non-skill-update responses, send as-is
+        res.status(response.status);
+        for (const [key, value] of Object.entries(response.headers)) {
+          res.setHeader(key, value as string);
+        }
+        res.send(response.data);
+      }
     } catch (error: any) {
       console.error('Proxy error:', error);
+      
+      if (isSkillEndpoint) {
+        console.error(`Stack trace for skill endpoint error:`, error.stack);
+      }
+      
       res.status(500).json({
         error: 'Java Backend Connection Error',
         message: 'Could not connect to Java backend server',
