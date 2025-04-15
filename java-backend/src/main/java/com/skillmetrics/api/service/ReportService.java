@@ -793,9 +793,9 @@ public class ReportService {
     }
     
     private void addResourceUtilizationPdfContent(Document document, Map<String, Object> reportData) throws DocumentException {
-        Font sectionFont = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD);
-        Font normalFont = new Font(Font.FontFamily.HELVETICA, 10);
-        Font boldFont = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD);
+        PDFFont sectionFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 14, PDFFont.BOLD);
+        PDFFont normalFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 10);
+        PDFFont boldFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 10, PDFFont.BOLD);
         
         // Overview section
         Paragraph overview = new Paragraph("Resource Utilization Overview", sectionFont);
@@ -928,9 +928,9 @@ public class ReportService {
     }
     
     private void addTeamCapabilitiesPdfContent(Document document, Map<String, Object> reportData) throws DocumentException {
-        Font sectionFont = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD);
-        Font normalFont = new Font(Font.FontFamily.HELVETICA, 10);
-        Font boldFont = new Font(Font.FontFamily.HELVETICA, 10, Font.BOLD);
+        PDFFont sectionFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 14, PDFFont.BOLD);
+        PDFFont normalFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 10);
+        PDFFont boldFont = new PDFFont(PDFFont.FontFamily.HELVETICA, 10, PDFFont.BOLD);
         
         // Overview section
         Paragraph overview = new Paragraph("Team Capabilities Overview", sectionFont);
@@ -1072,7 +1072,7 @@ public class ReportService {
         
         // Create header styles
         CellStyle headerStyle = workbook.createCellStyle();
-        Font headerFont = workbook.createFont();
+        org.apache.poi.ss.usermodel.Font headerFont = workbook.createFont();
         headerFont.setBold(true);
         headerStyle.setFont(headerFont);
         
@@ -1204,7 +1204,7 @@ public class ReportService {
         
         // Create header styles
         CellStyle headerStyle = workbook.createCellStyle();
-        Font headerFont = workbook.createFont();
+        org.apache.poi.ss.usermodel.Font headerFont = workbook.createFont();
         headerFont.setBold(true);
         headerStyle.setFont(headerFont);
         
@@ -1347,7 +1347,7 @@ public class ReportService {
         
         // Create header styles
         CellStyle headerStyle = workbook.createCellStyle();
-        Font headerFont = workbook.createFont();
+        org.apache.poi.ss.usermodel.Font headerFont = workbook.createFont();
         headerFont.setBold(true);
         headerStyle.setFont(headerFont);
         
