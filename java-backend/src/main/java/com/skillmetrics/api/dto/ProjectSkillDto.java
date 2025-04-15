@@ -20,6 +20,8 @@ public class ProjectSkillDto {
     @NotNull(message = "Project ID is required")
     private Long projectId;
     
+    private String projectName; // For display purposes
+    
     @NotNull(message = "Skill ID is required")
     private Long skillId;
     

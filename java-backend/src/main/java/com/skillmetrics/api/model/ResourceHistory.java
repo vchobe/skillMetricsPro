@@ -2,17 +2,14 @@ package com.skillmetrics.api.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "resource_history")
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResourceHistory {
@@ -20,10 +17,6 @@ public class ResourceHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_resource_id", nullable = false)
-    private ProjectResource projectResource;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
@@ -36,20 +29,25 @@ public class ResourceHistory {
     @Column(nullable = false)
     private String action; // added, removed, role_changed, allocation_changed
     
+    @Column(name = "previous_role")
     private String previousRole;
     
+    @Column(name = "new_role")
     private String newRole;
     
+    @Column(name = "previous_allocation")
     private Integer previousAllocation;
     
+    @Column(name = "new_allocation")
     private Integer newAllocation;
+    
+    @Column(nullable = false)
+    private LocalDateTime date;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "performed_by_id")
     private User performedBy;
     
+    @Column(columnDefinition = "TEXT")
     private String note;
-    
-    @CreationTimestamp
-    private LocalDateTime date;
 }

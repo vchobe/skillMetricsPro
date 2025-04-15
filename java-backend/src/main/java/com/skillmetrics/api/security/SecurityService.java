@@ -61,7 +61,17 @@ public class SecurityService {
         
         if (principal instanceof UserDetails) {
             String username = ((UserDetails) principal).getUsername();
+            UserDetails userDetails = (UserDetails) principal;
             
+            // First check if user has admin role
+            boolean isAdmin = userDetails.getAuthorities().stream()
+                           .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                           
+            if (isAdmin) {
+                return true;
+            }
+            
+            // Then check if user is the owner of the skill
             return skillRepository.findById(skillId)
                     .map(skill -> skill.getUser().getUsername().equals(username))
                     .orElse(false);
@@ -71,12 +81,12 @@ public class SecurityService {
     }
     
     /**
-     * Checks if the currently authenticated user is the owner of the specified skills.
+     * Checks if the currently authenticated user has the specified user ID or is an admin.
      * 
-     * @param userId User ID to check ownership against
-     * @return true if the current user is the owner of the skills, false otherwise
+     * @param userId User ID to check
+     * @return true if the current user has the specified ID or is an admin, false otherwise
      */
-    public boolean isOwnerOfSkill(Long userId) {
+    public boolean isUserOrAdmin(Long userId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         
         if (authentication == null || !authentication.isAuthenticated()) {

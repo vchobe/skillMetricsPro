@@ -11,6 +11,7 @@
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/controller/HealthCheckController.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/controller/ClientController.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/controller/SkillHistoryController.java
+/home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/dto/ProjectResourceHistoryDto.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/controller/ReportController.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/service/ProfileHistoryService.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/security/JwtAuthorizationFilter.java
@@ -62,6 +63,7 @@
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/controller/ProfileHistoryController.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/service/ExportService.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/model/User.java
+/home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/security/JwtAuthenticationResponse.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/service/DataExportService.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/security/JwtAuthenticationFilter.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/repository/SkillHistoryRepository.java
@@ -71,6 +73,7 @@
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/repository/ProjectRepository.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/service/ProjectSkillService.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/dto/ResourceDto.java
+/home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/dto/SignUpRequest.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/repository/PendingSkillUpdateRepository.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/dto/SkillDto.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/config/JpaConfig.java
@@ -78,8 +81,8 @@
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/service/ResourceService.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/model/SkillLevel.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/repository/SkillTargetRepository.java
-/home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/model/ResourceHistory.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/model/enums/SkillLevel.java
+/home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/model/ResourceHistory.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/config/FileStorageProperties.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/dto/AuthRequestDto.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/repository/UserRepository.java
@@ -93,8 +96,9 @@
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/dto/LoginDto.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/repository/SkillExportRepository.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/model/ProjectResource.java
-/home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/SkillMetricsApplication.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/dto/LoginRequest.java
+/home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/SkillMetricsApplication.java
+/home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/service/ProjectResourceHistoryService.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/security/SecurityConfig.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/controller/ProjectController.java
 /home/runner/workspace/java-backend/src/main/java/com/skillmetrics/api/model/ProjectSkill.java

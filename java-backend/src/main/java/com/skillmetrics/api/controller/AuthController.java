@@ -5,6 +5,7 @@ import com.skillmetrics.api.exception.ResourceNotFoundException;
 import com.skillmetrics.api.model.User;
 import com.skillmetrics.api.repository.UserRepository;
 import com.skillmetrics.api.security.CurrentUser;
+import com.skillmetrics.api.security.JwtAuthenticationResponse;
 import com.skillmetrics.api.security.JwtTokenProvider;
 import com.skillmetrics.api.security.UserPrincipal;
 import com.skillmetrics.api.service.EmailService;
@@ -21,7 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.HashMap;
 import java.util.Map;
 
