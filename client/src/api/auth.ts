@@ -5,7 +5,7 @@ import {
 } from './config';
 
 /**
- * Authentication service for interaction with the Java Spring backend
+ * Authentication service for backend interaction
  */
 
 // Interface for login request
@@ -23,7 +23,7 @@ export interface SignupRequest {
   lastName?: string;
 }
 
-// Interface for auth response from Spring backend
+// Interface for authentication response
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;

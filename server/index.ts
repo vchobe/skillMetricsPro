@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import axios from "axios";
+import * as http from 'http';
 
 const app = express();
 app.use(express.json());
@@ -36,6 +38,70 @@ app.use((req, res, next) => {
   next();
 });
 
+// Create a function to proxy API requests to Java backend
+const createApiProxy = (app: express.Express) => {
+  app.use('/api', async (req: Request, res: Response) => {
+    const javaBackendUrl = `http://localhost:8080${req.url}`;
+    console.log(`Proxying request to Java backend: ${req.method} ${javaBackendUrl}`);
+    
+    try {
+      // Create request options
+      const requestOptions = {
+        method: req.method,
+        url: javaBackendUrl,
+        headers: { ...req.headers, host: 'localhost:8080' },
+        data: req.body,
+        responseType: 'arraybuffer' as 'arraybuffer',
+        validateStatus: () => true // Don't throw on any status code
+      };
+      
+      // Forward the request to Java backend
+      const response = await axios(requestOptions);
+      
+      // Send the response back to the client
+      res.status(response.status);
+      for (const [key, value] of Object.entries(response.headers)) {
+        res.setHeader(key, value as string);
+      }
+      res.send(response.data);
+    } catch (error: any) {
+      console.error('Proxy error:', error);
+      res.status(500).json({
+        error: 'Java Backend Connection Error',
+        message: 'Could not connect to Java backend server',
+        details: error.message || 'Unknown error'
+      });
+    }
+  });
+  
+  console.log('API proxy configured to forward requests to Java backend on port 8080');
+};
+
+// Function to check if Java backend is running on port 8080
+const isJavaBackendRunning = async (): Promise<boolean> => {
+  const testServer = http.createServer();
+  return new Promise<boolean>((resolve) => {
+    testServer.once('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        // Port 8080 is in use, likely Java backend
+        console.log('Detected Java backend running on port 8080');
+        resolve(true);
+      } else {
+        console.log('Error checking port 8080:', err.code);
+        resolve(false);
+      }
+    });
+    
+    testServer.once('listening', () => {
+      // Port 8080 is free, no Java backend
+      testServer.close();
+      resolve(false);
+    });
+    
+    testServer.listen(8080, '0.0.0.0');
+  });
+};
+
 (async () => {
   const server = await registerRoutes(app);
 
@@ -47,31 +113,58 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Setup vite in development or serve static files in production
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // CRITICAL: Hardcoded port 8080 for Cloud Run compatibility
-  // Cloud Run requires the application to listen on port 8080 
-  // This value must not be changed or read from environment variables
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
-  const host = process.env.HOST || "0.0.0.0";
+  // Check if Java backend is running
+  const javaRunning = await isJavaBackendRunning();
   
-  // Log environment details to help with debugging
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`Using port ${port} (from env: ${process.env.PORT || 'not set, using default 8080'})`);
-  console.log(`Starting server on host ${host} and port ${port}`);
-  
-  // Properly specify host and port for Cloud Run compatibility
-  server.listen(port, host, () => {
-    // Important: The following log statements are used by deployment scripts
-    // to verify the application is listening on the correct port
-    log(`serving on port ${port}`);
-    console.log(`Server started and explicitly listening on port ${port}`);
-  });
+  if (javaRunning) {
+    // Java backend detected, use alternative port for frontend-only mode
+    const port = 5000;
+    const host = "0.0.0.0";
+    
+    console.log(`Java backend detected on port 8080`);
+    console.log(`Starting in frontend-only mode on port ${port}`);
+    
+    // Remove any existing API routes to avoid conflicts
+    app._router.stack = app._router.stack.filter((layer: any) => {
+      if (!layer.route) return true; // Keep middleware
+      if (!layer.route.path) return true; // Keep routes without paths
+      
+      // Check if it's a string path starting with /api
+      if (typeof layer.route.path === 'string' && layer.route.path.startsWith('/api')) {
+        return false; // Filter out API routes
+      }
+      
+      // For RegExp paths, keep them all (they're likely not API routes)
+      return true;
+    });
+    
+    // Setup API proxy to forward requests to Java backend
+    createApiProxy(app);
+    
+    server.listen(port, host, () => {
+      log(`serving frontend on port ${port} (API calls forwarded to Java backend on 8080)`);
+      console.log(`Frontend-only server started on port ${port}`);
+    });
+  } else {
+    // No Java backend, start normally on port 8080
+    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
+    const host = process.env.HOST || "0.0.0.0";
+    
+    console.log(`No Java backend detected`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`Using port ${port} (from env: ${process.env.PORT || 'not set, using default 8080'})`);
+    console.log(`Starting server on host ${host} and port ${port}`);
+    
+    server.listen(port, host, () => {
+      log(`serving on port ${port}`);
+      console.log(`Server started and explicitly listening on port ${port}`);
+    });
+  }
 })();
