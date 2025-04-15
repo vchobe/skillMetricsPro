@@ -1,60 +1,52 @@
 package com.skillmetrics.api.model;
 
-import com.skillmetrics.api.model.enums.NotificationType;
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Builder
+@Table(name = "notifications")
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "notifications")
 public class Notification {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "created_by")
+    private Long createdBy;
     
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-    
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private NotificationType type;
+    private String type;  // SKILL_ENDORSED, SKILL_UPDATED, PROJECT_ASSIGNED, etc.
     
+    @Column(nullable = false)
     private String title;
     
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String content;
+    @Column(columnDefinition = "TEXT")
+    private String message;
     
-    @Column(nullable = false)
-    private boolean isRead;
+    @Column(name = "entity_type")
+    private String entityType;  // SKILL, PROJECT, USER, etc.
     
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-    
-    private LocalDateTime readAt;
-    
-    @ManyToOne
-    @JoinColumn(name = "related_user_id")
-    private User relatedUser;
-    
-    @ManyToOne
-    @JoinColumn(name = "related_skill_id")
-    private Skill relatedSkill;
+    @Column(name = "entity_id")
+    private Long entityId;
     
     private String link;
     
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.isRead = false;
-    }
+    @Column(name = "is_read", nullable = false)
+    private Boolean isRead = false;
+    
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "read_at")
+    private LocalDateTime readAt;
 }

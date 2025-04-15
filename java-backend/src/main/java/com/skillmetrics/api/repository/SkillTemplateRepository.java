@@ -6,25 +6,27 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SkillTemplateRepository extends JpaRepository<SkillTemplate, Long> {
-
+    
     List<SkillTemplate> findByCategory(String category);
     
-    List<SkillTemplate> findByIsActive(Boolean isActive);
+    List<SkillTemplate> findByIsActiveTrue();
     
-    @Query("""
-           SELECT t FROM SkillTemplate t
-           WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', :term, '%'))
-           OR LOWER(t.description) LIKE LOWER(CONCAT('%', :term, '%'))
-           OR LOWER(t.category) LIKE LOWER(CONCAT('%', :term, '%'))
-           """)
-    List<SkillTemplate> searchTemplates(String term);
+    Optional<SkillTemplate> findByNameAndCategory(String name, String category);
     
-    @Query("""
-           SELECT DISTINCT t.category FROM SkillTemplate t
-           ORDER BY t.category
-           """)
+    @Query("SELECT DISTINCT s.category FROM SkillTemplate s ORDER BY s.category")
     List<String> findAllCategories();
+    
+    @Query("SELECT t FROM SkillTemplate t WHERE t.isActive = true AND " +
+           "LOWER(t.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(t.category) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(t.description) LIKE LOWER(CONCAT('%', :query, '%'))")
+    List<SkillTemplate> searchTemplates(String query);
+    
+    List<SkillTemplate> findByCreationSource(String source);
+    
+    List<SkillTemplate> findByIsCertificationRequiredTrue();
 }
