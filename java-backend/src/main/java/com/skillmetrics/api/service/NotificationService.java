@@ -210,7 +210,7 @@ public class NotificationService {
     }
 
     // Helper method to convert entity to DTO
-    private NotificationDto convertToDto(Notification notification) {
+    public NotificationDto convertToDto(Notification notification) {
         NotificationDto dto = new NotificationDto();
         dto.setId(notification.getId());
         dto.setUserId(notification.getUserId());

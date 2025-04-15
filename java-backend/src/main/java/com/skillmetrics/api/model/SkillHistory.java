@@ -107,4 +107,20 @@ public class SkillHistory {
         
         this.user.setId(userId);
     }
+    
+    /**
+     * Convenience method to get skill ID
+     * @return the skill ID
+     */
+    public Long getSkillId() {
+        return this.skill != null ? this.skill.getId() : null;
+    }
+    
+    /**
+     * Convenience method to get user ID
+     * @return the user ID
+     */
+    public Long getUserId() {
+        return this.user != null ? this.user.getId() : null;
+    }
 }

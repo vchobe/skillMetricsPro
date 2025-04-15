@@ -46,4 +46,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
            WHERE u.department = :department
            """)
     Long countByDepartment(String department);
+    
+    /**
+     * Find all users by their IDs
+     */
+    List<User> findAllByIdIn(List<Long> userIds);
+    
+    /**
+     * Find users by department or location
+     */
+    @Query("""
+           SELECT u FROM User u
+           WHERE u.department = :departmentOrLocation
+           OR u.location = :departmentOrLocation
+           """)
+    List<User> findByDepartmentOrLocation(String departmentOrLocation);
 }

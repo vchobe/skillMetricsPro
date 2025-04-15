@@ -72,6 +72,20 @@ public class JwtUtil {
         return getClaimFromToken(token, Claims::getSubject);
     }
     
+    /**
+     * Alias method for getUsernameFromToken for better readability
+     */
+    public String extractUsername(String token) {
+        return getUsernameFromToken(token);
+    }
+    
+    /**
+     * Extract a specific claim from the token
+     */
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        return getClaimFromToken(token, claimsResolver);
+    }
+    
     public Date getExpirationDateFromToken(String token) {
         return getClaimFromToken(token, Claims::getExpiration);
     }
