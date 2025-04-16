@@ -194,6 +194,9 @@ public class PendingSkillUpdateService {
      */
     @Transactional
     public PendingSkillUpdateDto createPendingSkillUpdate(PendingSkillUpdateDto dto) {
+        // Synchronize fields from Node.js to Java backend naming conventions
+        dto.synchronizeFields();
+        
         // Check if user exists
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
@@ -214,6 +217,26 @@ public class PendingSkillUpdateService {
             dto.setSkillName(skill.getName());
             dto.setSkillCategory(skill.getCategory());
             dto.setCurrentLevel(skill.getLevel());
+            
+            // Also set Node.js compatibility fields
+            dto.setName(skill.getName());
+            dto.setCategory(skill.getCategory());
+        } else {
+            // If creating a new skill (not updating)
+            // Ensure skill name is set from the Node.js field if needed
+            if (dto.getSkillName() == null && dto.getName() != null) {
+                dto.setSkillName(dto.getName());
+            }
+            
+            // Ensure category is set from the Node.js field if needed
+            if (dto.getSkillCategory() == null && dto.getCategory() != null) {
+                dto.setSkillCategory(dto.getCategory());
+            }
+            
+            // Ensure level is set from the Node.js field if needed
+            if (dto.getProposedLevel() == null && dto.getLevel() != null) {
+                dto.setProposedLevel(dto.getLevel());
+            }
         }
         
         // Set default status if not provided
@@ -221,9 +244,15 @@ public class PendingSkillUpdateService {
             dto.setStatus("PENDING");
         }
         
-        // Map DTO to entity
+        // Map DTO to entity (this will call synchronizeFields again)
         PendingSkillUpdate pendingSkillUpdate = mapToEntity(dto);
-        pendingSkillUpdate.setCreatedAt(LocalDateTime.now());
+        
+        // Use submitted_at from frontend if available, otherwise use current time
+        if (dto.getSubmittedAt() != null) {
+            pendingSkillUpdate.setCreatedAt(dto.getSubmittedAt());
+        } else {
+            pendingSkillUpdate.setCreatedAt(LocalDateTime.now());
+        }
         
         // Save entity
         PendingSkillUpdate savedUpdate = pendingSkillUpdateRepository.save(pendingSkillUpdate);
@@ -502,6 +531,8 @@ public class PendingSkillUpdateService {
      */
     private PendingSkillUpdateDto mapToDto(PendingSkillUpdate entity, Map<Long, User> userMap) {
         PendingSkillUpdateDto dto = new PendingSkillUpdateDto();
+        
+        // Map core Java backend fields
         dto.setId(entity.getId());
         dto.setUserId(entity.getUserId());
         dto.setSkillId(entity.getSkillId());
@@ -517,6 +548,14 @@ public class PendingSkillUpdateService {
         dto.setUpdatedAt(entity.getUpdatedAt());
         dto.setApprovedAt(entity.getApprovedAt());
         dto.setRejectedAt(entity.getRejectedAt());
+        
+        // Map Node.js frontend fields for compatibility
+        dto.setName(entity.getSkillName());
+        dto.setCategory(entity.getSkillCategory());
+        dto.setLevel(entity.getProposedLevel());
+        dto.setNotes(entity.getJustification());
+        dto.setDescription(entity.getJustification());
+        dto.setSubmittedAt(entity.getCreatedAt());
         
         // Add user information if available
         User user = userMap.get(entity.getUserId());
@@ -541,15 +580,21 @@ public class PendingSkillUpdateService {
      * Map DTO to entity
      */
     private PendingSkillUpdate mapToEntity(PendingSkillUpdateDto dto) {
+        // Synchronize fields between Node.js and Java backend naming conventions
+        dto.synchronizeFields();
+        
         PendingSkillUpdate entity = new PendingSkillUpdate();
         entity.setId(dto.getId());
         entity.setUserId(dto.getUserId());
         entity.setSkillId(dto.getSkillId());
+        
+        // Use synchronized field values
         entity.setSkillName(dto.getSkillName());
         entity.setSkillCategory(dto.getSkillCategory());
         entity.setCurrentLevel(dto.getCurrentLevel());
         entity.setProposedLevel(dto.getProposedLevel());
         entity.setJustification(dto.getJustification());
+        
         entity.setStatus(dto.getStatus());
         entity.setReviewerId(dto.getReviewerId());
         entity.setReviewerComments(dto.getReviewerComments());
