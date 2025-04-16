@@ -395,15 +395,15 @@ export default function AdminDashboard() {
       category: string;
       level: string;
       certification?: string;
-      credly_link?: string;
+      credlyLink?: string;
       notes?: string;
-      certification_date?: string;
-      expiration_date?: string;
+      certificationDate?: string;
+      expirationDate?: string;
       status: string;
       submittedAt: string;
-      reviewed_at?: string;
-      reviewed_by?: number;
-      review_notes?: string;
+      reviewedAt?: string;
+      reviewedBy?: number;
+      reviewNotes?: string;
       isUpdate: boolean;
     }>
   }[]>({
@@ -3414,15 +3414,15 @@ export default function AdminDashboard() {
                                             {skill.certification ? (
                                               <div>
                                                 <div className="text-sm text-gray-900">{skill.certification}</div>
-                                                {skill.credly_link && (
-                                                  <a href={skill.credly_link} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:text-indigo-900">
+                                                {skill.credlyLink && (
+                                                  <a href={skill.credlyLink} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:text-indigo-900">
                                                     View credential
                                                   </a>
                                                 )}
-                                                {skill.certification_date && (
+                                                {skill.certificationDate && (
                                                   <div className="text-xs text-gray-500">
-                                                    {new Date(skill.certification_date).toLocaleDateString()}
-                                                    {skill.expiration_date && ` - ${new Date(skill.expiration_date).toLocaleDateString()}`}
+                                                    {new Date(skill.certificationDate).toLocaleDateString()}
+                                                    {skill.expirationDate && ` - ${new Date(skill.expirationDate).toLocaleDateString()}`}
                                                   </div>
                                                 )}
                                               </div>
