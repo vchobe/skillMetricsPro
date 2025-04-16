@@ -188,7 +188,7 @@ export const updateSkill = async (skillId: number, skillData: UpdateSkillRequest
   }
 
   const response = await fetch(`${API_BASE_URL}/skills/${skillId}`, {
-    method: 'PUT',
+    method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
