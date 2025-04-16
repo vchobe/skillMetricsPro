@@ -4,7 +4,7 @@
  */
 
 // Flag to use Java backend
-const USE_JAVA_BACKEND = true; // Set to true to use Java backend
+const USE_JAVA_BACKEND = false; // Set to false to use Node.js backend
 
 // In Replit, it's better to use relative URLs rather than localhost
 const USE_RELATIVE_URLS = true;
