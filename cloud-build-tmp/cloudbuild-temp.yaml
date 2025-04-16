@@ -1,0 +1,37 @@
+steps:
+# Build Docker image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-final:v1-20250407075045', '.']
+
+# Deploy to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args:
+  - 'run'
+  - 'deploy'
+  - 'skills-management-app'
+  - '--image'
+  - 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-final:v1-20250407075045'
+  - '--region'
+  - 'us-central1'
+  - '--platform'
+  - 'managed'
+  - '--allow-unauthenticated'
+  - '--service-account'
+  - 'skillmetrics-service-account@imposing-elixir-440911-u9.iam.gserviceaccount.com'
+  - '--update-env-vars'
+  - 'NODE_ENV=production,HOST=0.0.0.0,SESSION_SECRET=generated-session-secret-for-production-environment,PORT=8080'
+  - '--memory'
+  - '1Gi'
+  - '--min-instances'
+  - '0'
+  - '--max-instances'
+  - '10'
+  - '--timeout'
+  - '300s'
+
+images:
+- 'gcr.io/imposing-elixir-440911-u9/skillmetricspro-final:v1-20250407075045'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
