@@ -14,7 +14,7 @@ function getFullApiUrl(path: string): string {
   return `${API_BASE_URL}${apiPath}`;
 }
 
-// Parse error response from the Java backend
+// Parse error response from the backend
 async function parseErrorResponse(res: Response): Promise<string> {
   try {
     const contentType = res.headers.get('Content-Type');
@@ -82,7 +82,7 @@ export async function apiRequest<T = any>(
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  // Make the request to Java backend with CORS support
+  // Make the request with CORS support
   let res = await fetch(fullUrl, {
     method,
     headers,
@@ -134,7 +134,7 @@ export const getQueryFn: <T>(options: {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
-    // Make the initial request with CORS support for Java backend
+    // Make the initial request with CORS support
     let res = await fetch(fullUrl, {
       headers,
       credentials: "include",

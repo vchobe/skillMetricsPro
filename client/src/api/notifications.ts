@@ -3,7 +3,7 @@ import { getAccessToken } from './auth';
 import { Notification } from './websocket';
 
 /**
- * Notifications API service for interacting with Java backend
+ * Notifications API service
  */
 
 // Notification status update request
