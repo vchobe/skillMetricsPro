@@ -174,27 +174,11 @@ const createApiProxy = (app: express.Express) => {
 
 // Function to check if Java backend is running on port 8080
 const isJavaBackendRunning = async (): Promise<boolean> => {
-  const testServer = http.createServer();
-  return new Promise<boolean>((resolve) => {
-    testServer.once('error', (err: any) => {
-      if (err.code === 'EADDRINUSE') {
-        // Port 8080 is in use, likely Java backend
-        console.log('Detected Java backend running on port 8080');
-        resolve(true);
-      } else {
-        console.log('Error checking port 8080:', err.code);
-        resolve(false);
-      }
-    });
-    
-    testServer.once('listening', () => {
-      // Port 8080 is free, no Java backend
-      testServer.close();
-      resolve(false);
-    });
-    
-    testServer.listen(8080, '0.0.0.0');
-  });
+  // Since we've switched to using the Node.js backend directly,
+  // we'll return false to ensure we always use the Node.js backend
+  // rather than trying to detect Java
+  console.log('Skipping Java backend detection, using Node.js backend directly');
+  return false;
 };
 
 (async () => {
