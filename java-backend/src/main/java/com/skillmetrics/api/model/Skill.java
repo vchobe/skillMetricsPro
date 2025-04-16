@@ -1,4 +1,4 @@
-package com.skillmetrics.api.model;
+git rebase -i HEAD~10package com.skillmetrics.api.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
