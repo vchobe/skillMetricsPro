@@ -400,11 +400,11 @@ export default function AdminDashboard() {
       certification_date?: string;
       expiration_date?: string;
       status: string;
-      submitted_at: string;
+      submittedAt: string;
       reviewed_at?: string;
       reviewed_by?: number;
       review_notes?: string;
-      is_update: boolean;
+      isUpdate: boolean;
     }>
   }[]>({
     queryKey: ["/api/admin/pending-skills"],
@@ -3434,7 +3434,7 @@ export default function AdminDashboard() {
                                             <div className="text-sm text-gray-500">
                                               {(() => {
                                                 try {
-                                                  const date = new Date(skill.submitted_at);
+                                                  const date = new Date(skill.submittedAt);
                                                   return !isNaN(date.getTime()) 
                                                     ? date.toLocaleDateString() 
                                                     : "Date not available";
@@ -3446,7 +3446,7 @@ export default function AdminDashboard() {
                                             <div className="text-xs text-gray-400">
                                               {(() => {
                                                 try {
-                                                  const date = new Date(skill.submitted_at);
+                                                  const date = new Date(skill.submittedAt);
                                                   return !isNaN(date.getTime()) 
                                                     ? date.toLocaleTimeString() 
                                                     : "";
@@ -3457,8 +3457,8 @@ export default function AdminDashboard() {
                                             </div>
                                           </td>
                                           <td className="px-6 py-4 whitespace-nowrap">
-                                            <Badge variant={skill.is_update ? "outline" : "default"} className={skill.is_update ? "bg-blue-50 text-blue-700 border-blue-200" : ""}>
-                                              {skill.is_update ? "Update" : "New"}
+                                            <Badge variant={skill.isUpdate ? "outline" : "default"} className={skill.isUpdate ? "bg-blue-50 text-blue-700 border-blue-200" : ""}>
+                                              {skill.isUpdate ? "Update" : "New"}
                                             </Badge>
                                           </td>
                                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
