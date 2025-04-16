@@ -212,8 +212,8 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
         ...updateData,
         skillId: skillId, // Reference to existing skill
         status: "pending",
-        is_update: true, // Mark as an update, not a new skill
-        submitted_at: new Date().toISOString(),
+        isUpdate: true, // Mark as an update, not a new skill
+        submittedAt: new Date().toISOString(),
         notes: changeNote || `Updated ${data.name}` // Store change notes in the notes field
       });
       return await res.json();
