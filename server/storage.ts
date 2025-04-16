@@ -1125,26 +1125,43 @@ export class PostgresStorage implements IStorage {
 
   async createPendingSkillUpdate(update: InsertPendingSkillUpdate): Promise<PendingSkillUpdate> {
     try {
-      const result = await pool.query(
-        `INSERT INTO pending_skill_updates (
-          user_id, skill_id, name, category, level, certification, credly_link, 
-          notes, certification_date, expiration_date, is_update
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        RETURNING *`,
-        [
-          update.userId,
-          update.skillId || null,
-          update.name,
-          update.category,
-          update.level,
-          update.certification || '',
-          update.credlyLink || '',
-          update.notes || '',
-          update.certificationDate || null,
-          update.expirationDate || null,
-          update.isUpdate || false
-        ]
-      );
+      // Log the incoming data to help with debugging
+      console.log("Creating pending skill update with data:", update);
+      
+      // Build the SQL query dynamically using camelToSnake for field names
+      const fields = Object.keys(update)
+        .filter(key => update[key as keyof typeof update] !== undefined)
+        .map(key => this.camelToSnake(key));
+      
+      const placeholders = fields.map((_, index) => `$${index + 1}`);
+      const values = Object.keys(update)
+        .filter(key => update[key as keyof typeof update] !== undefined)
+        .map(key => {
+          const value = update[key as keyof typeof update];
+          
+          // Handle empty strings and null values consistently
+          if (value === '') return null;
+          if (key === 'skillId' && !value) return null;
+          
+          return value;
+        });
+      
+      // Ensure we have values to insert
+      if (fields.length === 0) {
+        throw new Error("No valid fields provided for pending skill update");
+      }
+      
+      const query = `
+        INSERT INTO pending_skill_updates (${fields.join(', ')})
+        VALUES (${placeholders.join(', ')})
+        RETURNING *
+      `;
+      
+      // Log the query for debugging
+      console.log("Generated SQL query:", query);
+      console.log("SQL parameters:", values);
+      
+      const result = await pool.query(query, values);
       return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating pending skill update:", error);
