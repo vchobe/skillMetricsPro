@@ -164,7 +164,7 @@ export default function AddSkillsPage() {
           const res = await apiRequest("POST", "/api/skills/pending", {
             ...skill,
             status: "pending",
-            is_update: false,
+            isUpdate: false,
             submitted_at: new Date().toISOString()
           });
           return await res.json();
@@ -215,7 +215,7 @@ export default function AddSkillsPage() {
         notes: skill.notes || "",
         changeNote: "Custom skill addition",
         status: "pending",
-        is_update: false,
+        isUpdate: false,
         submitted_at: new Date().toISOString()
       };
       
