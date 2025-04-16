@@ -2,7 +2,7 @@ import { API_BASE_URL } from './config';
 import { getAccessToken } from './auth';
 
 /**
- * Skills API service for interacting with Java backend
+ * Skills API service for skill management
  */
 
 // Skill model
