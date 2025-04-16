@@ -1,0 +1,20 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '${_IMAGE_NAME}', '-f', '${_DOCKERFILE}', '.']
+  
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_IMAGE_NAME}']
+    
+# Substitution variables with default values
+substitutions:
+  _IMAGE_NAME: 'gcr.io/${PROJECT_ID}/skillmetricspro-fixed:latest'
+  _DOCKERFILE: 'Dockerfile.cloud-run-fixed'
+
+# Store images in Google Container Registry
+images:
+  - '${_IMAGE_NAME}'
+  
+# Set a timeout for the build
+timeout: '1800s'

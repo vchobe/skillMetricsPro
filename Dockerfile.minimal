@@ -1,0 +1,20 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy minimal package files and install dependencies
+COPY package.minimal.json package.json
+RUN npm install
+
+# Copy minimal application code
+COPY index.minimal.js index.js
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+
+# Explicitly use port 8080
+EXPOSE 8080
+
+# Start the application
+CMD ["node", "index.js"]
