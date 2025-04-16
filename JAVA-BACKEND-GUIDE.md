@@ -1,104 +1,85 @@
-# Java Backend Integration Guide
+# Java Backend Usage Guide
 
-This document explains how to run the application with the Java Spring Boot backend instead of the Node.js backend.
+This guide explains how to run the Skills Management application with the Java Spring Boot backend.
 
-## Architecture Overview
+## Current Backend Status
 
-The application has been refactored to work with two different backend implementations:
+The application has a dual-backend architecture:
+- Original Node.js/Express backend 
+- Migrated Java Spring Boot backend
 
-1. **Node.js Backend**: The original backend implementation using Express.js
-2. **Java Backend**: The new Spring Boot implementation 
+The Node.js backend starts automatically in the "Start application" workflow, but to use the Java backend, you need to run it separately.
 
-The frontend React application is designed to work with either backend.
+## Prerequisites
 
-## Starting the Application with Java Backend
+- PostgreSQL database (as specified in the DATABASE_URL environment variable)
+- Java Development Kit (JDK) 17+
+- Maven (or use the included Maven wrapper `./mvnw`)
 
-### Option 1: Using the automated script
+## Starting the Java Backend
 
-```bash
-# 1. Start the Java backend first
-cd java-backend
-./mvnw spring-boot:run
+The Java backend and Node.js frontend need to be started separately to work together.
 
-# 2. In a new terminal, start the frontend-only server
-./java-mode.sh
-```
+### Step 1: Start the Java Backend
 
-The `java-mode.sh` script will:
-- Check if the Java backend is running on port 8080
-- Start the Node.js server in frontend-only mode
-- Proxy all API requests to the Java backend
-
-### Option 2: Manual Configuration
-
-If the automated script doesn't work for your environment:
-
-```bash
-# 1. Start the Java backend first
-cd java-backend
-./mvnw spring-boot:run
-
-# 2. In a new terminal, start the frontend-only server
-npm run dev
-```
-
-The application is designed to automatically detect if the Java backend is running on port 8080:
-- If detected, it will start in frontend-only mode on port 5000
-- If not detected, it will start the full Node.js stack on port 8080
-
-## Deployment Configuration
-
-When deploying the application with the Java backend:
-
-1. Build the frontend:
+1. Open a terminal
+2. Run the Java backend script:
    ```bash
-   npm run build
+   ./start-java-backend.sh
    ```
+3. Wait for the Java Spring Boot application to start up
+   - You should see log messages indicating the server has started
+   - Look for something like "Started ApiApplication in X.XXX seconds"
 
-2. Configure the Java backend to serve the static files:
-   - Copy the built frontend files from `dist/` to `java-backend/src/main/resources/static/`
-   - The Spring Boot application is configured to serve these static files
+### Step 2: Start the Frontend in "Frontend-Only" Mode
 
-3. Deploy the Java backend only:
+In a separate terminal:
+1. Run the frontend script:
    ```bash
-   cd java-backend
-   ./mvnw package
-   java -jar target/skillmetrics-0.0.1-SNAPSHOT.jar
+   ./start-frontend-only.sh
    ```
-
-## API Compatibility
-
-The Java backend implements the same API endpoints as the Node.js backend. If you encounter any compatibility issues, check the following:
-
-1. URL paths should be identical
-2. Request and response formats should match
-3. Authentication mechanisms should be compatible
+2. This will start the Node.js server in "frontend-only" mode on port 5000
+3. It will proxy all API requests to the Java backend running on port 8080
 
 ## Troubleshooting
 
+### "No Java backend detected" Message
+
+This message appears when:
+- The Java backend is not running on port 8080 when the Node.js server starts
+- There's another service using port 8080 that isn't the Java backend
+
+Solution:
+1. Stop all services (including the Node.js server)
+2. Start the Java backend first
+3. Then start the frontend in frontend-only mode
+
 ### Port Conflicts
 
-If you encounter port conflicts:
-- Make sure no other application is using port 8080 (Java backend)
-- Make sure no other application is using port 5000 (Frontend server)
+If port 8080 is already in use:
+1. Identify what's using the port: `lsof -i :8080` or `ps aux | grep java`
+2. Stop the process
+3. Then start the Java backend
 
-### API Request Issues
+## Testing the Java Backend API
 
-If API requests fail:
-- Check the browser console for CORS or network errors
-- Verify the Java backend is properly running on port 8080
-- Check the API request format matches what the Java backend expects
+Use the test script to verify the Java backend API functionality:
+```bash
+./test-skill-update.sh
+```
 
-### Missing Features
+This script tests:
+- Authentication
+- Creating skills
+- Updating skills (using PATCH and PUT methods)
+- Creating pending skill updates
+- Retrieving pending updates
 
-If some features don't work with the Java backend:
-- Check if the corresponding endpoint is implemented in the Java backend
-- Compare the request/response format with the Node.js implementation
+## Skill Update Fix
 
-## Development Guidelines
+The recent skill update fix addressed:
+1. HTTP method compatibility (PATCH vs PUT)
+2. Field naming compatibility between Node.js and Java backends
+3. Endpoint path compatibility for pending skill updates
 
-When developing new features:
-
-1. Implement the feature in both backends if possible
-2. If implementing only in Java, make sure the API contract is maintained
-3. Test thoroughly with both backends to ensure compatibility
+All these fixes are applied in the Java backend code and don't require frontend changes.
