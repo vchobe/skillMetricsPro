@@ -3,18 +3,40 @@
  * This file contains configuration for API endpoints, headers, and error handling
  */
 
+// Flag to use Java backend
+const USE_JAVA_BACKEND = true; // Set to true to use Java backend
+
 // In Replit, it's better to use relative URLs rather than localhost
 const USE_RELATIVE_URLS = true;
 
+// Java backend port
+const JAVA_BACKEND_PORT = 8080;
+
+// Determine if we're running in Replit
+const isReplit = window.location.hostname.includes('replit');
+
 // Backend API base URL configuration
-export const API_BASE_URL = process.env.NODE_ENV === 'production' || USE_RELATIVE_URLS
-  ? '/api' // Production or Replit - relative to the domain
-  : 'http://localhost:8080/api'; // Local development
+export const API_BASE_URL = USE_JAVA_BACKEND 
+  ? (isReplit 
+      ? '/api'  // Java backend in Replit - use relative URL
+      : `http://localhost:${JAVA_BACKEND_PORT}/api`) // Java backend in local development
+  : (isReplit
+      ? '/api' // Node.js backend in Replit - use relative URL
+      : 'http://localhost:3000/api'); // Node.js backend in local development
 
 // WebSocket URL configuration
-export const WS_BASE_URL = process.env.NODE_ENV === 'production' || USE_RELATIVE_URLS
-  ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
-  : 'ws://localhost:8080/ws';
+export const WS_BASE_URL = USE_JAVA_BACKEND
+  ? (isReplit
+      ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+      : `ws://localhost:${JAVA_BACKEND_PORT}/ws`)
+  : (isReplit
+      ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+      : 'ws://localhost:3000/ws');
+
+console.log('Environment:', isReplit ? 'Replit' : 'Local');
+console.log('Using Java backend:', USE_JAVA_BACKEND);
+console.log('API Base URL:', API_BASE_URL);
+console.log('WebSocket URL:', WS_BASE_URL);
 
 // Default request headers
 export const DEFAULT_HEADERS = {

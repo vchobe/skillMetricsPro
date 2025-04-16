@@ -154,7 +154,7 @@ public class SkillController {
     /**
      * Update a skill
      */
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<SkillDto> updateSkill(
             @PathVariable Long id,
@@ -171,6 +171,21 @@ public class SkillController {
         }
         
         return ResponseEntity.ok(skillService.updateSkill(id, skillDto));
+    }
+    
+    /**
+     * Update a skill (PUT variant for backwards compatibility)
+     * This is an alias for the PATCH endpoint
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<SkillDto> updateSkillPut(
+            @PathVariable Long id,
+            @Valid @RequestBody SkillDto skillDto,
+            @CurrentUser UserPrincipal currentUser) {
+        
+        // Delegate to the PATCH method
+        return updateSkill(id, skillDto, currentUser);
     }
     
     /**
