@@ -176,8 +176,8 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
       const res = await apiRequest("POST", "/api/skills/pending", {
         ...data,
         status: "pending",
-        is_update: false,
-        submitted_at: new Date().toISOString()
+        isUpdate: false,
+        submittedAt: new Date().toISOString()
       });
       return await res.json();
     },
