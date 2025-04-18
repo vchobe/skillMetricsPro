@@ -2181,6 +2181,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ----- SKILL SUBCATEGORY MANAGEMENT ROUTES -----
+  
+  // Get all subcategories
+  app.get("/api/skill-subcategories", ensureAuth, async (req, res) => {
+    try {
+      // Optional query param to filter by category ID
+      const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
+      
+      let subcategories;
+      if (categoryId) {
+        // Get subcategories for a specific category
+        subcategories = await storage.getSubcategoriesByCategory(categoryId);
+      } else {
+        // Get all subcategories
+        subcategories = await storage.getAllSkillSubcategories();
+      }
+      
+      res.json(subcategories);
+    } catch (error) {
+      console.error("Error fetching skill subcategories:", error);
+      res.status(500).json({ message: "Error fetching skill subcategories", error });
+    }
+  });
+  
+  // Get specific subcategory
+  app.get("/api/skill-subcategories/:id", ensureAuth, async (req, res) => {
+    try {
+      const subcategoryId = parseInt(req.params.id);
+      
+      if (isNaN(subcategoryId)) {
+        return res.status(400).json({ message: "Invalid subcategory ID" });
+      }
+      
+      const subcategory = await storage.getSkillSubcategory(subcategoryId);
+      
+      if (!subcategory) {
+        return res.status(404).json({ message: "Skill subcategory not found" });
+      }
+      
+      res.json(subcategory);
+    } catch (error) {
+      console.error("Error fetching skill subcategory:", error);
+      res.status(500).json({ message: "Error fetching skill subcategory", error });
+    }
+  });
+  
+  // Create a subcategory (admin only)
+  app.post("/api/skill-subcategories", ensureAdmin, async (req, res) => {
+    try {
+      // Validate the request body
+      const result = insertSkillSubcategorySchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid request data", errors: result.error.errors });
+      }
+      
+      // Make sure the parent category exists
+      const category = await storage.getSkillCategory(result.data.categoryId);
+      if (!category) {
+        return res.status(404).json({ message: "Parent category not found" });
+      }
+      
+      const subcategory = await storage.createSkillSubcategory(result.data);
+      res.status(201).json(subcategory);
+    } catch (error) {
+      console.error("Error creating skill subcategory:", error);
+      res.status(500).json({ message: "Error creating skill subcategory", error });
+    }
+  });
+  
+  // Update a subcategory (admin only)
+  app.patch("/api/skill-subcategories/:id", ensureAdmin, async (req, res) => {
+    try {
+      const subcategoryId = parseInt(req.params.id);
+      
+      if (isNaN(subcategoryId)) {
+        return res.status(400).json({ message: "Invalid subcategory ID" });
+      }
+      
+      const existingSubcategory = await storage.getSkillSubcategory(subcategoryId);
+      
+      if (!existingSubcategory) {
+        return res.status(404).json({ message: "Skill subcategory not found" });
+      }
+      
+      const subcategory = await storage.updateSkillSubcategory(subcategoryId, req.body);
+      res.json(subcategory);
+    } catch (error) {
+      console.error("Error updating skill subcategory:", error);
+      res.status(500).json({ message: "Error updating skill subcategory", error });
+    }
+  });
+  
+  // Delete a subcategory (admin only)
+  app.delete("/api/skill-subcategories/:id", ensureAdmin, async (req, res) => {
+    try {
+      const subcategoryId = parseInt(req.params.id);
+      
+      if (isNaN(subcategoryId)) {
+        return res.status(400).json({ message: "Invalid subcategory ID" });
+      }
+      
+      const existingSubcategory = await storage.getSkillSubcategory(subcategoryId);
+      
+      if (!existingSubcategory) {
+        return res.status(404).json({ message: "Skill subcategory not found" });
+      }
+      
+      await storage.deleteSkillSubcategory(subcategoryId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting skill subcategory:", error);
+      res.status(500).json({ message: "Error deleting skill subcategory", error });
+    }
+  });
+  
   // ----- SKILL APPROVER MANAGEMENT ROUTES -----
   
   // Get all skill approvers
@@ -2243,6 +2359,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching approvers for category:", error);
       res.status(500).json({ message: "Error fetching approvers for category", error });
+    }
+  });
+  
+  // Get approvers for a specific subcategory
+  app.get("/api/skill-subcategories/:id/approvers", ensureAuth, async (req, res) => {
+    try {
+      const subcategoryId = parseInt(req.params.id);
+      
+      if (isNaN(subcategoryId)) {
+        return res.status(400).json({ message: "Invalid subcategory ID" });
+      }
+      
+      // Get approvers for the subcategory, including category-level and global approvers
+      const approvers = await storage.getApproversForSubcategory(subcategoryId);
+      
+      // Enhance with user display names
+      const enhancedApprovers = await Promise.all(
+        approvers.map(async (approver) => {
+          try {
+            const user = await storage.getUser(approver.userId);
+            return {
+              ...approver,
+              userDisplayName: user?.displayName || user?.username || user?.email || `User #${approver.userId}`
+            };
+          } catch (err) {
+            console.error(`Error fetching user ${approver.userId} for approver details:`, err);
+            return approver;
+          }
+        })
+      );
+      
+      res.json(enhancedApprovers);
+    } catch (error) {
+      console.error("Error fetching approvers for subcategory:", error);
+      res.status(500).json({ message: "Error fetching approvers for subcategory", error });
     }
   });
   
@@ -2321,6 +2472,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking approval permission:", error);
       res.status(500).json({ message: "Error checking approval permission", error });
+    }
+  });
+  
+  // Check if current user can approve a skill in a specific subcategory
+  app.get("/api/can-approve/:categoryId/:subcategoryId", ensureAuth, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.categoryId);
+      const subcategoryId = parseInt(req.params.subcategoryId);
+      const userId = req.user!.id;
+      
+      if (isNaN(categoryId) || isNaN(subcategoryId)) {
+        return res.status(400).json({ message: "Invalid category or subcategory ID" });
+      }
+      
+      const canApprove = await storage.canUserApproveSkill(userId, categoryId, subcategoryId);
+      
+      res.json({ canApprove });
+    } catch (error) {
+      console.error("Error checking subcategory approval permission:", error);
+      res.status(500).json({ message: "Error checking subcategory approval permission", error });
     }
   });
 
