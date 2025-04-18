@@ -214,18 +214,44 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
         isUpdate: true
       });
       
-      // Submit updates to pending skills endpoint instead of directly updating
-      // Make sure to include userId which is required by the server
-      const res = await apiRequest("POST", "/api/skills/pending", {
+      // Create request data with both camelCase and snake_case versions for compatibility
+      const requestData = {
         ...updateData,
         userId: userId || user?.id, // Ensure we always have a userId
+        user_id: userId || user?.id, // Also include snake_case version
         skillId: skillId, // Reference to existing skill
+        skill_id: skillId, // Also include snake_case version
         status: "pending",
         isUpdate: true, // Mark as an update, not a new skill
+        is_update: true, // Also include snake_case version
         submittedAt: new Date().toISOString(),
+        submitted_at: new Date().toISOString(), // Also include snake_case version
         notes: changeNote || `Updated ${data.name}` // Store change notes in the notes field
-      });
-      return await res.json();
+      };
+      
+      console.log("Final request data:", requestData);
+      
+      try {
+        const res = await apiRequest("POST", "/api/skills/pending", requestData);
+        
+        if (!res.ok) {
+          // Try to parse the error response
+          const errorText = await res.text();
+          console.error("Error response:", errorText);
+          
+          try {
+            const errorJson = JSON.parse(errorText);
+            throw new Error(errorJson.message || "Unknown server error");
+          } catch (parseError) {
+            throw new Error(`Server error: ${res.status} ${res.statusText}`);
+          }
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error("API request failed:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/skills"] });

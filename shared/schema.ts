@@ -255,7 +255,8 @@ export const pendingSkillUpdates = pgTable("pending_skill_updates", {
   isUpdate: boolean("is_update").default(false).notNull(), // true for updates, false for new skills
 });
 
-export const insertPendingSkillUpdateSchema = createInsertSchema(pendingSkillUpdates).pick({
+// Create the base schema
+const baseInsertPendingSkillUpdateSchema = createInsertSchema(pendingSkillUpdates).pick({
   userId: true,
   skillId: true,
   name: true,
@@ -267,6 +268,55 @@ export const insertPendingSkillUpdateSchema = createInsertSchema(pendingSkillUpd
   certificationDate: true,
   expirationDate: true,
   isUpdate: true,
+});
+
+// Create an extended schema that accepts both camelCase and snake_case versions
+export const insertPendingSkillUpdateSchema = baseInsertPendingSkillUpdateSchema.extend({
+  // Add snake_case aliases for compatibility
+  skill_id: z.number().optional(),
+  user_id: z.number().optional(),
+  is_update: z.boolean().optional(),
+  credly_link: z.string().optional(),
+  certification_date: z.date().optional(),
+  expiration_date: z.date().optional(),
+}).transform((data) => {
+  // Make sure camelCase values are prioritized, but fall back to snake_case
+  const result = { ...data };
+  
+  // Handle converting snake_case to camelCase for special fields
+  if (data.skill_id !== undefined && data.skillId === undefined) {
+    result.skillId = data.skill_id;
+  }
+  
+  if (data.user_id !== undefined && data.userId === undefined) {
+    result.userId = data.user_id;
+  }
+  
+  if (data.is_update !== undefined && data.isUpdate === undefined) {
+    result.isUpdate = data.is_update;
+  }
+  
+  if (data.credly_link !== undefined && data.credlyLink === undefined) {
+    result.credlyLink = data.credly_link;
+  }
+  
+  if (data.certification_date !== undefined && data.certificationDate === undefined) {
+    result.certificationDate = data.certification_date;
+  }
+  
+  if (data.expiration_date !== undefined && data.expirationDate === undefined) {
+    result.expirationDate = data.expiration_date;
+  }
+  
+  // Remove snake_case duplicates that we've copied to camelCase
+  delete result.skill_id;
+  delete result.user_id;
+  delete result.is_update;
+  delete result.credly_link;
+  delete result.certification_date;
+  delete result.expiration_date;
+  
+  return result;
 });
 
 export type PendingSkillUpdate = typeof pendingSkillUpdates.$inferSelect;
