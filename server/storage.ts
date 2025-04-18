@@ -3817,7 +3817,7 @@ export class PostgresStorage implements IStorage {
   
   async createSkillApprover(approver: InsertSkillApprover): Promise<SkillApprover> {
     try {
-      const { userId, categoryId, subcategoryId, canApproveAll } = approver;
+      const { userId, categoryId, subcategoryId, skillId, canApproveAll } = approver;
       
       // Check for existing approvers based on what we're trying to create
       let existingResult;
@@ -3827,6 +3827,15 @@ export class PostgresStorage implements IStorage {
         existingResult = await pool.query(
           'SELECT * FROM skill_approvers WHERE user_id = $1 AND can_approve_all = true',
           [userId]
+        );
+        if (existingResult.rows.length > 0) {
+          return this.snakeToCamel(existingResult.rows[0]);
+        }
+      } else if (skillId) {
+        // Check if the user is already an approver for this specific skill
+        existingResult = await pool.query(
+          'SELECT * FROM skill_approvers WHERE user_id = $1 AND skill_id = $2',
+          [userId, skillId]
         );
         if (existingResult.rows.length > 0) {
           return this.snakeToCamel(existingResult.rows[0]);
@@ -3854,12 +3863,13 @@ export class PostgresStorage implements IStorage {
       // Create the new approver
       const result = await pool.query(
         `INSERT INTO skill_approvers (
-          user_id, category_id, subcategory_id, can_approve_all, created_at
-        ) VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
+          user_id, category_id, subcategory_id, skill_id, can_approve_all, created_at
+        ) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
         [
           userId,
           categoryId || null,
           subcategoryId || null,
+          skillId || null,
           canApproveAll || false
         ]
       );
@@ -3887,7 +3897,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  async canUserApproveSkill(userId: number, categoryId: number, subcategoryId?: number): Promise<boolean> {
+  async canUserApproveSkill(userId: number, categoryId: number, subcategoryId?: number, skillId?: number): Promise<boolean> {
     try {
       // First, check if user is an admin
       const userResult = await pool.query(
@@ -3911,7 +3921,20 @@ export class PostgresStorage implements IStorage {
       let query;
       let params;
       
-      if (subcategoryId) {
+      if (skillId) {
+        // Check for skill-specific, subcategory-specific, category-wide, or global approval rights
+        query = `
+          SELECT * FROM skill_approvers 
+          WHERE user_id = $1 
+            AND (
+              (skill_id = $2) OR
+              (subcategory_id = $3) OR
+              (category_id = $4 AND subcategory_id IS NULL) OR
+              can_approve_all = true
+            )
+        `;
+        params = [userId, skillId, subcategoryId, categoryId];
+      } else if (subcategoryId) {
         // Check for subcategory-specific, category-wide, or global approval rights
         query = `
           SELECT * FROM skill_approvers 
