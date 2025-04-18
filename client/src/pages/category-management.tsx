@@ -628,12 +628,17 @@ export default function CategoryManagementPage() {
                     ? categories.find(c => c.id === approver.categoryId)
                     : null;
                     
+                  // Find the user matching this approver
+                  const approverUser = users.find((u: User) => u.id === approver.userId);
+                    
                   return (
                     <Card key={approver.id}>
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-center">
                           <div className="flex items-center space-x-2">
-                            <CardTitle className="text-lg">{approver.userDisplayName}</CardTitle>
+                            <CardTitle className="text-lg">
+                              {approverUser?.username || approverUser?.email || `User #${approver.userId}`}
+                            </CardTitle>
                           </div>
                           <Button 
                             variant="ghost" 
@@ -655,9 +660,9 @@ export default function CategoryManagementPage() {
                             <Badge 
                               className="gap-1" 
                               style={{ 
-                                backgroundColor: `${category.color}20`, 
-                                color: category.color,
-                                borderColor: category.color 
+                                backgroundColor: `${category.color || '#3B82F6'}20`, 
+                                color: category.color || '#3B82F6',
+                                borderColor: category.color || '#3B82F6' 
                               }}
                             >
                               {getIconByName(category.icon || 'code')}
