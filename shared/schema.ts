@@ -98,6 +98,7 @@ export const skillApprovers = pgTable("skill_approvers", {
   userId: integer("user_id").notNull().references(() => users.id),
   categoryId: integer("category_id").references(() => skillCategories.id),
   subcategoryId: integer("subcategory_id").references(() => skillSubcategories.id),
+  skillId: integer("skill_id").references(() => skills.id),
   canApproveAll: boolean("can_approve_all").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -106,6 +107,7 @@ export const insertSkillApproverSchema = createInsertSchema(skillApprovers).pick
   userId: true,
   categoryId: true,
   subcategoryId: true,
+  skillId: true,
   canApproveAll: true,
 });
 
