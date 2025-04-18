@@ -2,7 +2,7 @@ import { API_BASE_URL } from './config';
 import { getAccessToken } from './auth';
 
 /**
- * Users API service for interacting with Java backend
+ * Users API service
  */
 
 // User model

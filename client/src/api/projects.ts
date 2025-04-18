@@ -2,7 +2,7 @@ import { API_BASE_URL } from './config';
 import { getAccessToken } from './auth';
 
 /**
- * Projects API service for interacting with Java backend
+ * Projects API service
  */
 
 // Project model

@@ -147,7 +147,10 @@ export class PostgresStorage implements IStorage {
     });
   }
 
-  // Helper function to convert snake_case to camelCase and standardize dates
+  /**
+   * Helper function to convert snake_case properties to camelCase and standardize values
+   * Example: { user_id: 1, first_name: "John" } becomes { userId: 1, firstName: "John" }
+   */
   private snakeToCamel(obj: any): any {
     if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
     
@@ -157,25 +160,51 @@ export class PostgresStorage implements IStorage {
     
     return Object.keys(obj).reduce((result, key) => {
       // Convert snake_case to camelCase
-      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      // Handle special cases like 'something_id' -> 'somethingId'
+      let camelKey;
+      if (key.endsWith('_id')) {
+        // Special handling for id fields
+        camelKey = key.replace(/_id$/, 'Id');
+      } else {
+        // Regular conversion for other fields
+        camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      }
+      
+      // Special case handling for credential URLs and dates in keys
+      if (key === 'credly_link') {
+        camelKey = 'credlyLink';
+      } else if (key === 'certification_date') {
+        camelKey = 'certificationDate';
+      } else if (key === 'expiration_date') {
+        camelKey = 'expirationDate';
+      } else if (key === 'skill_id') {
+        camelKey = 'skillId';
+      } else if (key === 'user_id') {
+        camelKey = 'userId'; 
+      } else if (key === 'is_update') {
+        camelKey = 'isUpdate';
+      }
       
       // Standard date fields that should be properly formatted
       const dateFields = [
         'createdAt', 'updatedAt', 'lastUpdated', 'targetDate', 'certificationDate',
-        'startDate', 'endDate', 'dueDate', 'date' // Added project and resource date fields
+        'startDate', 'endDate', 'dueDate', 'date', 'submittedAt', 'reviewedAt'
       ];
       
       let value = obj[key];
       
       // Specific handling for boolean fields from PostgreSQL
-      if (key === 'is_admin') {
+      if (key === 'is_admin' || key === 'is_update' || key.startsWith('is_')) {
         // PostgreSQL returns booleans as 't' or 'f' strings sometimes
         if (value === 't' || value === true || value === 'true') {
           value = true;
         } else if (value === 'f' || value === false || value === 'false') {
           value = false;
         }
-        console.log(`Converting is_admin from ${obj[key]} to ${value}`);
+        
+        if (key === 'is_admin') {
+          console.log(`Converting is_admin from ${obj[key]} to ${value}`);
+        }
       }
       
       // Standardize date formats if the field is a known date field and contains a valid date
@@ -1125,26 +1154,84 @@ export class PostgresStorage implements IStorage {
 
   async createPendingSkillUpdate(update: InsertPendingSkillUpdate): Promise<PendingSkillUpdate> {
     try {
-      const result = await pool.query(
-        `INSERT INTO pending_skill_updates (
-          user_id, skill_id, name, category, level, certification, credly_link, 
-          notes, certification_date, expiration_date, is_update
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        RETURNING *`,
-        [
-          update.userId,
-          update.skillId || null,
-          update.name,
-          update.category,
-          update.level,
-          update.certification || '',
-          update.credlyLink || '',
-          update.notes || '',
-          update.certificationDate || null,
-          update.expirationDate || null,
-          update.isUpdate || false
-        ]
-      );
+      // Log the incoming data to help with debugging
+      console.log("Creating pending skill update with data:", update);
+      
+      // Create a standardized update object that handles both camelCase and snake_case
+      const standardizedUpdate: Record<string, any> = {};
+      
+      // Create a map of fields for quick access to both versions
+      const specialFields = {
+        // Map camelCase to snake_case
+        userId: 'user_id',
+        skillId: 'skill_id',
+        isUpdate: 'is_update',
+        credlyLink: 'credly_link',
+        certificationDate: 'certification_date',
+        expirationDate: 'expiration_date',
+        submittedAt: 'submitted_at',
+        reviewedAt: 'reviewed_at',
+        reviewedBy: 'reviewed_by',
+        reviewNotes: 'review_notes'
+      };
+      
+      // Standardize the update object, prioritizing camelCase but falling back to snake_case
+      for (const [camelKey, snakeKey] of Object.entries(specialFields)) {
+        // First check if the camelCase key exists in the update
+        if (camelKey in update) {
+          standardizedUpdate[snakeKey] = update[camelKey as keyof typeof update];
+        } 
+        // Then check if the snake_case version exists (for backward compatibility)
+        else if (snakeKey in update) {
+          standardizedUpdate[snakeKey] = update[snakeKey as any];
+        }
+      }
+      
+      // Add the rest of the fields with normal camelToSnake conversion
+      for (const key in update) {
+        if (update.hasOwnProperty(key)) {
+          // Skip already processed special fields
+          if (Object.keys(specialFields).includes(key) || Object.values(specialFields).includes(key)) {
+            continue;
+          }
+          
+          // Convert the key to snake_case
+          const snakeKey = this.camelToSnake(key);
+          standardizedUpdate[snakeKey] = update[key as keyof typeof update];
+        }
+      }
+      
+      // Now build the SQL query using the standardized update
+      const fields = Object.keys(standardizedUpdate)
+        .filter(key => standardizedUpdate[key] !== undefined);
+      
+      const placeholders = fields.map((_, index) => `$${index + 1}`);
+      const values = fields.map(key => {
+        const value = standardizedUpdate[key];
+        
+        // Handle empty strings and null values consistently
+        if (value === '') return null;
+        if ((key === 'skill_id' || key === 'skillId') && !value) return null;
+        
+        return value;
+      });
+      
+      // Ensure we have values to insert
+      if (fields.length === 0) {
+        throw new Error("No valid fields provided for pending skill update");
+      }
+      
+      const query = `
+        INSERT INTO pending_skill_updates (${fields.join(', ')})
+        VALUES (${placeholders.join(', ')})
+        RETURNING *
+      `;
+      
+      // Log the query for debugging
+      console.log("Generated SQL query:", query);
+      console.log("SQL parameters:", values);
+      
+      const result = await pool.query(query, values);
       return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating pending skill update:", error);
@@ -2358,8 +2445,17 @@ export class PostgresStorage implements IStorage {
   }
   
   // Helper method to convert camelCase to snake_case for SQL queries
+  /**
+   * Converts a camelCase string to snake_case
+   * Examples: 
+   *  - "userId" becomes "user_id"
+   *  - "credlyLink" becomes "credly_link"
+   */
   private camelToSnake(str: string): string {
-    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    // Handle special case for 'ID' at the end of words
+    const replaced = str.replace(/([a-z])ID$/g, '$1_id');
+    // Handle normal camelCase to snake_case conversion
+    return replaced.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
   }
 
   async updateClient(id: number, data: Partial<Client>): Promise<Client> {
