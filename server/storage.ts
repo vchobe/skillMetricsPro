@@ -13,6 +13,7 @@ import {
   ProjectSkill, InsertProjectSkill,
   ProjectResourceHistory, InsertProjectResourceHistory,
   SkillCategory, InsertSkillCategory,
+  SkillSubcategory, InsertSkillSubcategory,
   SkillApprover, InsertSkillApprover
 } from "@shared/schema";
 import session from "express-session";
@@ -3768,10 +3769,13 @@ export class PostgresStorage implements IStorage {
   
   async getApproversForCategory(categoryId: number): Promise<SkillApprover[]> {
     try {
-      const result = await pool.query(
-        'SELECT * FROM skill_approvers WHERE category_id = $1 OR can_approve_all = true',
-        [categoryId]
-      );
+      const result = await pool.query(`
+        SELECT sa.*, u.email, u.username, u.display_name
+        FROM skill_approvers sa
+        JOIN users u ON sa.user_id = u.id
+        WHERE (sa.category_id = $1 AND sa.subcategory_id IS NULL) 
+           OR sa.can_approve_all = true
+      `, [categoryId]);
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting approvers for category:", error);
@@ -3779,14 +3783,67 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  async getApproversForSubcategory(subcategoryId: number): Promise<SkillApprover[]> {
+    try {
+      // First get the category ID for this subcategory
+      const subcatResult = await pool.query(
+        'SELECT category_id FROM skill_subcategories WHERE id = $1',
+        [subcategoryId]
+      );
+      
+      if (subcatResult.rows.length === 0) {
+        throw new Error(`Subcategory with ID ${subcategoryId} not found`);
+      }
+      
+      const categoryId = subcatResult.rows[0].category_id;
+      
+      // Get approvers for this subcategory, plus any from the parent category, plus global approvers
+      const result = await pool.query(`
+        SELECT sa.*, u.email, u.username, u.display_name
+        FROM skill_approvers sa
+        JOIN users u ON sa.user_id = u.id
+        WHERE sa.subcategory_id = $1
+           OR (sa.category_id = $2 AND sa.subcategory_id IS NULL)
+           OR sa.can_approve_all = true
+        ORDER BY sa.can_approve_all DESC, sa.subcategory_id DESC, sa.category_id DESC
+      `, [subcategoryId, categoryId]);
+      
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error(`Error getting approvers for subcategory ${subcategoryId}:`, error);
+      throw error;
+    }
+  }
+  
   async createSkillApprover(approver: InsertSkillApprover): Promise<SkillApprover> {
     try {
-      const { userId, categoryId, canApproveAll } = approver;
+      const { userId, categoryId, subcategoryId, canApproveAll } = approver;
       
-      // Check if approver already exists for this user and category
-      if (categoryId) {
-        const existingResult = await pool.query(
-          'SELECT * FROM skill_approvers WHERE user_id = $1 AND category_id = $2',
+      // Check for existing approvers based on what we're trying to create
+      let existingResult;
+      
+      if (canApproveAll) {
+        // Check if the user already has global approval rights
+        existingResult = await pool.query(
+          'SELECT * FROM skill_approvers WHERE user_id = $1 AND can_approve_all = true',
+          [userId]
+        );
+        if (existingResult.rows.length > 0) {
+          return this.snakeToCamel(existingResult.rows[0]);
+        }
+      } else if (subcategoryId) {
+        // Check if the user is already an approver for this subcategory
+        existingResult = await pool.query(
+          'SELECT * FROM skill_approvers WHERE user_id = $1 AND subcategory_id = $2',
+          [userId, subcategoryId]
+        );
+        if (existingResult.rows.length > 0) {
+          return this.snakeToCamel(existingResult.rows[0]);
+        }
+      } else if (categoryId) {
+        // Check if the user is already an approver for this category (no subcategory)
+        existingResult = await pool.query(
+          'SELECT * FROM skill_approvers WHERE user_id = $1 AND category_id = $2 AND subcategory_id IS NULL',
           [userId, categoryId]
         );
         if (existingResult.rows.length > 0) {
@@ -3794,24 +3851,15 @@ export class PostgresStorage implements IStorage {
         }
       }
       
-      // Check if they already have canApproveAll
-      if (canApproveAll) {
-        const existingResult = await pool.query(
-          'SELECT * FROM skill_approvers WHERE user_id = $1 AND can_approve_all = true',
-          [userId]
-        );
-        if (existingResult.rows.length > 0) {
-          return this.snakeToCamel(existingResult.rows[0]);
-        }
-      }
-      
+      // Create the new approver
       const result = await pool.query(
         `INSERT INTO skill_approvers (
-          user_id, category_id, can_approve_all, created_at
-        ) VALUES ($1, $2, $3, NOW()) RETURNING *`,
+          user_id, category_id, subcategory_id, can_approve_all, created_at
+        ) VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
         [
           userId,
           categoryId || null,
+          subcategoryId || null,
           canApproveAll || false
         ]
       );
@@ -3839,7 +3887,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  async canUserApproveSkill(userId: number, categoryId: number): Promise<boolean> {
+  async canUserApproveSkill(userId: number, categoryId: number, subcategoryId?: number): Promise<boolean> {
     try {
       // First, check if user is an admin
       const userResult = await pool.query(
@@ -3859,11 +3907,33 @@ export class PostgresStorage implements IStorage {
         return false;
       }
       
-      // If admin, check if they're specifically an approver
-      const approverResult = await pool.query(
-        'SELECT * FROM skill_approvers WHERE user_id = $1 AND (category_id = $2 OR can_approve_all = true)',
-        [userId, categoryId]
-      );
+      // If they're an admin, check their specific approval permissions
+      let query;
+      let params;
+      
+      if (subcategoryId) {
+        // Check for subcategory-specific, category-wide, or global approval rights
+        query = `
+          SELECT * FROM skill_approvers 
+          WHERE user_id = $1 
+            AND (
+              (subcategory_id = $2) OR
+              (category_id = $3 AND subcategory_id IS NULL) OR
+              can_approve_all = true
+            )
+        `;
+        params = [userId, subcategoryId, categoryId];
+      } else {
+        // Check for category-wide or global approval rights
+        query = `
+          SELECT * FROM skill_approvers 
+          WHERE user_id = $1 
+            AND (category_id = $2 OR can_approve_all = true)
+        `;
+        params = [userId, categoryId];
+      }
+      
+      const approverResult = await pool.query(query, params);
       
       // Return true if they have a specific approval permission or can approve all
       return approverResult.rows.length > 0;
