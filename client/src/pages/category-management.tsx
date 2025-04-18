@@ -300,6 +300,14 @@ export default function CategoryManagementPage() {
     queryKey: ['/api/skill-approvers'],
   });
   
+  // Fetch users for user lookup in approver cards
+  const { 
+    data: users = [], 
+    isLoading: isLoadingUsers 
+  } = useQuery<User[]>({
+    queryKey: ['/api/users'],
+  });
+  
   // Category mutations
   const createCategory = useMutation({
     mutationFn: (newCategory: Partial<SkillCategory>) => 
@@ -628,8 +636,8 @@ export default function CategoryManagementPage() {
                     ? categories.find(c => c.id === approver.categoryId)
                     : null;
                     
-                  // Find the user matching this approver
-                  const approverUser = users.find((u: User) => u.id === approver.userId);
+                  // Find the associated user from our users query data
+                  const approverUser = users.find(u => u.id === approver.userId);
                     
                   return (
                     <Card key={approver.id}>
