@@ -2,7 +2,7 @@ import { API_BASE_URL } from './config';
 import { getAccessToken } from './auth';
 
 /**
- * API utilities for working with the Java backend
+ * API utilities for working with the backend
  */
 
 // Standard Spring Data pagination response

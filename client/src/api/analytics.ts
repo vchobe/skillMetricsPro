@@ -2,7 +2,7 @@ import { API_BASE_URL } from './config';
 import { getAccessToken } from './auth';
 
 /**
- * Analytics API service for interacting with Java backend
+ * Analytics API service
  */
 
 // Skill distribution model
