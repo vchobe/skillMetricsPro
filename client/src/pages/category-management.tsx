@@ -18,7 +18,7 @@ import {
   Shield, Globe, Zap, Cloud, Box, Terminal,
   Layers, ChevronRight
 } from "lucide-react";
-import { SkillCategory, SkillApprover, User, SkillSubcategory } from "@shared/schema";
+import { SkillCategory, SkillApprover, User, SkillSubcategory, Skill } from "@shared/schema";
 
 // Available icons for category selection
 const availableIcons = [
@@ -325,7 +325,7 @@ function SubcategoryForm({ subcategory, onSave, onCancel, categories, parentCate
 
 // Approver Form Component
 interface ApproverFormProps {
-  onSave: (approver: { userId: number, categoryId?: number, subcategoryId?: number, canApproveAll: boolean }) => void;
+  onSave: (approver: { userId: number, categoryId?: number, subcategoryId?: number, skillId?: number, canApproveAll: boolean }) => void;
   onCancel: () => void;
   categories: SkillCategory[];
 }
@@ -334,7 +334,9 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
   const [userId, setUserId] = useState<number | ''>('');
   const [categoryId, setCategoryId] = useState<number | 'all'>('all');
   const [subcategoryId, setSubcategoryId] = useState<number | 'all'>('all');
+  const [skillId, setSkillId] = useState<number | 'all'>('all');
   const [canApproveAll, setCanApproveAll] = useState(false);
+  const [approvalType, setApprovalType] = useState<'global' | 'category' | 'subcategory' | 'skill'>('global');
   
   // Fetch users for dropdown
   const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
@@ -347,7 +349,7 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
     isLoading: isLoadingSubcategories 
   } = useQuery<SkillSubcategory[]>({
     queryKey: ['/api/skill-subcategories', categoryId],
-    enabled: categoryId !== 'all',
+    enabled: categoryId !== 'all' && (approvalType === 'subcategory' || approvalType === 'category'),
     queryFn: async () => {
       if (categoryId === 'all') return [];
       const response = await fetch(`/api/skill-categories/${categoryId}/subcategories`);
@@ -356,10 +358,37 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
     }
   });
   
+  // Fetch all skills for skill selection
+  const { 
+    data: skills = [], 
+    isLoading: isLoadingSkills 
+  } = useQuery<Skill[]>({
+    queryKey: ['/api/all-skills'],
+    enabled: approvalType === 'skill'
+  });
+  
   // When category changes, reset subcategory
   useEffect(() => {
     setSubcategoryId('all');
   }, [categoryId]);
+  
+  // When approval type changes, reset form values
+  useEffect(() => {
+    if (approvalType === 'global') {
+      setCategoryId('all');
+      setSubcategoryId('all');
+      setSkillId('all');
+      setCanApproveAll(true);
+    } else if (approvalType === 'category') {
+      setSubcategoryId('all');
+      setSkillId('all');
+    } else if (approvalType === 'subcategory') {
+      setSkillId('all');
+    } else if (approvalType === 'skill') {
+      setCategoryId('all');
+      setSubcategoryId('all');
+    }
+  }, [approvalType]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -367,9 +396,10 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
     
     onSave({
       userId: Number(userId),
-      categoryId: categoryId === 'all' ? undefined : Number(categoryId),
-      subcategoryId: subcategoryId === 'all' ? undefined : Number(subcategoryId),
-      canApproveAll: categoryId === 'all' || canApproveAll
+      categoryId: (approvalType === 'category' || approvalType === 'subcategory') && categoryId !== 'all' ? Number(categoryId) : undefined,
+      subcategoryId: approvalType === 'subcategory' && subcategoryId !== 'all' ? Number(subcategoryId) : undefined,
+      skillId: approvalType === 'skill' && skillId !== 'all' ? Number(skillId) : undefined,
+      canApproveAll: approvalType === 'global' || canApproveAll
     });
   };
   
@@ -397,35 +427,56 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="categoryId">Category</Label>
-          <Select onValueChange={(value) => setCategoryId(value === 'all' ? 'all' : Number(value))}>
-            <SelectTrigger id="categoryId">
-              <SelectValue placeholder="Select category" />
+          <Label htmlFor="approvalType">Approval Scope</Label>
+          <Select 
+            value={approvalType} 
+            onValueChange={(value: 'global' | 'category' | 'subcategory' | 'skill') => setApprovalType(value)}
+          >
+            <SelectTrigger id="approvalType">
+              <SelectValue placeholder="Select approval scope" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id.toString()}>
-                  <div className="flex items-center">
-                    <div className="mr-2">{getIconByName(category.icon || 'code')}</div>
-                    {category.name}
-                  </div>
-                </SelectItem>
-              ))}
+              <SelectItem value="global">All Categories (Global)</SelectItem>
+              <SelectItem value="category">Specific Category</SelectItem>
+              <SelectItem value="subcategory">Specific Subcategory</SelectItem>
+              <SelectItem value="skill">Specific Skill</SelectItem>
             </SelectContent>
           </Select>
         </div>
         
-        {/* Show subcategory dropdown when a category is selected */}
-        {categoryId !== 'all' && (
+        {/* Show category dropdown for category or subcategory approval */}
+        {(approvalType === 'category' || approvalType === 'subcategory') && (
           <div className="space-y-2">
-            <Label htmlFor="subcategoryId">Subcategory (Optional)</Label>
+            <Label htmlFor="categoryId">Category</Label>
+            <Select onValueChange={(value) => setCategoryId(value === 'all' ? 'all' : Number(value))}>
+              <SelectTrigger id="categoryId">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    <div className="flex items-center">
+                      <div className="mr-2">{getIconByName(category.icon || 'code')}</div>
+                      {category.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
+        {/* Show subcategory dropdown for subcategory approval */}
+        {approvalType === 'subcategory' && categoryId !== 'all' && (
+          <div className="space-y-2">
+            <Label htmlFor="subcategoryId">Subcategory</Label>
             <Select 
               value={subcategoryId?.toString() || 'all'} 
               onValueChange={(value) => setSubcategoryId(value === 'all' ? 'all' : Number(value))}
             >
               <SelectTrigger id="subcategoryId">
-                <SelectValue placeholder="All subcategories" />
+                <SelectValue placeholder="Select subcategory" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Subcategories</SelectItem>
@@ -445,13 +496,39 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
                 )}
               </SelectContent>
             </Select>
-            <p className="text-sm text-muted-foreground mt-1">
-              Select a specific subcategory or leave empty to approve all subcategories
-            </p>
           </div>
         )}
         
-        {categoryId !== 'all' && (
+        {/* Show skill dropdown for skill approval */}
+        {approvalType === 'skill' && (
+          <div className="space-y-2">
+            <Label htmlFor="skillId">Skill</Label>
+            <Select 
+              value={skillId?.toString() || 'all'} 
+              onValueChange={(value) => setSkillId(value === 'all' ? 'all' : Number(value))}
+            >
+              <SelectTrigger id="skillId">
+                <SelectValue placeholder="Select skill" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Skills</SelectItem>
+                {isLoadingSkills ? (
+                  <SelectItem value="loading" disabled>Loading skills...</SelectItem>
+                ) : skills.length === 0 ? (
+                  <SelectItem value="no_skills" disabled>No skills found</SelectItem>
+                ) : (
+                  skills.map((skill) => (
+                    <SelectItem key={skill.id} value={skill.id.toString()}>
+                      {skill.name} - {skill.category} ({skill.level})
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
+        {(approvalType === 'category' || approvalType === 'subcategory') && (
           <div className="flex items-center space-x-2 pt-2">
             <input
               type="checkbox"
@@ -599,7 +676,7 @@ export default function CategoryManagementPage() {
   
   // Approver mutations
   const createApprover = useMutation({
-    mutationFn: (approver: { userId: number, categoryId?: number, subcategoryId?: number, canApproveAll: boolean }) => 
+    mutationFn: (approver: { userId: number, categoryId?: number, subcategoryId?: number, skillId?: number, canApproveAll: boolean }) => 
       apiRequest('POST', '/api/skill-approvers', approver)
         .then(r => r.json()),
     onSuccess: () => {
@@ -652,7 +729,7 @@ export default function CategoryManagementPage() {
     }
   };
   
-  const handleSaveApprover = (approverData: { userId: number, categoryId?: number, subcategoryId?: number, canApproveAll: boolean }) => {
+  const handleSaveApprover = (approverData: { userId: number, categoryId?: number, subcategoryId?: number, skillId?: number, canApproveAll: boolean }) => {
     createApprover.mutate(approverData);
   };
   
