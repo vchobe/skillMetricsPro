@@ -194,6 +194,25 @@ function SubcategoryDisplayName({ subcategoryId }: SubcategoryDisplayNameProps) 
   return <>{subcategory?.name || `ID: ${subcategoryId}`}</>;
 }
 
+// Skill Name Display Component
+interface SkillDisplayNameProps {
+  skillId: number;
+}
+
+function SkillDisplayName({ skillId }: SkillDisplayNameProps) {
+  const { data: skill, isLoading } = useQuery<Skill>({
+    queryKey: ['/api/skills/get', skillId],
+    queryFn: async () => {
+      const response = await fetch(`/api/skills/${skillId}`);
+      if (!response.ok) return { id: skillId, name: `ID: ${skillId}` } as Skill;
+      return response.json();
+    }
+  });
+  
+  if (isLoading) return <>Loading...</>;
+  return <>{skill?.name || `ID: ${skillId}`}</>;
+}
+
 // Subcategory Edit Form Component
 interface SubcategoryFormProps {
   subcategory?: SkillSubcategory;
@@ -1160,6 +1179,38 @@ export default function CategoryManagementPage() {
                           <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
                             <Check size={12} className="mr-1" /> Can approve all categories
                           </Badge>
+                        ) : approver.skillId ? (
+                          <div className="flex items-center flex-wrap gap-2">
+                            {category && (
+                              <Badge 
+                                className="gap-1" 
+                                style={{ 
+                                  backgroundColor: `${category.color || '#3B82F6'}20`, 
+                                  color: category.color || '#3B82F6',
+                                  borderColor: category.color || '#3B82F6' 
+                                }}
+                              >
+                                {getIconByName(category.icon || 'code')}
+                                {category.name}
+                              </Badge>
+                            )}
+                            
+                            {approver.subcategoryId && (
+                              <>
+                                <ChevronRight size={14} className="text-muted-foreground" />
+                                <Badge className="gap-1" variant="outline">
+                                  <span className="font-medium">Subcategory:</span>
+                                  <SubcategoryDisplayName subcategoryId={approver.subcategoryId} />
+                                </Badge>
+                              </>
+                            )}
+                            
+                            <ChevronRight size={14} className="text-muted-foreground" />
+                            <Badge className="bg-purple-100 text-purple-800 border-purple-300">
+                              <span className="font-medium">Specific Skill:</span> 
+                              {approver.skillId && <SkillDisplayName skillId={approver.skillId} />}
+                            </Badge>
+                          </div>
                         ) : category ? (
                           <div className="flex items-center flex-wrap gap-2">
                             <Badge 
