@@ -1397,16 +1397,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Pending Skill Updates routes (Approval system)
   app.post("/api/skills/pending", ensureAuth, async (req, res) => {
     try {
+      console.log("Received pending skill update request with body:", req.body);
       const userId = req.user!.id;
-      const pendingSkillData = insertPendingSkillUpdateSchema.parse(req.body);
       
-      // Set the user ID from the authenticated user
-      pendingSkillData.userId = userId;
+      // Handle both isUpdate and is_update for backward compatibility
+      if (req.body.isUpdate !== undefined && req.body.is_update === undefined) {
+        req.body.is_update = req.body.isUpdate;
+      }
       
-      // Create the pending skill update
-      const pendingUpdate = await storage.createPendingSkillUpdate(pendingSkillData);
-      res.status(201).json(pendingUpdate);
+      // Handle both skillId and skill_id for backward compatibility
+      if (req.body.skillId !== undefined && req.body.skill_id === undefined) {
+        req.body.skill_id = req.body.skillId;
+      }
+      
+      try {
+        const pendingSkillData = insertPendingSkillUpdateSchema.parse(req.body);
+        console.log("Parsed pending skill data:", pendingSkillData);
+        
+        // Set the user ID from the authenticated user
+        pendingSkillData.userId = userId;
+        
+        // Create the pending skill update
+        const pendingUpdate = await storage.createPendingSkillUpdate(pendingSkillData);
+        console.log("Created pending skill update:", pendingUpdate);
+        res.status(201).json(pendingUpdate);
+      } catch (error) {
+        console.error("Validation error:", error);
+        res.status(400).json({ message: "Validation error", error });
+      }
     } catch (error) {
+      console.error("Server error in pending skill update:", error);
       res.status(500).json({ message: "Error creating pending skill update", error });
     }
   });
