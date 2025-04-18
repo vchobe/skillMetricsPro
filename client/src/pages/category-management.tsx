@@ -428,11 +428,11 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
                 <SelectValue placeholder="All subcategories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Subcategories</SelectItem>
+                <SelectItem value="all">All Subcategories</SelectItem>
                 {isLoadingSubcategories ? (
                   <SelectItem value="loading" disabled>Loading subcategories...</SelectItem>
                 ) : subcategories.length === 0 ? (
-                  <SelectItem value="none" disabled>No subcategories found</SelectItem>
+                  <SelectItem value="no_subcategories" disabled>No subcategories found</SelectItem>
                 ) : (
                   subcategories.map((subcategory) => (
                     <SelectItem key={subcategory.id} value={subcategory.id.toString()}>
