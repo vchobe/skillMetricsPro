@@ -11,7 +11,9 @@ import {
   Project, InsertProject,
   ProjectResource, InsertProjectResource,
   ProjectSkill, InsertProjectSkill,
-  ProjectResourceHistory, InsertProjectResourceHistory
+  ProjectResourceHistory, InsertProjectResourceHistory,
+  SkillCategory, InsertSkillCategory,
+  SkillApprover, InsertSkillApprover
 } from "@shared/schema";
 import session from "express-session";
 import { Store } from "express-session";
@@ -129,6 +131,22 @@ export interface IStorage {
   getProjectResourceHistory(projectId: number): Promise<ProjectResourceHistory[]>;
   getUserProjectHistory(userId: number): Promise<ProjectResourceHistory[]>;
   createProjectResourceHistory(history: InsertProjectResourceHistory): Promise<ProjectResourceHistory>;
+  
+  // Skill Category operations
+  getAllSkillCategories(): Promise<SkillCategory[]>;
+  getSkillCategory(id: number): Promise<SkillCategory | undefined>;
+  createSkillCategory(category: InsertSkillCategory): Promise<SkillCategory>;
+  updateSkillCategory(id: number, data: Partial<SkillCategory>): Promise<SkillCategory>;
+  deleteSkillCategory(id: number): Promise<void>;
+  
+  // Skill Approver operations
+  getAllSkillApprovers(): Promise<SkillApprover[]>;
+  getSkillApprover(id: number): Promise<SkillApprover | undefined>;
+  getSkillApproversByUser(userId: number): Promise<SkillApprover[]>;
+  getApproversForCategory(categoryId: number): Promise<SkillApprover[]>;
+  createSkillApprover(approver: InsertSkillApprover): Promise<SkillApprover>;
+  deleteSkillApprover(id: number): Promise<void>;
+  canUserApproveSkill(userId: number, categoryId: number): Promise<boolean>;
   
   // Session store
   sessionStore: Store;
@@ -3309,6 +3327,274 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error("Error creating project resource history:", error);
       throw error;
+    }
+  }
+
+  // Skill Category methods
+  async getAllSkillCategories(): Promise<SkillCategory[]> {
+    try {
+      const result = await pool.query(
+        'SELECT * FROM skill_categories ORDER BY tab_order, name'
+      );
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all skill categories:", error);
+      throw error;
+    }
+  }
+  
+  async getSkillCategory(id: number): Promise<SkillCategory | undefined> {
+    try {
+      const result = await pool.query(
+        'SELECT * FROM skill_categories WHERE id = $1',
+        [id]
+      );
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting skill category:", error);
+      throw error;
+    }
+  }
+  
+  async createSkillCategory(category: InsertSkillCategory): Promise<SkillCategory> {
+    try {
+      const { name, description, tabOrder, visibility, color, icon } = category;
+      
+      const result = await pool.query(
+        `INSERT INTO skill_categories (
+          name, description, tab_order, visibility, color, icon, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *`,
+        [
+          name,
+          description || null,
+          tabOrder || 0,
+          visibility || 'visible',
+          color || '#3B82F6',
+          icon || 'code'
+        ]
+      );
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error creating skill category:", error);
+      throw error;
+    }
+  }
+  
+  async updateSkillCategory(id: number, data: Partial<SkillCategory>): Promise<SkillCategory> {
+    try {
+      const sets: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+      
+      // Build SET clause and parameters
+      for (const [key, value] of Object.entries(data)) {
+        // Convert camelCase to snake_case for database column names
+        const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        sets.push(`${columnName} = $${paramIndex}`);
+        params.push(value);
+        paramIndex++;
+      }
+      
+      // Always update the updated_at timestamp
+      sets.push(`updated_at = NOW()`);
+      
+      if (sets.length === 1) { // Only has updated_at
+        return await this.getSkillCategory(id) as SkillCategory;
+      }
+      
+      params.push(id); // Add id as the last parameter
+      
+      const result = await pool.query(
+        `UPDATE skill_categories SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+        params
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error("Skill category not found");
+      }
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error updating skill category:", error);
+      throw error;
+    }
+  }
+  
+  async deleteSkillCategory(id: number): Promise<void> {
+    try {
+      // First update any skills using this category to set categoryId to null
+      await pool.query(
+        'UPDATE skills SET category_id = NULL WHERE category_id = $1',
+        [id]
+      );
+      
+      // Delete any approvers for this category
+      await pool.query(
+        'DELETE FROM skill_approvers WHERE category_id = $1',
+        [id]
+      );
+      
+      // Delete the category
+      const result = await pool.query(
+        'DELETE FROM skill_categories WHERE id = $1',
+        [id]
+      );
+      
+      if (result.rowCount === 0) {
+        throw new Error("Skill category not found");
+      }
+    } catch (error) {
+      console.error("Error deleting skill category:", error);
+      throw error;
+    }
+  }
+  
+  // Skill Approver methods
+  async getAllSkillApprovers(): Promise<SkillApprover[]> {
+    try {
+      const result = await pool.query(
+        'SELECT * FROM skill_approvers'
+      );
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all skill approvers:", error);
+      throw error;
+    }
+  }
+  
+  async getSkillApprover(id: number): Promise<SkillApprover | undefined> {
+    try {
+      const result = await pool.query(
+        'SELECT * FROM skill_approvers WHERE id = $1',
+        [id]
+      );
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting skill approver:", error);
+      throw error;
+    }
+  }
+  
+  async getSkillApproversByUser(userId: number): Promise<SkillApprover[]> {
+    try {
+      const result = await pool.query(
+        'SELECT * FROM skill_approvers WHERE user_id = $1',
+        [userId]
+      );
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting user's skill approvers:", error);
+      throw error;
+    }
+  }
+  
+  async getApproversForCategory(categoryId: number): Promise<SkillApprover[]> {
+    try {
+      const result = await pool.query(
+        'SELECT * FROM skill_approvers WHERE category_id = $1 OR can_approve_all = true',
+        [categoryId]
+      );
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting approvers for category:", error);
+      throw error;
+    }
+  }
+  
+  async createSkillApprover(approver: InsertSkillApprover): Promise<SkillApprover> {
+    try {
+      const { userId, categoryId, canApproveAll } = approver;
+      
+      // Check if approver already exists for this user and category
+      if (categoryId) {
+        const existingResult = await pool.query(
+          'SELECT * FROM skill_approvers WHERE user_id = $1 AND category_id = $2',
+          [userId, categoryId]
+        );
+        if (existingResult.rows.length > 0) {
+          return this.snakeToCamel(existingResult.rows[0]);
+        }
+      }
+      
+      // Check if they already have canApproveAll
+      if (canApproveAll) {
+        const existingResult = await pool.query(
+          'SELECT * FROM skill_approvers WHERE user_id = $1 AND can_approve_all = true',
+          [userId]
+        );
+        if (existingResult.rows.length > 0) {
+          return this.snakeToCamel(existingResult.rows[0]);
+        }
+      }
+      
+      const result = await pool.query(
+        `INSERT INTO skill_approvers (
+          user_id, category_id, can_approve_all, created_at
+        ) VALUES ($1, $2, $3, NOW()) RETURNING *`,
+        [
+          userId,
+          categoryId || null,
+          canApproveAll || false
+        ]
+      );
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error creating skill approver:", error);
+      throw error;
+    }
+  }
+  
+  async deleteSkillApprover(id: number): Promise<void> {
+    try {
+      const result = await pool.query(
+        'DELETE FROM skill_approvers WHERE id = $1',
+        [id]
+      );
+      
+      if (result.rowCount === 0) {
+        throw new Error("Skill approver not found");
+      }
+    } catch (error) {
+      console.error("Error deleting skill approver:", error);
+      throw error;
+    }
+  }
+  
+  async canUserApproveSkill(userId: number, categoryId: number): Promise<boolean> {
+    try {
+      // First, check if user is an admin
+      const userResult = await pool.query(
+        'SELECT is_admin FROM users WHERE id = $1',
+        [userId]
+      );
+      
+      // If user is not found, they can't approve
+      if (userResult.rows.length === 0) {
+        return false;
+      }
+      
+      const isAdmin = userResult.rows[0].is_admin;
+      
+      // If not an admin, they can't approve anything
+      if (!isAdmin) {
+        return false;
+      }
+      
+      // If admin, check if they're specifically an approver
+      const approverResult = await pool.query(
+        'SELECT * FROM skill_approvers WHERE user_id = $1 AND (category_id = $2 OR can_approve_all = true)',
+        [userId, categoryId]
+      );
+      
+      // Return true if they have a specific approval permission or can approve all
+      return approverResult.rows.length > 0;
+    } catch (error) {
+      console.error("Error checking if user can approve skill:", error);
+      return false;
     }
   }
 }
