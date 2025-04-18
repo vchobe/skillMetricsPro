@@ -517,6 +517,8 @@ export default function CategoryManagementPage() {
     queryKey: ['/api/users'],
   });
   
+  // We'll instead use the SubcategoryDisplayName component which already has logic to fetch subcategories
+
   // Fetch subcategories for each category when expanded
   const {
     data: subcategories = [],
@@ -1052,10 +1054,7 @@ export default function CategoryManagementPage() {
                     ? categories.find(c => c.id === approver.categoryId)
                     : null;
                   
-                  // Find the subcategory if set
-                  const subcategory = approver.subcategoryId && approver.categoryId
-                    ? subcategories.find(sc => sc.id === approver.subcategoryId && sc.categoryId === approver.categoryId)
-                    : null;
+                  // SubcategoryDisplayName component handles the subcategory display
                     
                   // Find the associated user from our users query data
                   const approverUser = users.find(u => u.id === approver.userId);
@@ -1106,17 +1105,8 @@ export default function CategoryManagementPage() {
                                   className="gap-1" 
                                   variant="outline"
                                 >
-                                  {subcategory ? (
-                                    <div className="flex items-center">
-                                      <div className="mr-1">{getIconByName(subcategory.icon || 'code')}</div>
-                                      {subcategory.name}
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <span className="font-medium">Subcategory:</span>
-                                      <SubcategoryDisplayName subcategoryId={approver.subcategoryId} />
-                                    </>
-                                  )}
+                                  <span className="font-medium">Subcategory:</span>
+                                  <SubcategoryDisplayName subcategoryId={approver.subcategoryId} />
                                 </Badge>
                               </>
                             )}
