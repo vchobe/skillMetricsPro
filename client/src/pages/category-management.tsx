@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,10 @@ import {
   Trash2, Edit2, Plus, Save, X, Eye, EyeOff, 
   Check, AlertTriangle, ChevronUp, ChevronDown,
   Code, Database, Server, Cpu, Activity, BarChart, 
-  Shield, Globe, Zap, Cloud, Box, Terminal
+  Shield, Globe, Zap, Cloud, Box, Terminal,
+  Layers, ChevronRight
 } from "lucide-react";
-import { SkillCategory, SkillApprover, User } from "@shared/schema";
+import { SkillCategory, SkillApprover, User, SkillSubcategory } from "@shared/schema";
 
 // Available icons for category selection
 const availableIcons = [
@@ -174,9 +175,138 @@ function CategoryForm({ category, onSave, onCancel }: CategoryFormProps) {
   );
 }
 
+// Subcategory Edit Form Component
+interface SubcategoryFormProps {
+  subcategory?: SkillSubcategory;
+  onSave: (subcategory: Partial<SkillSubcategory>) => void;
+  onCancel: () => void;
+  categories: SkillCategory[];
+  parentCategoryId?: number;
+}
+
+function SubcategoryForm({ subcategory, onSave, onCancel, categories, parentCategoryId }: SubcategoryFormProps) {
+  const [name, setName] = useState(subcategory?.name || "");
+  const [description, setDescription] = useState(subcategory?.description || "");
+  const [categoryId, setCategoryId] = useState<number>(subcategory?.categoryId || parentCategoryId || 0);
+  const [color, setColor] = useState(subcategory?.color || "#3B82F6");
+  const [icon, setIcon] = useState(subcategory?.icon || "code");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      name,
+      description,
+      categoryId, 
+      color,
+      icon
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Subcategory Name</Label>
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="React.js"
+            required
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Input
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="React.js library and ecosystem"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="categoryId">Parent Category</Label>
+          <Select 
+            value={categoryId.toString()} 
+            onValueChange={(value) => setCategoryId(Number(value))}
+            disabled={!!parentCategoryId}
+          >
+            <SelectTrigger id="categoryId">
+              <SelectValue placeholder="Select parent category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id.toString()}>
+                  <div className="flex items-center">
+                    <div className="mr-2">{getIconByName(category.icon || 'code')}</div>
+                    {category.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="color">Color</Label>
+            <div className="flex space-x-2">
+              <Input
+                id="color"
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-12 h-10 p-1"
+              />
+              <Input
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="#3B82F6"
+                pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+                className="flex-1"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="icon">Icon</Label>
+            <Select value={icon} onValueChange={(value) => setIcon(value)}>
+              <SelectTrigger id="icon" className="flex items-center">
+                <div className="mr-2">
+                  {getIconByName(icon)}
+                </div>
+                <SelectValue placeholder="Select icon" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableIcons.map((icon) => (
+                  <SelectItem key={icon.name} value={icon.name} className="flex items-center">
+                    <div className="mr-2">{icon.component}</div>
+                    <span className="capitalize">{icon.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          <X size={16} className="mr-2" /> Cancel
+        </Button>
+        <Button type="submit">
+          <Save size={16} className="mr-2" /> {subcategory ? 'Update' : 'Create'} Subcategory
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 // Approver Form Component
 interface ApproverFormProps {
-  onSave: (approver: { userId: number, categoryId?: number, canApproveAll: boolean }) => void;
+  onSave: (approver: { userId: number, categoryId?: number, subcategoryId?: number, canApproveAll: boolean }) => void;
   onCancel: () => void;
   categories: SkillCategory[];
 }
@@ -184,12 +314,33 @@ interface ApproverFormProps {
 function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
   const [userId, setUserId] = useState<number | ''>('');
   const [categoryId, setCategoryId] = useState<number | 'all'>('all');
+  const [subcategoryId, setSubcategoryId] = useState<number | undefined>(undefined);
   const [canApproveAll, setCanApproveAll] = useState(false);
   
   // Fetch users for dropdown
   const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ['/api/users'],
   });
+  
+  // Fetch subcategories for the selected category
+  const { 
+    data: subcategories = [], 
+    isLoading: isLoadingSubcategories 
+  } = useQuery<SkillSubcategory[]>({
+    queryKey: ['/api/skill-subcategories', categoryId],
+    enabled: categoryId !== 'all',
+    queryFn: async () => {
+      if (categoryId === 'all') return [];
+      const response = await fetch(`/api/skill-categories/${categoryId}/subcategories`);
+      if (!response.ok) throw new Error('Failed to fetch subcategories');
+      return response.json();
+    }
+  });
+  
+  // When category changes, reset subcategory
+  useEffect(() => {
+    setSubcategoryId(undefined);
+  }, [categoryId]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,6 +349,7 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
     onSave({
       userId: Number(userId),
       categoryId: categoryId === 'all' ? undefined : Number(categoryId),
+      subcategoryId: subcategoryId,
       canApproveAll: categoryId === 'all' || canApproveAll
     });
   };
@@ -245,6 +397,41 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
           </Select>
         </div>
         
+        {/* Show subcategory dropdown when a category is selected */}
+        {categoryId !== 'all' && (
+          <div className="space-y-2">
+            <Label htmlFor="subcategoryId">Subcategory (Optional)</Label>
+            <Select 
+              value={subcategoryId?.toString() || ''} 
+              onValueChange={(value) => setSubcategoryId(value ? Number(value) : undefined)}
+            >
+              <SelectTrigger id="subcategoryId">
+                <SelectValue placeholder="All subcategories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Subcategories</SelectItem>
+                {isLoadingSubcategories ? (
+                  <SelectItem value="loading" disabled>Loading subcategories...</SelectItem>
+                ) : subcategories.length === 0 ? (
+                  <SelectItem value="none" disabled>No subcategories found</SelectItem>
+                ) : (
+                  subcategories.map((subcategory) => (
+                    <SelectItem key={subcategory.id} value={subcategory.id.toString()}>
+                      <div className="flex items-center">
+                        <div className="mr-2">{getIconByName(subcategory.icon || 'code')}</div>
+                        {subcategory.name}
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground mt-1">
+              Select a specific subcategory or leave empty to approve all subcategories
+            </p>
+          </div>
+        )}
+        
         {categoryId !== 'all' && (
           <div className="flex items-center space-x-2 pt-2">
             <input
@@ -281,6 +468,9 @@ export default function CategoryManagementPage() {
   const [editingCategory, setEditingCategory] = useState<SkillCategory | null>(null);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isAddingApprover, setIsAddingApprover] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
+  const [isAddingSubcategory, setIsAddingSubcategory] = useState<number | null>(null);
+  const [editingSubcategory, setEditingSubcategory] = useState<SkillSubcategory | null>(null);
   
   // Fetch categories
   const { 
@@ -306,6 +496,22 @@ export default function CategoryManagementPage() {
     isLoading: isLoadingUsers 
   } = useQuery<User[]>({
     queryKey: ['/api/users'],
+  });
+  
+  // Fetch subcategories for each category when expanded
+  const {
+    data: subcategories = [],
+    isLoading: isLoadingSubcategories,
+    error: subcategoriesError
+  } = useQuery<SkillSubcategory[]>({
+    queryKey: ['/api/skill-subcategories', expandedCategory],
+    enabled: expandedCategory !== null,
+    queryFn: async () => {
+      if (expandedCategory === null) return [];
+      const response = await fetch(`/api/skill-categories/${expandedCategory}/subcategories`);
+      if (!response.ok) throw new Error('Failed to fetch subcategories');
+      return response.json();
+    }
   });
   
   // Category mutations
@@ -432,6 +638,82 @@ export default function CategoryManagementPage() {
   const handleDeleteApprover = (id: number) => {
     if (confirm("Are you sure you want to remove this approver?")) {
       deleteApprover.mutate(id);
+    }
+  };
+  
+  // Subcategory mutations
+  const createSubcategory = useMutation({
+    mutationFn: (newSubcategory: Partial<SkillSubcategory>) => 
+      apiRequest('POST', '/api/skill-subcategories', newSubcategory)
+        .then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/skill-subcategories', expandedCategory] });
+      setIsAddingSubcategory(null);
+      toast({
+        title: "Subcategory created",
+        description: "The skill subcategory has been successfully created.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to create subcategory",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const updateSubcategory = useMutation({
+    mutationFn: ({ id, data }: { id: number, data: Partial<SkillSubcategory> }) => 
+      apiRequest('PATCH', `/api/skill-subcategories/${id}`, data)
+        .then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/skill-subcategories', expandedCategory] });
+      setEditingSubcategory(null);
+      toast({
+        title: "Subcategory updated",
+        description: "The skill subcategory has been successfully updated.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update subcategory",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const deleteSubcategory = useMutation({
+    mutationFn: (id: number) => 
+      apiRequest('DELETE', `/api/skill-subcategories/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/skill-subcategories', expandedCategory] });
+      toast({
+        title: "Subcategory deleted",
+        description: "The skill subcategory has been successfully deleted.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete subcategory",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const handleSaveSubcategory = (subcategoryData: Partial<SkillSubcategory>) => {
+    if (editingSubcategory) {
+      updateSubcategory.mutate({ id: editingSubcategory.id, data: subcategoryData });
+    } else {
+      createSubcategory.mutate(subcategoryData);
+    }
+  };
+  
+  const handleDeleteSubcategory = (id: number) => {
+    if (confirm("Are you sure you want to delete this subcategory? Any skills in this subcategory will be moved to the parent category.")) {
+      deleteSubcategory.mutate(id);
     }
   };
   
