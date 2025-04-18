@@ -18,6 +18,7 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import OrgDashboard from "@/pages/org-dashboard";
 import LeaderboardPage from "@/pages/leaderboard-page";
 import SkillManagementPage from "@/pages/skill-management-page";
+import CategoryManagementPage from "@/pages/category-management";
 import ProjectsPage from "@/pages/projects-page";
 import ProjectDetailPage from "@/pages/project-detail-page";
 import ClientsPage from "@/pages/clients-page";
@@ -87,6 +88,11 @@ function Router() {
       <ProtectedRoute 
         path="/admin/skills" 
         component={() => <AdminWrapper Component={SkillManagementPage} />} 
+        adminOnly={true} 
+      />
+      <ProtectedRoute 
+        path="/admin/categories" 
+        component={() => <AdminWrapper Component={CategoryManagementPage} />} 
         adminOnly={true} 
       />
       <ProtectedRoute 
