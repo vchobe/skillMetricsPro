@@ -175,6 +175,25 @@ function CategoryForm({ category, onSave, onCancel }: CategoryFormProps) {
   );
 }
 
+// Subcategory Name Display Component
+interface SubcategoryDisplayNameProps {
+  subcategoryId: number;
+}
+
+function SubcategoryDisplayName({ subcategoryId }: SubcategoryDisplayNameProps) {
+  const { data: subcategory, isLoading } = useQuery<SkillSubcategory>({
+    queryKey: ['/api/skill-subcategories/get', subcategoryId],
+    queryFn: async () => {
+      const response = await fetch(`/api/skill-subcategories/${subcategoryId}`);
+      if (!response.ok) return { id: subcategoryId, name: `ID: ${subcategoryId}` } as SkillSubcategory;
+      return response.json();
+    }
+  });
+  
+  if (isLoading) return <>Loading...</>;
+  return <>{subcategory?.name || `ID: ${subcategoryId}`}</>;
+}
+
 // Subcategory Edit Form Component
 interface SubcategoryFormProps {
   subcategory?: SkillSubcategory;
@@ -853,6 +872,121 @@ export default function CategoryManagementPage() {
                         <div className="flex items-center mt-2 text-sm text-muted-foreground">
                           <span className="mr-4">Tab Order: {category.tabOrder || 0}</span>
                         </div>
+                        
+                        {/* Subcategories section */}
+                        <div className="mt-4">
+                          <div className="flex justify-between items-center">
+                            <div 
+                              className="flex items-center cursor-pointer" 
+                              onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
+                            >
+                              <h3 className="text-sm font-medium mr-1">Subcategories</h3>
+                              {expandedCategory === category.id ? (
+                                <ChevronUp size={14} />
+                              ) : (
+                                <ChevronDown size={14} />
+                              )}
+                            </div>
+                            
+                            {expandedCategory === category.id && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => setIsAddingSubcategory(category.id)}
+                                disabled={isAddingSubcategory !== null}
+                              >
+                                <Plus size={14} className="mr-1" />
+                                Add Subcategory
+                              </Button>
+                            )}
+                          </div>
+                          
+                          {/* Subcategory form */}
+                          {isAddingSubcategory === category.id && (
+                            <div className="border rounded-md p-4 mt-2">
+                              <h4 className="text-sm font-medium mb-2">Add New Subcategory</h4>
+                              <SubcategoryForm
+                                onSave={handleSaveSubcategory}
+                                onCancel={() => setIsAddingSubcategory(null)}
+                                categories={categories}
+                                parentCategoryId={category.id}
+                              />
+                            </div>
+                          )}
+                          
+                          {editingSubcategory && editingSubcategory.categoryId === category.id && (
+                            <div className="border rounded-md p-4 mt-2">
+                              <h4 className="text-sm font-medium mb-2">Edit Subcategory</h4>
+                              <SubcategoryForm
+                                subcategory={editingSubcategory}
+                                onSave={handleSaveSubcategory}
+                                onCancel={() => setEditingSubcategory(null)}
+                                categories={categories}
+                                parentCategoryId={category.id}
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Subcategories list */}
+                          {expandedCategory === category.id && (
+                            <div className="mt-2 border rounded-md">
+                              {isLoadingSubcategories ? (
+                                <div className="p-4">
+                                  <div className="animate-pulse h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                                  <div className="animate-pulse h-4 bg-gray-200 rounded w-1/4"></div>
+                                </div>
+                              ) : subcategories.length === 0 ? (
+                                <div className="p-4 text-center">
+                                  <p className="text-muted-foreground text-sm">
+                                    No subcategories found. Add your first subcategory.
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="divide-y">
+                                  {subcategories.map((subcategory) => (
+                                    <div key={subcategory.id} className="p-3">
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex items-center">
+                                          <div 
+                                            className="p-1 rounded-md mr-2"
+                                            style={{ backgroundColor: subcategory.color || category.color || '#3B82F6', color: 'white' }}
+                                          >
+                                            {getIconByName(subcategory.icon || 'code')}
+                                          </div>
+                                          <div>
+                                            <h4 className="text-sm font-medium">{subcategory.name}</h4>
+                                            <p className="text-xs text-muted-foreground">
+                                              {subcategory.description || 'No description provided'}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <div className="flex space-x-1">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => setEditingSubcategory(subcategory)}
+                                            className="h-7 w-7"
+                                            disabled={!!editingSubcategory}
+                                          >
+                                            <Edit2 size={14} />
+                                          </Button>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={() => handleDeleteSubcategory(subcategory.id)}
+                                            className="h-7 w-7 text-destructive hover:text-destructive"
+                                          >
+                                            <Trash2 size={14} />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                   ))
@@ -946,7 +1080,7 @@ export default function CategoryManagementPage() {
                             <Check size={12} className="mr-1" /> Can approve all categories
                           </Badge>
                         ) : category ? (
-                          <div className="flex items-center">
+                          <div className="flex items-center flex-wrap gap-2">
                             <Badge 
                               className="gap-1" 
                               style={{ 
@@ -958,6 +1092,20 @@ export default function CategoryManagementPage() {
                               {getIconByName(category.icon || 'code')}
                               {category.name}
                             </Badge>
+                            
+                            {approver.subcategoryId && (
+                              <>
+                                <ChevronRight size={14} className="text-muted-foreground" />
+                                {/* Display subcategory */}
+                                <Badge 
+                                  className="gap-1" 
+                                  variant="outline"
+                                >
+                                  <span className="font-medium">Subcategory:</span>
+                                  <SubcategoryDisplayName subcategoryId={approver.subcategoryId} />
+                                </Badge>
+                              </>
+                            )}
                           </div>
                         ) : (
                           <Badge variant="outline" className="text-muted-foreground">
