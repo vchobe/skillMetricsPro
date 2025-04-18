@@ -12,7 +12,9 @@ import {
   LogOut,
   Trophy,
   Briefcase,
-  Building
+  Building,
+  Box,
+  Tag
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -213,6 +215,19 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                     <Building className="h-5 w-5" />
                     {(isOpen || !isMobile) && (
                       <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Clients</span>
+                    )}
+                  </Link>
+                </div>
+                
+                <div>
+                  <Link href="/category-management" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                    currentPath === "/category-management" 
+                      ? "bg-gray-900 text-white" 
+                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                  }`}>
+                    <Tag className="h-5 w-5" />
+                    {(isOpen || !isMobile) && (
+                      <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Categories</span>
                     )}
                   </Link>
                 </div>
