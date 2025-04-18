@@ -63,6 +63,18 @@ export const skillCategories = pgTable("skill_categories", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Skill Subcategories schema (for organizing skills into subcategories within categories)
+export const skillSubcategories = pgTable("skill_subcategories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  categoryId: integer("category_id").notNull().references(() => skillCategories.id),
+  color: text("color").default("#3B82F6"), // Default blue color
+  icon: text("icon").default("code"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertSkillCategorySchema = createInsertSchema(skillCategories).pick({
   name: true,
   description: true,
@@ -72,11 +84,20 @@ export const insertSkillCategorySchema = createInsertSchema(skillCategories).pic
   icon: true,
 });
 
+export const insertSkillSubcategorySchema = createInsertSchema(skillSubcategories).pick({
+  name: true,
+  description: true,
+  categoryId: true,
+  color: true,
+  icon: true,
+});
+
 // Skill Approvers schema (admin users with approval rights for specific categories)
 export const skillApprovers = pgTable("skill_approvers", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   categoryId: integer("category_id").references(() => skillCategories.id),
+  subcategoryId: integer("subcategory_id").references(() => skillSubcategories.id),
   canApproveAll: boolean("can_approve_all").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -84,11 +105,15 @@ export const skillApprovers = pgTable("skill_approvers", {
 export const insertSkillApproverSchema = createInsertSchema(skillApprovers).pick({
   userId: true,
   categoryId: true,
+  subcategoryId: true,
   canApproveAll: true,
 });
 
 export type SkillCategory = typeof skillCategories.$inferSelect;
 export type InsertSkillCategory = z.infer<typeof insertSkillCategorySchema>;
+
+export type SkillSubcategory = typeof skillSubcategories.$inferSelect;
+export type InsertSkillSubcategory = z.infer<typeof insertSkillSubcategorySchema>;
 
 export type SkillApprover = typeof skillApprovers.$inferSelect;
 export type InsertSkillApprover = z.infer<typeof insertSkillApproverSchema>;
