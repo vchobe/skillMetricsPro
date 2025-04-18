@@ -333,7 +333,7 @@ interface ApproverFormProps {
 function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
   const [userId, setUserId] = useState<number | ''>('');
   const [categoryId, setCategoryId] = useState<number | 'all'>('all');
-  const [subcategoryId, setSubcategoryId] = useState<number | undefined>(undefined);
+  const [subcategoryId, setSubcategoryId] = useState<number | 'all'>('all');
   const [canApproveAll, setCanApproveAll] = useState(false);
   
   // Fetch users for dropdown
@@ -358,7 +358,7 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
   
   // When category changes, reset subcategory
   useEffect(() => {
-    setSubcategoryId(undefined);
+    setSubcategoryId('all');
   }, [categoryId]);
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -368,7 +368,7 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
     onSave({
       userId: Number(userId),
       categoryId: categoryId === 'all' ? undefined : Number(categoryId),
-      subcategoryId: subcategoryId,
+      subcategoryId: subcategoryId === 'all' ? undefined : Number(subcategoryId),
       canApproveAll: categoryId === 'all' || canApproveAll
     });
   };
@@ -421,8 +421,8 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
           <div className="space-y-2">
             <Label htmlFor="subcategoryId">Subcategory (Optional)</Label>
             <Select 
-              value={subcategoryId?.toString() || ''} 
-              onValueChange={(value) => setSubcategoryId(value ? Number(value) : undefined)}
+              value={subcategoryId?.toString() || 'all'} 
+              onValueChange={(value) => setSubcategoryId(value === 'all' ? 'all' : Number(value))}
             >
               <SelectTrigger id="subcategoryId">
                 <SelectValue placeholder="All subcategories" />
@@ -597,7 +597,7 @@ export default function CategoryManagementPage() {
   
   // Approver mutations
   const createApprover = useMutation({
-    mutationFn: (approver: { userId: number, categoryId?: number, canApproveAll: boolean }) => 
+    mutationFn: (approver: { userId: number, categoryId?: number, subcategoryId?: number, canApproveAll: boolean }) => 
       apiRequest('POST', '/api/skill-approvers', approver)
         .then(r => r.json()),
     onSuccess: () => {
@@ -650,7 +650,7 @@ export default function CategoryManagementPage() {
     }
   };
   
-  const handleSaveApprover = (approverData: { userId: number, categoryId?: number, canApproveAll: boolean }) => {
+  const handleSaveApprover = (approverData: { userId: number, categoryId?: number, subcategoryId?: number, canApproveAll: boolean }) => {
     createApprover.mutate(approverData);
   };
   
@@ -1051,6 +1051,11 @@ export default function CategoryManagementPage() {
                   const category = approver.categoryId
                     ? categories.find(c => c.id === approver.categoryId)
                     : null;
+                  
+                  // Find the subcategory if set
+                  const subcategory = approver.subcategoryId && approver.categoryId
+                    ? subcategories.find(sc => sc.id === approver.subcategoryId && sc.categoryId === approver.categoryId)
+                    : null;
                     
                   // Find the associated user from our users query data
                   const approverUser = users.find(u => u.id === approver.userId);
@@ -1101,8 +1106,17 @@ export default function CategoryManagementPage() {
                                   className="gap-1" 
                                   variant="outline"
                                 >
-                                  <span className="font-medium">Subcategory:</span>
-                                  <SubcategoryDisplayName subcategoryId={approver.subcategoryId} />
+                                  {subcategory ? (
+                                    <div className="flex items-center">
+                                      <div className="mr-1">{getIconByName(subcategory.icon || 'code')}</div>
+                                      {subcategory.name}
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <span className="font-medium">Subcategory:</span>
+                                      <SubcategoryDisplayName subcategoryId={approver.subcategoryId} />
+                                    </>
+                                  )}
                                 </Badge>
                               </>
                             )}
