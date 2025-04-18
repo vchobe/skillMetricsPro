@@ -96,6 +96,11 @@ function Router() {
         adminOnly={true} 
       />
       <ProtectedRoute 
+        path="/category-management" 
+        component={() => <AdminWrapper Component={CategoryManagementPage} />} 
+        adminOnly={true} 
+      />
+      <ProtectedRoute 
         path="/admin/:tab?" 
         component={() => <AdminWrapper Component={AdminDashboard} />} 
         adminOnly={true} 
