@@ -207,9 +207,18 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
     mutationFn: async (data: SkillFormValues) => {
       const { userId, changeNote, ...updateData } = data;
       
+      // Log to help identify issues - will show in console
+      console.log("Submitting skill update with data:", {
+        ...updateData,
+        skillId,
+        isUpdate: true
+      });
+      
       // Submit updates to pending skills endpoint instead of directly updating
+      // Make sure to include userId which is required by the server
       const res = await apiRequest("POST", "/api/skills/pending", {
         ...updateData,
+        userId: userId || user?.id, // Ensure we always have a userId
         skillId: skillId, // Reference to existing skill
         status: "pending",
         isUpdate: true, // Mark as an update, not a new skill
