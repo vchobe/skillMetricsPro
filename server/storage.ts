@@ -435,10 +435,16 @@ export class PostgresStorage implements IStorage {
   // Skill operations
   async getUserSkills(userId: number): Promise<Skill[]> {
     try {
-      const result = await pool.query(
-        'SELECT * FROM skills WHERE user_id = $1 ORDER BY last_updated DESC',
-        [userId]
-      );
+      const result = await pool.query(`
+        SELECT s.*, 
+               sc.name as category_name, 
+               sc.color as category_color, 
+               sc.icon as category_icon 
+        FROM skills s
+        LEFT JOIN skill_categories sc ON s.category_id = sc.id
+        WHERE s.user_id = $1 
+        ORDER BY s.last_updated DESC
+      `, [userId]);
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting user skills:", error);
@@ -533,7 +539,15 @@ export class PostgresStorage implements IStorage {
   
   async getAllSkills(): Promise<Skill[]> {
     try {
-      const result = await pool.query('SELECT * FROM skills ORDER BY last_updated DESC');
+      const result = await pool.query(`
+        SELECT s.*, 
+               sc.name as category_name, 
+               sc.color as category_color, 
+               sc.icon as category_icon 
+        FROM skills s
+        LEFT JOIN skill_categories sc ON s.category_id = sc.id
+        ORDER BY s.last_updated DESC
+      `);
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting all skills:", error);
@@ -545,16 +559,22 @@ export class PostgresStorage implements IStorage {
     try {
       // Search for skills by name, category, level, certification
       const searchQuery = `%${query.toLowerCase()}%`;
-      const result = await pool.query(
-        `SELECT * FROM skills 
-         WHERE LOWER(name) LIKE $1 
-         OR LOWER(category) LIKE $1 
-         OR LOWER(level) LIKE $1 
-         OR LOWER(certification) LIKE $1
-         OR LOWER(notes) LIKE $1
-         ORDER BY last_updated DESC`,
-        [searchQuery]
-      );
+      const result = await pool.query(`
+        SELECT s.*, 
+               sc.name as category_name, 
+               sc.color as category_color, 
+               sc.icon as category_icon 
+        FROM skills s
+        LEFT JOIN skill_categories sc ON s.category_id = sc.id
+        WHERE LOWER(s.name) LIKE $1 
+          OR LOWER(s.category) LIKE $1 
+          OR LOWER(s.level) LIKE $1 
+          OR LOWER(s.certification) LIKE $1
+          OR LOWER(s.notes) LIKE $1
+          OR LOWER(sc.name) LIKE $1
+        ORDER BY s.last_updated DESC
+      `, [searchQuery]);
+      
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error searching skills:", error);
