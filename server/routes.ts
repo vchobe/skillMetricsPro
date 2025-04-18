@@ -1399,6 +1399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Received pending skill update request with body:", req.body);
       const userId = req.user!.id;
+      const isAdmin = req.user!.isAdmin || req.user!.is_admin;
       
       // Handle both isUpdate and is_update for backward compatibility
       if (req.body.isUpdate !== undefined && req.body.is_update === undefined) {
@@ -1417,10 +1418,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Set the user ID from the authenticated user
         pendingSkillData.userId = userId;
         
-        // Create the pending skill update
+        // For admin users, we'll auto-approve updates to their own skills
+        if (isAdmin) {
+          console.log("Admin user detected, auto-approving skill update");
+          
+          let approvedSkill;
+          
+          if (pendingSkillData.isUpdate && pendingSkillData.skillId) {
+            // For updates to existing skills, directly update the skill
+            console.log("Direct update of existing skill for admin:", pendingSkillData.skillId);
+            
+            // Extract the relevant skill data from pendingSkillData
+            const { 
+              userId, skillId, name, category, level, certification, 
+              credlyLink, notes, certificationDate, expirationDate 
+            } = pendingSkillData;
+            
+            approvedSkill = await storage.updateSkill(skillId, {
+              name,
+              category, 
+              level,
+              certification,
+              credlyLink,
+              notes,
+              certificationDate,
+              expirationDate
+            });
+            
+            // Create a skill history entry
+            await storage.createSkillHistory({
+              skillId: skillId,
+              userId: userId,
+              previousLevel: level, // Same level as we're just updating other details
+              newLevel: level,
+              changeNote: `Auto-approved admin update`
+            });
+            
+            console.log("Admin skill directly updated:", approvedSkill);
+            return res.status(200).json({
+              message: "Skill updated successfully (admin auto-approval)",
+              skill: approvedSkill
+            });
+          } else {
+            // For new skills from admin users, create a new skill
+            // Create the pending skill update first for record-keeping
+            const pendingUpdate = await storage.createPendingSkillUpdate({
+              ...pendingSkillData,
+              status: 'approved',
+              reviewedAt: new Date(),
+              reviewedBy: userId,
+              reviewNotes: 'Auto-approved (admin user)'
+            });
+            
+            // Create the actual skill
+            approvedSkill = await storage.createSkill({
+              userId,
+              name: pendingSkillData.name,
+              category: pendingSkillData.category,
+              level: pendingSkillData.level,
+              certification: pendingSkillData.certification,
+              credlyLink: pendingSkillData.credlyLink,
+              notes: pendingSkillData.notes,
+              certificationDate: pendingSkillData.certificationDate,
+              expirationDate: pendingSkillData.expirationDate
+            });
+            
+            console.log("New admin skill directly created:", approvedSkill);
+            return res.status(201).json({
+              message: "New skill created successfully (admin auto-approval)",
+              skill: approvedSkill
+            });
+          }
+        }
+        
+        // For non-admin users, create a pending update that requires approval
         const pendingUpdate = await storage.createPendingSkillUpdate(pendingSkillData);
-        console.log("Created pending skill update:", pendingUpdate);
-        res.status(201).json(pendingUpdate);
+        console.log("Created pending skill update for non-admin:", pendingUpdate);
+        res.status(201).json({
+          message: "Update submitted for approval",
+          pendingUpdate
+        });
       } catch (error) {
         console.error("Validation error:", error);
         res.status(400).json({ message: "Validation error", error });
