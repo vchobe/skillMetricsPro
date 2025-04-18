@@ -52,14 +52,23 @@ export interface IStorage {
   updateSkillCategory(id: number, data: Partial<SkillCategory>): Promise<SkillCategory>;
   deleteSkillCategory(id: number): Promise<void>;
   
+  // Skill subcategory operations
+  getAllSkillSubcategories(): Promise<SkillSubcategory[]>;
+  getSubcategoriesByCategory(categoryId: number): Promise<SkillSubcategory[]>;
+  getSkillSubcategory(id: number): Promise<SkillSubcategory | undefined>;
+  createSkillSubcategory(subcategory: InsertSkillSubcategory): Promise<SkillSubcategory>;
+  updateSkillSubcategory(id: number, data: Partial<SkillSubcategory>): Promise<SkillSubcategory>;
+  deleteSkillSubcategory(id: number): Promise<void>;
+  
   // Skill approver operations
   getAllSkillApprovers(): Promise<SkillApprover[]>;
   getSkillApprover(id: number): Promise<SkillApprover | undefined>;
   getSkillApproversByUser(userId: number): Promise<SkillApprover[]>;
   getApproversForCategory(categoryId: number): Promise<SkillApprover[]>;
+  getApproversForSubcategory(subcategoryId: number): Promise<SkillApprover[]>;
   createSkillApprover(approver: InsertSkillApprover): Promise<SkillApprover>;
   deleteSkillApprover(id: number): Promise<void>;
-  canUserApproveSkill(userId: number, categoryId: number): Promise<boolean>;
+  canUserApproveSkill(userId: number, categoryId: number, subcategoryId?: number): Promise<boolean>;
   
   // Skill history operations
   getSkillHistory(skillId: number): Promise<SkillHistory[]>;
@@ -3538,6 +3547,12 @@ export class PostgresStorage implements IStorage {
         [id]
       );
       
+      // Delete any subcategories for this category
+      await pool.query(
+        'DELETE FROM skill_subcategories WHERE category_id = $1',
+        [id]
+      );
+      
       // Delete any approvers for this category
       await pool.query(
         'DELETE FROM skill_approvers WHERE category_id = $1',
@@ -3555,6 +3570,158 @@ export class PostgresStorage implements IStorage {
       }
     } catch (error) {
       console.error("Error deleting skill category:", error);
+      throw error;
+    }
+  }
+  
+  // Skill Subcategory methods
+  async getAllSkillSubcategories(): Promise<SkillSubcategory[]> {
+    try {
+      const result = await pool.query(`
+        SELECT s.*, c.name as category_name 
+        FROM skill_subcategories s
+        JOIN skill_categories c ON s.category_id = c.id
+        ORDER BY c.tab_order, c.name, s.name
+      `);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all skill subcategories:", error);
+      throw error;
+    }
+  }
+  
+  async getSubcategoriesByCategory(categoryId: number): Promise<SkillSubcategory[]> {
+    try {
+      const result = await pool.query(`
+        SELECT s.*, c.name as category_name 
+        FROM skill_subcategories s
+        JOIN skill_categories c ON s.category_id = c.id
+        WHERE s.category_id = $1
+        ORDER BY s.name
+      `, [categoryId]);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error(`Error getting subcategories for category ${categoryId}:`, error);
+      throw error;
+    }
+  }
+  
+  async getSkillSubcategory(id: number): Promise<SkillSubcategory | undefined> {
+    try {
+      const result = await pool.query(`
+        SELECT s.*, c.name as category_name 
+        FROM skill_subcategories s
+        JOIN skill_categories c ON s.category_id = c.id
+        WHERE s.id = $1
+      `, [id]);
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting skill subcategory:", error);
+      throw error;
+    }
+  }
+  
+  async createSkillSubcategory(subcategory: InsertSkillSubcategory): Promise<SkillSubcategory> {
+    try {
+      const { name, description, categoryId, color, icon } = subcategory;
+      
+      const result = await pool.query(
+        `INSERT INTO skill_subcategories (
+          name, description, category_id, color, icon, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) 
+        RETURNING *`,
+        [
+          name,
+          description || null,
+          categoryId,
+          color || '#3B82F6',
+          icon || 'code'
+        ]
+      );
+      
+      // Fetch the category name to include in the response
+      const category = await this.getSkillCategory(categoryId);
+      
+      return {
+        ...this.snakeToCamel(result.rows[0]),
+        categoryName: category?.name || ''
+      };
+    } catch (error) {
+      console.error("Error creating skill subcategory:", error);
+      throw error;
+    }
+  }
+  
+  async updateSkillSubcategory(id: number, data: Partial<SkillSubcategory>): Promise<SkillSubcategory> {
+    try {
+      const sets: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+      
+      // Build SET clause and parameters
+      for (const [key, value] of Object.entries(data)) {
+        // Skip categoryName as it's not a database column
+        if (key === 'categoryName') continue;
+        
+        // Convert camelCase to snake_case for database column names
+        const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        sets.push(`${columnName} = $${paramIndex}`);
+        params.push(value);
+        paramIndex++;
+      }
+      
+      // Always update the updated_at timestamp
+      sets.push(`updated_at = NOW()`);
+      
+      if (sets.length === 1) { // Only has updated_at
+        return await this.getSkillSubcategory(id) as SkillSubcategory;
+      }
+      
+      params.push(id); // Add id as the last parameter
+      
+      const result = await pool.query(
+        `UPDATE skill_subcategories SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+        params
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error("Skill subcategory not found");
+      }
+      
+      // Fetch the category name to include in the response
+      const subcategory = this.snakeToCamel(result.rows[0]);
+      const category = await this.getSkillCategory(subcategory.categoryId);
+      
+      return {
+        ...subcategory,
+        categoryName: category?.name || ''
+      };
+    } catch (error) {
+      console.error("Error updating skill subcategory:", error);
+      throw error;
+    }
+  }
+  
+  async deleteSkillSubcategory(id: number): Promise<void> {
+    try {
+      // Delete any approvers for this subcategory
+      await pool.query(
+        'DELETE FROM skill_approvers WHERE subcategory_id = $1',
+        [id]
+      );
+      
+      // Delete the subcategory
+      const result = await pool.query(
+        'DELETE FROM skill_subcategories WHERE id = $1',
+        [id]
+      );
+      
+      if (result.rowCount === 0) {
+        throw new Error("Skill subcategory not found");
+      }
+    } catch (error) {
+      console.error("Error deleting skill subcategory:", error);
       throw error;
     }
   }
