@@ -47,12 +47,59 @@ export const loginUserSchema = z.object({
 // Skill level enum
 export const skillLevelEnum = pgEnum("skill_level", ["beginner", "intermediate", "expert"]);
 
+// Tab visibility enum
+export const tabVisibilityEnum = pgEnum("tab_visibility", ["visible", "hidden"]);
+
+// Skill Categories schema (for organizing skills into categories with tabs)
+export const skillCategories = pgTable("skill_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  tabOrder: integer("tab_order").default(0),
+  visibility: tabVisibilityEnum("visibility").default("visible"),
+  color: text("color").default("#3B82F6"), // Default blue color
+  icon: text("icon").default("code"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSkillCategorySchema = createInsertSchema(skillCategories).pick({
+  name: true,
+  description: true,
+  tabOrder: true,
+  visibility: true,
+  color: true,
+  icon: true,
+});
+
+// Skill Approvers schema (admin users with approval rights for specific categories)
+export const skillApprovers = pgTable("skill_approvers", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  categoryId: integer("category_id").references(() => skillCategories.id),
+  canApproveAll: boolean("can_approve_all").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSkillApproverSchema = createInsertSchema(skillApprovers).pick({
+  userId: true,
+  categoryId: true,
+  canApproveAll: true,
+});
+
+export type SkillCategory = typeof skillCategories.$inferSelect;
+export type InsertSkillCategory = z.infer<typeof insertSkillCategorySchema>;
+
+export type SkillApprover = typeof skillApprovers.$inferSelect;
+export type InsertSkillApprover = z.infer<typeof insertSkillApproverSchema>;
+
 // Skills schema
 export const skills = pgTable("skills", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   name: text("name").notNull(),
-  category: text("category").notNull(),
+  category: text("category").notNull(), // Keep this for backward compatibility
+  categoryId: integer("category_id").references(() => skillCategories.id), // New reference to categories table
   level: skillLevelEnum("level").notNull(),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
   certification: text("certification"),
@@ -67,6 +114,7 @@ export const insertSkillSchema = createInsertSchema(skills).pick({
   userId: true,
   name: true,
   category: true,
+  categoryId: true, // New field for referencing the category
   level: true,
   certification: true,
   credlyLink: true,
