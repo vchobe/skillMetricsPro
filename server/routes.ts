@@ -13,7 +13,11 @@ import {
   insertPendingSkillUpdateSchema,
   Skill,
   insertSkillTargetSchema,
-  insertSkillTemplateSchema
+  insertSkillTemplateSchema,
+  insertSkillCategorySchema,
+  insertSkillApproverSchema,
+  SkillCategory,
+  SkillApprover
 } from "@shared/schema";
 
 // Direct database check for admin status
@@ -2068,6 +2072,255 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user project history:", error);
       res.status(500).json({ message: "Error fetching user project history", error });
+    }
+  });
+
+  // ----- SKILL CATEGORY MANAGEMENT ROUTES -----
+  
+  // Get all skill categories
+  app.get("/api/skill-categories", ensureAuth, async (req, res) => {
+    try {
+      const categories = await storage.getAllSkillCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching skill categories:", error);
+      res.status(500).json({ message: "Error fetching skill categories", error });
+    }
+  });
+  
+  // Get a specific skill category
+  app.get("/api/skill-categories/:id", ensureAuth, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+      
+      const category = await storage.getSkillCategory(categoryId);
+      
+      if (!category) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      res.json(category);
+    } catch (error) {
+      console.error("Error fetching skill category:", error);
+      res.status(500).json({ message: "Error fetching skill category", error });
+    }
+  });
+  
+  // Create a new skill category (admin only)
+  app.post("/api/skill-categories", ensureAdmin, async (req, res) => {
+    try {
+      // Validate the request
+      const categoryData = await insertSkillCategorySchema.parseAsync(req.body);
+      
+      // Create the category
+      const newCategory = await storage.createSkillCategory(categoryData);
+      
+      res.status(201).json(newCategory);
+    } catch (error) {
+      console.error("Error creating skill category:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid category data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error creating skill category", error });
+    }
+  });
+  
+  // Update a skill category (admin only)
+  app.patch("/api/skill-categories/:id", ensureAdmin, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+      
+      // Check if category exists
+      const existingCategory = await storage.getSkillCategory(categoryId);
+      
+      if (!existingCategory) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      // Update the category
+      const updatedCategory = await storage.updateSkillCategory(categoryId, req.body);
+      
+      res.json(updatedCategory);
+    } catch (error) {
+      console.error("Error updating skill category:", error);
+      res.status(500).json({ message: "Error updating skill category", error });
+    }
+  });
+  
+  // Delete a skill category (admin only)
+  app.delete("/api/skill-categories/:id", ensureAdmin, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+      
+      // Check if category exists
+      const existingCategory = await storage.getSkillCategory(categoryId);
+      
+      if (!existingCategory) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      // Delete the category
+      await storage.deleteSkillCategory(categoryId);
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting skill category:", error);
+      res.status(500).json({ message: "Error deleting skill category", error });
+    }
+  });
+  
+  // ----- SKILL APPROVER MANAGEMENT ROUTES -----
+  
+  // Get all skill approvers
+  app.get("/api/skill-approvers", ensureAdmin, async (req, res) => {
+    try {
+      const approvers = await storage.getAllSkillApprovers();
+      
+      // Enhance with user display names
+      const enhancedApprovers = await Promise.all(
+        approvers.map(async (approver) => {
+          try {
+            const user = await storage.getUser(approver.userId);
+            return {
+              ...approver,
+              userDisplayName: user?.displayName || user?.username || user?.email || `User #${approver.userId}`
+            };
+          } catch (err) {
+            console.error(`Error fetching user ${approver.userId} for approver details:`, err);
+            return approver;
+          }
+        })
+      );
+      
+      res.json(enhancedApprovers);
+    } catch (error) {
+      console.error("Error fetching skill approvers:", error);
+      res.status(500).json({ message: "Error fetching skill approvers", error });
+    }
+  });
+  
+  // Get approvers for a specific category
+  app.get("/api/skill-categories/:id/approvers", ensureAuth, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+      
+      // Get approvers for the category, including those who can approve all
+      const approvers = await storage.getApproversForCategory(categoryId);
+      
+      // Enhance with user display names
+      const enhancedApprovers = await Promise.all(
+        approvers.map(async (approver) => {
+          try {
+            const user = await storage.getUser(approver.userId);
+            return {
+              ...approver,
+              userDisplayName: user?.displayName || user?.username || user?.email || `User #${approver.userId}`
+            };
+          } catch (err) {
+            console.error(`Error fetching user ${approver.userId} for approver details:`, err);
+            return approver;
+          }
+        })
+      );
+      
+      res.json(enhancedApprovers);
+    } catch (error) {
+      console.error("Error fetching approvers for category:", error);
+      res.status(500).json({ message: "Error fetching approvers for category", error });
+    }
+  });
+  
+  // Create a new skill approver (admin only)
+  app.post("/api/skill-approvers", ensureAdmin, async (req, res) => {
+    try {
+      // Validate the request
+      const approverData = await insertSkillApproverSchema.parseAsync(req.body);
+      
+      // Check if the user exists
+      const user = await storage.getUser(approverData.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if the category exists (if specified)
+      if (approverData.categoryId) {
+        const category = await storage.getSkillCategory(approverData.categoryId);
+        if (!category) {
+          return res.status(404).json({ message: "Category not found" });
+        }
+      }
+      
+      // Create the approver
+      const newApprover = await storage.createSkillApprover(approverData);
+      
+      res.status(201).json(newApprover);
+    } catch (error) {
+      console.error("Error creating skill approver:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid approver data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error creating skill approver", error });
+    }
+  });
+  
+  // Delete a skill approver (admin only)
+  app.delete("/api/skill-approvers/:id", ensureAdmin, async (req, res) => {
+    try {
+      const approverId = parseInt(req.params.id);
+      
+      if (isNaN(approverId)) {
+        return res.status(400).json({ message: "Invalid approver ID" });
+      }
+      
+      // Check if approver exists
+      const existingApprover = await storage.getSkillApprover(approverId);
+      
+      if (!existingApprover) {
+        return res.status(404).json({ message: "Approver not found" });
+      }
+      
+      // Delete the approver
+      await storage.deleteSkillApprover(approverId);
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting skill approver:", error);
+      res.status(500).json({ message: "Error deleting skill approver", error });
+    }
+  });
+  
+  // Check if current user can approve a skill in a specific category
+  app.get("/api/can-approve/:categoryId", ensureAuth, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.categoryId);
+      const userId = req.user!.id;
+      
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+      
+      const canApprove = await storage.canUserApproveSkill(userId, categoryId);
+      
+      res.json({ canApprove });
+    } catch (error) {
+      console.error("Error checking approval permission:", error);
+      res.status(500).json({ message: "Error checking approval permission", error });
     }
   });
 

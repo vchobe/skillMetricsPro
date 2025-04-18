@@ -45,6 +45,22 @@ export interface IStorage {
   getAllSkills(): Promise<Skill[]>;
   searchSkills(query: string): Promise<Skill[]>;
   
+  // Skill category operations
+  getAllSkillCategories(): Promise<SkillCategory[]>;
+  getSkillCategory(id: number): Promise<SkillCategory | undefined>;
+  createSkillCategory(category: InsertSkillCategory): Promise<SkillCategory>;
+  updateSkillCategory(id: number, data: Partial<SkillCategory>): Promise<SkillCategory>;
+  deleteSkillCategory(id: number): Promise<void>;
+  
+  // Skill approver operations
+  getAllSkillApprovers(): Promise<SkillApprover[]>;
+  getSkillApprover(id: number): Promise<SkillApprover | undefined>;
+  getSkillApproversByUser(userId: number): Promise<SkillApprover[]>;
+  getApproversForCategory(categoryId: number): Promise<SkillApprover[]>;
+  createSkillApprover(approver: InsertSkillApprover): Promise<SkillApprover>;
+  deleteSkillApprover(id: number): Promise<void>;
+  canUserApproveSkill(userId: number, categoryId: number): Promise<boolean>;
+  
   // Skill history operations
   getSkillHistory(skillId: number): Promise<SkillHistory[]>;
   getUserSkillHistory(userId: number): Promise<SkillHistory[]>;
@@ -132,21 +148,7 @@ export interface IStorage {
   getUserProjectHistory(userId: number): Promise<ProjectResourceHistory[]>;
   createProjectResourceHistory(history: InsertProjectResourceHistory): Promise<ProjectResourceHistory>;
   
-  // Skill Category operations
-  getAllSkillCategories(): Promise<SkillCategory[]>;
-  getSkillCategory(id: number): Promise<SkillCategory | undefined>;
-  createSkillCategory(category: InsertSkillCategory): Promise<SkillCategory>;
-  updateSkillCategory(id: number, data: Partial<SkillCategory>): Promise<SkillCategory>;
-  deleteSkillCategory(id: number): Promise<void>;
-  
-  // Skill Approver operations
-  getAllSkillApprovers(): Promise<SkillApprover[]>;
-  getSkillApprover(id: number): Promise<SkillApprover | undefined>;
-  getSkillApproversByUser(userId: number): Promise<SkillApprover[]>;
-  getApproversForCategory(categoryId: number): Promise<SkillApprover[]>;
-  createSkillApprover(approver: InsertSkillApprover): Promise<SkillApprover>;
-  deleteSkillApprover(id: number): Promise<void>;
-  canUserApproveSkill(userId: number, categoryId: number): Promise<boolean>;
+
   
   // Session store
   sessionStore: Store;
