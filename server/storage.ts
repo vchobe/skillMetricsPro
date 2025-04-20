@@ -3912,12 +3912,10 @@ export class PostgresStorage implements IStorage {
       
       const isAdmin = userResult.rows[0].is_admin;
       
-      // If not an admin, they can't approve anything
-      if (!isAdmin) {
-        return false;
-      }
+      // Admin users can approve or we'll check specific approver permissions
+      // No longer filtering out non-admin users
       
-      // If they're an admin, check their specific approval permissions
+      // Check their specific approval permissions
       let query;
       let params;
       
@@ -3962,6 +3960,40 @@ export class PostgresStorage implements IStorage {
       return approverResult.rows.length > 0;
     } catch (error) {
       console.error("Error checking if user can approve skill:", error);
+      return false;
+    }
+  }
+  
+  async isUserApprover(userId: number): Promise<boolean> {
+    try {
+      // Check if user exists and is admin (admins are automatically approvers)
+      const userResult = await pool.query(
+        'SELECT is_admin FROM users WHERE id = $1',
+        [userId]
+      );
+      
+      if (userResult.rows.length === 0) {
+        return false;
+      }
+      
+      // If user is admin, they're an approver
+      if (userResult.rows[0].is_admin) {
+        return true;
+      }
+      
+      // Check if user has any approver assignments
+      const approverQuery = `
+        SELECT COUNT(*) as count 
+        FROM skill_approvers 
+        WHERE user_id = $1
+      `;
+      
+      const approverResult = await pool.query(approverQuery, [userId]);
+      
+      // Return true if they have at least one approver assignment
+      return parseInt(approverResult.rows[0].count) > 0;
+    } catch (error) {
+      console.error("Error checking if user is an approver:", error);
       return false;
     }
   }

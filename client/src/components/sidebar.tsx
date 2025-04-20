@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 import { 
   LayoutDashboard, 
   Brain, 
@@ -31,6 +32,13 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
   const [location, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Check if the current user is an approver
+  const { data: isApprover = false } = useQuery<boolean>({
+    queryKey: ['/api/user/is-approver'],
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
   
   // Check if on mobile screen
   useEffect(() => {
@@ -155,7 +163,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
             </div>
           </div>
 
-          {/* Admin Section - Only visible to admins - check both property formats */}
+          {/* Admin Section - Only visible to admins */}
           {(user?.is_admin || user?.isAdmin) && (
             <div className="mt-8">
               {(isOpen || !isMobile) && (
@@ -217,6 +225,58 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                       <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Clients</span>
                     )}
                   </Link>
+                </div>
+                
+                <div>
+                  <Link href="/category-management" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                    currentPath === "/category-management" 
+                      ? "bg-gray-900 text-white" 
+                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                  }`}>
+                    <Tag className="h-5 w-5" />
+                    {(isOpen || !isMobile) && (
+                      <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Categories</span>
+                    )}
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Approver Section - Visible to approvers who are not admins */}
+          {isApprover && !(user?.is_admin || user?.isAdmin) && (
+            <div className="mt-8">
+              {(isOpen || !isMobile) && (
+                <h3 className={`px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider ${!isOpen && "lg:hidden"}`}>
+                  Approver
+                </h3>
+              )}
+              <div className="mt-2 space-y-2">
+                <div>
+                  <a 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // Preserve current tab state in URL, default to skill-updates tab for approvers
+                      const params = new URLSearchParams(window.location.search);
+                      const tab = params.get("tab");
+                      const adminUrl = tab ? `/admin?tab=${tab}` : "/admin?tab=skill-updates";
+                      
+                      // Update URL and navigate to the proper tab
+                      window.history.pushState({}, "", adminUrl);
+                      setLocation(adminUrl);
+                    }}
+                    className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                      currentPath === "/admin" 
+                        ? "bg-gray-900 text-white" 
+                        : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                    }`}
+                  >
+                    <BarChart4 className="h-5 w-5" />
+                    {(isOpen || !isMobile) && (
+                      <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Approvals</span>
+                    )}
+                  </a>
                 </div>
                 
                 <div>
