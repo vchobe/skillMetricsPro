@@ -344,6 +344,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching profile history", error });
     }
   });
+  
+  // Check if current user is an approver (used in sidebar)
+  app.get("/api/user/is-approver", ensureAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const isApprover = await storage.isUserApprover(userId);
+      res.json(isApprover);
+    } catch (error) {
+      console.error("Error checking if user is an approver:", error);
+      res.status(500).json({ message: "Error checking approver status", error });
+    }
+  });
 
   // Skills routes
   app.get("/api/skills", ensureAuth, async (req, res) => {
