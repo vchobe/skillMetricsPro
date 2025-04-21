@@ -2,6 +2,7 @@
 steps:
 # Step 1: Build the container image
 - name: 'gcr.io/cloud-builders/docker'
+  # Use the lowercase _SERVICE_NAME substitution for tagging
   args: [
     'build',
     '-t', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:$SHORT_SHA',
@@ -12,19 +13,21 @@ steps:
 
 # Step 2: Push the container image to Artifact Registry
 - name: 'gcr.io/cloud-builders/docker'
+  # Use the lowercase _SERVICE_NAME substitution for pushing
   args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:$SHORT_SHA']
   id: 'Push Image'
 
 # Optional: Specify the image to be used by Cloud Run deployment after build
-# This makes it easy to see the image built in the build details.
 images:
+# Use the lowercase _SERVICE_NAME substitution here too
 - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:$SHORT_SHA'
 
 # Define substitutions for parameters passed from the gcloud command
 substitutions:
   _REGION: 'us-central1' # Default region, can be overridden
   _AR_REPO_NAME: 'cloud-run-source-deploy' # Default repo, can be overridden
-  _SERVICE_NAME: 'skillMetrics' # Default service name, matches the script
+  # Default service name is now lowercase, matching the expected image name format
+  _SERVICE_NAME: 'skillmetrics'
 
 options:
   logging: CLOUD_LOGGING_ONLY
