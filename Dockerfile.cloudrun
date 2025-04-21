@@ -1,6 +1,6 @@
 FROM node:20-slim
 
-# Set environment variables - hardcoded values for Cloud Run
+# Set environment variables for better Node.js performance in containers
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV HOST=0.0.0.0
@@ -18,31 +18,43 @@ WORKDIR /usr/src/app
 # Copy package files for better layer caching
 COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm ci --omit=dev
+# Install dependencies - without the --omit=dev flag so Vite and other dev dependencies are included
+RUN npm ci 
 
 # Copy application code
 COPY . .
 
-# Build the application
+# Build the application with clean environment
 RUN npm run build
 
-# Check that dist/index.js exists after build
-RUN if [ ! -f dist/index.js ]; then \
-      echo "ERROR: dist/index.js not found after build" && \
-      exit 1; \
-    fi
+# Create startup script with health check and better debugging
+RUN echo '#!/bin/bash' > /usr/src/app/start.sh && \
+    echo 'set -e' >> /usr/src/app/start.sh && \
+    echo '' >> /usr/src/app/start.sh && \
+    echo '# Print environment for debugging' >> /usr/src/app/start.sh && \
+    echo 'echo "==== CLOUD RUN CONTAINER STARTUP ====="' >> /usr/src/app/start.sh && \
+    echo 'echo "PORT: $PORT"' >> /usr/src/app/start.sh && \
+    echo 'echo "NODE_ENV: $NODE_ENV"' >> /usr/src/app/start.sh && \
+    echo 'echo "HOST: $HOST"' >> /usr/src/app/start.sh && \
+    echo 'echo "DATABASE_URL exists: $(if [ -n \"$DATABASE_URL\" ]; then echo Yes; else echo No; fi)"' >> /usr/src/app/start.sh && \
+    echo 'echo "Current directory: $(pwd)"' >> /usr/src/app/start.sh && \
+    echo 'echo "Directory contents:"' >> /usr/src/app/start.sh && \
+    echo 'ls -la' >> /usr/src/app/start.sh && \
+    echo 'echo "Dist directory contents:"' >> /usr/src/app/start.sh && \
+    echo 'ls -la dist || echo "No dist directory found"' >> /usr/src/app/start.sh && \
+    echo 'echo "=================================="' >> /usr/src/app/start.sh && \
+    echo '' >> /usr/src/app/start.sh && \
+    echo '# Start the server with explicit port and host' >> /usr/src/app/start.sh && \
+    echo 'echo "Starting server on $HOST:$PORT"' >> /usr/src/app/start.sh && \
+    echo 'export PORT="${PORT:-8080}"' >> /usr/src/app/start.sh && \
+    echo 'export HOST="${HOST:-0.0.0.0}"' >> /usr/src/app/start.sh && \
+    echo 'node dist/index.js' >> /usr/src/app/start.sh
 
-# Modify server code to log more debugging information
-RUN sed -i 's/console.log(`Server running on port \${port}`)/console.log(`Server running at http:\/\/${host}:${port} with NODE_ENV=${process.env.NODE_ENV}`)/' dist/index.js || true
+# Make startup script executable
+RUN chmod +x /usr/src/app/start.sh
 
-# Create a health check script
-RUN echo '#!/bin/bash' > /usr/src/app/healthcheck.sh && \
-    echo 'curl -f http://localhost:8080/api/health || exit 1' >> /usr/src/app/healthcheck.sh && \
-    chmod +x /usr/src/app/healthcheck.sh
-
-# Expose port 8080 explicitly
+# Expose the port that will be used by Cloud Run (explicitly set to 8080)
 EXPOSE 8080
 
-# Use direct command to start the server - no shell script wrapper
-CMD ["node", "dist/index.js"]
+# Use the startup script as the entry point
+CMD ["/usr/src/app/start.sh"]
