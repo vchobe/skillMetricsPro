@@ -37,7 +37,7 @@ export interface AuthResponse {
 
 // Login API call
 export const login = async (credentials: LoginRequest): Promise<AuthResponse> => {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await fetch(`${API_BASE_URL}/auth`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
