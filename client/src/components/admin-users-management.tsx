@@ -24,17 +24,17 @@ import {
 } from "@/components/ui/dialog";
 
 // User type definition
-type User = {
+interface User {
   id: number;
   username: string;
   email: string;
   firstName?: string;
   lastName?: string;
   role?: string;
-  isAdmin: boolean;
+  isAdmin?: boolean;
   is_admin?: boolean;
   createdAt?: string;
-};
+}
 
 const AdminUsersManagement = () => {
   const { toast } = useToast();
@@ -46,7 +46,7 @@ const AdminUsersManagement = () => {
   const isMainAdmin = currentUser?.email === "admin@atyeti.com";
 
   // Fetch all users
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"]
   });
 
@@ -127,13 +127,13 @@ const AdminUsersManagement = () => {
   };
 
   // Filter users based on search term
-  const filteredUsers = Array.isArray(users) ? users.filter((user: User) => 
+  const filteredUsers = users.filter((user) => 
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
+    (user.firstName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (user.lastName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (user.username?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (user.role?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+  );
 
   // Get full name helper function
   const getFullName = (user: User) => {
