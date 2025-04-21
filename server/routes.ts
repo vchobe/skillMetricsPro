@@ -619,6 +619,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error deleting user", error });
     }
   });
+  
+  // Toggle admin status for a user - Only accessible by the main admin
+  app.patch("/api/admin/users/:id/toggle-admin", ensureAdmin, async (req, res) => {
+    try {
+      // Check if the current user is the main admin (admin@atyeti.com)
+      const isMainAdmin = req.user!.email === "admin@atyeti.com";
+      
+      if (!isMainAdmin) {
+        return res.status(403).json({ 
+          message: "Only the main admin can modify admin privileges" 
+        });
+      }
+      
+      const userId = parseInt(req.params.id);
+      const { isAdmin } = req.body;
+      
+      if (typeof isAdmin !== 'boolean') {
+        return res.status(400).json({ 
+          message: "isAdmin field must be a boolean value" 
+        });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't allow changing admin status of the main admin
+      if (user.email === "admin@atyeti.com") {
+        return res.status(403).json({ 
+          message: "Cannot modify main admin privileges" 
+        });
+      }
+      
+      // Update user with new admin status
+      const updateData = {
+        isAdmin: isAdmin,
+        is_admin: isAdmin  // Update both fields for consistency
+      };
+      
+      console.log(`Updating admin status for user ${userId} to ${isAdmin}`);
+      
+      const updatedUser = await storage.updateUser(userId, updateData);
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.json({
+        ...userWithoutPassword,
+        message: `Admin status for ${user.email} ${isAdmin ? 'enabled' : 'disabled'} successfully`
+      });
+    } catch (error) {
+      console.error("Error updating admin status:", error);
+      res.status(500).json({ message: "Error updating admin status", error });
+    }
+  });
 
   app.get("/api/admin/skills", ensureApprover, async (req, res) => {
     try {
