@@ -39,6 +39,16 @@ RUN npm ci
 # Assumes build output is in /usr/src/app/dist in the builder stage
 COPY --from=builder /usr/src/app/dist ./dist
 
+# Copy source files since they're needed even in production
+COPY --from=builder /usr/src/app/server ./server
+COPY --from=builder /usr/src/app/client ./client
+COPY --from=builder /usr/src/app/shared ./shared
+COPY --from=builder /usr/src/app/vite.config.ts ./vite.config.ts
+COPY --from=builder /usr/src/app/tsconfig.json ./tsconfig.json
+
+# We're essentially copying the full source with the addition of the dist directory
+# This ensures all imports work correctly in production
+
 # Expose the port the app runs on
 EXPOSE 8080
 
