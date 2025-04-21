@@ -3912,65 +3912,91 @@ export class PostgresStorage implements IStorage {
   
   async canUserApproveSkill(userId: number, categoryId: number, subcategoryId?: number, skillId?: number): Promise<boolean> {
     try {
-      // First, check if user is an admin
+      // Check if user is super admin
       const userResult = await pool.query(
-        'SELECT is_admin FROM users WHERE id = $1',
+        'SELECT email, is_admin FROM users WHERE id = $1',
         [userId]
       );
       
       // If user is not found, they can't approve
       if (userResult.rows.length === 0) {
+        console.log(`User ${userId} not found, can't approve`);
         return false;
       }
       
-      const isAdmin = userResult.rows[0].is_admin;
-      
-      // Admin users can approve or we'll check specific approver permissions
-      // No longer filtering out non-admin users
-      
-      // Check their specific approval permissions
-      let query;
-      let params;
-      
-      if (skillId) {
-        // Check for skill-specific, subcategory-specific, category-wide, or global approval rights
-        query = `
-          SELECT * FROM skill_approvers 
-          WHERE user_id = $1 
-            AND (
-              (skill_id = $2) OR
-              (subcategory_id = $3) OR
-              (category_id = $4 AND subcategory_id IS NULL) OR
-              can_approve_all = true
-            )
-        `;
-        params = [userId, skillId, subcategoryId, categoryId];
-      } else if (subcategoryId) {
-        // Check for subcategory-specific, category-wide, or global approval rights
-        query = `
-          SELECT * FROM skill_approvers 
-          WHERE user_id = $1 
-            AND (
-              (subcategory_id = $2) OR
-              (category_id = $3 AND subcategory_id IS NULL) OR
-              can_approve_all = true
-            )
-        `;
-        params = [userId, subcategoryId, categoryId];
-      } else {
-        // Check for category-wide or global approval rights
-        query = `
-          SELECT * FROM skill_approvers 
-          WHERE user_id = $1 
-            AND (category_id = $2 OR can_approve_all = true)
-        `;
-        params = [userId, categoryId];
+      // Super admin can approve everything
+      if (userResult.rows[0].email === "admin@atyeti.com") {
+        console.log(`User ${userId} is super admin, can approve all skills`);
+        return true;
       }
       
-      const approverResult = await pool.query(query, params);
+      // Enhancing the debug logs
+      console.log(`Checking if user ${userId} can approve - Category: ${categoryId}, Subcategory: ${subcategoryId || 'none'}, Skill: ${skillId || 'none'}`);
       
-      // Return true if they have a specific approval permission or can approve all
-      return approverResult.rows.length > 0;
+      // For testing - Check all the approver assignments
+      const allAssignmentsQuery = `SELECT * FROM skill_approvers WHERE user_id = $1`;
+      const allAssignments = await pool.query(allAssignmentsQuery, [userId]);
+      console.log(`User ${userId} has ${allAssignments.rows.length} approver assignments:`, JSON.stringify(allAssignments.rows));
+      
+      // Now check specific permission
+      // We'll check each level with precise matching
+      
+      // 1. Check if they have skill-specific permission
+      if (skillId) {
+        const skillSpecificQuery = `
+          SELECT * FROM skill_approvers 
+          WHERE user_id = $1 AND skill_id = $2
+        `;
+        const skillSpecificResult = await pool.query(skillSpecificQuery, [userId, skillId]);
+        
+        if (skillSpecificResult.rows.length > 0) {
+          console.log(`User ${userId} has skill-specific permission for skill ${skillId}`);
+          return true;
+        }
+      }
+      
+      // 2. Check if they have subcategory permission that applies to this skill
+      if (subcategoryId) {
+        const subcategoryQuery = `
+          SELECT * FROM skill_approvers 
+          WHERE user_id = $1 AND subcategory_id = $2
+        `;
+        const subcategoryResult = await pool.query(subcategoryQuery, [userId, subcategoryId]);
+        
+        if (subcategoryResult.rows.length > 0) {
+          console.log(`User ${userId} has subcategory permission for subcategory ${subcategoryId}`);
+          return true;
+        }
+      }
+      
+      // 3. Check if they have category permission
+      if (categoryId) {
+        const categoryQuery = `
+          SELECT * FROM skill_approvers 
+          WHERE user_id = $1 AND category_id = $2 AND subcategory_id IS NULL AND skill_id IS NULL
+        `;
+        const categoryResult = await pool.query(categoryQuery, [userId, categoryId]);
+        
+        if (categoryResult.rows.length > 0) {
+          console.log(`User ${userId} has category-wide permission for category ${categoryId}`);
+          return true;
+        }
+      }
+      
+      // 4. Finally, check if they have global approval rights (can_approve_all)
+      const globalQuery = `
+        SELECT * FROM skill_approvers 
+        WHERE user_id = $1 AND can_approve_all = true
+      `;
+      const globalResult = await pool.query(globalQuery, [userId]);
+      
+      if (globalResult.rows.length > 0) {
+        console.log(`User ${userId} has global approval permission`);
+        return true;
+      }
+      
+      console.log(`User ${userId} does not have permission to approve this skill`);
+      return false;
     } catch (error) {
       console.error("Error checking if user can approve skill:", error);
       return false;
