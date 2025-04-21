@@ -637,15 +637,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Toggle admin status for a user - Only accessible by the main admin
+  // Toggle admin status for a user - Only accessible by the super admin
   app.patch("/api/admin/users/:id/toggle-admin", ensureAdmin, async (req, res) => {
     try {
-      // Check if the current user is the main admin (admin@atyeti.com)
-      const isMainAdmin = req.user!.email === "admin@atyeti.com";
+      // Check if the current user is the super admin (admin@atyeti.com)
+      const isSuperAdmin = req.user!.email === "admin@atyeti.com";
       
-      if (!isMainAdmin) {
+      if (!isSuperAdmin) {
         return res.status(403).json({ 
-          message: "Only the main admin can modify admin privileges" 
+          message: "Only the super admin can modify admin privileges" 
         });
       }
       
@@ -664,10 +664,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Don't allow changing admin status of the main admin
+      // Don't allow changing admin status of the super admin
       if (user.email === "admin@atyeti.com") {
         return res.status(403).json({ 
-          message: "Cannot modify main admin privileges" 
+          message: "Cannot modify super admin privileges" 
         });
       }
       
