@@ -46,15 +46,8 @@ const AdminUsersManagement = () => {
   const isMainAdmin = currentUser?.email === "admin@atyeti.com";
 
   // Fetch all users
-  const { data: users = [], isLoading } = useQuery<User[]>({
-    queryKey: ["/api/admin/users"],
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: `Failed to load users: ${error.message}`,
-        variant: "destructive",
-      });
-    }
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ["/api/admin/users"]
   });
 
   // Toggle admin status mutation
@@ -134,13 +127,13 @@ const AdminUsersManagement = () => {
   };
 
   // Filter users based on search term
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = Array.isArray(users) ? users.filter((user: User) => 
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.role?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) : [];
 
   // Get full name helper function
   const getFullName = (user: User) => {
