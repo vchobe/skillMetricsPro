@@ -152,7 +152,6 @@ gcloud run deploy $ORIGINAL_SERVICE_NAME \
   --region=$REGION \
   --allow-unauthenticated \
   --add-cloudsql-instances=$SQL_INSTANCE_CONNECTION_NAME \
-  # Use the correct DATABASE_URL format for Cloud Run's internal proxy
   --set-env-vars="NODE_ENV=production,HOST=0.0.0.0,PORT=8080,DATABASE_URL=${DATABASE_URL_CLOUD_RUN}" \
   --project=$PROJECT_ID
 
