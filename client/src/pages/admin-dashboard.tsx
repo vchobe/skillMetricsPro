@@ -153,6 +153,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "@/components/ui/alert-circle";
 import AdminUserActions from "@/components/admin-user-actions";
+import AdminUsersManagement from "@/components/admin-users-management";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -307,7 +308,7 @@ export default function AdminDashboard() {
     const tab = pathParts[2]; // /admin/tab format
     
     // Only initialize tab from URL, don't modify URL here
-    if (tab === "users" || tab === "skill-history" || tab === "certifications") {
+    if (tab === "users" || tab === "skill-history" || tab === "certifications" || tab === "user-management") {
       setActiveTab(tab);
     } else if (currentPath === "/admin" || currentPath.startsWith("/admin/")) {
       // Default to dashboard if no valid tab is specified
@@ -395,16 +396,16 @@ export default function AdminDashboard() {
       category: string;
       level: string;
       certification?: string;
-      credly_link?: string;
+      credlyLink?: string;
       notes?: string;
-      certification_date?: string;
-      expiration_date?: string;
+      certificationDate?: string;
+      expirationDate?: string;
       status: string;
-      submitted_at: string;
-      reviewed_at?: string;
-      reviewed_by?: number;
-      review_notes?: string;
-      is_update: boolean;
+      submittedAt: string;
+      reviewedAt?: string;
+      reviewedBy?: number;
+      reviewNotes?: string;
+      isUpdate: boolean;
     }>
   }[]>({
     queryKey: ["/api/admin/pending-skills"],
@@ -909,7 +910,7 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <TabsList className="grid w-full grid-cols-7 mb-6">
+              <TabsList className="grid w-full grid-cols-8 mb-6">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <TabsTrigger 
                     value="dashboard" 
@@ -961,7 +962,16 @@ export default function AdminDashboard() {
                     className="flex items-center gap-2 w-full"
                   >
                     <Users className="h-4 w-4" />
-                    <span>User Management</span>
+                    <span>Users</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="user-management" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <UserIcon className="h-4 w-4" />
+                    <span>Admin Access</span>
                   </TabsTrigger>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -3302,6 +3312,21 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
+            <TabsContent value="user-management">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
+                {/* Import the user management component */}
+                <AdminUsersManagement />
+              </motion.div>
+            </TabsContent>
+
             <TabsContent value="approvals">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -3414,15 +3439,15 @@ export default function AdminDashboard() {
                                             {skill.certification ? (
                                               <div>
                                                 <div className="text-sm text-gray-900">{skill.certification}</div>
-                                                {skill.credly_link && (
-                                                  <a href={skill.credly_link} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:text-indigo-900">
+                                                {skill.credlyLink && (
+                                                  <a href={skill.credlyLink} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:text-indigo-900">
                                                     View credential
                                                   </a>
                                                 )}
-                                                {skill.certification_date && (
+                                                {skill.certificationDate && (
                                                   <div className="text-xs text-gray-500">
-                                                    {new Date(skill.certification_date).toLocaleDateString()}
-                                                    {skill.expiration_date && ` - ${new Date(skill.expiration_date).toLocaleDateString()}`}
+                                                    {new Date(skill.certificationDate).toLocaleDateString()}
+                                                    {skill.expirationDate && ` - ${new Date(skill.expirationDate).toLocaleDateString()}`}
                                                   </div>
                                                 )}
                                               </div>
@@ -3434,7 +3459,7 @@ export default function AdminDashboard() {
                                             <div className="text-sm text-gray-500">
                                               {(() => {
                                                 try {
-                                                  const date = new Date(skill.submitted_at);
+                                                  const date = new Date(skill.submittedAt);
                                                   return !isNaN(date.getTime()) 
                                                     ? date.toLocaleDateString() 
                                                     : "Date not available";
@@ -3446,7 +3471,7 @@ export default function AdminDashboard() {
                                             <div className="text-xs text-gray-400">
                                               {(() => {
                                                 try {
-                                                  const date = new Date(skill.submitted_at);
+                                                  const date = new Date(skill.submittedAt);
                                                   return !isNaN(date.getTime()) 
                                                     ? date.toLocaleTimeString() 
                                                     : "";
@@ -3457,8 +3482,8 @@ export default function AdminDashboard() {
                                             </div>
                                           </td>
                                           <td className="px-6 py-4 whitespace-nowrap">
-                                            <Badge variant={skill.is_update ? "outline" : "default"} className={skill.is_update ? "bg-blue-50 text-blue-700 border-blue-200" : ""}>
-                                              {skill.is_update ? "Update" : "New"}
+                                            <Badge variant={skill.isUpdate ? "outline" : "default"} className={skill.isUpdate ? "bg-blue-50 text-blue-700 border-blue-200" : ""}>
+                                              {skill.isUpdate ? "Update" : "New"}
                                             </Badge>
                                           </td>
                                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

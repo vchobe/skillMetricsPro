@@ -4,17 +4,23 @@
  */
 
 // In Replit, it's better to use relative URLs rather than localhost
-const USE_RELATIVE_URLS = true;
+// Determine if we're running in Replit
+const isReplit = window.location.hostname.includes('replit');
 
 // Backend API base URL configuration
-export const API_BASE_URL = process.env.NODE_ENV === 'production' || USE_RELATIVE_URLS
-  ? '/api' // Production or Replit - relative to the domain
-  : 'http://localhost:8080/api'; // Local development
+export const API_BASE_URL = isReplit
+  ? '/api' // In Replit - use relative URL
+  : 'http://localhost:5000/api'; // Local development
 
 // WebSocket URL configuration
-export const WS_BASE_URL = process.env.NODE_ENV === 'production' || USE_RELATIVE_URLS
+export const WS_BASE_URL = isReplit
   ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
-  : 'ws://localhost:8080/ws';
+  : 'ws://localhost:5000/ws';
+
+// Log the configuration for debugging
+console.log('Environment:', isReplit ? 'Replit' : 'Local');
+console.log('API Base URL:', API_BASE_URL);
+console.log('WebSocket URL:', WS_BASE_URL);
 
 // Default request headers
 export const DEFAULT_HEADERS = {

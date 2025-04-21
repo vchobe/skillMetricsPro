@@ -22,8 +22,8 @@ const COMMON_ENDPOINTS = [
   { name: 'Notifications', url: '/api/notifications', method: 'GET' },
   { name: 'Endorsements', url: '/api/endorsements', method: 'GET' },
   { name: 'Search Skills', url: '/api/skills/search?query=java', method: 'GET' },
-  { name: 'Login', url: '/api/auth/login', method: 'POST' },
-  { name: 'Register', url: '/api/auth/register', method: 'POST' },
+  { name: 'Login', url: '/api/login', method: 'POST' },
+  { name: 'Register', url: '/api/register', method: 'POST' },
 ];
 
 const ApiTester: React.FC = () => {
@@ -39,13 +39,13 @@ const ApiTester: React.FC = () => {
   
   // Default request bodies for common endpoints
   const getRequestBody = (endpoint: string, method: string): string => {
-    if (method === 'POST' && endpoint === '/api/auth/login') {
+    if (method === 'POST' && endpoint === '/api/login') {
       return JSON.stringify({
         usernameOrEmail: "user@example.com",
         password: "password123"
       }, null, 2);
     }
-    if (method === 'POST' && endpoint === '/api/auth/register') {
+    if (method === 'POST' && endpoint === '/api/register') {
       return JSON.stringify({
         username: "newuser",
         email: "newuser@example.com",

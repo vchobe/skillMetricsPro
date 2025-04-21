@@ -1,0 +1,44 @@
+# Stage 1: Build environment
+FROM node:18-slim AS builder
+
+WORKDIR /usr/src/app
+
+# Copy package.json and lock file
+COPY package*.json ./
+
+# Install ALL dependencies (including devDependencies needed for build)
+RUN npm ci
+
+# Copy the rest of the application source code
+COPY . .
+
+# Run the build command (vite should be available now)
+# This assumes the build process outputs to a 'dist' directory
+RUN npm run build
+
+# Stage 2: Production environment
+FROM node:18-slim
+
+WORKDIR /usr/src/app
+
+# Copy package.json and lock file again for installing only prod deps
+COPY package*.json ./
+
+# Install ONLY production dependencies
+RUN npm ci --only=production
+
+# Copy built artifacts from the builder stage
+# Assumes build output is in /usr/src/app/dist in the builder stage
+COPY --from=builder /usr/src/app/dist ./dist
+
+# Expose the port the app runs on
+EXPOSE 8080
+
+# Define environment variables
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=8080
+
+# Define the command to run the application
+# CORRECTED PATH: Point to the likely output of esbuild
+CMD ["node", "dist/index.js"]
