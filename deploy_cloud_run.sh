@@ -14,7 +14,7 @@ REGION="us-central1"
 PROJECT_ID="imposing-elixir-440911-u9"
 # Service names (customize if needed)
 # ORIGINAL_SERVICE_NAME is used for the Cloud Run service display name (allows uppercase)
-ORIGINAL_SERVICE_NAME="skillMetrics" # Set desired Cloud Run service name
+ORIGINAL_SERVICE_NAME="skillmetrics" # Set desired Cloud Run service name
 
 # Convert service name to lowercase for resources that require it (like Cloud SQL, Artifact Registry)
 SERVICE_NAME_LOWER=$(echo "${ORIGINAL_SERVICE_NAME}" | tr '[:upper:]' '[:lower:]')
