@@ -413,12 +413,15 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
     e.preventDefault();
     if (userId === '') return;
     
+    // For skill-specific approvers, we should never set canApproveAll to true
+    const isSkillSpecific = approvalType === 'skill' && skillId !== 'all';
+    
     onSave({
       userId: Number(userId),
       categoryId: (approvalType === 'category' || approvalType === 'subcategory') && categoryId !== 'all' ? Number(categoryId) : undefined,
       subcategoryId: approvalType === 'subcategory' && subcategoryId !== 'all' ? Number(subcategoryId) : undefined,
-      skillId: approvalType === 'skill' && skillId !== 'all' ? Number(skillId) : undefined,
-      canApproveAll: approvalType === 'global' || canApproveAll
+      skillId: isSkillSpecific ? Number(skillId) : undefined,
+      canApproveAll: isSkillSpecific ? false : (approvalType === 'global' || canApproveAll)
     });
   };
   
