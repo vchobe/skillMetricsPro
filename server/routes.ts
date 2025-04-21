@@ -1682,8 +1682,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               canApprove: categoryId ? await storage.canUserApproveSkill(
                 userId, 
                 categoryId,
-                subcategoryId,
-                update.skillId
+                subcategoryId || undefined,
+                update.skillId || undefined
               ) : false
             };
           })
