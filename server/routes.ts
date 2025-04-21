@@ -1640,15 +1640,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get all pending skill updates
       const pendingUpdates = await storage.getPendingSkillUpdates();
+      console.log(`Got ${pendingUpdates.length} total pending updates`);
       
       // Check if user is super admin or regular admin
       const userId = req.user!.id;
       const isSuperAdmin = req.user!.email === "admin@atyeti.com";
       const isAdmin = req.user!.isAdmin || req.user!.is_admin;
       
+      console.log(`User ID: ${userId}, isSuperAdmin: ${isSuperAdmin}, isAdmin: ${isAdmin}`);
+      
       // If user is not super admin and not regular admin, filter skills they can approve
       let filteredPendingUpdates = pendingUpdates;
       if (!isSuperAdmin && !isAdmin) {
+        console.log(`User is not super admin or regular admin - filtering approvals`);
+        
+        // Get the approver assignments for this user
+        const approverAssignments = await storage.getSkillApproversByUser(userId);
+        console.log(`User has ${approverAssignments.length} approver assignments:`, 
+                   JSON.stringify(approverAssignments));
+        
         // Filter pending skills based on the user's approval permissions
         // Create an array of promises that each resolve to true/false for each update
         const approvalChecks = await Promise.all(
@@ -1668,23 +1678,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   categoryId = skillCategories[0].id;
                 }
               }
+              console.log(`Update for existing skill ${update.name} (ID: ${update.skillId}), categoryId: ${categoryId}`);
             } else {
               // For new skills, get the category by name
               const skillCategories = await storage.getSkillCategoriesByName(update.category);
               if (skillCategories && skillCategories.length > 0) {
                 categoryId = skillCategories[0].id;
               }
+              console.log(`Update for new skill ${update.name}, categoryId: ${categoryId}`);
             }
             
             // Check if user can approve this skill
+            const canApprove = categoryId ? await storage.canUserApproveSkill(
+              userId, 
+              categoryId,
+              subcategoryId || undefined,
+              update.skillId || undefined
+            ) : false;
+            
+            console.log(`Skill ${update.name} (ID: ${update.skillId || 'new'}), canApprove: ${canApprove}`);
+            
             return {
               update,
-              canApprove: categoryId ? await storage.canUserApproveSkill(
-                userId, 
-                categoryId,
-                subcategoryId || undefined,
-                update.skillId || undefined
-              ) : false
+              canApprove
             };
           })
         );
@@ -1693,6 +1709,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filteredPendingUpdates = approvalChecks
           .filter(result => result.canApprove)
           .map(result => result.update);
+          
+        console.log(`After filtering, user can approve ${filteredPendingUpdates.length} updates`);
       }
       
       // Group by user for easier review
