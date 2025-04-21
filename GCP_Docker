@@ -1,42 +1,51 @@
-# Use an official Node.js runtime as a parent image
-# Using Node.js 18 LTS (Long Term Support) version
-FROM node:18-slim
+# Stage 1: Build environment
+FROM node:18-slim AS builder
 
-# Set the working directory in the container
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json (if available) FIRST
-# This leverages Docker layer caching. Dependencies are only reinstalled
-# if these files change. The wildcard ensures both are copied if present.
+# Copy package.json and lock file
 COPY package*.json ./
 
-# Install app dependencies using npm ci for clean installs based on lock file
-# Use --only=production to avoid installing devDependencies in the final image
-# If you have specific postinstall scripts needed for production, ensure they run.
-# Removed --ignore-scripts as it can sometimes skip necessary steps, unless you specifically need it.
-RUN npm ci --only=production
+# Install ALL dependencies (including devDependencies needed for build)
+RUN npm ci
 
-# Copy the rest of the application source code into the container
-# This happens AFTER installing dependencies, so code changes don't break the cache for npm ci
+# Copy the rest of the application source code
 COPY . .
 
-# Build the application (e.g., transpile TypeScript, build frontend)
-# !!! IMPORTANT: Verify 'npm run build' is the correct command in your package.json !!!
-# This command should compile your code (e.g., TypeScript) into JavaScript,
-# likely placing output in a 'dist' directory.
+# Run the build command (vite should be available now)
+# !!! IMPORTANT: Verify 'npm run build' outputs to a 'dist' directory !!!
 RUN npm run build
 
-# Make port 8080 available to the world outside this container
-# Cloud Run sends requests to the PORT specified by the environment variable (defaults to 8080)
+# Optional: Prune dev dependencies if needed for any reason before copy
+# RUN npm prune --production
+
+# Stage 2: Production environment
+FROM node:18-slim
+
+WORKDIR /usr/src/app
+
+# Copy package.json and lock file again for installing only prod deps
+COPY package*.json ./
+
+# Install ONLY production dependencies
+RUN npm ci --only=production
+
+# Copy built artifacts from the builder stage
+# !!! IMPORTANT: Ensure the source path '/usr/src/app/dist' matches the build output location from Stage 1 !!!
+COPY --from=builder /usr/src/app/dist ./dist
+
+# Copy production node_modules from the builder stage (Alternative to RUN npm ci --only=production)
+# If using this, comment out the 'RUN npm ci --only=production' above
+# COPY --from=builder /usr/src/app/node_modules ./node_modules
+
+# Expose the port the app runs on
 EXPOSE 8080
 
-# Define environment variables (can be overridden by Cloud Run settings)
+# Define environment variables
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=8080
 
 # Define the command to run the application
-# !!! IMPORTANT: Verify this path points to your compiled server entry point !!!
-# After 'npm run build', this should be the path to the main JavaScript file that starts your server.
-# Adjust 'dist/server/index.js' if your build output structure is different.
+# !!! IMPORTANT: Verify this path points to your compiled server entry point within the 'dist' folder !!!
 CMD ["node", "dist/server/index.js"]
