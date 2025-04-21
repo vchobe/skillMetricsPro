@@ -33,7 +33,7 @@ RUN if [ ! -f dist/index.js ]; then \
       exit 1; \
     fi
 
-# Modify server code to log more debugging information
+# Modify server code to log more debugging information, host.
 RUN sed -i 's/console.log(`Server running on port \${port}`)/console.log(`Server running at http:\/\/${host}:${port} with NODE_ENV=${process.env.NODE_ENV}`)/' dist/index.js || true
 
 # Create a health check script
