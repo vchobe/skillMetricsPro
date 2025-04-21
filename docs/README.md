@@ -58,6 +58,15 @@ This documentation is organized into the following sections:
 - **Skill History**: Track progression over time
 - **Certifications**: Record professional certifications
 
+### Skill Admin Management
+
+- **Separate Skill Admins:** Each skill can have separate admins assigned
+- **Admin Assignment**: Regular admins can assign other users as admins for any particular skill
+- **Skill Admin Permissions:** Skill admins have elevated permissions only for the skill they are admin of
+- **Skill Management**: Skill admins can perform updates and manage endorsement for the skills they are responsible for
+- **Skill History Review**: Skill admins can review history and perform audits on skills they are responsible for
+- **Delegated Responsibility**: Allows for distributed skill management and review
+
 ### Endorsements and Validation
 
 - **Peer Endorsements**: Allow colleagues to endorse each other's skills

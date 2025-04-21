@@ -1,0 +1,42 @@
+# Use an official Node.js runtime as a parent image
+# Using Node.js 18 LTS (Long Term Support) version
+FROM node:18-slim
+
+# Set the working directory in the container
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json (if available) FIRST
+# This leverages Docker layer caching. Dependencies are only reinstalled
+# if these files change. The wildcard ensures both are copied if present.
+COPY package*.json ./
+
+# Install app dependencies using npm ci for clean installs based on lock file
+# Use --only=production to avoid installing devDependencies in the final image
+# If you have specific postinstall scripts needed for production, ensure they run.
+# Removed --ignore-scripts as it can sometimes skip necessary steps, unless you specifically need it.
+RUN npm ci --only=production
+
+# Copy the rest of the application source code into the container
+# This happens AFTER installing dependencies, so code changes don't break the cache for npm ci
+COPY . .
+
+# Build the application (e.g., transpile TypeScript, build frontend)
+# !!! IMPORTANT: Verify 'npm run build' is the correct command in your package.json !!!
+# This command should compile your code (e.g., TypeScript) into JavaScript,
+# likely placing output in a 'dist' directory.
+RUN npm run build
+
+# Make port 8080 available to the world outside this container
+# Cloud Run sends requests to the PORT specified by the environment variable (defaults to 8080)
+EXPOSE 8080
+
+# Define environment variables (can be overridden by Cloud Run settings)
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=8080
+
+# Define the command to run the application
+# !!! IMPORTANT: Verify this path points to your compiled server entry point !!!
+# After 'npm run build', this should be the path to the main JavaScript file that starts your server.
+# Adjust 'dist/server/index.js' if your build output structure is different.
+CMD ["node", "dist/server/index.js"]
