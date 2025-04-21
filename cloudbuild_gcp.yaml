@@ -1,0 +1,30 @@
+# cloudbuild_gcp.yaml
+steps:
+# Step 1: Build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '-t', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:$SHORT_SHA',
+    '-f', 'GCP_Docker',
+    '.'
+  ]
+  id: 'Build Image'
+
+# Step 2: Push the container image to Artifact Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:$SHORT_SHA']
+  id: 'Push Image'
+
+# Optional: Specify the image to be used by Cloud Run deployment after build
+# This makes it easy to see the image built in the build details.
+images:
+- '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO_NAME}/${_SERVICE_NAME}:$SHORT_SHA'
+
+# Define substitutions for parameters passed from the gcloud command
+substitutions:
+  _REGION: 'us-central1' # Default region, can be overridden
+  _AR_REPO_NAME: 'cloud-run-source-deploy' # Default repo, can be overridden
+  _SERVICE_NAME: 'skillMetrics' # Default service name, matches the script
+
+options:
+  logging: CLOUD_LOGGING_ONLY
