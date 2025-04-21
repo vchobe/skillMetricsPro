@@ -52,9 +52,9 @@ RUN echo '#!/bin/bash' > /usr/src/app/start.sh && \
     echo 'ls -la dist || echo "No dist directory found"' >> /usr/src/app/start.sh && \
     echo 'echo "=================================="' >> /usr/src/app/start.sh && \
     echo '' >> /usr/src/app/start.sh && \
-    echo '# Start the server with explicit port and host' >> /usr/src/app/start.sh && \
+    echo '# Start the server with explicit host' >> /usr/src/app/start.sh && \
     echo 'echo "Starting server on $HOST:$PORT"' >> /usr/src/app/start.sh && \
-    echo 'export PORT="${PORT:-8080}"' >> /usr/src/app/start.sh && \
+    echo '# PORT is set automatically by Cloud Run' >> /usr/src/app/start.sh && \
     echo 'export HOST="${HOST:-0.0.0.0}"' >> /usr/src/app/start.sh && \
     echo 'node dist/index.js' >> /usr/src/app/start.sh
 

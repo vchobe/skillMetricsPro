@@ -45,7 +45,7 @@ EXPOSE 8080
 # Define environment variables
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV PORT=8080
+# PORT is set automatically by Cloud Run
 
 # Define the command to run the application
 # CORRECTED PATH: Point to the likely output of esbuild
