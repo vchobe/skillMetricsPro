@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import * as http from "http";
+// REMOVE: import { setupVite, serveStatic, log } from "./vite";
+import * as http from 'http';
 import { log } from "./utils"; // Import log from utils
 
 const app = express();
@@ -48,8 +49,14 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  if (app.get("env") === "production") {
+  // Setup vite in development or serve static files in production
+  if (app.get("env") === "development") {
+    // Dynamic import for Vite setup
     const vite = await import("./vite");
+    await vite.setupVite(app, server);
+  } else {
+    // Dynamic import for serveStatic in production
+     const vite = await import("./vite");
     vite.serveStatic(app);
   }
 
@@ -58,13 +65,11 @@ app.use((req, res, next) => {
   const host = process.env.HOST || "0.0.0.0";
   
   console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(
-    `Using port ${port} (from env: ${
-      process.env.PORT || "not set, using default 5000"
-    })`,
-  );
+  console.log(`Using port ${port} (from env: ${process.env.PORT || 'not set, using default 5000'})`);
   console.log(`Starting server on host ${host} and port ${port}`);
   
   server.listen(port, host, () => {
-    log(`serving on port ${port}`); });
+    log(`serving on port ${port}`);
+    console.log(`Server started and explicitly listening on port ${port}`);
+  });
 })();
