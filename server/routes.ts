@@ -1642,75 +1642,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingUpdates = await storage.getPendingSkillUpdates();
       console.log(`Got ${pendingUpdates.length} total pending updates`);
       
-      // Check if user is super admin or regular admin
+      // Check if user is super admin
       const userId = req.user!.id;
       const isSuperAdmin = req.user!.email === "admin@atyeti.com";
       const isAdmin = req.user!.isAdmin || req.user!.is_admin;
       
       console.log(`User ID: ${userId}, isSuperAdmin: ${isSuperAdmin}, isAdmin: ${isAdmin}`);
       
-      // If user is not super admin and not regular admin, filter skills they can approve
+      // Super admin can see and approve all skills
       let filteredPendingUpdates = pendingUpdates;
-      if (!isSuperAdmin && !isAdmin) {
-        console.log(`User is not super admin or regular admin - filtering approvals`);
+      
+      // If not super admin, filter based on approver permissions
+      if (!isSuperAdmin) {
+        console.log(`User is not super admin - checking approver permissions`);
         
         // Get the approver assignments for this user
         const approverAssignments = await storage.getSkillApproversByUser(userId);
         console.log(`User has ${approverAssignments.length} approver assignments:`, 
                    JSON.stringify(approverAssignments));
+                   
+        // Check if user has global approval permission
+        const hasGlobalApproval = approverAssignments.some(a => a.canApproveAll);
         
-        // Filter pending skills based on the user's approval permissions
-        // Create an array of promises that each resolve to true/false for each update
-        const approvalChecks = await Promise.all(
-          pendingUpdates.map(async (update) => {
-            // Get the skill category information for this update
-            let categoryId = null;
-            let subcategoryId = null;
-            
-            // For existing skills being updated
-            if (update.skillId) {
-              // Get the skill to find its category
-              const skill = await storage.getSkill(update.skillId);
-              if (skill) {
-                // Get the subcategory for this skill's category if available
+        // Regular admin with no specific approver assignments can see all
+        if (isAdmin && approverAssignments.length === 0) {
+          console.log(`Regular admin with no specific approver assignments - showing all skills`);
+        } 
+        // Users with global approval permission can see all
+        else if (hasGlobalApproval) {
+          console.log(`User has global approval permission - showing all skills`);
+        }
+        // Otherwise, filter by specific approver assignments
+        else {
+          console.log(`Filtering skills based on specific approver assignments`);
+          
+          // Filter pending skills based on the user's approval permissions
+          const approvalChecks = await Promise.all(
+            pendingUpdates.map(async (update) => {
+              // Get the skill category information for this update
+              let categoryId = null;
+              let subcategoryId = null;
+              
+              // For existing skills being updated
+              if (update.skillId) {
+                // Get the skill to find its category
+                const skill = await storage.getSkill(update.skillId);
+                if (skill) {
+                  // Get the subcategory for this skill's category if available
+                  const skillCategories = await storage.getSkillCategoriesByName(update.category);
+                  if (skillCategories && skillCategories.length > 0) {
+                    categoryId = skillCategories[0].id;
+                  }
+                }
+                console.log(`Update for existing skill ${update.name} (ID: ${update.skillId}), categoryId: ${categoryId}`);
+              } else {
+                // For new skills, get the category by name
                 const skillCategories = await storage.getSkillCategoriesByName(update.category);
                 if (skillCategories && skillCategories.length > 0) {
                   categoryId = skillCategories[0].id;
                 }
+                console.log(`Update for new skill ${update.name}, categoryId: ${categoryId}`);
               }
-              console.log(`Update for existing skill ${update.name} (ID: ${update.skillId}), categoryId: ${categoryId}`);
-            } else {
-              // For new skills, get the category by name
-              const skillCategories = await storage.getSkillCategoriesByName(update.category);
-              if (skillCategories && skillCategories.length > 0) {
-                categoryId = skillCategories[0].id;
-              }
-              console.log(`Update for new skill ${update.name}, categoryId: ${categoryId}`);
-            }
-            
-            // Check if user can approve this skill
-            const canApprove = categoryId ? await storage.canUserApproveSkill(
-              userId, 
-              categoryId,
-              subcategoryId || undefined,
-              update.skillId || undefined
-            ) : false;
-            
-            console.log(`Skill ${update.name} (ID: ${update.skillId || 'new'}), canApprove: ${canApprove}`);
-            
-            return {
-              update,
-              canApprove
-            };
-          })
-        );
-        
-        // Filter to include only updates the user can approve
-        filteredPendingUpdates = approvalChecks
-          .filter(result => result.canApprove)
-          .map(result => result.update);
+              
+              // Check if user can approve this skill
+              const canApprove = categoryId ? await storage.canUserApproveSkill(
+                userId, 
+                categoryId,
+                subcategoryId || undefined,
+                update.skillId || undefined
+              ) : false;
+              
+              console.log(`Skill ${update.name} (ID: ${update.skillId || 'new'}), canApprove: ${canApprove}`);
+              
+              return {
+                update,
+                canApprove
+              };
+            })
+          );
           
-        console.log(`After filtering, user can approve ${filteredPendingUpdates.length} updates`);
+          // Filter to include only updates the user can approve
+          filteredPendingUpdates = approvalChecks
+            .filter(result => result.canApprove)
+            .map(result => result.update);
+            
+          console.log(`After filtering, user can approve ${filteredPendingUpdates.length} updates`);
+        }
       }
       
       // Group by user for easier review
