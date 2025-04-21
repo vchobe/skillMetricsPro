@@ -45,11 +45,11 @@ SQL_INSTANCE_CONNECTION_NAME="${PROJECT_ID}:${REGION}:${SQL_INSTANCE_NAME}"
 DB_ROOT_PASSWORD=$(openssl rand -base64 16)
 DB_PASSWORD=$(openssl rand -base64 16)
 
-# Database URL format for Cloud Run environment (uses internal proxy via socket)
-# Ensure your application's DB driver supports the 'socketPath' parameter.
-DATABASE_URL_CLOUD_RUN="mysql://${DB_USER}:${DB_PASSWORD}@/${DB_NAME}?socketPath=/cloudsql/${SQL_INSTANCE_CONNECTION_NAME}"
+# Database URL format for Cloud Run environment (uses PostgreSQL socket connection)
+# Format the PostgreSQL connection string correctly for Cloud Run socket connection
+DATABASE_URL_CLOUD_RUN="postgresql://${DB_USER}:${DB_PASSWORD}@localhost/${DB_NAME}?host=/cloudsql/${SQL_INSTANCE_CONNECTION_NAME}"
 # Database URL format for local proxy connection (used for db:push)
-DATABASE_URL_LOCAL_PROXY="mysql://${DB_USER}:${DB_PASSWORD}@/${DB_NAME}?socketPath=/cloudsql/${SQL_INSTANCE_CONNECTION_NAME}"
+DATABASE_URL_LOCAL_PROXY="postgresql://${DB_USER}:${DB_PASSWORD}@localhost/${DB_NAME}?host=/cloudsql/${SQL_INSTANCE_CONNECTION_NAME}"
 
 echo "--- Configuration ---"
 echo "Project ID:                   ${PROJECT_ID}"
@@ -78,7 +78,7 @@ echo "2. Checking/Creating Cloud SQL Instance..."
 if ! gcloud sql instances describe $SQL_INSTANCE_NAME --project=$PROJECT_ID --verbosity=none &> /dev/null ; then
   echo "   Creating Cloud SQL instance: $SQL_INSTANCE_NAME..."
   gcloud sql instances create $SQL_INSTANCE_NAME \
-    --database-version=MYSQL_8_0 \
+    --database-version=POSTGRES_15 \
     --tier=db-f1-micro \
     --region=$REGION \
     --root-password=$DB_ROOT_PASSWORD \
@@ -88,7 +88,7 @@ if ! gcloud sql instances describe $SQL_INSTANCE_NAME --project=$PROJECT_ID --ve
 else
   echo "   Cloud SQL Instance '$SQL_INSTANCE_NAME' already exists."
   echo "   Setting/Updating Cloud SQL root password (idempotency)..."
-  gcloud sql users set-password root --host=% \
+  gcloud sql users set-password postgres --host=% \
     --instance=$SQL_INSTANCE_NAME \
     --password=$DB_ROOT_PASSWORD \
     --project=$PROJECT_ID

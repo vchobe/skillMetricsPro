@@ -4,7 +4,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
 // Check for database URL
-const databaseUrl = process.env.DATABASE_URL || process.env.CLOUD_SQL_URL;
+const databaseUrl = process.env.DATABASE_URL || process.env.CLOUD_SQL_URL || '';
 
 if (!databaseUrl) {
   throw new Error(
@@ -12,9 +12,12 @@ if (!databaseUrl) {
   );
 }
 
-// Log database URL (with password masked)
+// Log database URL (with password masked) and environment info
 const maskedUrl = databaseUrl.replace(/:[^:@]*@/, ':****@');
 console.log('Database URL:', maskedUrl);
+console.log('Environment:', process.env.NODE_ENV || 'development');
+console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
+console.log('DB Connection Mode:', databaseUrl.includes('host=/cloudsql/') ? 'Cloud SQL Socket' : 'Standard Connection');
 
 // Check if we're in production environment (GCP Cloud Run)
 const isProduction = process.env.NODE_ENV === 'production' || process.env.USE_CLOUD_SQL === 'true';
@@ -22,13 +25,14 @@ const isProduction = process.env.NODE_ENV === 'production' || process.env.USE_CL
 // Parse connection configuration
 function parseConnectionConfig() {
   let config: any;
-  const cloudSqlUrl = process.env.CLOUD_SQL_URL || '';
   
-  // If in production or explicitly set to use Cloud SQL, try that first
-  if (isProduction && cloudSqlUrl) {
+  // Check if we're in Cloud Run and have a DATABASE_URL with host=/cloudsql/
+  if (isProduction && databaseUrl.includes('host=/cloudsql/')) {
     try {
-      // Use the Cloud SQL connection string (for production)
-      const match = cloudSqlUrl.match(/postgresql:\/\/([^:]+):([^@]+)@\/([^?]+)\?host=\/cloudsql\/(.+)/);
+      // Parse the Cloud SQL connection string for PostgreSQL socket connection
+      // Format expected: postgresql://USER:PASSWORD@localhost/DB_NAME?host=/cloudsql/PROJECT:REGION:INSTANCE
+      const regex = /postgresql:\/\/([^:]+):([^@]+)@[^\/]+\/([^?]+)\?host=\/cloudsql\/([^&]+)/;
+      const match = databaseUrl.match(regex);
       
       if (match) {
         const [_, user, password, dbName, instanceConnectionName] = match;
@@ -44,6 +48,8 @@ function parseConnectionConfig() {
           idleTimeoutMillis: 30000,
           connectionTimeoutMillis: 10000
         };
+      } else {
+        console.warn('DATABASE_URL includes host=/cloudsql/ but could not be parsed correctly');
       }
     } catch (error) {
       console.error('Error parsing Cloud SQL connection string:', error);
@@ -52,7 +58,7 @@ function parseConnectionConfig() {
   }
   
   // For development or fallback: use standard PostgreSQL connection
-  console.log('Using standard PostgreSQL connection with Neon');
+  console.log('Using standard PostgreSQL connection');
   return { 
     connectionString: databaseUrl,
     max: 20, 
