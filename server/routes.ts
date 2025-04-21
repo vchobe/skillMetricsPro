@@ -594,6 +594,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get a list of admin users
+  app.get("/api/admin/admins", ensureAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Filter to only include admin users and remove passwords
+      const adminUsers = users
+        .filter(user => user.is_admin === true)
+        .map(user => {
+          const { password, ...userWithoutPassword } = user;
+          return userWithoutPassword;
+        });
+      res.json(adminUsers);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching admin users", error });
+    }
+  });
+
   // Delete user by email
   app.delete("/api/admin/users/delete-by-email", ensureAdmin, async (req, res) => {
     try {
