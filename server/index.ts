@@ -217,23 +217,30 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
       const viteModule = await import("./vite");
       await viteModule.setupVite(app, server);
     } else {
-      // In production, use a simpler static file server that doesn't depend on Vite
-      const distPath = path.resolve(__dirname, "public");
-      
-      if (!fs.existsSync(distPath)) {
-        console.error(`Could not find the build directory: ${distPath}, make sure to build the client first`);
-      } else {
-        app.use(express.static(distPath));
-        
-        // fall through to index.html if the file doesn't exist
-        app.use("*", (_req, res) => {
-          res.sendFile(path.resolve(distPath, "index.html"));
-        });
-      }
+      // In production, use the serveStatic function from vite.ts
+      // This now comes with the Docker image
+      const viteModule = await import("./vite");
+      viteModule.serveStatic(app);
     }
   } catch (err) {
     console.error("Error setting up static/vite middleware:", err);
     // Still continue with API server functionality
+    
+    // Emergency fallback if vite.ts fails
+    try {
+      const distPath = path.resolve(__dirname, "public");
+      
+      if (fs.existsSync(distPath)) {
+        console.log("Using emergency static file server fallback");
+        app.use(express.static(distPath));
+        
+        app.use("*", (_req, res) => {
+          res.sendFile(path.resolve(distPath, "index.html"));
+        });
+      }
+    } catch (fallbackErr) {
+      console.error("Even fallback static serving failed:", fallbackErr);
+    }
   }
 
   // Check if Java backend is running
