@@ -1698,13 +1698,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.log(`Update for new skill ${update.name}, categoryId: ${categoryId}`);
               }
               
-              // Check if user can approve this skill
-              const canApprove = categoryId ? await storage.canUserApproveSkill(
-                userId, 
-                categoryId,
-                subcategoryId || undefined,
-                update.skillId || undefined
-              ) : false;
+              // IMPORTANT: Also check for skill by name approval permissions
+              // Find any skill with the same name as this pending update
+              let existingSkillWithSameName = null;
+              try {
+                const skillByNameQuery = await pool.query(
+                  'SELECT id FROM skills WHERE name = $1 LIMIT 1',
+                  [update.name]
+                );
+                if (skillByNameQuery.rows.length > 0) {
+                  existingSkillWithSameName = skillByNameQuery.rows[0].id;
+                  console.log(`Found existing skill with same name: ${update.name}, ID: ${existingSkillWithSameName}`);
+                }
+              } catch (err) {
+                console.error(`Error finding skill by name ${update.name}:`, err);
+              }
+              
+              // Check if user can approve this skill - either by category or by related skill ID
+              const canApprove = await Promise.all([
+                // Check by category
+                categoryId ? storage.canUserApproveSkill(
+                  userId, 
+                  categoryId,
+                  subcategoryId || undefined,
+                  update.skillId || undefined
+                ) : false,
+                
+                // Check by name-matching skill
+                existingSkillWithSameName ? storage.canUserApproveSkill(
+                  userId,
+                  categoryId || 0,
+                  undefined,
+                  existingSkillWithSameName
+                ) : false
+              ]).then(results => results.some(result => result));
               
               console.log(`Skill ${update.name} (ID: ${update.skillId || 'new'}), canApprove: ${canApprove}`);
               
