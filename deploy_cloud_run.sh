@@ -11,10 +11,13 @@ set -o pipefail
 # !!! Required: Set your desired region if not us-central1 !!!
 REGION="us-central1"
 # Service names (customize if needed)
-SERVICE_NAME="your-node-app-service" # CHANGE THIS to your desired Cloud Run service name
-# Attempt to create a unique default SQL instance name
+# IMPORTANT: THIS WILL BE CONVERTED TO LOWERCASE FOR SOME RESOURCES
+ORIGINAL_SERVICE_NAME="skillMetrics" # CHANGE THIS to your desired Cloud Run service name
+# Attempt to create a unique default SQL instance name suffix
 DEFAULT_SQL_INSTANCE_SUFFIX=$(openssl rand -hex 4)
-SQL_INSTANCE_NAME="${SERVICE_NAME}-db-${DEFAULT_SQL_INSTANCE_SUFFIX}" # Default SQL instance name
+# Convert service name to lowercase for resources that require it (like Cloud SQL)
+SERVICE_NAME_LOWER=$(echo "${ORIGINAL_SERVICE_NAME}" | tr '[:upper:]' '[:lower:]')
+SQL_INSTANCE_NAME="${SERVICE_NAME_LOWER}-db-${DEFAULT_SQL_INSTANCE_SUFFIX}" # Use lowercase service name
 DB_NAME="appdb"
 # You can set a specific user, or let the script generate one
 DB_USER="app_user"
@@ -29,24 +32,25 @@ if [ -z "$PROJECT_ID" ]; then
   echo "Error: Could not automatically determine Project ID. Please set it using 'gcloud config set project YOUR_PROJECT_ID'"
   exit 1
 fi
+# Use the valid, lowercase SQL instance name for the connection string
 SQL_INSTANCE_CONNECTION_NAME="${PROJECT_ID}:${REGION}:${SQL_INSTANCE_NAME}"
 
 # --- Generate Secure Passwords ---
 # IMPORTANT: Store these passwords securely if needed outside the script.
 DB_ROOT_PASSWORD=$(openssl rand -base64 16)
 DB_PASSWORD=$(openssl rand -base64 16)
-# Construct Database URL using the generated password
+# Construct Database URL using the generated password and correct connection name
 DATABASE_URL_FORMAT="mysql://${DB_USER}:${DB_PASSWORD}@/${DB_NAME}?host=/cloudsql/${SQL_INSTANCE_CONNECTION_NAME}"
 
 echo "--- Configuration ---"
-echo "Project ID:             ${PROJECT_ID}"
-echo "Region:                 ${REGION}"
-echo "Cloud Run Service Name: ${SERVICE_NAME}"
-echo "Cloud SQL Instance Name:${SQL_INSTANCE_NAME}"
-echo "Database Name:          ${DB_NAME}"
-echo "Database User:          ${DB_USER}"
-echo "Artifact Registry Repo: ${AR_REPO_NAME}"
-echo "Cloud Build Config:     ${CLOUDBUILD_CONFIG}"
+echo "Project ID:                   ${PROJECT_ID}"
+echo "Region:                       ${REGION}"
+echo "Original Cloud Run Service Name: ${ORIGINAL_SERVICE_NAME}"
+echo "Cloud SQL Instance Name:      ${SQL_INSTANCE_NAME}"
+echo "Database Name:                ${DB_NAME}"
+echo "Database User:                ${DB_USER}"
+echo "Artifact Registry Repo:       ${AR_REPO_NAME}"
+echo "Cloud Build Config:           ${CLOUDBUILD_CONFIG}"
 echo "--- Starting Deployment ---"
 
 # 1. Enable Necessary APIs
@@ -60,6 +64,7 @@ gcloud services enable \
 
 # 2. Create Cloud SQL Instance (if it doesn't exist)
 echo "2. Checking/Creating Cloud SQL Instance..."
+# Use the valid, lowercase SQL instance name here
 if ! gcloud sql instances describe $SQL_INSTANCE_NAME --project=$PROJECT_ID &> /dev/null ; then
   echo "   Creating Cloud SQL instance: $SQL_INSTANCE_NAME..."
   gcloud sql instances create $SQL_INSTANCE_NAME \
@@ -73,9 +78,6 @@ if ! gcloud sql instances describe $SQL_INSTANCE_NAME --project=$PROJECT_ID &> /
   sleep 120
 else
   echo "   Cloud SQL Instance '$SQL_INSTANCE_NAME' already exists."
-  # Ensure root password is set even if instance exists (idempotency)
-  # Note: This changes the password on every run if the instance exists.
-  # Consider prompting or using a fixed password/secret manager for production.
   echo "   Setting/Updating Cloud SQL root password (idempotency)..."
   gcloud sql users set-password root --host=% \
     --instance=$SQL_INSTANCE_NAME \
@@ -125,19 +127,19 @@ fi
 
 # 6. Build and Push Container Image using Cloud Build with YAML config
 echo "6. Building and pushing container image using ${CLOUDBUILD_CONFIG}..."
-# Pass variables to cloud build config
+# Pass variables to cloud build config. Use ORIGINAL_SERVICE_NAME for the image tag base if desired.
 IMAGE_TAG=$(git rev-parse --short HEAD || date +%Y%m%d-%H%M%S)
-LATEST_BUILT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO_NAME}/${SERVICE_NAME}:${IMAGE_TAG}"
+LATEST_BUILT_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO_NAME}/${ORIGINAL_SERVICE_NAME}:${IMAGE_TAG}"
 gcloud builds submit --config $CLOUDBUILD_CONFIG \
-  --substitutions="_REGION=${REGION},_AR_REPO_NAME=${AR_REPO_NAME},_SERVICE_NAME=${SERVICE_NAME},SHORT_SHA=${IMAGE_TAG}" \
+  --substitutions="_REGION=${REGION},_AR_REPO_NAME=${AR_REPO_NAME},_SERVICE_NAME=${ORIGINAL_SERVICE_NAME},SHORT_SHA=${IMAGE_TAG}" \
   --project=$PROJECT_ID
 
 echo "   Image build submitted. Using image: ${LATEST_BUILT_IMAGE}"
 
 # 7. Deploy to Cloud Run (Creates or Updates)
-echo "7. Deploying service '$SERVICE_NAME' to Cloud Run..."
-# Use the specific image tag from the build
-gcloud run deploy $SERVICE_NAME \
+# Use the ORIGINAL_SERVICE_NAME for the Cloud Run service itself (it allows uppercase)
+echo "7. Deploying service '$ORIGINAL_SERVICE_NAME' to Cloud Run..."
+gcloud run deploy $ORIGINAL_SERVICE_NAME \
   --image=$LATEST_BUILT_IMAGE \
   --platform managed \
   --region=$REGION \
@@ -161,11 +163,9 @@ fi
 echo "9. Starting Cloud SQL Auth Proxy and running 'npm run db:push'..."
 
 PROXY_DIR="/cloudsql"
-# Create the directory if it doesn't exist
 sudo mkdir -p $PROXY_DIR
 sudo chmod 777 $PROXY_DIR # Need write permissions for socket
 
-# Download proxy if it doesn't exist
 if [ ! -f ./cloud_sql_proxy ]; then
     echo "    Downloading Cloud SQL Auth Proxy..."
     wget https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.10.0/cloud-sql-proxy.linux.amd64 -O cloud_sql_proxy
@@ -176,47 +176,42 @@ echo "    Starting proxy in background..."
 ./cloud_sql_proxy --unix-socket=${PROXY_DIR} ${SQL_INSTANCE_CONNECTION_NAME} &> /tmp/proxy.log &
 PROXY_PID=$!
 
-# Give the proxy a moment to start and check status
 sleep 8
 if ! kill -0 $PROXY_PID > /dev/null 2>&1; then
     echo "Error: Cloud SQL Auth Proxy failed to start. Check logs: /tmp/proxy.log"
     cat /tmp/proxy.log
-    # Attempt cleanup before exiting
     sudo rm -rf $PROXY_DIR
     exit 1
 fi
 
 echo "    Proxy started (PID: $PROXY_PID). Running migration..."
 
-# Set the DATABASE_URL for the migration command using the Unix socket path
-export DATABASE_URL="mysql://${DB_USER}:${DB_PASSWORD}@/${DB_NAME}?host=${PROXY_DIR}/${SQL_INSTANCE_CONNECTION_NAME}"
+# Use the correct connection string format for Unix socket
+export DATABASE_URL="mysql://${DB_USER}:${DB_PASSWORD}@/${DB_NAME}?socketPath=${PROXY_DIR}/${SQL_INSTANCE_CONNECTION_NAME}"
 
-# Execute the database push command
 if npm run db:push; then
   echo "    Database migration ('npm run db:push') completed successfully."
 else
   echo "Error: Database migration ('npm run db:push') failed."
-  # Clean up proxy process before exiting
   echo "    Stopping Cloud SQL Auth Proxy (PID: $PROXY_PID)..."
   kill $PROXY_PID
-  wait $PROXY_PID 2>/dev/null || true # Ignore error if already stopped
+  wait $PROXY_PID 2>/dev/null || true
   sudo rm -rf $PROXY_DIR
   exit 1
 fi
 
-# Clean up: Stop the proxy
 echo "    Stopping Cloud SQL Auth Proxy (PID: $PROXY_PID)..."
 kill $PROXY_PID
-wait $PROXY_PID 2>/dev/null || true # Ignore error if already stopped
+wait $PROXY_PID 2>/dev/null || true
 
-# Clean up the proxy socket directory
 sudo rm -rf $PROXY_DIR
 echo "    Proxy stopped and socket directory removed."
 
 # --- Deployment Complete ---
 echo "--- Deployment Summary --- (Please allow a minute for service to stabilize)"
-SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format='value(status.url)' --project=$PROJECT_ID)
-echo "Cloud Run Service Deployed: ${SERVICE_NAME}"
+# Get URL using the ORIGINAL_SERVICE_NAME
+SERVICE_URL=$(gcloud run services describe $ORIGINAL_SERVICE_NAME --platform managed --region $REGION --format='value(status.url)' --project=$PROJECT_ID)
+echo "Cloud Run Service Deployed: ${ORIGINAL_SERVICE_NAME}"
 echo "Service URL:                ${SERVICE_URL}"
 echo "Cloud SQL Instance:         ${SQL_INSTANCE_NAME}"
 echo "Database Name:              ${DB_NAME}"
