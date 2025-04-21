@@ -909,7 +909,7 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <TabsList className="grid w-full grid-cols-7 mb-6">
+              <TabsList className="grid w-full grid-cols-8 mb-6">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <TabsTrigger 
                     value="dashboard" 
@@ -961,7 +961,16 @@ export default function AdminDashboard() {
                     className="flex items-center gap-2 w-full"
                   >
                     <Users className="h-4 w-4" />
-                    <span>User Management</span>
+                    <span>Users</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="user-management" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <UserIcon className="h-4 w-4" />
+                    <span>Admin Access</span>
                   </TabsTrigger>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -3302,6 +3311,21 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
+            <TabsContent value="user-management">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
+                {/* Import the user management component */}
+                <AdminUsersManagement />
+              </motion.div>
+            </TabsContent>
+
             <TabsContent value="approvals">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
