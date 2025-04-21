@@ -620,7 +620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/skills", ensureAdmin, async (req, res) => {
+  app.get("/api/admin/skills", ensureApprover, async (req, res) => {
     try {
       const skills = await storage.getAllSkills();
       res.json(skills);
@@ -1023,7 +1023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get all skill histories across all users for admin
-  app.get("/api/admin/skill-history", ensureAdmin, async (req, res) => {
+  app.get("/api/admin/skill-history", ensureApprover, async (req, res) => {
     try {
       const histories = await storage.getAllSkillHistories();
       res.json(histories);
@@ -1409,7 +1409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Notification routes
+  // Notification routes - All users can access their own notifications
   app.get("/api/notifications", ensureAuth, async (req, res) => {
     try {
       const unreadOnly = req.query.unread === "true";
