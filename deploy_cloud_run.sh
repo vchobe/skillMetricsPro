@@ -10,9 +10,11 @@ set -o pipefail
 # --- Configuration ---
 # !!! Required: Set your desired region if not us-central1 !!!
 REGION="us-central1"
+# Set the specific Project ID
+PROJECT_ID="imposing-elixir-440911-u9"
 # Service names (customize if needed)
 # IMPORTANT: THIS WILL BE CONVERTED TO LOWERCASE FOR SOME RESOURCES
-ORIGINAL_SERVICE_NAME="skillMetrics" # CHANGE THIS to your desired Cloud Run service name
+ORIGINAL_SERVICE_NAME="skillMetrics" # Set desired Cloud Run service name
 # Attempt to create a unique default SQL instance name suffix
 DEFAULT_SQL_INSTANCE_SUFFIX=$(openssl rand -hex 4)
 # Convert service name to lowercase for resources that require it (like Cloud SQL)
@@ -26,10 +28,10 @@ AR_REPO_NAME="cloud-run-source-deploy" # Default used by gcloud run deploy
 # Cloud Build config file
 CLOUDBUILD_CONFIG="cloudbuild_gcp.yaml"
 
-# --- Auto-detected/Generated Variables ---
-PROJECT_ID=$(gcloud config get-value project)
+# --- Auto-detected/Generated Variables (Project ID is now hardcoded above) ---
+# Validate the hardcoded Project ID
 if [ -z "$PROJECT_ID" ]; then
-  echo "Error: Could not automatically determine Project ID. Please set it using 'gcloud config set project YOUR_PROJECT_ID'"
+  echo "Error: PROJECT_ID is not set in the script!"
   exit 1
 fi
 # Use the valid, lowercase SQL instance name for the connection string
