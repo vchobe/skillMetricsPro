@@ -655,9 +655,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update user with new admin status
+      // Only use isAdmin - the storage layer will convert it to is_admin
       const updateData = {
-        isAdmin: isAdmin,
-        is_admin: isAdmin  // Update both fields for consistency
+        isAdmin: isAdmin
       };
       
       console.log(`Updating admin status for user ${userId} to ${isAdmin}`);
