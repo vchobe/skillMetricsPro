@@ -2,6 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import axios from "axios";
 import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
 import { log } from "./utils";
 
 const app = express();
@@ -209,14 +211,29 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
   });
 
   // Setup vite in development or serve static files in production
-  if (app.get("env") === "development") {
-    // Dynamic import for Vite setup
-    const vite = await import("./vite");
-    await vite.setupVite(app, server);
-  } else {
-    // Dynamic import for serveStatic in production
-     const vite = await import("./vite");
-    vite.serveStatic(app);
+  try {
+    if (app.get("env") === "development") {
+      // Dynamic import for Vite setup
+      const viteModule = await import("./vite");
+      await viteModule.setupVite(app, server);
+    } else {
+      // In production, use a simpler static file server that doesn't depend on Vite
+      const distPath = path.resolve(__dirname, "public");
+      
+      if (!fs.existsSync(distPath)) {
+        console.error(`Could not find the build directory: ${distPath}, make sure to build the client first`);
+      } else {
+        app.use(express.static(distPath));
+        
+        // fall through to index.html if the file doesn't exist
+        app.use("*", (_req, res) => {
+          res.sendFile(path.resolve(distPath, "index.html"));
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error setting up static/vite middleware:", err);
+    // Still continue with API server functionality
   }
 
   // Check if Java backend is running
