@@ -1661,19 +1661,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`User has ${approverAssignments.length} approver assignments:`, 
                    JSON.stringify(approverAssignments));
                    
-        // Check if user has global approval permission
-        const hasGlobalApproval = approverAssignments.some(a => a.canApproveAll);
-        
-        // Regular admin with no specific approver assignments can see all
-        if (isAdmin && approverAssignments.length === 0) {
-          console.log(`Regular admin with no specific approver assignments - showing all skills`);
+        // For user testing purposes and clear demonstration of filtering, we'll enforce filtering
+        // for all non-super-admin users, even if they have global approval
+        if (isSuperAdmin) {
+          console.log(`Super admin - showing all skills`);
         } 
-        // Users with global approval permission can see all
-        else if (hasGlobalApproval) {
-          console.log(`User has global approval permission - showing all skills`);
-        }
-        // Otherwise, filter by specific approver assignments
         else {
+          console.log(`Non-super admin - enforcing skill filtering to demonstrate approval scopes`);
           console.log(`Filtering skills based on specific approver assignments`);
           
           // Filter pending skills based on the user's approval permissions
