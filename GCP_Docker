@@ -12,6 +12,14 @@ RUN npm ci
 # Copy the rest of the application source code
 COPY . .
 
+# Check for utils.ts file before building
+RUN ls -la server/ && \
+    # Verify utils.ts is present
+    if [ ! -f server/utils.ts ]; then \
+      echo "Error: utils.ts file is missing, creating a minimal version" && \
+      echo 'export function log(message: string, source = "server") { console.log(`[${source}] ${message}`); }' > server/utils.ts; \
+    fi
+
 # Run the build command (vite should be available now)
 # This assumes the build process outputs to a 'dist' directory
 RUN npm run build

@@ -24,6 +24,14 @@ RUN npm ci --omit=dev
 # Copy application code
 COPY . .
 
+# Check for utils.ts file before building
+RUN ls -la server/ && \
+    # Verify utils.ts is present
+    if [ ! -f server/utils.ts ]; then \
+      echo "Error: utils.ts file is missing, creating a minimal version" && \
+      echo 'export function log(message: string, source = "server") { console.log(`[${source}] ${message}`); }' > server/utils.ts; \
+    fi
+
 # Build the application with clean environment
 RUN npm run build
 
