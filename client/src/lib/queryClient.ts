@@ -51,12 +51,12 @@ async function handleAuthError(status: number): Promise<boolean> {
       return true; // Retry the request with the new token
     } catch (error) {
       // If refresh fails, redirect to login
-      window.location.href = '/login';
+      window.location.href = '/auth';
       return false;
     }
   } else if (LOGOUT_ERROR_CODES.includes(status)) {
     // If it's a forbidden error, redirect to login
-    window.location.href = '/login';
+    window.location.href = '/auth';
     return false;
   }
   return false;

@@ -248,9 +248,9 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
+  app.post("/api/auth", (req, res, next) => {
     try {
-      console.log("POST /api/login - Body:", req.body);
+      console.log("POST /api/auth - Body:", req.body);
       
       // Check if email exists in the request body
       if (!req.body.email) {
@@ -264,25 +264,25 @@ export function setupAuth(app: Express) {
       });
       
       if (!parsedData.success) {
-        console.log("POST /api/login - Validation failed:", parsedData.error.format());
+        console.log("POST /api/auth - Validation failed:", parsedData.error.format());
         return res.status(400).json({ message: "Invalid login data", errors: parsedData.error.format() });
       }
 
-      console.log("POST /api/login - Validation succeeded. Parsed data:", parsedData.data);
+      console.log("POST /api/auth - Validation succeeded. Parsed data:", parsedData.data);
       
       passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
-        console.log("POST /api/login - Passport auth result:", { err, user: user ? user.email : null, info });
+        console.log("POST /api/auth - Passport auth result:", { err, user: user ? user.email : null, info });
         
         if (err) return next(err);
         if (!user) return res.status(401).json({ message: "Invalid email or password" });
 
         req.login(user, (err: any) => {
           if (err) {
-            console.log("POST /api/login - Login error:", err);
+            console.log("POST /api/auth - Login error:", err);
             return next(err);
           }
           
-          console.log("POST /api/login - Login successful for user:", user.email);
+          console.log("POST /api/auth - Login successful for user:", user.email);
           
           // Remove password from response
           const { password, ...userWithoutPassword } = user;
@@ -290,7 +290,7 @@ export function setupAuth(app: Express) {
         });
       })(req, res, next);
     } catch (error) {
-      console.log("POST /api/login - Exception:", error);
+      console.log("POST /api/auth - Exception:", error);
       next(error);
     }
   });
