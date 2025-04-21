@@ -1563,8 +1563,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin approval routes
-  app.get("/api/admin/pending-skills", ensureAdmin, async (req, res) => {
+  // Admin approval routes (accessible by both admins and approvers)
+  app.get("/api/admin/pending-skills", ensureApprover, async (req, res) => {
     try {
       // Get all pending skill updates
       const pendingUpdates = await storage.getPendingSkillUpdates();
@@ -1604,7 +1604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/pending-skills/:id/approve", ensureAdmin, async (req, res) => {
+  app.post("/api/admin/pending-skills/:id/approve", ensureApprover, async (req, res) => {
     try {
       const updateId = parseInt(req.params.id);
       const reviewerId = req.user!.id;
@@ -1627,7 +1627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/pending-skills/:id/reject", ensureAdmin, async (req, res) => {
+  app.post("/api/admin/pending-skills/:id/reject", ensureApprover, async (req, res) => {
     try {
       const updateId = parseInt(req.params.id);
       const reviewerId = req.user!.id;
