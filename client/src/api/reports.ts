@@ -2,7 +2,7 @@ import { API_BASE_URL } from './config';
 import { getAccessToken } from './auth';
 
 /**
- * Reports API service for interacting with Java backend
+ * Reports API service
  */
 
 // Report format options

@@ -41,11 +41,11 @@ export * from './search';
  * This function should be called during application startup
  */
 export const initializeApiServices = (): void => {
-  console.log('Initializing API Services for Java backend integration');
+  console.log('Initializing API Services');
   
   // Check if the API is in production or development mode
   const isProduction = process.env.NODE_ENV === 'production';
-  const apiBasePath = isProduction ? '/api' : 'http://localhost:8080/api';
+  const apiBasePath = isProduction ? '/api' : 'http://localhost:5000/api';
   
   console.log(`API Services initialized. Base path: ${apiBasePath}`);
   

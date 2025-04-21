@@ -2,7 +2,7 @@ import { API_BASE_URL } from './config';
 import { getAccessToken } from './auth';
 
 /**
- * Search API service for interacting with Java backend
+ * Search API service
  */
 
 // Generic search result interface

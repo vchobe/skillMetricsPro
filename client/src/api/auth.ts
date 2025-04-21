@@ -37,7 +37,7 @@ export interface AuthResponse {
 
 // Login API call
 export const login = async (credentials: LoginRequest): Promise<AuthResponse> => {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await fetch(`${API_BASE_URL}/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ export const login = async (credentials: LoginRequest): Promise<AuthResponse> =>
 
 // Register API call
 export const register = async (userData: SignupRequest): Promise<AuthResponse> => {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  const response = await fetch(`${API_BASE_URL}/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ export const register = async (userData: SignupRequest): Promise<AuthResponse> =
 // Logout API call
 export const logout = async (): Promise<void> => {
   try {
-    await fetch(`${API_BASE_URL}/auth/logout`, {
+    await fetch(`${API_BASE_URL}/logout`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem(TOKEN_STORAGE_KEY)}`,
@@ -110,7 +110,7 @@ export const refreshToken = async (): Promise<AuthResponse> => {
     throw new Error('No refresh token available');
   }
   
-  const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+  const response = await fetch(`${API_BASE_URL}/refresh-token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -146,7 +146,7 @@ export const getAccessToken = (): string | null => {
 
 // Reset password request
 export const requestPasswordReset = async (email: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+  const response = await fetch(`${API_BASE_URL}/forgot-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ export const requestPasswordReset = async (email: string): Promise<void> => {
 
 // Reset password with token
 export const resetPassword = async (token: string, newPassword: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+  const response = await fetch(`${API_BASE_URL}/reset-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

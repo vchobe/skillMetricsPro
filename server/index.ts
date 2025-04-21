@@ -1,8 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
 import axios from "axios";
 import * as http from 'http';
+import { log } from "./utils";
 
 const app = express();
 app.use(express.json());
@@ -210,9 +210,13 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
 
   // Setup vite in development or serve static files in production
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    // Dynamic import for Vite setup
+    const vite = await import("./vite");
+    await vite.setupVite(app, server);
   } else {
-    serveStatic(app);
+    // Dynamic import for serveStatic in production
+     const vite = await import("./vite");
+    vite.serveStatic(app);
   }
 
   // Check if Java backend is running
@@ -248,13 +252,13 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
       console.log(`Frontend-only server started on port ${port}`);
     });
   } else {
-    // No Java backend, start normally on port 8080
-    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
+    // No Java backend, start normally on port 5000
+    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
     const host = process.env.HOST || "0.0.0.0";
     
     console.log(`No Java backend detected`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
-    console.log(`Using port ${port} (from env: ${process.env.PORT || 'not set, using default 8080'})`);
+    console.log(`Using port ${port} (from env: ${process.env.PORT || 'not set, using default 5000'})`);
     console.log(`Starting server on host ${host} and port ${port}`);
     
     server.listen(port, host, () => {
