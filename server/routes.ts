@@ -1641,10 +1641,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all pending skill updates
       const pendingUpdates = await storage.getPendingSkillUpdates();
       
+      // Check if user is super admin or regular admin
+      const userId = req.user!.id;
+      const isSuperAdmin = req.user!.email === "admin@atyeti.com";
+      const isAdmin = req.user!.isAdmin || req.user!.is_admin;
+      
+      // If user is not super admin and not regular admin, filter skills they can approve
+      let filteredPendingUpdates = pendingUpdates;
+      if (!isSuperAdmin && !isAdmin) {
+        // Filter pending skills based on the user's approval permissions
+        // Create an array of promises that each resolve to true/false for each update
+        const approvalChecks = await Promise.all(
+          pendingUpdates.map(async (update) => {
+            // Get the skill category information for this update
+            let categoryId = null;
+            let subcategoryId = null;
+            
+            // For existing skills being updated
+            if (update.skillId) {
+              // Get the skill to find its category
+              const skill = await storage.getSkill(update.skillId);
+              if (skill) {
+                // Get the subcategory for this skill's category if available
+                const skillCategories = await storage.getSkillCategoriesByName(update.category);
+                if (skillCategories && skillCategories.length > 0) {
+                  categoryId = skillCategories[0].id;
+                }
+              }
+            } else {
+              // For new skills, get the category by name
+              const skillCategories = await storage.getSkillCategoriesByName(update.category);
+              if (skillCategories && skillCategories.length > 0) {
+                categoryId = skillCategories[0].id;
+              }
+            }
+            
+            // Check if user can approve this skill
+            return {
+              update,
+              canApprove: categoryId ? await storage.canUserApproveSkill(
+                userId, 
+                categoryId,
+                subcategoryId,
+                update.skillId
+              ) : false
+            };
+          })
+        );
+        
+        // Filter to include only updates the user can approve
+        filteredPendingUpdates = approvalChecks
+          .filter(result => result.canApprove)
+          .map(result => result.update);
+      }
+      
       // Group by user for easier review
       const pendingByUser: Record<number, Array<any>> = {};
       
-      for (const update of pendingUpdates) {
+      for (const update of filteredPendingUpdates) {
         if (!pendingByUser[update.userId]) {
           pendingByUser[update.userId] = [];
         }
@@ -1672,6 +1726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(result);
     } catch (error) {
+      console.error("Error fetching pending skill updates:", error);
       res.status(500).json({ message: "Error fetching pending skill updates", error });
     }
   });
