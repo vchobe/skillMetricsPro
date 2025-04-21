@@ -32,8 +32,8 @@ WORKDIR /usr/src/app
 # Copy package.json and lock file again for installing only prod deps
 COPY package*.json ./
 
-# Install ONLY production dependencies
-RUN npm ci --only=production
+# Install all dependencies including vite
+RUN npm ci
 
 # Copy built artifacts from the builder stage
 # Assumes build output is in /usr/src/app/dist in the builder stage
