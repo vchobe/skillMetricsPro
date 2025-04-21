@@ -1,7 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+// REMOVE: import { setupVite, serveStatic, log } from "./vite";
 import * as http from 'http';
+import { log } from "./utils"; // Import log from utils
 
 const app = express();
 app.use(express.json());
@@ -50,9 +51,13 @@ app.use((req, res, next) => {
 
   // Setup vite in development or serve static files in production
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    // Dynamic import for Vite setup
+    const vite = await import("./vite");
+    await vite.setupVite(app, server);
   } else {
-    serveStatic(app);
+    // Dynamic import for serveStatic in production
+     const vite = await import("./vite");
+    vite.serveStatic(app);
   }
 
   // Configure server port and host
