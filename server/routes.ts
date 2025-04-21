@@ -191,6 +191,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Admin check passed for user:", req.user?.email || req.user?.username);
     next();
   };
+  
+  // Middleware to ensure user is either an admin or an approver
+  const ensureApprover = async (req: Request, res: Response, next: Function) => {
+    if (!req.isAuthenticated()) {
+      console.log("Approver check failed - user not authenticated");
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    
+    const userId = req.user!.id;
+    
+    // First, check if user is an admin (admins can do anything approvers can)
+    const isAdmin = isUserAdmin(req.user) || await checkIsUserAdminDirectly(userId);
+    
+    if (isAdmin) {
+      console.log("Approver check passed (admin) for user:", req.user?.email || req.user?.username);
+      return next();
+    }
+    
+    // If not admin, check if user is an approver
+    const isApprover = await storage.isUserApprover(userId);
+    
+    if (!isApprover) {
+      console.log("Approver check failed for user:", req.user?.email || req.user?.username);
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    
+    console.log("Approver check passed for user:", req.user?.email || req.user?.username);
+    next();
+  };
 
   // User profile routes
   app.get("/api/user/profile", ensureAuth, async (req, res) => {
