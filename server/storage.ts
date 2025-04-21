@@ -3475,6 +3475,19 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  async getSkillCategoriesByName(name: string): Promise<SkillCategory[]> {
+    try {
+      const result = await pool.query(
+        'SELECT * FROM skill_categories WHERE name = $1',
+        [name]
+      );
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting skill categories by name:", error);
+      throw error;
+    }
+  }
+  
   async createSkillCategory(category: InsertSkillCategory): Promise<SkillCategory> {
     try {
       const { name, description, tabOrder, visibility, color, icon } = category;
