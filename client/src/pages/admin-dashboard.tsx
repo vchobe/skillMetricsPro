@@ -153,6 +153,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "@/components/ui/alert-circle";
 import AdminUserActions from "@/components/admin-user-actions";
+import AdminUsersManagement from "@/components/admin-users-management";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -307,7 +308,7 @@ export default function AdminDashboard() {
     const tab = pathParts[2]; // /admin/tab format
     
     // Only initialize tab from URL, don't modify URL here
-    if (tab === "users" || tab === "skill-history" || tab === "certifications") {
+    if (tab === "users" || tab === "skill-history" || tab === "certifications" || tab === "user-management") {
       setActiveTab(tab);
     } else if (currentPath === "/admin" || currentPath.startsWith("/admin/")) {
       // Default to dashboard if no valid tab is specified
