@@ -43,7 +43,7 @@ const AdminUsersManagement = () => {
   const [deleteUserEmail, setDeleteUserEmail] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const currentUser = queryClient.getQueryData<User>(["/api/user"]);
-  const isMainAdmin = currentUser?.email === "admin@atyeti.com";
+  const isSuperAdmin = currentUser?.email === "admin@atyeti.com";
 
   // Fetch all users
   const { data: users = [], isLoading } = useQuery<User[]>({
@@ -100,7 +100,7 @@ const AdminUsersManagement = () => {
     if (user.email === "admin@atyeti.com") {
       toast({
         title: "Prohibited Action",
-        description: "Cannot modify main admin privileges",
+        description: "Cannot modify super admin privileges",
         variant: "destructive",
       });
       return;
@@ -118,7 +118,7 @@ const AdminUsersManagement = () => {
     if (deleteUserEmail === "admin@atyeti.com") {
       toast({
         title: "Prohibited Action",
-        description: "Cannot delete the main admin account",
+        description: "Cannot delete the super admin account",
         variant: "destructive",
       });
       return;
@@ -164,10 +164,10 @@ const AdminUsersManagement = () => {
         <CardTitle>User Management</CardTitle>
         <CardDescription>
           Manage user access and permissions. 
-          {!isMainAdmin && (
+          {!isSuperAdmin && (
             <span className="text-amber-500 font-semibold block mt-1">
               <AlertCircle className="inline-block mr-1 h-4 w-4" />
-              Only the main admin can change admin privileges.
+              Only the super admin can change admin privileges.
             </span>
           )}
         </CardDescription>
@@ -209,10 +209,15 @@ const AdminUsersManagement = () => {
                       <Switch
                         checked={user.isAdmin || user.is_admin || false}
                         onCheckedChange={() => handleToggleAdmin(user)}
-                        disabled={!isMainAdmin || user.email === "admin@atyeti.com"}
+                        disabled={!isSuperAdmin || user.email === "admin@atyeti.com"}
                       />
                       <span className="text-sm">
-                        {(user.isAdmin || user.is_admin) ? (
+                        {user.email === "admin@atyeti.com" ? (
+                          <Badge variant="default" className="bg-purple-100 text-purple-800 hover:bg-purple-200">
+                            <Shield className="mr-1 h-3 w-3" />
+                            Super Admin
+                          </Badge>
+                        ) : (user.isAdmin || user.is_admin) ? (
                           <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
                             <Shield className="mr-1 h-3 w-3" />
                             Admin
@@ -237,7 +242,7 @@ const AdminUsersManagement = () => {
                               setDeleteUserEmail(user.email);
                               setIsDeleteDialogOpen(true);
                             }}
-                            disabled={user.email === "admin@atyeti.com" || !isMainAdmin}
+                            disabled={user.email === "admin@atyeti.com" || !isSuperAdmin}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
