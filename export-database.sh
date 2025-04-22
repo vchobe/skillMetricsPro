@@ -60,37 +60,34 @@ export PGPASSWORD="$DB_PASSWORD"
 
 echo "Extracting database schema and data from $DB_HOST:$DB_PORT/$DB_NAME..."
 
-# Add SSL mode for Neon database
-PG_SSL_MODE="require"
+# Set SSL mode for Neon database
+export PGSSLMODE="require"
 PG_COMMON_OPTIONS="--host=$DB_HOST --port=$DB_PORT --username=$DB_USER --dbname=$DB_NAME --no-owner --no-privileges"
 
 # 1. Schema-only dump (no data, creates tables, functions, triggers, etc.)
 echo "Creating schema-only dump..."
 pg_dump $PG_COMMON_OPTIONS \
   --schema-only --no-comments \
-  --file="$DUMP_DIR/schema_$TIMESTAMP.sql" \
-  --sslmode=$PG_SSL_MODE
+  --file="$DUMP_DIR/schema_$TIMESTAMP.sql"
 
 # 2. Full data dump (all tables with data)
 echo "Creating full data dump..."
 pg_dump $PG_COMMON_OPTIONS \
   --data-only --inserts \
-  --file="$DUMP_DIR/data_$TIMESTAMP.sql" \
-  --sslmode=$PG_SSL_MODE
+  --file="$DUMP_DIR/data_$TIMESTAMP.sql"
 
 # 3. Complete dump (schema + data) 
 echo "Creating complete dump (schema + data)..."
 pg_dump $PG_COMMON_OPTIONS \
   --clean --if-exists --create \
-  --file="$DUMP_DIR/complete_$TIMESTAMP.sql" \
-  --sslmode=$PG_SSL_MODE
+  --file="$DUMP_DIR/complete_$TIMESTAMP.sql"
 
 # 4. Individual table dumps (useful if you need to load specific tables)
 echo "Creating individual table dumps..."
 
 # Get list of tables
 TABLES=$(PGPASSWORD="$DB_PASSWORD" psql --host=$DB_HOST --port=$DB_PORT --username=$DB_USER --dbname=$DB_NAME \
-  --sslmode=$PG_SSL_MODE -t -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';")
+  -t -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';")
 
 mkdir -p "$DUMP_DIR/tables"
 
@@ -100,8 +97,7 @@ for TABLE in $TABLES; do
     echo "Dumping table: $TABLE"
     pg_dump $PG_COMMON_OPTIONS \
       --table="$TABLE" --clean --if-exists \
-      --file="$DUMP_DIR/tables/${TABLE}_$TIMESTAMP.sql" \
-      --sslmode=$PG_SSL_MODE
+      --file="$DUMP_DIR/tables/${TABLE}_$TIMESTAMP.sql"
   fi
 done
 
