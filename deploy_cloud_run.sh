@@ -144,6 +144,22 @@ gcloud builds submit --config $CLOUDBUILD_CONFIG \
 
 echo "   Image build submitted. Using image: ${LATEST_BUILT_IMAGE}"
 
+# Prompt for Mailjet API credentials
+echo "Enter Mailjet API credentials (press Enter to skip email functionality):"
+read -p "Mailjet API Key: " MAILJET_API_KEY
+read -p "Mailjet Secret Key: " MAILJET_SECRET_KEY
+
+# Build the environment variables string
+ENV_VARS="NODE_ENV=production,HOST=0.0.0.0,DATABASE_URL=${DATABASE_URL_CLOUD_RUN}"
+
+# Add Mailjet credentials if provided
+if [ -n "$MAILJET_API_KEY" ] && [ -n "$MAILJET_SECRET_KEY" ]; then
+  ENV_VARS="${ENV_VARS},MAILJET_API_KEY=${MAILJET_API_KEY},MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY}"
+  echo "Mailjet credentials will be included in deployment."
+else
+  echo "Mailjet credentials not provided. Email functionality will be limited."
+fi
+
 # 7. Deploy to Cloud Run (Creates or Updates)
 echo "7. Deploying service '$ORIGINAL_SERVICE_NAME' to Cloud Run..."
 gcloud run deploy $ORIGINAL_SERVICE_NAME \
@@ -152,7 +168,7 @@ gcloud run deploy $ORIGINAL_SERVICE_NAME \
   --region=$REGION \
   --allow-unauthenticated \
   --add-cloudsql-instances=$SQL_INSTANCE_CONNECTION_NAME \
-  --set-env-vars="NODE_ENV=production,HOST=0.0.0.0,DATABASE_URL=${DATABASE_URL_CLOUD_RUN}" \
+  --set-env-vars="$ENV_VARS" \
   --project=$PROJECT_ID
 
 # --- Database Schema Migration ---
