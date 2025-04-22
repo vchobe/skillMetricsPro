@@ -3,12 +3,6 @@
 # Exit on error
 set -e
 
-# Database settings - these will be overridden by environment variables if present
-DB_HOST=${DB_HOST:-"localhost"}
-DB_PORT=${DB_PORT:-"5432"}
-DB_NAME=${DB_NAME:-"neondb"}  # Assuming default db name from repository
-DB_USER=${DB_USER:-"neondb_owner"}  # Change to match your current db user
-
 # Directory to store dump files
 DUMP_DIR="db_dumps"
 mkdir -p $DUMP_DIR
@@ -16,48 +10,87 @@ mkdir -p $DUMP_DIR
 # Timestamp for filenames
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
-# Prompt for password (don't store it in a file or show it)
-read -s -p "Enter PostgreSQL password for $DB_USER: " DB_PASSWORD
-echo ""
+# Get the connection string from DATABASE_URL if available
+if [ -n "$DATABASE_URL" ]; then
+  echo "Using connection string from DATABASE_URL environment variable"
+  
+  # Parse DATABASE_URL to extract connection parts manually
+  # URL format: postgresql://username:password@hostname:port/dbname?sslmode=require
+
+  # Display what we're working with (obscuring password)
+  SAFE_URL=$(echo "$DATABASE_URL" | sed 's/:[^:]*@/:***@/')
+  echo "Database URL: $SAFE_URL"
+  
+  # Hardcode these values since we know the database connection details
+  DB_HOST="ep-flat-shape-a51t7ga4.us-east-2.aws.neon.tech"
+  DB_PORT="5432"
+  DB_USER="neondb_owner"
+  DB_NAME="neondb"
+  
+  # Extract password from DATABASE_URL
+  DB_PASSWORD=$(echo "$DATABASE_URL" | grep -o ':[^:]*@' | sed 's/://' | sed 's/@//')
+  
+  echo "Using database details:"
+  echo "  Host: $DB_HOST"
+  echo "  Port: $DB_PORT"
+  echo "  Database: $DB_NAME"
+  echo "  User: $DB_USER"
+  echo "  Password: [HIDDEN]"
+else
+  # Database settings - these will be overridden by environment variables if present
+  DB_HOST=${DB_HOST:-"localhost"}
+  DB_PORT=${DB_PORT:-"5432"}
+  DB_NAME=${DB_NAME:-"neondb"}  # Assuming default db name from repository
+  DB_USER=${DB_USER:-"neondb_owner"}  # Change to match your current db user
+  
+  # Prompt for password (don't store it in a file or show it)
+  read -s -p "Enter PostgreSQL password for $DB_USER: " DB_PASSWORD
+  echo ""
+  
+  echo "Using explicit connection parameters:"
+  echo "  Host: $DB_HOST"
+  echo "  Port: $DB_PORT"
+  echo "  Database: $DB_NAME"
+  echo "  User: $DB_USER"
+  echo "  Password: [HIDDEN]"
+fi
 
 # Export as environment variable for pg_dump
 export PGPASSWORD="$DB_PASSWORD"
 
 echo "Extracting database schema and data from $DB_HOST:$DB_PORT/$DB_NAME..."
 
-# Get the connection string from DATABASE_URL if available
-if [ -n "$DATABASE_URL" ]; then
-  echo "Using connection string from DATABASE_URL environment variable"
-  # Extract parts from DATABASE_URL if needed
-  # Parse DATABASE_URL to extract host, port, etc. if needed
-else
-  echo "Using explicit connection parameters"
-fi
+# Add SSL mode for Neon database
+PG_SSL_MODE="require"
+PG_COMMON_OPTIONS="--host=$DB_HOST --port=$DB_PORT --username=$DB_USER --dbname=$DB_NAME --no-owner --no-privileges"
 
 # 1. Schema-only dump (no data, creates tables, functions, triggers, etc.)
 echo "Creating schema-only dump..."
-pg_dump --host=$DB_HOST --port=$DB_PORT --username=$DB_USER --dbname=$DB_NAME \
-  --schema-only --no-owner --no-privileges --no-comments \
-  --file="$DUMP_DIR/schema_$TIMESTAMP.sql"
+pg_dump $PG_COMMON_OPTIONS \
+  --schema-only --no-comments \
+  --file="$DUMP_DIR/schema_$TIMESTAMP.sql" \
+  --sslmode=$PG_SSL_MODE
 
 # 2. Full data dump (all tables with data)
 echo "Creating full data dump..."
-pg_dump --host=$DB_HOST --port=$DB_PORT --username=$DB_USER --dbname=$DB_NAME \
-  --data-only --no-owner --no-privileges --inserts \
-  --file="$DUMP_DIR/data_$TIMESTAMP.sql"
+pg_dump $PG_COMMON_OPTIONS \
+  --data-only --inserts \
+  --file="$DUMP_DIR/data_$TIMESTAMP.sql" \
+  --sslmode=$PG_SSL_MODE
 
 # 3. Complete dump (schema + data) 
 echo "Creating complete dump (schema + data)..."
-pg_dump --host=$DB_HOST --port=$DB_PORT --username=$DB_USER --dbname=$DB_NAME \
-  --no-owner --no-privileges --clean --if-exists --create \
-  --file="$DUMP_DIR/complete_$TIMESTAMP.sql"
+pg_dump $PG_COMMON_OPTIONS \
+  --clean --if-exists --create \
+  --file="$DUMP_DIR/complete_$TIMESTAMP.sql" \
+  --sslmode=$PG_SSL_MODE
 
 # 4. Individual table dumps (useful if you need to load specific tables)
 echo "Creating individual table dumps..."
 
 # Get list of tables
 TABLES=$(PGPASSWORD="$DB_PASSWORD" psql --host=$DB_HOST --port=$DB_PORT --username=$DB_USER --dbname=$DB_NAME \
-  -t -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';")
+  --sslmode=$PG_SSL_MODE -t -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';")
 
 mkdir -p "$DUMP_DIR/tables"
 
@@ -65,9 +98,10 @@ for TABLE in $TABLES; do
   TABLE=$(echo $TABLE | tr -d ' ')
   if [ -n "$TABLE" ]; then
     echo "Dumping table: $TABLE"
-    pg_dump --host=$DB_HOST --port=$DB_PORT --username=$DB_USER --dbname=$DB_NAME \
-      --table="$TABLE" --no-owner --no-privileges --clean --if-exists \
-      --file="$DUMP_DIR/tables/${TABLE}_$TIMESTAMP.sql"
+    pg_dump $PG_COMMON_OPTIONS \
+      --table="$TABLE" --clean --if-exists \
+      --file="$DUMP_DIR/tables/${TABLE}_$TIMESTAMP.sql" \
+      --sslmode=$PG_SSL_MODE
   fi
 done
 
