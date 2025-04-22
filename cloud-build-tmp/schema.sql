@@ -1,32 +1,6 @@
-/**
- * Generate SQL Schema Script
- *
- * This script reads the Drizzle schema definitions and generates SQL CREATE TABLE
- * statements that can be used to create the database schema on any PostgreSQL instance.
- *
- * Usage: node generate-schema.js > schema.sql
- */
-
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-import * as schema from './shared/schema.ts';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Output SQL file
-const outputFile = path.join(__dirname, 'schema.sql');
-
-// Function to generate SQL schema from Drizzle schema
-async function generateSchema() {
-  console.log('Generating SQL schema from Drizzle definitions...');
-  
-  // SQL script header
-  let sqlScript = `--
+--
 -- PostgreSQL schema for SkillMetrics application
--- Generated on ${new Date().toISOString()}
+-- Generated for Cloud SQL migration
 --
 
 -- Create enum types
@@ -35,10 +9,6 @@ CREATE TYPE IF NOT EXISTS skill_level AS ENUM ('beginner', 'intermediate', 'expe
 CREATE TYPE IF NOT EXISTS tab_visibility AS ENUM ('visible', 'hidden');
 CREATE TYPE IF NOT EXISTS notification_type AS ENUM ('endorsement', 'level_up', 'achievement');
 
-`;
-
-  // Add Users table
-  sqlScript += `
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
@@ -54,10 +24,6 @@ CREATE TABLE IF NOT EXISTS users (
   location TEXT DEFAULT ''
 );
 
-`;
-
-  // Add Skill Categories table
-  sqlScript += `
 -- Skill Categories table
 CREATE TABLE IF NOT EXISTS skill_categories (
   id SERIAL PRIMARY KEY,
@@ -71,10 +37,6 @@ CREATE TABLE IF NOT EXISTS skill_categories (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-`;
-
-  // Add Skill Subcategories table
-  sqlScript += `
 -- Skill Subcategories table
 CREATE TABLE IF NOT EXISTS skill_subcategories (
   id SERIAL PRIMARY KEY,
@@ -87,10 +49,6 @@ CREATE TABLE IF NOT EXISTS skill_subcategories (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-`;
-
-  // Add Skills table
-  sqlScript += `
 -- Skills table
 CREATE TABLE IF NOT EXISTS skills (
   id SERIAL PRIMARY KEY,
@@ -108,10 +66,6 @@ CREATE TABLE IF NOT EXISTS skills (
   expiration_date TIMESTAMP WITH TIME ZONE
 );
 
-`;
-
-  // Add Skill Approvers table
-  sqlScript += `
 -- Skill Approvers table
 CREATE TABLE IF NOT EXISTS skill_approvers (
   id SERIAL PRIMARY KEY,
@@ -123,10 +77,6 @@ CREATE TABLE IF NOT EXISTS skill_approvers (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-`;
-
-  // Add Skill Histories table
-  sqlScript += `
 -- Skill Histories table
 CREATE TABLE IF NOT EXISTS skill_histories (
   id SERIAL PRIMARY KEY,
@@ -138,10 +88,6 @@ CREATE TABLE IF NOT EXISTS skill_histories (
   change_note TEXT
 );
 
-`;
-
-  // Add Profile Histories table
-  sqlScript += `
 -- Profile Histories table
 CREATE TABLE IF NOT EXISTS profile_histories (
   id SERIAL PRIMARY KEY,
@@ -152,10 +98,6 @@ CREATE TABLE IF NOT EXISTS profile_histories (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-`;
-
-  // Add Notifications table
-  sqlScript += `
 -- Notifications table
 CREATE TABLE IF NOT EXISTS notifications (
   id SERIAL PRIMARY KEY,
@@ -168,10 +110,6 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-`;
-
-  // Add Endorsements table
-  sqlScript += `
 -- Endorsements table
 CREATE TABLE IF NOT EXISTS endorsements (
   id SERIAL PRIMARY KEY,
@@ -182,10 +120,6 @@ CREATE TABLE IF NOT EXISTS endorsements (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-`;
-
-  // Add Skill Templates table
-  sqlScript += `
 -- Skill Templates table
 CREATE TABLE IF NOT EXISTS skill_templates (
   id SERIAL PRIMARY KEY,
@@ -199,10 +133,6 @@ CREATE TABLE IF NOT EXISTS skill_templates (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-`;
-
-  // Add Skill Targets tables
-  sqlScript += `
 -- Skill Targets table
 CREATE TABLE IF NOT EXISTS skill_targets (
   id SERIAL PRIMARY KEY,
@@ -229,10 +159,6 @@ CREATE TABLE IF NOT EXISTS skill_target_users (
   user_id INTEGER NOT NULL
 );
 
-`;
-
-  // Add Pending Skill Updates table
-  sqlScript += `
 -- Pending Skill Updates table
 CREATE TABLE IF NOT EXISTS pending_skill_updates (
   id SERIAL PRIMARY KEY,
@@ -254,10 +180,6 @@ CREATE TABLE IF NOT EXISTS pending_skill_updates (
   is_update BOOLEAN DEFAULT false NOT NULL
 );
 
-`;
-
-  // Add Clients table
-  sqlScript += `
 -- Clients table
 CREATE TABLE IF NOT EXISTS clients (
   id SERIAL PRIMARY KEY,
@@ -273,10 +195,6 @@ CREATE TABLE IF NOT EXISTS clients (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-`;
-
-  // Add Projects table
-  sqlScript += `
 -- Projects table
 CREATE TABLE IF NOT EXISTS projects (
   id SERIAL PRIMARY KEY,
@@ -296,10 +214,6 @@ CREATE TABLE IF NOT EXISTS projects (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-`;
-
-  // Add Project Resources table
-  sqlScript += `
 -- Project Resources table
 CREATE TABLE IF NOT EXISTS project_resources (
   id SERIAL PRIMARY KEY,
@@ -314,10 +228,6 @@ CREATE TABLE IF NOT EXISTS project_resources (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-`;
-
-  // Add Project Skills table
-  sqlScript += `
 -- Project Skills table
 CREATE TABLE IF NOT EXISTS project_skills (
   id SERIAL PRIMARY KEY,
@@ -329,10 +239,6 @@ CREATE TABLE IF NOT EXISTS project_skills (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-`;
-
-  // Add Project Resource Histories table
-  sqlScript += `
 -- Project Resource Histories table
 CREATE TABLE IF NOT EXISTS project_resource_histories (
   id SERIAL PRIMARY KEY,
@@ -349,10 +255,6 @@ CREATE TABLE IF NOT EXISTS project_resource_histories (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-`;
-
-  // Add Session table
-  sqlScript += `
 -- Session table
 CREATE TABLE IF NOT EXISTS session (
   sid TEXT PRIMARY KEY,
@@ -373,25 +275,10 @@ CREATE INDEX IF NOT EXISTS idx_project_skills_skill_id ON project_skills(skill_i
 CREATE INDEX IF NOT EXISTS idx_skill_approvers_user_id ON skill_approvers(user_id);
 CREATE INDEX IF NOT EXISTS idx_skill_approvers_category_id ON skill_approvers(category_id);
 CREATE INDEX IF NOT EXISTS idx_skill_subcategories_category_id ON skill_subcategories(category_id);
-`;
 
-  // Add super admin user
-  sqlScript += `
 -- Create default super admin user (admin@atyeti.com with password Admin@123)
 -- Password hash is for 'Admin@123' - DO NOT USE IN PRODUCTION without changing
 INSERT INTO users (username, email, password, first_name, last_name, is_admin)
 VALUES ('admin', 'admin@atyeti.com', '60f0ab7d2700d00c650e2c58ae0a16204922647caf98a581afff8f0c080c0c3b4201c856573834ef675535d7e466cbbb2b19fd3ca988b5f6694203ac5a2a5ab4.83b3107d001dbbb297c2d91faf1180ad', 'Super', 'Admin', TRUE)
 ON CONFLICT (email) DO UPDATE
 SET is_admin = TRUE;
-`;
-
-  // Write to file
-  fs.writeFileSync(outputFile, sqlScript);
-  console.log(`SQL schema generated and saved to ${outputFile}`);
-}
-
-// Run the generator
-generateSchema().catch(error => {
-  console.error('Error generating schema:', error);
-  process.exit(1);
-});
