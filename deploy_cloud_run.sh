@@ -144,21 +144,18 @@ gcloud builds submit --config $CLOUDBUILD_CONFIG \
 
 echo "   Image build submitted. Using image: ${LATEST_BUILT_IMAGE}"
 
-# Prompt for Mailjet API credentials
-echo "Enter Mailjet API credentials (press Enter to skip email functionality):"
-read -p "Mailjet API Key: " MAILJET_API_KEY
-read -p "Mailjet Secret Key: " MAILJET_SECRET_KEY
+# Set Mailjet API credentials with default values
+MAILJET_API_KEY=${MAILJET_API_KEY:-"d8bc94d3369fd95bcb6955d762023085"}
+MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY:-"9616b1e2afb7acf970df8c5668f81ee1"}
+
+echo "Using Mailjet credentials:"
+echo "  API Key: ${MAILJET_API_KEY}"
+echo "  Secret Key: ${MAILJET_SECRET_KEY}"
 
 # Build the environment variables string
-ENV_VARS="NODE_ENV=production,HOST=0.0.0.0,DATABASE_URL=${DATABASE_URL_CLOUD_RUN}"
+ENV_VARS="NODE_ENV=production,HOST=0.0.0.0,DATABASE_URL=${DATABASE_URL_CLOUD_RUN},MAILJET_API_KEY=${MAILJET_API_KEY},MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY}"
 
-# Add Mailjet credentials if provided
-if [ -n "$MAILJET_API_KEY" ] && [ -n "$MAILJET_SECRET_KEY" ]; then
-  ENV_VARS="${ENV_VARS},MAILJET_API_KEY=${MAILJET_API_KEY},MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY}"
-  echo "Mailjet credentials will be included in deployment."
-else
-  echo "Mailjet credentials not provided. Email functionality will be limited."
-fi
+echo "Mailjet credentials will be included in deployment."
 
 # Notice about PORT variable
 echo "Note: Not setting PORT environment variable as Cloud Run provides this automatically."
