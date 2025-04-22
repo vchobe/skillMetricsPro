@@ -3,6 +3,10 @@
  * 
  * This script examines the current port configuration in index.js (after build)
  * and ensures it listens on port 8080 and host 0.0.0.0 for Cloud Run compatibility.
+ * 
+ * It also adds CORS headers to ensure frontend can connect properly when the URL changes.
+ * The client API configuration has been updated to use relative URLs in production
+ * which avoids CORS issues even if Cloud Run URLs change between deployments.
  */
 
 const fs = require('fs');
