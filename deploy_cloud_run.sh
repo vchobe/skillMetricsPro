@@ -160,6 +160,10 @@ else
   echo "Mailjet credentials not provided. Email functionality will be limited."
 fi
 
+# Notice about PORT variable
+echo "Note: Not setting PORT environment variable as Cloud Run provides this automatically."
+echo "      The application will detect Cloud Run environment and use port 8080."
+
 # 7. Deploy to Cloud Run (Creates or Updates)
 echo "7. Deploying service '$ORIGINAL_SERVICE_NAME' to Cloud Run..."
 gcloud run deploy $ORIGINAL_SERVICE_NAME \
