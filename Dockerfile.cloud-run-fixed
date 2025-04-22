@@ -2,7 +2,8 @@ FROM node:20-slim
 
 # Set environment variables for better Node.js performance in containers
 ENV NODE_ENV=production
-ENV PORT=8080
+# Do not set PORT here as Cloud Run will set it automatically
+# Our application is configured to use port 8080 in Cloud Run regardless of PORT value
 ENV HOST=0.0.0.0
 
 # Install required system dependencies
@@ -46,18 +47,28 @@ RUN echo '#!/bin/bash' > /usr/src/app/start.sh && \
     echo 'echo "PORT: $PORT"' >> /usr/src/app/start.sh && \
     echo 'echo "NODE_ENV: $NODE_ENV"' >> /usr/src/app/start.sh && \
     echo 'echo "HOST: $HOST"' >> /usr/src/app/start.sh && \
+    echo 'echo "Cloud Run: $(if [ -n \"$K_SERVICE\" ]; then echo Yes; else echo No; fi)"' >> /usr/src/app/start.sh && \
     echo 'echo "DATABASE_URL exists: $(if [ -n \"$DATABASE_URL\" ]; then echo Yes; else echo No; fi)"' >> /usr/src/app/start.sh && \
     echo 'echo "Current directory: $(pwd)"' >> /usr/src/app/start.sh && \
     echo 'echo "Directory contents:"' >> /usr/src/app/start.sh && \
     echo 'ls -la' >> /usr/src/app/start.sh && \
     echo 'echo "Dist directory contents:"' >> /usr/src/app/start.sh && \
     echo 'ls -la dist || echo "No dist directory found"' >> /usr/src/app/start.sh && \
+    echo 'echo "Server directory contents:"' >> /usr/src/app/start.sh && \
+    echo 'ls -la dist/server || echo "No dist/server directory found"' >> /usr/src/app/start.sh && \
     echo 'echo "=================================="' >> /usr/src/app/start.sh && \
     echo '' >> /usr/src/app/start.sh && \
+    echo '# Make sure all required files exist' >> /usr/src/app/start.sh && \
+    echo 'if [ ! -f "dist/index.js" ]; then' >> /usr/src/app/start.sh && \
+    echo '  echo "Error: dist/index.js not found! Contents of dist:"' >> /usr/src/app/start.sh && \
+    echo '  find dist -type f | sort' >> /usr/src/app/start.sh && \
+    echo '  exit 1' >> /usr/src/app/start.sh && \
+    echo 'fi' >> /usr/src/app/start.sh && \
+    echo '' >> /usr/src/app/start.sh && \
     echo '# Start the server with explicit host' >> /usr/src/app/start.sh && \
-    echo 'echo "Starting server on $HOST:$PORT"' >> /usr/src/app/start.sh && \
+    echo 'echo "Starting server on $HOST:$PORT (Cloud Run environment: $(if [ -n \"$K_SERVICE\" ]; then echo Yes; else echo No; fi))"' >> /usr/src/app/start.sh && \
     echo '# PORT is set automatically by Cloud Run' >> /usr/src/app/start.sh && \
-    echo 'export HOST="${HOST:-0.0.0.0}"' >> /usr/src/app/start.sh && 
+    echo 'export HOST="${HOST:-0.0.0.0}"' >> /usr/src/app/start.sh && \
     echo 'node dist/index.js' >> /usr/src/app/start.sh
 
 # Make startup script executable
