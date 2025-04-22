@@ -161,6 +161,14 @@ echo "Mailjet credentials will be included in deployment."
 echo "Note: Not setting PORT environment variable as Cloud Run provides this automatically."
 echo "      The application will detect Cloud Run environment and use port 8080."
 
+# Remind about updates to client API configuration
+echo ""
+echo "CORS CONFIGURATION:"
+echo "The client API configuration has been updated to use relative URLs in production environments."
+echo "This will avoid CORS issues even if the Cloud Run URL changes between deployments."
+echo "All URLs like http://localhost:5000/api/resource will be changed to /api/resource in Cloud Run."
+echo ""
+
 # 7. Deploy to Cloud Run (Creates or Updates)
 echo "7. Deploying service '$ORIGINAL_SERVICE_NAME' to Cloud Run..."
 gcloud run deploy $ORIGINAL_SERVICE_NAME \
