@@ -72,9 +72,32 @@ if [ ! -f ./cloud_sql_proxy ]; then
   chmod +x ./cloud_sql_proxy
 fi
 
+# Check for GCP credentials
+if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ ! -f "service-account-key.json" ]; then
+  echo "Warning: No GCP credentials found."
+  echo "Either set GOOGLE_APPLICATION_CREDENTIALS environment variable"
+  echo "or place service-account-key.json in the current directory."
+  read -p "Continue anyway? (y/n): " CONTINUE_WITHOUT_CREDS
+  if [ "$CONTINUE_WITHOUT_CREDS" != "y" ] && [ "$CONTINUE_WITHOUT_CREDS" != "Y" ]; then
+    echo "Import cancelled."
+    exit 1
+  fi
+fi
+
+# Set credentials if file exists but env var not set
+if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ -f "service-account-key.json" ]; then
+  export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/service-account-key.json"
+  echo "Using service account key from service-account-key.json"
+fi
+
 # Start Cloud SQL Auth Proxy using TCP port
 echo "Starting Cloud SQL Auth Proxy..."
-./cloud_sql_proxy --port=5432 $SQL_INSTANCE_CONNECTION_NAME &
+if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+  ./cloud_sql_proxy --port=5432 --credentials-file="$GOOGLE_APPLICATION_CREDENTIALS" $SQL_INSTANCE_CONNECTION_NAME &
+else
+  # Try without explicit credentials (relies on default application credentials)
+  ./cloud_sql_proxy --port=5432 $SQL_INSTANCE_CONNECTION_NAME &
+fi
 PROXY_PID=$!
 
 # Give proxy time to establish connection

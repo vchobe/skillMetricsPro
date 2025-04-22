@@ -3,11 +3,23 @@
  * 
  * This script sets up the database schema and initial data for Cloud SQL
  * using a direct TCP connection instead of Unix sockets.
+ * 
+ * Usage:
+ *   1. Connect directly to Cloud SQL: 
+ *      DB_HOST=35.123.45.67 DB_USER=app_user DB_PASSWORD=yourpw DB_NAME=appdb node setup-cloud-database.js
+ *   
+ *   2. Connect via Cloud SQL Auth Proxy on localhost:
+ *      DB_USER=app_user DB_PASSWORD=yourpw DB_NAME=appdb node setup-cloud-database.js
  */
 import pkg from 'pg';
 const { Pool } = pkg;
 import crypto from 'crypto';
 import fs from 'fs';
+import path from 'path';
+
+// Print script information
+console.log('Cloud SQL Database Setup Script');
+console.log('===============================');
 
 // Helper function for password hashing
 async function hashPassword(password) {
@@ -21,13 +33,23 @@ async function hashPassword(password) {
 }
 
 async function setupDatabase() {
+  console.log('Starting database setup...');
+
   // Get database connection details from environment
   // Use direct TCP connection format for Cloud SQL
   const DB_USER = process.env.DB_USER || 'app_user';
   const DB_PASS = process.env.DB_PASSWORD;
   const DB_NAME = process.env.DB_NAME || 'appdb';
-  const DB_HOST = process.env.DB_HOST; // e.g., "34.71.12.34" (public IP of your Cloud SQL instance)
+  const DB_HOST = process.env.DB_HOST || 'localhost'; // Use localhost if not specified (for Cloud SQL Proxy)
   const DB_PORT = process.env.DB_PORT || 5432;
+  
+  // Check if password was provided
+  if (!DB_PASS) {
+    console.error('Error: DB_PASSWORD environment variable is required');
+    process.exit(1);
+  }
+  
+  console.log(`Connecting to database at ${DB_HOST}:${DB_PORT} as ${DB_USER}...`);
 
   // Check if required environment variables are set
   if (!DB_PASS) {
@@ -35,20 +57,30 @@ async function setupDatabase() {
     process.exit(1);
   }
 
-  if (!DB_HOST) {
-    console.error('Error: DB_HOST environment variable must be set. This should be the public IP of your Cloud SQL instance.');
-    process.exit(1);
-  }
-
-  // Create PostgreSQL connection string
-  // Format: postgresql://user:password@host:port/database
-  const connectionString = `postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
-  console.log(`Connecting to database: postgresql://${DB_USER}:***@${DB_HOST}:${DB_PORT}/${DB_NAME}`);
-
+  // Determine if we're using socket connection for Cloud Run or standard connection
+  const INSTANCE_CONNECTION_NAME = process.env.INSTANCE_CONNECTION_NAME; // Format: project:region:instance
+  const useSocketConnection = process.env.USE_SOCKET_CONNECTION === 'true' && INSTANCE_CONNECTION_NAME;
+  
   let pool;
+  
   try {
-    // Create connection pool
-    pool = new Pool({ connectionString });
+    if (useSocketConnection) {
+      // Unix socket connection for Cloud SQL in Cloud Run environment
+      console.log(`Using Cloud SQL socket connection to: ${INSTANCE_CONNECTION_NAME}`);
+      pool = new Pool({
+        user: DB_USER,
+        password: DB_PASS,
+        database: DB_NAME,
+        host: `/cloudsql/${INSTANCE_CONNECTION_NAME}`,
+        ssl: false, // SSL is not used with Unix socket
+      });
+      console.log(`Connecting via socket to: /cloudsql/${INSTANCE_CONNECTION_NAME}`);
+    } else {
+      // TCP connection (either direct or via Cloud SQL Auth Proxy)
+      const connectionString = `postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
+      console.log(`Connecting to database: postgresql://${DB_USER}:***@${DB_HOST}:${DB_PORT}/${DB_NAME}`);
+      pool = new Pool({ connectionString });
+    }
     
     // Test connection
     const client = await pool.connect();
