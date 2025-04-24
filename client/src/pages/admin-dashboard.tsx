@@ -3431,6 +3431,59 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
+            <TabsContent value="reports">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
+                <div className="grid gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Weekly Resource Reports</CardTitle>
+                      <CardDescription>
+                        Generate and send weekly reports of project resource allocations to the sales team.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          <h4 className="text-sm font-medium mb-2">Report Details</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-gray-600 mb-1">Recipient:</p>
+                              <p className="text-sm font-medium">{process.env.SALES_TEAM_EMAIL || "Sales Team"}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600 mb-1">Schedule:</p>
+                              <p className="text-sm font-medium">Every Monday at 9:00 AM</p>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <p className="text-sm text-gray-600 mb-1">Content:</p>
+                            <p className="text-sm">Summary of resources added to projects in the last week, including links to user profiles and project pages.</p>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">Manual Generation</h4>
+                          <p className="text-sm text-gray-600 mb-4">
+                            You can manually generate and send a weekly resource report at any time.
+                          </p>
+                          
+                          <SendReportButton />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </motion.div>
+            </TabsContent>
+            
             <TabsContent value="user-management">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
