@@ -32,13 +32,15 @@ if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
 }
 
 /**
- * Generates and sends the weekly project resource report to the sales team
+ * Generates and sends the weekly project resource report
+ * @param reportSettingId Optional report setting ID to use custom configuration
+ * @param clientId Optional client ID to filter resources
  */
-export async function generateAndSendWeeklyReport(): Promise<boolean> {
+export async function generateAndSendWeeklyReport(reportSettingId?: number): Promise<boolean> {
   try {
     console.log("Generating weekly project resource report...");
     
-    // Calculate the reporting period (previous 7 days)
+    // Get current date/time
     const now = new Date();
     const oneWeekAgo = new Date(now);
     oneWeekAgo.setDate(now.getDate() - 7);
@@ -49,8 +51,49 @@ export async function generateAndSendWeeklyReport(): Promise<boolean> {
     const formattedEndDate = formatDate(now);
     const reportPeriod = `${formattedStartDate} to ${formattedEndDate}`;
     
-    // Query for resources added in the last week
-    const resourcesQuery = `
+    // Get the report settings if an ID was provided
+    let recipient = SALES_TEAM_EMAIL;
+    let clientFilter: number | null = null;
+    let baseUrl = APP_BASE_URL;
+    let reportName = "Weekly Project Resource Report";
+    
+    if (reportSettingId) {
+      try {
+        const result = await pool.query(
+          'SELECT * FROM report_settings WHERE id = $1',
+          [reportSettingId]
+        );
+        
+        if (result.rows.length > 0) {
+          const reportSetting = result.rows[0];
+          recipient = reportSetting.recipient_email;
+          clientFilter = reportSetting.client_id; // This can be null (all clients)
+          reportName = reportSetting.name || reportName;
+          
+          // Use custom baseUrl if provided
+          if (reportSetting.base_url) {
+            baseUrl = reportSetting.base_url.trim();
+            // Ensure baseUrl has proper format with protocol
+            if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+              baseUrl = 'https://' + baseUrl;
+            }
+          }
+          
+          console.log(`Using custom report settings (ID: ${reportSettingId}):`, {
+            reportName,
+            recipient,
+            clientFilter: clientFilter ? `Client ID: ${clientFilter}` : 'All Clients',
+            baseUrl
+          });
+        }
+      } catch (err) {
+        console.error(`Error fetching report settings (ID: ${reportSettingId}):`, err);
+        // Continue with default settings
+      }
+    }
+    
+    // Add client filter to query if specified
+    let resourcesQuery = `
       SELECT 
         pr.id, 
         pr.project_id AS "projectId", 
@@ -71,11 +114,19 @@ export async function generateAndSendWeeklyReport(): Promise<boolean> {
         users u ON pr.user_id = u.id
       WHERE 
         pr.created_at >= $1
-      ORDER BY 
-        pr.created_at DESC
     `;
     
-    const resourcesResult = await pool.query(resourcesQuery, [oneWeekAgo.toISOString()]);
+    const queryParams = [oneWeekAgo.toISOString()];
+    
+    // Add client filter if specified
+    if (clientFilter !== null) {
+      resourcesQuery += ` AND p.client_id = $2`;
+      queryParams.push(clientFilter);
+    }
+    
+    resourcesQuery += ` ORDER BY pr.created_at DESC`;
+    
+    const resourcesResult = await pool.query(resourcesQuery, queryParams);
     const resourcesAdded = resourcesResult.rows.map(row => ({
       ...row,
       startDate: row.startDate ? formatDate(row.startDate) : null,
@@ -83,15 +134,15 @@ export async function generateAndSendWeeklyReport(): Promise<boolean> {
       addedAt: formatDate(row.addedAt)
     }));
     
-    // Generate links to projects and users
+    // Generate links to projects and users with custom or default baseUrl
     const projectLinks = resourcesAdded.map(resource => ({
       projectId: resource.projectId,
-      projectLink: `${APP_BASE_URL}/projects/${resource.projectId}`
+      projectLink: `${baseUrl}/projects/${resource.projectId}`
     }));
     
     const userLinks = resourcesAdded.map(resource => ({
       userId: resource.userId,
-      userLink: `${APP_BASE_URL}/users/${resource.userId}`
+      userLink: `${baseUrl}/users/${resource.userId}`
     }));
     
     // Generate email content
@@ -106,9 +157,15 @@ export async function generateAndSendWeeklyReport(): Promise<boolean> {
     // Skip sending email if Mailjet is not configured
     if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
       console.log('Mailjet not configured. Logging weekly report details instead...');
-      console.log(`Weekly Project Resource Report for ${reportPeriod}`);
+      console.log(`${reportName} for ${reportPeriod}`);
       console.log(`Resources added in the last week: ${resourcesAdded.length}`);
-      console.log(`Would have sent email to: ${SALES_TEAM_EMAIL}`);
+      console.log(`Would have sent email to: ${recipient}`);
+      return true;
+    }
+    
+    // Skip sending if no resources were found
+    if (resourcesAdded.length === 0) {
+      console.log('No resources added during this period. Skipping email.');
       return true;
     }
     
@@ -125,8 +182,8 @@ export async function generateAndSendWeeklyReport(): Promise<boolean> {
               },
               To: [
                 {
-                  Email: SALES_TEAM_EMAIL,
-                  Name: "Sales Team"
+                  Email: recipient,
+                  Name: "Resource Report Recipient"
                 }
               ],
               Subject: subject,
@@ -136,8 +193,21 @@ export async function generateAndSendWeeklyReport(): Promise<boolean> {
           ]
         });
       
-      console.log(`Weekly project resource report sent to Sales Team (${SALES_TEAM_EMAIL})`);
+      console.log(`${reportName} sent to ${recipient}`);
       console.log(`Report period: ${reportPeriod}, Resources included: ${resourcesAdded.length}`);
+      
+      // Update last sent timestamp for this report setting
+      if (reportSettingId) {
+        try {
+          await pool.query(
+            'UPDATE report_settings SET last_sent_at = $1, updated_at = $1 WHERE id = $2',
+            [now.toISOString(), reportSettingId]
+          );
+        } catch (err) {
+          console.error(`Error updating last_sent_at for report setting ${reportSettingId}:`, err);
+        }
+      }
+      
       return true;
     } catch (sendError: any) {
       console.error('Error sending weekly report email:', sendError?.message || sendError);
@@ -154,16 +224,16 @@ export async function generateAndSendWeeklyReport(): Promise<boolean> {
 /**
  * Force-generate and send a weekly report immediately (for testing or manual triggers)
  */
-export async function sendImmediateWeeklyReport(): Promise<boolean> {
+export async function sendImmediateWeeklyReport(reportSettingId?: number): Promise<boolean> {
   console.log("Manually triggering weekly project resource report...");
-  return await generateAndSendWeeklyReport();
+  return await generateAndSendWeeklyReport(reportSettingId);
 }
 
-// Schedule the weekly report to run every Monday at 9:00 AM
+// Schedule the report system for all active report settings
 export function scheduleWeeklyReport() {
-  console.log("Setting up weekly project resource report scheduler...");
+  console.log("Setting up project resource report scheduler...");
   
-  // Calculate the next run time (next Monday at 9:00 AM)
+  // Calculate the next run time (default: next Monday at 9:00 AM)
   const now = new Date();
   const nextMonday = new Date(now);
   nextMonday.setDate(now.getDate() + ((7 - now.getDay() + 1) % 7 || 7)); // Get next Monday
@@ -179,13 +249,110 @@ export function scheduleWeeklyReport() {
   
   console.log(`Next weekly report scheduled for: ${nextMonday.toLocaleString()}`);
   
-  // First schedule
+  // Check for customized report settings
+  checkAndScheduleCustomReports();
+  
+  // Schedule the default report
   setTimeout(() => {
     generateAndSendWeeklyReport();
     
     // Then schedule to run every 7 days
     setInterval(generateAndSendWeeklyReport, 7 * 24 * 60 * 60 * 1000);
   }, timeUntilNextRun);
+}
+
+// Check for custom report settings and schedule them
+async function checkAndScheduleCustomReports() {
+  try {
+    // Get all active report settings
+    const result = await pool.query(
+      'SELECT * FROM report_settings WHERE active = true'
+    );
+    
+    const reportSettings = result.rows;
+    console.log(`Found ${reportSettings.length} active report settings to schedule`);
+    
+    // Schedule each report according to its frequency
+    for (const report of reportSettings) {
+      try {
+        scheduleCustomReport(report);
+      } catch (err) {
+        console.error(`Error scheduling report ${report.id} (${report.name}):`, err);
+      }
+    }
+  } catch (err) {
+    console.error('Error checking for custom report settings:', err);
+  }
+}
+
+// Schedule a specific report based on its settings
+function scheduleCustomReport(report: any) {
+  const { id, name, frequency, day_of_week, day_of_month } = report;
+  const now = new Date();
+  let nextRunDate = new Date(now);
+  
+  try {
+    // Calculate the next run time based on frequency
+    if (frequency === 'daily') {
+      // Daily: Run at 9:00 AM every day
+      nextRunDate.setDate(now.getDate() + (nextRunDate.getHours() >= 9 ? 1 : 0));
+      nextRunDate.setHours(9, 0, 0, 0);
+    } else if (frequency === 'weekly') {
+      // Weekly: Run on specified day of week (0=Sunday, 1=Monday, ...) at 9:00 AM
+      const dayOfWeek = day_of_week !== null ? day_of_week : 1; // Default to Monday
+      const daysUntilNextRun = (7 + dayOfWeek - now.getDay()) % 7;
+      nextRunDate.setDate(now.getDate() + (daysUntilNextRun === 0 && now.getHours() >= 9 ? 7 : daysUntilNextRun));
+      nextRunDate.setHours(9, 0, 0, 0);
+    } else if (frequency === 'monthly') {
+      // Monthly: Run on specified day of month at 9:00 AM
+      const dayOfMonth = day_of_month !== null ? day_of_month : 1; // Default to 1st day
+      
+      // Set to the requested day of the current month
+      nextRunDate.setDate(dayOfMonth);
+      nextRunDate.setHours(9, 0, 0, 0);
+      
+      // If that day has already passed this month, move to next month
+      if (nextRunDate <= now) {
+        nextRunDate.setMonth(nextRunDate.getMonth() + 1);
+      }
+    }
+    
+    const timeUntilNextRun = nextRunDate.getTime() - now.getTime();
+    
+    console.log(`Scheduled custom report ${id} (${name}): ${frequency}, next run at ${nextRunDate.toLocaleString()}`);
+    
+    // Update next_scheduled_at in the database
+    pool.query(
+      'UPDATE report_settings SET next_scheduled_at = $1, updated_at = NOW() WHERE id = $2',
+      [nextRunDate.toISOString(), id]
+    ).catch(err => {
+      console.error(`Error updating next_scheduled_at for report ${id}:`, err);
+    });
+    
+    // Schedule the report execution
+    setTimeout(() => {
+      console.log(`Executing scheduled report ${id} (${name})`);
+      generateAndSendWeeklyReport(id)
+        .then(success => {
+          if (success) {
+            console.log(`Successfully sent report ${id} (${name})`);
+          } else {
+            console.error(`Failed to send report ${id} (${name})`);
+          }
+          
+          // Reschedule the report for its next run
+          scheduleCustomReport(report);
+        })
+        .catch(err => {
+          console.error(`Error sending report ${id} (${name}):`, err);
+          // Reschedule anyway
+          scheduleCustomReport(report);
+        });
+    }, timeUntilNextRun);
+    
+  } catch (err) {
+    console.error(`Error in scheduling custom report ${id} (${name}):`, err);
+  }
 }
 
 /**
