@@ -3,14 +3,20 @@ import {
   getResourceAddedEmailContent,
   getResourceRemovedEmailContent,
   getProjectCreatedEmailContent,
-  getProjectUpdatedEmailContent
+  getProjectUpdatedEmailContent,
+  getWeeklyResourceReportEmailContent
 } from './email-templates';
 import Mailjet from 'node-mailjet';
 import { formatDate } from '../client/src/lib/date-utils';
+import { pool } from './db';
 
-// Email addresses for HR and Finance
+// Email addresses for HR, Finance, and Sales teams
 const HR_COORDINATOR_EMAIL = process.env.HR_COORDINATOR_EMAIL || 'hr@skillsplatform.com';
 const FINANCE_EXECUTIVE_EMAIL = process.env.FINANCE_EXECUTIVE_EMAIL || 'finance@skillsplatform.com';
+const SALES_TEAM_EMAIL = process.env.SALES_TEAM_EMAIL || 'sales@skillsplatform.com';
+
+// Base URL for application links (adjust as needed for production)
+const APP_BASE_URL = process.env.APP_BASE_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
 
 // Initialize Mailjet client
 const mailjet = new Mailjet({
@@ -23,6 +29,163 @@ if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
   console.warn('Missing Mailjet configuration. Email functionality will be limited.');
 } else {
   console.log('Mailjet configuration found. Email service is ready.');
+}
+
+/**
+ * Generates and sends the weekly project resource report to the sales team
+ */
+export async function generateAndSendWeeklyReport(): Promise<boolean> {
+  try {
+    console.log("Generating weekly project resource report...");
+    
+    // Calculate the reporting period (previous 7 days)
+    const now = new Date();
+    const oneWeekAgo = new Date(now);
+    oneWeekAgo.setDate(now.getDate() - 7);
+    
+    // Format dates for display
+    const formattedReportDate = formatDate(now);
+    const formattedStartDate = formatDate(oneWeekAgo);
+    const formattedEndDate = formatDate(now);
+    const reportPeriod = `${formattedStartDate} to ${formattedEndDate}`;
+    
+    // Query for resources added in the last week
+    const resourcesQuery = `
+      SELECT 
+        pr.id, 
+        pr.project_id AS "projectId", 
+        p.name AS "projectName",
+        pr.user_id AS "userId", 
+        u.username,
+        u.email AS "userEmail",
+        pr.role,
+        pr.allocation,
+        pr.start_date AS "startDate",
+        pr.end_date AS "endDate",
+        pr.created_at AS "addedAt"
+      FROM 
+        project_resources pr
+      JOIN 
+        projects p ON pr.project_id = p.id
+      JOIN 
+        users u ON pr.user_id = u.id
+      WHERE 
+        pr.created_at >= $1
+      ORDER BY 
+        pr.created_at DESC
+    `;
+    
+    const resourcesResult = await pool.query(resourcesQuery, [oneWeekAgo.toISOString()]);
+    const resourcesAdded = resourcesResult.rows.map(row => ({
+      ...row,
+      startDate: row.startDate ? formatDate(row.startDate) : null,
+      endDate: row.endDate ? formatDate(row.endDate) : null,
+      addedAt: formatDate(row.addedAt)
+    }));
+    
+    // Generate links to projects and users
+    const projectLinks = resourcesAdded.map(resource => ({
+      projectId: resource.projectId,
+      projectLink: `${APP_BASE_URL}/projects/${resource.projectId}`
+    }));
+    
+    const userLinks = resourcesAdded.map(resource => ({
+      userId: resource.userId,
+      userLink: `${APP_BASE_URL}/users/${resource.userId}`
+    }));
+    
+    // Generate email content
+    const { text, html, subject } = getWeeklyResourceReportEmailContent(
+      formattedReportDate,
+      reportPeriod,
+      resourcesAdded,
+      projectLinks,
+      userLinks
+    );
+    
+    // Skip sending email if Mailjet is not configured
+    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+      console.log('Mailjet not configured. Logging weekly report details instead...');
+      console.log(`Weekly Project Resource Report for ${reportPeriod}`);
+      console.log(`Resources added in the last week: ${resourcesAdded.length}`);
+      console.log(`Would have sent email to: ${SALES_TEAM_EMAIL}`);
+      return true;
+    }
+    
+    // Send the report via email
+    try {
+      await mailjet
+        .post('send', { version: 'v3.1' })
+        .request({
+          Messages: [
+            {
+              From: {
+                Email: "vinayak.chobe@atyeti.com",
+                Name: "Employee Skill Metrics"
+              },
+              To: [
+                {
+                  Email: SALES_TEAM_EMAIL,
+                  Name: "Sales Team"
+                }
+              ],
+              Subject: subject,
+              TextPart: text,
+              HTMLPart: html
+            }
+          ]
+        });
+      
+      console.log(`Weekly project resource report sent to Sales Team (${SALES_TEAM_EMAIL})`);
+      console.log(`Report period: ${reportPeriod}, Resources included: ${resourcesAdded.length}`);
+      return true;
+    } catch (sendError: any) {
+      console.error('Error sending weekly report email:', sendError?.message || sendError);
+      console.log(`Fallback - Weekly Project Resource Report for ${reportPeriod}`);
+      console.log(`Resources added in the last week: ${resourcesAdded.length}`);
+      return false;
+    }
+  } catch (error: any) {
+    console.error('Error in weekly report generation:', error?.message || error);
+    return false;
+  }
+}
+
+/**
+ * Force-generate and send a weekly report immediately (for testing or manual triggers)
+ */
+export async function sendImmediateWeeklyReport(): Promise<boolean> {
+  console.log("Manually triggering weekly project resource report...");
+  return await generateAndSendWeeklyReport();
+}
+
+// Schedule the weekly report to run every Monday at 9:00 AM
+export function scheduleWeeklyReport() {
+  console.log("Setting up weekly project resource report scheduler...");
+  
+  // Calculate the next run time (next Monday at 9:00 AM)
+  const now = new Date();
+  const nextMonday = new Date(now);
+  nextMonday.setDate(now.getDate() + ((7 - now.getDay() + 1) % 7 || 7)); // Get next Monday
+  nextMonday.setHours(9, 0, 0, 0); // Set to 9:00 AM
+  
+  // If the calculated time is in the past (meaning we're checking on Monday after 9 AM),
+  // add 7 days to get next Monday
+  if (nextMonday <= now) {
+    nextMonday.setDate(nextMonday.getDate() + 7);
+  }
+  
+  const timeUntilNextRun = nextMonday.getTime() - now.getTime();
+  
+  console.log(`Next weekly report scheduled for: ${nextMonday.toLocaleString()}`);
+  
+  // First schedule
+  setTimeout(() => {
+    generateAndSendWeeklyReport();
+    
+    // Then schedule to run every 7 days
+    setInterval(generateAndSendWeeklyReport, 7 * 24 * 60 * 60 * 1000);
+  }, timeUntilNextRun);
 }
 
 /**

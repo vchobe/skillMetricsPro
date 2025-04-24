@@ -1,3 +1,151 @@
+export function getWeeklyResourceReportEmailContent(
+  reportDate: string,
+  reportPeriod: string,
+  resourcesAdded: Array<{
+    projectName: string,
+    projectId: number,
+    username: string,
+    userId: number,
+    userEmail: string,
+    role: string,
+    startDate: string | null,
+    endDate: string | null,
+    allocation: number | null,
+    addedAt: string
+  }>,
+  projectLinks: Array<{
+    projectId: number,
+    projectLink: string
+  }>,
+  userLinks: Array<{
+    userId: number,
+    userLink: string
+  }>
+) {
+  // Format the resources data into HTML and text
+  let resourcesHtml = '';
+  let resourcesText = '';
+
+  if (resourcesAdded.length === 0) {
+    resourcesHtml = '<p style="font-style: italic;">No new resources were added to any projects during this period.</p>';
+    resourcesText = 'No new resources were added to any projects during this period.\n';
+  } else {
+    // Group resources by project for better readability
+    const projectGroups: { [key: string]: typeof resourcesAdded } = {};
+    
+    resourcesAdded.forEach(resource => {
+      if (!projectGroups[resource.projectName]) {
+        projectGroups[resource.projectName] = [];
+      }
+      projectGroups[resource.projectName].push(resource);
+    });
+
+    resourcesHtml = '<div>';
+    resourcesText = '';
+
+    // Generate report for each project
+    Object.entries(projectGroups).forEach(([projectName, resources]) => {
+      const firstResource = resources[0];
+      const projectLink = projectLinks.find(p => p.projectId === firstResource.projectId)?.projectLink || '#';
+      
+      resourcesHtml += `
+        <div style="margin-bottom: 25px;">
+          <h3 style="color: #4f46e5; margin-bottom: 10px;">
+            <a href="${projectLink}" style="color: #4f46e5; text-decoration: underline;">
+              Project: ${projectName}
+            </a>
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+            <thead>
+              <tr style="background-color: #f3f4f6;">
+                <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Resource</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Role</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Allocation</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Timeline</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Added On</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      resourcesText += `\nProject: ${projectName}\n`;
+      resourcesText += `${'-'.repeat(projectName.length + 9)}\n`;
+
+      resources.forEach(resource => {
+        const userLink = userLinks.find(u => u.userId === resource.userId)?.userLink || '#';
+        const dateRange = resource.startDate && resource.endDate 
+          ? `${resource.startDate} to ${resource.endDate}` 
+          : resource.startDate
+            ? `From ${resource.startDate}`
+            : 'No dates specified';
+        
+        resourcesHtml += `
+          <tr>
+            <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">
+              <a href="${userLink}" style="color: #4f46e5; text-decoration: underline;">
+                ${resource.username}
+              </a>
+              <div style="font-size: 0.85em; color: #666;">${resource.userEmail}</div>
+            </td>
+            <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">${resource.role || 'Not specified'}</td>
+            <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">${resource.allocation ? resource.allocation + '%' : 'Not specified'}</td>
+            <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">${dateRange}</td>
+            <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">${resource.addedAt}</td>
+          </tr>
+        `;
+
+        resourcesText += `* ${resource.username} (${resource.userEmail})\n`;
+        resourcesText += `  Role: ${resource.role || 'Not specified'}\n`;
+        resourcesText += `  Allocation: ${resource.allocation ? resource.allocation + '%' : 'Not specified'}\n`;
+        resourcesText += `  Timeline: ${dateRange}\n`;
+        resourcesText += `  Added On: ${resource.addedAt}\n\n`;
+      });
+
+      resourcesHtml += `
+            </tbody>
+          </table>
+        </div>
+      `;
+    });
+
+    resourcesHtml += '</div>';
+  }
+
+  // Complete email text version
+  const text = `
+Weekly Project Resource Allocation Report
+${'-'.repeat(38)}
+Report Date: ${reportDate}
+Reporting Period: ${reportPeriod}
+
+${resourcesText}
+
+This is an automated weekly report from the Employee Skill Metrics system.
+  `;
+
+  // Complete email HTML version
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+      <h2 style="color: #4f46e5;">Weekly Project Resource Allocation Report</h2>
+      <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Report Date:</strong> ${reportDate}</p>
+        <p style="margin: 5px 0;"><strong>Reporting Period:</strong> ${reportPeriod}</p>
+      </div>
+      
+      <h3 style="margin-top: 25px; color: #333;">Resources Added This Week</h3>
+      ${resourcesHtml}
+      
+      <p style="margin-top: 30px; color: #666; font-style: italic;">This is an automated weekly report from the Employee Skill Metrics system.</p>
+    </div>
+  `;
+
+  return { 
+    text, 
+    html, 
+    subject: `Weekly Project Resource Report (${reportPeriod})` 
+  };
+}
+
 export function getPasswordResetEmailContent(
   username: string,
   temporaryPassword: string
