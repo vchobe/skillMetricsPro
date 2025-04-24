@@ -344,6 +344,8 @@ const baseInsertPendingSkillUpdateSchema = createInsertSchema(pendingSkillUpdate
   skillId: true,
   name: true,
   category: true,
+  categoryId: true,
+  subcategoryId: true,
   level: true,
   certification: true,
   credlyLink: true,
@@ -358,6 +360,8 @@ export const insertPendingSkillUpdateSchema = baseInsertPendingSkillUpdateSchema
   // Add snake_case aliases for compatibility
   skill_id: z.number().optional(),
   user_id: z.number().optional(),
+  category_id: z.number().optional(),
+  subcategory_id: z.number().optional(),
   is_update: z.boolean().optional(),
   credly_link: z.string().optional(),
   certification_date: z.date().optional(),
@@ -373,6 +377,14 @@ export const insertPendingSkillUpdateSchema = baseInsertPendingSkillUpdateSchema
   
   if (data.user_id !== undefined && data.userId === undefined) {
     result.userId = data.user_id;
+  }
+  
+  if (data.category_id !== undefined && data.categoryId === undefined) {
+    result.categoryId = data.category_id;
+  }
+  
+  if (data.subcategory_id !== undefined && data.subcategoryId === undefined) {
+    result.subcategoryId = data.subcategory_id;
   }
   
   if (data.is_update !== undefined && data.isUpdate === undefined) {
@@ -394,6 +406,8 @@ export const insertPendingSkillUpdateSchema = baseInsertPendingSkillUpdateSchema
   // Remove snake_case duplicates that we've copied to camelCase
   delete result.skill_id;
   delete result.user_id;
+  delete result.category_id;
+  delete result.subcategory_id;
   delete result.is_update;
   delete result.credly_link;
   delete result.certification_date;
