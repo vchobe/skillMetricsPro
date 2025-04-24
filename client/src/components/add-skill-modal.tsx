@@ -374,69 +374,13 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Skill Templates - only shown when adding a new skill */}
+              {/* Create Skill section - only shown when adding a new skill */}
               {!skillId && (
                 <div className="mb-6">
-                  <h3 className="text-base font-medium mb-2">Select from Template</h3>
+                  <h3 className="text-base font-medium mb-2">Create Skill</h3>
                   <p className="text-sm text-gray-500 mb-3">
-                    Choose a recommended skill template or create your own
+                    Add a new skill to your profile by filling in the details below
                   </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
-                    {skillTemplates.map((template: SkillTemplate) => (
-                      <div 
-                        key={template.id}
-                        className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                        onClick={() => {
-                          // Pre-fill form with template values
-                          form.setValue('name', template.name);
-                          form.setValue('category', template.category || '');
-                          if (template.targetLevel) {
-                            form.setValue('level', 
-                              (template.targetLevel as "beginner" | "intermediate" | "expert") || 'beginner');
-                          }
-                          form.setValue('notes', template.description || '');
-                          
-                          // Show toast
-                          toast({
-                            title: "Template Applied",
-                            description: `Applied "${template.name}" template to this skill`
-                          });
-                        }}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="font-medium">{template.name}</span>
-                            <p className="text-xs text-gray-500">{template.category}</p>
-                          </div>
-                          {template.isRecommended && (
-                            <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                              Recommended
-                            </div>
-                          )}
-                        </div>
-                        {template.description && (
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{template.description}</p>
-                        )}
-                        {template.targetLevel && (
-                          <div className="mt-2 flex items-center">
-                            <span className="text-xs text-gray-500 mr-2">Target Level:</span>
-                            <div className={`text-xs rounded-full px-2 py-0.5 font-medium ${
-                              template.targetLevel === 'beginner' ? 'bg-blue-100 text-blue-800' :
-                              template.targetLevel === 'intermediate' ? 'bg-yellow-100 text-yellow-800' : 
-                              'bg-purple-100 text-purple-800'
-                            }`}>
-                              {template.targetLevel.charAt(0).toUpperCase() + template.targetLevel.slice(1)}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="border-t my-4 pt-4">
-                    <p className="text-sm font-medium">Or create your own skill below</p>
-                  </div>
                 </div>
               )}
             
