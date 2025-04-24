@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -12,11 +12,10 @@ import { queryClient } from "@/lib/queryClient";
 // Template form schema
 const templateSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  category: z.string().min(1, "Category is required"),
+  categoryId: z.number().int().positive("Category is required"),
+  subcategoryId: z.number().int().positive().optional(),
   description: z.string().optional(),
   isRecommended: z.boolean().default(false),
-  targetLevel: z.string().optional(),
-  targetDate: z.string().optional(),
 });
 
 // Target form schema
@@ -165,11 +164,10 @@ export default function AdminDashboard() {
     resolver: zodResolver(templateSchema),
     defaultValues: {
       name: "",
-      category: "",
+      categoryId: undefined as any, // Will be set when a category is selected
+      subcategoryId: undefined as any, // Will be set when a subcategory is selected
       description: "",
-      isRecommended: false,
-      targetLevel: undefined,
-      targetDate: undefined
+      isRecommended: false
     }
   });
   
@@ -2553,11 +2551,10 @@ export default function AdminDashboard() {
                             // Handle saving the skill
                             const skillData = {
                               name: editingTemplate?.name || '',
-                              category: editingTemplate?.category || '',
+                              categoryId: editingTemplate?.categoryId,
+                              subcategoryId: editingTemplate?.subcategoryId,
                               description: editingTemplate?.description || '',
                               isRecommended: editingTemplate?.isRecommended || false,
-                              targetLevel: editingTemplate?.targetLevel,
-                              targetDate: editingTemplate?.targetDate,
                             };
                             
                             // Check if editing existing skill or creating new
