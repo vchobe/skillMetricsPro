@@ -18,7 +18,9 @@ import {
   insertSkillCategorySchema,
   insertSkillApproverSchema,
   SkillCategory,
-  SkillApprover
+  SkillApprover,
+  insertReportSettingsSchema,
+  ReportSettings
 } from "@shared/schema";
 
 // Direct database check for admin status
@@ -637,6 +639,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: "Error sending weekly resource report", 
         error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+  
+  // Report Settings API Endpoints
+  
+  // Get all report settings
+  app.get("/api/admin/report-settings", ensureAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getReportSettings();
+      res.status(200).json(settings);
+    } catch (error) {
+      console.error("Error getting report settings:", error);
+      res.status(500).json({ 
+        message: "Failed to get report settings",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Get report setting by ID
+  app.get("/api/admin/report-settings/:id", ensureAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const setting = await storage.getReportSettingById(id);
+      
+      if (!setting) {
+        return res.status(404).json({ message: "Report setting not found" });
+      }
+      
+      res.status(200).json(setting);
+    } catch (error) {
+      console.error("Error getting report setting:", error);
+      res.status(500).json({ 
+        message: "Failed to get report setting",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Get report settings by client ID
+  app.get("/api/admin/report-settings/client/:clientId", ensureAdmin, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.clientId);
+      const settings = await storage.getReportSettingsByClient(clientId);
+      res.status(200).json(settings);
+    } catch (error) {
+      console.error("Error getting client report settings:", error);
+      res.status(500).json({ 
+        message: "Failed to get client report settings",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Create new report setting
+  app.post("/api/admin/report-settings", ensureAdmin, async (req, res) => {
+    try {
+      // Validate request body
+      const validatedData = insertReportSettingsSchema.parse(req.body);
+      
+      const newSetting = await storage.createReportSetting(validatedData);
+      res.status(201).json(newSetting);
+    } catch (error) {
+      console.error("Error creating report setting:", error);
+      
+      if (error.name === "ZodError") {
+        return res.status(400).json({ 
+          message: "Invalid report setting data",
+          errors: error.errors
+        });
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to create report setting",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Update report setting
+  app.patch("/api/admin/report-settings/:id", ensureAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Partial validation of request body
+      const validatedData = insertReportSettingsSchema.partial().parse(req.body);
+      
+      const updatedSetting = await storage.updateReportSetting(id, validatedData);
+      res.status(200).json(updatedSetting);
+    } catch (error) {
+      console.error("Error updating report setting:", error);
+      
+      if (error.name === "ZodError") {
+        return res.status(400).json({ 
+          message: "Invalid report setting data",
+          errors: error.errors
+        });
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to update report setting",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Delete report setting
+  app.delete("/api/admin/report-settings/:id", ensureAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteReportSetting(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Report setting not found" });
+      }
+      
+      res.status(200).json({ 
+        message: "Report setting deleted successfully",
+        deleted: true
+      });
+    } catch (error) {
+      console.error("Error deleting report setting:", error);
+      res.status(500).json({ 
+        message: "Failed to delete report setting",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });

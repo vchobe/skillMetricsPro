@@ -14,7 +14,8 @@ import {
   ProjectResourceHistory, InsertProjectResourceHistory,
   SkillCategory, InsertSkillCategory,
   SkillSubcategory, InsertSkillSubcategory,
-  SkillApprover, InsertSkillApprover
+  SkillApprover, InsertSkillApprover,
+  ReportSettings, InsertReportSettings
 } from "@shared/schema";
 import session from "express-session";
 import { Store } from "express-session";
