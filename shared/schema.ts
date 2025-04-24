@@ -127,6 +127,7 @@ export const skills = pgTable("skills", {
   name: text("name").notNull(),
   category: text("category").notNull(), // Keep this for backward compatibility
   categoryId: integer("category_id").references(() => skillCategories.id), // New reference to categories table
+  subcategoryId: integer("subcategory_id").references(() => skillSubcategories.id), // Reference to subcategories table
   level: skillLevelEnum("level").notNull(),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
   certification: text("certification"),
@@ -141,7 +142,8 @@ export const insertSkillSchema = createInsertSchema(skills).pick({
   userId: true,
   name: true,
   category: true,
-  categoryId: true, // New field for referencing the category
+  categoryId: true, // Field for referencing the category
+  subcategoryId: true, // Field for referencing the subcategory
   level: true,
   certification: true,
   credlyLink: true,
