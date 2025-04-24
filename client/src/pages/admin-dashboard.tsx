@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { Skill, User, SkillHistory } from "@shared/schema";
+import { Skill, User, SkillHistory, ReportSettings } from "@shared/schema";
 import { formatDate, DATE_FORMATS } from "@/lib/date-utils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -289,6 +289,10 @@ export default function AdminDashboard() {
     });
   };
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [showAddReportDialog, setShowAddReportDialog] = useState(false);
+  const [selectedReportSetting, setSelectedReportSetting] = useState<ReportSettings | null>(null);
+  const [showEditReportDialog, setShowEditReportDialog] = useState(false);
+  const [showDeleteReportConfirm, setShowDeleteReportConfirm] = useState(false);
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [skillCategoryFilter, setSkillCategoryFilter] = useState("all");
   // This was removed as there's already another useEffect for the same purpose below
@@ -511,6 +515,15 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/pending-skills"],
   });
   
+  // Get report settings
+  const { 
+    data: reportSettings = [], 
+    isLoading: isLoadingReportSettings,
+    refetch: refetchReportSettings
+  } = useQuery<ReportSettings[]>({
+    queryKey: ["/api/admin/report-settings"],
+  });
+  
   // Calculate stats
   const stats = {
     totalUsers: users?.length || 0,
@@ -726,6 +739,72 @@ export default function AdminDashboard() {
     onSuccess: () => {
       // Invalidate pending skills query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-skills"] });
+    }
+  });
+  
+  // Report Settings mutations
+  const createReportSettingMutation = useMutation({
+    mutationFn: async (data: Omit<ReportSettings, 'id' | 'createdAt' | 'updatedAt' | 'lastSentAt' | 'nextScheduledAt'>) => {
+      const res = await fetch('/api/admin/report-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to create report setting");
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/report-settings"] });
+    }
+  });
+  
+  const updateReportSettingMutation = useMutation({
+    mutationFn: async ({ id, data }: { 
+      id: number, 
+      data: Partial<Omit<ReportSettings, 'id' | 'createdAt' | 'updatedAt' | 'lastSentAt' | 'nextScheduledAt'>>
+    }) => {
+      const res = await fetch(`/api/admin/report-settings/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to update report setting");
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/report-settings"] });
+    }
+  });
+  
+  const deleteReportSettingMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/report-settings/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to delete report setting");
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/report-settings"] });
     }
   });
   
