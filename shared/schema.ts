@@ -321,7 +321,9 @@ export const pendingSkillUpdates = pgTable("pending_skill_updates", {
   userId: integer("user_id").notNull(),
   skillId: integer("skill_id"), // Null for new skills
   name: text("name").notNull(),
-  category: text("category").notNull(),
+  category: text("category").notNull(), // Keep for backward compatibility
+  categoryId: integer("category_id").references(() => skillCategories.id), // Reference to categories table
+  subcategoryId: integer("subcategory_id").references(() => skillSubcategories.id), // Reference to subcategories table
   level: skillLevelEnum("level").notNull(),
   certification: text("certification"),
   credlyLink: text("credly_link"),
