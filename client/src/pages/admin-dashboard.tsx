@@ -401,11 +401,11 @@ export default function AdminDashboard() {
   const { data: skillTemplates = [], isLoading: isLoadingTemplates } = useQuery<{
     id: number;
     name: string;
-    category: string;
+    category?: string;
+    categoryId?: number;
+    subcategoryId?: number;
     description?: string;
     isRecommended: boolean;
-    targetLevel?: string;
-    targetDate?: string;
   }[]>({
     queryKey: ["/api/admin/skill-templates"],
   });
