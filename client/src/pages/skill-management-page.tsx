@@ -42,6 +42,8 @@ import {
 const skillTemplateSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
   category: z.string().min(2, "Category must be at least 2 characters"),
+  categoryId: z.number().optional(),
+  subcategoryId: z.number().optional(),
   description: z.string().optional(),
   isRecommended: z.boolean().default(false),
   targetLevel: z.enum(["beginner", "intermediate", "expert"]).optional(),
@@ -118,6 +120,80 @@ export default function SkillManagementPage() {
   
   // Check if user is admin
   const isAdmin = user?.is_admin;
+  
+  // State for category and subcategory management
+  const [dbCategories, setDbCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
+  const [templateSubcategories, setTemplateSubcategories] = useState<any[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedTemplateCategoryId, setSelectedTemplateCategoryId] = useState<number | null>(null);
+  
+  // Fetch categories
+  const { data: categoriesData } = useQuery<any[]>({
+    queryKey: ["/api/skill-categories"],
+    enabled: !!isAdmin
+  });
+  
+  // Set categories when data is loaded
+  useEffect(() => {
+    if (categoriesData) {
+      setDbCategories(categoriesData);
+    }
+  }, [categoriesData]);
+  
+  // Function to handle category change and load subcategories for normal skills
+  const handleCategoryChange = (categoryId: number) => {
+    setSelectedCategoryId(categoryId);
+    
+    // If a category is selected, fetch its subcategories
+    if (categoryId) {
+      fetch(`/api/skill-categories/${categoryId}/subcategories`)
+        .then(response => response.json())
+        .then(data => {
+          setSubcategories(data);
+        })
+        .catch(error => {
+          console.error('Error fetching subcategories:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to load subcategories',
+            variant: 'destructive'
+          });
+        });
+    } else {
+      setSubcategories([]);
+    }
+  };
+  
+  // Function to handle category change and load subcategories for templates
+  const handleCategoryChangeTemplate = (categoryId: number) => {
+    setSelectedTemplateCategoryId(categoryId);
+    
+    // Set legacy category field from the selected category name
+    const selectedCategory = dbCategories.find((cat: any) => cat.id === categoryId);
+    if (selectedCategory) {
+      templateForm.setValue('category', selectedCategory.name);
+    }
+    
+    // If a category is selected, fetch its subcategories
+    if (categoryId) {
+      fetch(`/api/skill-categories/${categoryId}/subcategories`)
+        .then(response => response.json())
+        .then(data => {
+          setTemplateSubcategories(data);
+        })
+        .catch(error => {
+          console.error('Error fetching subcategories:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to load subcategories',
+            variant: 'destructive'
+          });
+        });
+    } else {
+      setTemplateSubcategories([]);
+    }
+  };
   
   // Form for skill templates
   const templateForm = useForm<SkillTemplateValues>({
@@ -440,10 +516,10 @@ export default function SkillManagementPage() {
     }
   }, [showTargetDialog, targetForm]);
   
-  // Extract all unique categories
+  // Extract all unique categories from existing templates
   const categorySet = new Set<string>();
   skillTemplates.forEach(t => categorySet.add(t.category));
-  const categories = Array.from(categorySet);
+  const templateCategoryNames = Array.from(categorySet);
   
   // Group skills by category for selection in target form, and deduplicate by name and category
   const skillsByCategory = allSkills.reduce((acc, skill) => {
@@ -556,7 +632,7 @@ export default function SkillManagementPage() {
                             }}
                           >
                             <Plus className="h-4 w-4 mr-2" />
-                            Add Template
+                            Create Skill
                           </Button>
                         </DialogTrigger>
                         <DialogContent>
@@ -585,16 +661,82 @@ export default function SkillManagementPage() {
                                 )}
                               />
                               
+                              {/* Category Selection - DB-driven dropdown */}
                               <FormField
                                 control={templateForm.control}
-                                name="category"
+                                name="categoryId"
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Category</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="e.g. Programming Languages" {...field} />
+                                      <Select 
+                                        value={field.value?.toString() || ""}
+                                        onValueChange={(value) => {
+                                          const categoryId = parseInt(value, 10);
+                                          handleCategoryChangeTemplate(categoryId);
+                                          field.onChange(categoryId);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-full">
+                                          <SelectValue placeholder="Select a category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {dbCategories.map((category: any) => (
+                                            <SelectItem key={category.id} value={category.id.toString()}>
+                                              {category.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
                                     </FormControl>
                                     <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              {/* Subcategory Selection - Only shown when a category is selected */}
+                              {selectedTemplateCategoryId && (
+                                <FormField
+                                  control={templateForm.control}
+                                  name="subcategoryId"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Subcategory</FormLabel>
+                                      <FormControl>
+                                        <Select
+                                          value={field.value?.toString() || ""}
+                                          onValueChange={(value) => {
+                                            const subcategoryId = parseInt(value, 10);
+                                            field.onChange(subcategoryId);
+                                          }}
+                                        >
+                                          <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select a subcategory" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {templateSubcategories.map((subcategory) => (
+                                              <SelectItem key={subcategory.id} value={subcategory.id.toString()}>
+                                                {subcategory.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              )}
+                              
+                              {/* Legacy Category Field - Hidden but maintained for backward compatibility */}
+                              <FormField
+                                control={templateForm.control}
+                                name="category"
+                                render={({ field }) => (
+                                  <FormItem className="hidden">
+                                    <FormControl>
+                                      <Input {...field} type="hidden" />
+                                    </FormControl>
                                   </FormItem>
                                 )}
                               />
