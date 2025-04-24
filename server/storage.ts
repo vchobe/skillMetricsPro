@@ -1303,6 +1303,8 @@ export class PostgresStorage implements IStorage {
         // Map camelCase to snake_case
         userId: 'user_id',
         skillId: 'skill_id',
+        categoryId: 'category_id',
+        subcategoryId: 'subcategory_id',
         isUpdate: 'is_update',
         credlyLink: 'credly_link',
         certificationDate: 'certification_date',
@@ -1414,6 +1416,8 @@ export class PostgresStorage implements IStorage {
         skill = await this.updateSkill(pendingUpdate.skillId, {
           name: pendingUpdate.name,
           category: pendingUpdate.category,
+          categoryId: pendingUpdate.categoryId,
+          subcategoryId: pendingUpdate.subcategoryId,
           level: pendingUpdate.level,
           certification: pendingUpdate.certification,
           credlyLink: pendingUpdate.credlyLink,
@@ -1427,6 +1431,8 @@ export class PostgresStorage implements IStorage {
           userId: pendingUpdate.userId,
           name: pendingUpdate.name,
           category: pendingUpdate.category,
+          categoryId: pendingUpdate.categoryId,
+          subcategoryId: pendingUpdate.subcategoryId,
           level: pendingUpdate.level,
           certification: pendingUpdate.certification,
           credlyLink: pendingUpdate.credlyLink,
