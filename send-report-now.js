@@ -1,12 +1,12 @@
 /**
  * Utility script to send a sample weekly resource report immediately
  * This script sets up the database connection and environment before sending the report
- * Run with: node send-report-now.js
+ * Run with: npx tsx send-report-now.js
  */
 
-// Using ES modules
-import { pool } from './server/db.ts';
-import { sendImmediateWeeklyReport } from './server/email.ts';
+// Using ES modules - Use tsx to run TypeScript files
+import { pool } from './server/db';
+import { sendImmediateWeeklyReport } from './server/email';
 
 async function main() {
   console.log('Starting report generation process...');
