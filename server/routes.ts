@@ -2738,6 +2738,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Generate and send a weekly resource report manually (admin only)
+  app.post("/api/admin/reports/weekly-resource-report/send", ensureAdmin, async (req, res) => {
+    try {
+      console.log("Admin-triggered weekly report generation requested");
+      
+      // Import the function from email.ts
+      const { sendImmediateWeeklyReport } = await import("./email");
+      
+      // Generate and send the report
+      const success = await sendImmediateWeeklyReport();
+      
+      if (success) {
+        res.status(200).json({ 
+          success: true, 
+          message: "Weekly resource report sent successfully",
+          recipient: process.env.SALES_TEAM_EMAIL || "sales team email",
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: "Failed to send weekly resource report. Check server logs for details." 
+        });
+      }
+    } catch (error) {
+      console.error("Error generating weekly resource report:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error generating weekly resource report", 
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Delete a skill approver (admin only)
   app.delete("/api/skill-approvers/:id", ensureAdmin, async (req, res) => {
     try {
