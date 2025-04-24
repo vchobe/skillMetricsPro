@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { pool } from "./db";
 import * as schema from "@shared/schema";
+import { scheduleWeeklyReport, sendImmediateWeeklyReport } from "./email";
 import {
   insertSkillSchema,
   insertSkillHistorySchema,
@@ -73,6 +74,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   } = schema;
   // Set up authentication routes
   setupAuth(app);
+  
+  // Initialize weekly report scheduler
+  scheduleWeeklyReport();
   
   // Health check endpoints for testing and deployment verification
   app.get(["/health", "/status", "/api/health"], async (req, res) => {
@@ -580,6 +584,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes
+  
+  // Send an immediate weekly resource report (for testing)
+  app.post("/api/admin/reports/weekly-resource-report/send", ensureAdmin, async (req, res) => {
+    try {
+      console.log("Manually triggering weekly resource report...");
+      const success = await sendImmediateWeeklyReport();
+      
+      if (success) {
+        res.status(200).json({ 
+          message: "Weekly resource report sent successfully",
+          timestamp: new Date().toISOString(),
+          recipient: process.env.SALES_TEAM_EMAIL
+        });
+      } else {
+        res.status(500).json({ 
+          message: "Error sending weekly resource report",
+          error: "See server logs for details" 
+        });
+      }
+    } catch (error) {
+      console.error("Error in weekly report endpoint:", error);
+      res.status(500).json({ 
+        message: "Error sending weekly resource report", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+  
   app.get("/api/admin/users", ensureAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
