@@ -156,20 +156,30 @@ import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "@/components/ui/alert-circle";
 import AdminUserActions from "@/components/admin-user-actions";
 import AdminUsersManagement from "@/components/admin-users-management";
+import ReportSettingsManager from "@/components/report-settings-manager";
 
 // Send Report Button Component
-function SendReportButton() {
+function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSettings[] }) {
   const [sending, setSending] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<string>("");
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   
   const sendWeeklyReport = async () => {
     try {
       setSending(true);
+      
+      // Prepare request body with selected report setting ID if any
+      const requestBody = selectedReportId 
+        ? { reportSettingId: parseInt(selectedReportId) } 
+        : {};
+      
       const response = await fetch('/api/admin/reports/weekly-resource-report/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
+        body: JSON.stringify(requestBody),
         credentials: 'include' // Include cookies for authentication
       });
       
@@ -177,9 +187,12 @@ function SendReportButton() {
         const result = await response.json();
         toast({
           title: "Report sent successfully",
-          description: `Weekly resource report was sent to ${result.recipient}`,
+          description: selectedReportId 
+            ? `Report was sent using custom settings (ID: ${selectedReportId})` 
+            : "Weekly resource report was sent using default settings",
           variant: "default"
         });
+        setDialogOpen(false);
       } else {
         const error = await response.json();
         toast({
@@ -201,24 +214,85 @@ function SendReportButton() {
   };
   
   return (
-    <Button 
-      variant="default" 
-      onClick={sendWeeklyReport} 
-      disabled={sending}
-      className="gap-2"
-    >
-      {sending ? (
-        <>
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Sending...</span>
-        </>
-      ) : (
-        <>
-          <Send className="h-4 w-4" />
-          <span>Send Weekly Report Now</span>
-        </>
-      )}
-    </Button>
+    <>
+      <Button 
+        variant="default"
+        onClick={() => setDialogOpen(true)}
+        className="gap-2"
+      >
+        <Send className="h-4 w-4" />
+        <span>Send Weekly Report Now</span>
+      </Button>
+      
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Weekly Resource Report</DialogTitle>
+            <DialogDescription>
+              Select a report configuration or use the default settings.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="report-setting">Report Configuration</Label>
+              <Select 
+                value={selectedReportId} 
+                onValueChange={setSelectedReportId}
+              >
+                <SelectTrigger id="report-setting">
+                  <SelectValue placeholder="Select a report configuration or use default" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Default Settings</SelectItem>
+                  {reportSettings.map(setting => (
+                    <SelectItem key={setting.id} value={setting.id.toString()}>
+                      {setting.name} {setting.baseUrl ? `(${setting.baseUrl})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedReportId && (
+              <div className="rounded-md bg-muted p-3 text-sm">
+                <p className="font-medium">Selected Configuration Details:</p>
+                {reportSettings.filter(s => s.id.toString() === selectedReportId).map(setting => (
+                  <div key={setting.id} className="mt-2 space-y-1">
+                    <p><span className="font-medium">Recipient:</span> {setting.recipientEmail}</p>
+                    {setting.clientId && <p><span className="font-medium">Client Filter:</span> Client ID {setting.clientId}</p>}
+                    {setting.baseUrl && <p><span className="font-medium">Custom URL:</span> {setting.baseUrl}</p>}
+                    {setting.description && <p><span className="font-medium">Description:</span> {setting.description}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button 
+              variant="default" 
+              onClick={sendWeeklyReport} 
+              disabled={sending}
+              className="gap-2"
+            >
+              {sending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Sending...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  <span>Send Report</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -3555,7 +3629,7 @@ export default function AdminDashboard() {
                             You can manually generate and send a weekly resource report at any time.
                           </p>
                           
-                          <SendReportButton />
+                          <SendReportButton reportSettings={reportSettings} />
                         </div>
                       </div>
                     </CardContent>
