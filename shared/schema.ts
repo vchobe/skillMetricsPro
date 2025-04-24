@@ -255,7 +255,9 @@ export type InsertEndorsement = z.infer<typeof insertEndorsementSchema>;
 export const skillTemplates = pgTable("skill_templates", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  category: text("category").notNull(),
+  category: text("category").notNull(), // Keep for backward compatibility
+  categoryId: integer("category_id").references(() => skillCategories.id), // Reference to categories table
+  subcategoryId: integer("subcategory_id").references(() => skillSubcategories.id), // Reference to subcategories table
   description: text("description"),
   isRecommended: boolean("is_recommended").default(false),
   targetLevel: skillLevelEnum("target_level"),
@@ -267,6 +269,8 @@ export const skillTemplates = pgTable("skill_templates", {
 export const insertSkillTemplateSchema = createInsertSchema(skillTemplates).pick({
   name: true,
   category: true,
+  categoryId: true,
+  subcategoryId: true,
   description: true,
   isRecommended: true,
   targetLevel: true,

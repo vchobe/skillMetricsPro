@@ -977,12 +977,14 @@ export class PostgresStorage implements IStorage {
   async createSkillTemplate(template: InsertSkillTemplate): Promise<SkillTemplate> {
     try {
       const result = await pool.query(
-        `INSERT INTO skill_templates (name, category, description, is_recommended, target_level, target_date) 
-         VALUES ($1, $2, $3, $4, $5, $6) 
+        `INSERT INTO skill_templates (name, category, category_id, subcategory_id, description, is_recommended, target_level, target_date) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
          RETURNING *`,
         [
           template.name,
           template.category,
+          template.categoryId || null,
+          template.subcategoryId || null,
           template.description || '',
           template.isRecommended || false,
           template.targetLevel || null,
