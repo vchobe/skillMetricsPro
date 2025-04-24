@@ -169,7 +169,8 @@ function SendReportButton() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        credentials: 'include' // Include cookies for authentication
       });
       
       if (response.ok) {
@@ -3456,7 +3457,7 @@ export default function AdminDashboard() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <p className="text-sm text-gray-600 mb-1">Recipient:</p>
-                              <p className="text-sm font-medium">{process.env.SALES_TEAM_EMAIL || "Sales Team"}</p>
+                              <p className="text-sm font-medium">vinayak.chobe@atyeti.com</p>
                             </div>
                             <div>
                               <p className="text-sm text-gray-600 mb-1">Schedule:</p>
