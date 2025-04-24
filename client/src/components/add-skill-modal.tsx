@@ -6,7 +6,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Skill, insertSkillSchema, SkillTemplate } from "@shared/schema";
+import { 
+  Skill, 
+  insertSkillSchema, 
+  SkillTemplate, 
+  SkillCategory, 
+  SkillSubcategory 
+} from "@shared/schema";
 import { 
   Dialog, 
   DialogContent, 
@@ -97,6 +103,20 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
     queryKey: ["/api/skill-templates"],
   });
   
+  // Get categories from database
+  const { data: categories = [] } = useQuery<SkillCategory[]>({
+    queryKey: ["/api/skill-categories"],
+  });
+  
+  // State for subcategories by selected category
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  
+  // Get subcategories for the selected category
+  const { data: subcategories = [] } = useQuery<SkillSubcategory[]>({
+    queryKey: [selectedCategoryId ? `/api/skill-categories/${selectedCategoryId}/subcategories` : 'no-subcategories'],
+    enabled: !!selectedCategoryId,
+  });
+  
   // Populate suggestions based on existing skills
   useEffect(() => {
     if (skills && skills.length > 0) {
@@ -116,6 +136,13 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
     }
   }, [skills]);
   
+  // Update subcategories when category changes
+  useEffect(() => {
+    if (skill?.categoryId) {
+      setSelectedCategoryId(skill.categoryId);
+    }
+  }, [skill]);
+  
   // Form setup
   const form = useForm<SkillFormValues>({
     resolver: zodResolver(skillSchema),
@@ -123,6 +150,8 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
       userId: user?.id || 0, // Ensure there's always a valid user ID (will be replaced on submit if needed)
       name: "",
       category: "",
+      categoryId: undefined,
+      subcategoryId: undefined,
       level: "beginner", // Always set a default value
       certification: "",
       credlyLink: "",
@@ -132,6 +161,20 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
     mode: "onChange" // Validate on change for better UX
   });
   
+  // Handle category selection
+  const handleCategoryChange = (categoryId: number) => {
+    // Find the category name to keep backward compatibility with category text field
+    const category = categories.find(c => c.id === categoryId);
+    if (category) {
+      form.setValue('category', category.name);
+      form.setValue('categoryId', categoryId);
+      setSelectedCategoryId(categoryId);
+      
+      // Reset subcategory when category changes
+      form.setValue('subcategoryId', undefined);
+    }
+  };
+  
   // Update form values when editing a skill
   // Form reset logic that ensures we never have undefined or null values
   useEffect(() => {
@@ -140,6 +183,8 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
       userId: user?.id || 0, // Ensure there's always a valid user ID
       name: "",
       category: "",
+      categoryId: undefined,
+      subcategoryId: undefined,
       level: "beginner", // Default value for new skills
       certification: "",
       credlyLink: "",
@@ -154,15 +199,24 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
         ? skill.level as "beginner" | "intermediate" | "expert"
         : "beginner";
         
-      form.reset({
+      const formValues = {
         ...defaultValues,
         name: skill.name || "", // Ensure string values are never null/undefined
         category: skill.category || "",
+        categoryId: skill.categoryId,
+        subcategoryId: skill.subcategoryId,
         level: skillLevel,
         certification: skill.certification || "",
         credlyLink: skill.credlyLink || "",
         notes: skill.notes || "",
-      });
+      };
+      
+      form.reset(formValues);
+      
+      // Update selected category for subcategory loading
+      if (skill.categoryId) {
+        setSelectedCategoryId(skill.categoryId);
+      }
     } else {
       // When adding a new skill
       form.reset(defaultValues);
