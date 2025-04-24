@@ -157,6 +157,70 @@ import { AlertCircle } from "@/components/ui/alert-circle";
 import AdminUserActions from "@/components/admin-user-actions";
 import AdminUsersManagement from "@/components/admin-users-management";
 
+// Send Report Button Component
+function SendReportButton() {
+  const [sending, setSending] = useState(false);
+  const { toast } = useToast();
+  
+  const sendWeeklyReport = async () => {
+    try {
+      setSending(true);
+      const response = await fetch('/api/admin/reports/weekly-resource-report/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        toast({
+          title: "Report sent successfully",
+          description: `Weekly resource report was sent to ${result.recipient}`,
+          variant: "default"
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Failed to send report",
+          description: error.message || "An error occurred while sending the report",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error sending report:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+  
+  return (
+    <Button 
+      variant="default" 
+      onClick={sendWeeklyReport} 
+      disabled={sending}
+      className="gap-2"
+    >
+      {sending ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Sending...</span>
+        </>
+      ) : (
+        <>
+          <Send className="h-4 w-4" />
+          <span>Send Weekly Report Now</span>
+        </>
+      )}
+    </Button>
+  );
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
@@ -1007,6 +1071,15 @@ export default function AdminDashboard() {
                   >
                     <UserIcon className="h-4 w-4" />
                     <span>Admin Access</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="reports" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>Reports</span>
                   </TabsTrigger>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
