@@ -4052,6 +4052,239 @@ export class PostgresStorage implements IStorage {
       return false;
     }
   }
+  
+  // Report Settings operations
+  async getReportSettings(): Promise<ReportSettings[]> {
+    try {
+      const result = await pool.query(`
+        SELECT rs.*, c.name as client_name 
+        FROM report_settings rs
+        LEFT JOIN clients c ON rs.client_id = c.id
+        ORDER BY rs.name
+      `);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting report settings:", error);
+      throw error;
+    }
+  }
+
+  async getReportSettingById(id: number): Promise<ReportSettings | undefined> {
+    try {
+      const result = await pool.query(`
+        SELECT rs.*, c.name as client_name 
+        FROM report_settings rs
+        LEFT JOIN clients c ON rs.client_id = c.id
+        WHERE rs.id = $1
+      `, [id]);
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting report setting by ID:", error);
+      throw error;
+    }
+  }
+
+  async getReportSettingsByClient(clientId: number): Promise<ReportSettings[]> {
+    try {
+      const result = await pool.query(`
+        SELECT rs.*, c.name as client_name 
+        FROM report_settings rs
+        LEFT JOIN clients c ON rs.client_id = c.id
+        WHERE rs.client_id = $1
+        ORDER BY rs.name
+      `, [clientId]);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting report settings by client:", error);
+      throw error;
+    }
+  }
+
+  async createReportSetting(data: InsertReportSettings): Promise<ReportSettings> {
+    try {
+      // Calculate next scheduled time based on frequency
+      let nextScheduledAt = new Date();
+      
+      if (data.frequency === 'weekly') {
+        // Set to next occurrence of the specified day of week
+        const dayOfWeek = data.dayOfWeek || 1; // Default to Monday (1)
+        const currentDay = nextScheduledAt.getDay() || 7; // Convert Sunday (0) to 7 for easier calculation
+        const daysToAdd = (dayOfWeek - currentDay + 7) % 7 || 7; // Add 7 if result is 0
+        nextScheduledAt.setDate(nextScheduledAt.getDate() + daysToAdd);
+      } else if (data.frequency === 'biweekly') {
+        // Set to next occurrence of the specified day of week, then add another week
+        const dayOfWeek = data.dayOfWeek || 1; // Default to Monday (1)
+        const currentDay = nextScheduledAt.getDay() || 7; // Convert Sunday (0) to 7 for easier calculation
+        const daysToAdd = (dayOfWeek - currentDay + 7) % 7 || 7; // Add 7 if result is 0
+        nextScheduledAt.setDate(nextScheduledAt.getDate() + daysToAdd + 7); // Add another week
+      } else if (data.frequency === 'monthly') {
+        // Set to the specified day of the month
+        const dayOfMonth = data.dayOfMonth || 1; // Default to 1st day of month
+        nextScheduledAt.setDate(dayOfMonth);
+        // If the day has already passed this month, move to next month
+        if (nextScheduledAt.getDate() < new Date().getDate()) {
+          nextScheduledAt.setMonth(nextScheduledAt.getMonth() + 1);
+        }
+      }
+      
+      // Set time to 9:00 AM
+      nextScheduledAt.setHours(9, 0, 0, 0);
+      
+      const result = await pool.query(`
+        INSERT INTO report_settings (
+          name, frequency, day_of_week, day_of_month, recipients, 
+          client_id, is_active, next_scheduled_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *
+      `, [
+        data.name,
+        data.frequency,
+        data.dayOfWeek || 1, // Default to Monday
+        data.dayOfMonth || null,
+        data.recipients,
+        data.clientId || null,
+        data.isActive !== undefined ? data.isActive : true,
+        nextScheduledAt
+      ]);
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error creating report setting:", error);
+      throw error;
+    }
+  }
+
+  async updateReportSetting(id: number, data: Partial<InsertReportSettings>): Promise<ReportSettings> {
+    try {
+      // Get existing report to calculate next scheduled time if frequency is changed
+      const existing = await this.getReportSettingById(id);
+      if (!existing) {
+        throw new Error(`Report setting with ID ${id} not found`);
+      }
+      
+      let nextScheduledAt = existing.nextScheduledAt ? new Date(existing.nextScheduledAt) : new Date();
+      const frequencyChanged = data.frequency !== undefined && data.frequency !== existing.frequency;
+      const dayChanged = (data.dayOfWeek !== undefined && data.dayOfWeek !== existing.dayOfWeek) ||
+                         (data.dayOfMonth !== undefined && data.dayOfMonth !== existing.dayOfMonth);
+      
+      // Recalculate next scheduled time if frequency or day changed
+      if (frequencyChanged || dayChanged) {
+        nextScheduledAt = new Date(); // Reset to current date
+        
+        const frequency = data.frequency || existing.frequency;
+        
+        if (frequency === 'weekly') {
+          // Set to next occurrence of the specified day of week
+          const dayOfWeek = data.dayOfWeek !== undefined ? data.dayOfWeek : (existing.dayOfWeek || 1);
+          const currentDay = nextScheduledAt.getDay() || 7; // Convert Sunday (0) to 7
+          const daysToAdd = (dayOfWeek - currentDay + 7) % 7 || 7; // Add 7 if result is 0
+          nextScheduledAt.setDate(nextScheduledAt.getDate() + daysToAdd);
+        } else if (frequency === 'biweekly') {
+          // Set to next occurrence of the specified day of week, then add another week
+          const dayOfWeek = data.dayOfWeek !== undefined ? data.dayOfWeek : (existing.dayOfWeek || 1);
+          const currentDay = nextScheduledAt.getDay() || 7; // Convert Sunday (0) to 7
+          const daysToAdd = (dayOfWeek - currentDay + 7) % 7 || 7; // Add 7 if result is 0
+          nextScheduledAt.setDate(nextScheduledAt.getDate() + daysToAdd + 7); // Add another week
+        } else if (frequency === 'monthly') {
+          // Set to the specified day of the month
+          const dayOfMonth = data.dayOfMonth !== undefined ? data.dayOfMonth : (existing.dayOfMonth || 1);
+          nextScheduledAt.setDate(dayOfMonth);
+          // If the day has already passed this month, move to next month
+          if (nextScheduledAt.getDate() < new Date().getDate()) {
+            nextScheduledAt.setMonth(nextScheduledAt.getMonth() + 1);
+          }
+        }
+        
+        // Set time to 9:00 AM
+        nextScheduledAt.setHours(9, 0, 0, 0);
+      }
+      
+      // Build SQL query dynamically based on provided fields
+      const updates: string[] = [];
+      const values: any[] = [];
+      let paramCount = 1;
+      
+      if (data.name !== undefined) {
+        updates.push(`name = $${paramCount++}`);
+        values.push(data.name);
+      }
+      
+      if (data.frequency !== undefined) {
+        updates.push(`frequency = $${paramCount++}`);
+        values.push(data.frequency);
+      }
+      
+      if (data.dayOfWeek !== undefined) {
+        updates.push(`day_of_week = $${paramCount++}`);
+        values.push(data.dayOfWeek);
+      }
+      
+      if (data.dayOfMonth !== undefined) {
+        updates.push(`day_of_month = $${paramCount++}`);
+        values.push(data.dayOfMonth);
+      }
+      
+      if (data.recipients !== undefined) {
+        updates.push(`recipients = $${paramCount++}`);
+        values.push(data.recipients);
+      }
+      
+      if (data.clientId !== undefined) {
+        updates.push(`client_id = $${paramCount++}`);
+        values.push(data.clientId);
+      }
+      
+      if (data.isActive !== undefined) {
+        updates.push(`is_active = $${paramCount++}`);
+        values.push(data.isActive);
+      }
+      
+      // Always update next_scheduled_at if frequency or day changed
+      if (frequencyChanged || dayChanged) {
+        updates.push(`next_scheduled_at = $${paramCount++}`);
+        values.push(nextScheduledAt);
+      }
+      
+      // Always update updated_at timestamp
+      updates.push(`updated_at = $${paramCount++}`);
+      values.push(new Date());
+      
+      // Add the ID as the last parameter
+      values.push(id);
+      
+      const result = await pool.query(`
+        UPDATE report_settings
+        SET ${updates.join(', ')}
+        WHERE id = $${paramCount}
+        RETURNING *
+      `, values);
+      
+      if (!result.rows[0]) {
+        throw new Error(`Report setting with ID ${id} not found`);
+      }
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error updating report setting:", error);
+      throw error;
+    }
+  }
+
+  async deleteReportSetting(id: number): Promise<boolean> {
+    try {
+      const result = await pool.query(`
+        DELETE FROM report_settings
+        WHERE id = $1
+        RETURNING id
+      `, [id]);
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting report setting:", error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new PostgresStorage();
