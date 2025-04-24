@@ -261,7 +261,7 @@ export default function SkillManagementPage() {
       const res = await apiRequest("POST", "/api/admin/skill-templates", data);
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to create skill template");
+        throw new Error(error.message || "Failed to create skill");
       }
       return await res.json();
     },
@@ -269,7 +269,7 @@ export default function SkillManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
       toast({
         title: "Success",
-        description: "Skill template created successfully",
+        description: "Skill created successfully",
       });
       setShowTemplateDialog(false);
       templateForm.reset();
@@ -290,7 +290,7 @@ export default function SkillManagementPage() {
       const res = await apiRequest("PATCH", `/api/admin/skill-templates/${id}`, templateData);
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to update skill template");
+        throw new Error(error.message || "Failed to update skill");
       }
       return await res.json();
     },
@@ -298,7 +298,7 @@ export default function SkillManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
       toast({
         title: "Success",
-        description: "Skill template updated successfully",
+        description: "Skill updated successfully",
       });
       setShowTemplateDialog(false);
       setEditingTemplate(null);
@@ -319,7 +319,7 @@ export default function SkillManagementPage() {
       const res = await apiRequest("DELETE", `/api/admin/skill-templates/${id}`);
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to delete skill template");
+        throw new Error(error.message || "Failed to delete skill");
       }
       return id;
     },
@@ -327,7 +327,7 @@ export default function SkillManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
       toast({
         title: "Success",
-        description: "Skill template deleted successfully",
+        description: "Skill deleted successfully",
       });
     },
     onError: (error: Error) => {
@@ -619,7 +619,7 @@ export default function SkillManagementPage() {
             <>
               <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 rounded-xl text-white mb-6">
                 <h2 className="text-2xl font-bold mb-2">Skill Management</h2>
-                <p className="opacity-90">Manage all skill templates and learning targets for your organization.</p>
+                <p className="opacity-90">Manage all skills and learning targets for your organization.</p>
               </div>
               
               <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
