@@ -275,6 +275,9 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
         user_id: userId || user?.id, // Also include snake_case version
         skillId: skillId, // Reference to existing skill
         skill_id: skillId, // Also include snake_case version
+        // Add snake_case versions of categoryId and subcategoryId
+        category_id: updateData.categoryId,
+        subcategory_id: updateData.subcategoryId,
         status: "pending",
         isUpdate: true, // Mark as an update, not a new skill
         is_update: true, // Also include snake_case version
