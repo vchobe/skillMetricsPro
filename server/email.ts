@@ -66,7 +66,8 @@ export async function generateAndSendWeeklyReport(reportSettingId?: number): Pro
         
         if (result.rows.length > 0) {
           const reportSetting = result.rows[0];
-          recipient = reportSetting.recipient_email;
+          // Note: Using current column names until migration is applied
+          recipient = reportSetting.recipients || reportSetting.recipient_email || SALES_TEAM_EMAIL;
           clientFilter = reportSetting.client_id; // This can be null (all clients)
           reportName = reportSetting.name || reportName;
           
@@ -265,8 +266,9 @@ export function scheduleWeeklyReport() {
 async function checkAndScheduleCustomReports() {
   try {
     // Get all active report settings
+    // Note: Using is_active until database migration is applied
     const result = await pool.query(
-      'SELECT * FROM report_settings WHERE active = true'
+      'SELECT * FROM report_settings WHERE is_active = true'
     );
     
     const reportSettings = result.rows;

@@ -4134,18 +4134,22 @@ export class PostgresStorage implements IStorage {
       const result = await pool.query(`
         INSERT INTO report_settings (
           name, frequency, day_of_week, day_of_month, recipients, 
-          client_id, is_active, next_scheduled_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          client_id, is_active, next_scheduled_at, base_url, description
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `, [
         data.name,
         data.frequency,
         data.dayOfWeek || 1, // Default to Monday
         data.dayOfMonth || null,
-        data.recipients,
+        // Handle both old (recipients) and new (recipientEmail) column names for backward compatibility
+        data.recipientEmail || data.recipients || process.env.SALES_TEAM_EMAIL,
         data.clientId || null,
-        data.isActive !== undefined ? data.isActive : true,
-        nextScheduledAt
+        // Handle both old (isActive) and new (active) column names for backward compatibility
+        data.active !== undefined ? data.active : (data.isActive !== undefined ? data.isActive : true),
+        nextScheduledAt,
+        data.baseUrl || null,
+        data.description || null
       ]);
       
       return this.snakeToCamel(result.rows[0]);
@@ -4225,7 +4229,11 @@ export class PostgresStorage implements IStorage {
         values.push(data.dayOfMonth);
       }
       
-      if (data.recipients !== undefined) {
+      // Handle recipientEmail (new) or recipients (old)
+      if (data.recipientEmail !== undefined) {
+        updates.push(`recipients = $${paramCount++}`);
+        values.push(data.recipientEmail);
+      } else if (data.recipients !== undefined) {
         updates.push(`recipients = $${paramCount++}`);
         values.push(data.recipients);
       }
@@ -4235,9 +4243,25 @@ export class PostgresStorage implements IStorage {
         values.push(data.clientId);
       }
       
-      if (data.isActive !== undefined) {
+      // Handle active (new) or isActive (old)
+      if (data.active !== undefined) {
+        updates.push(`is_active = $${paramCount++}`);
+        values.push(data.active);
+      } else if (data.isActive !== undefined) {
         updates.push(`is_active = $${paramCount++}`);
         values.push(data.isActive);
+      }
+      
+      // Handle baseUrl field
+      if (data.baseUrl !== undefined) {
+        updates.push(`base_url = $${paramCount++}`);
+        values.push(data.baseUrl);
+      }
+      
+      // Handle description field
+      if (data.description !== undefined) {
+        updates.push(`description = $${paramCount++}`);
+        values.push(data.description);
       }
       
       // Always update next_scheduled_at if frequency or day changed
