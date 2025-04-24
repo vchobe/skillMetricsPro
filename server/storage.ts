@@ -27,6 +27,13 @@ const PostgresSessionStore = connectPg(session);
 
 // Storage interface with all required CRUD operations
 export interface IStorage {
+  // Report Settings Methods
+  getReportSettings(): Promise<ReportSettings[]>;
+  getReportSettingById(id: number): Promise<ReportSettings | undefined>;
+  getReportSettingsByClient(clientId: number): Promise<ReportSettings[]>;
+  createReportSetting(data: InsertReportSettings): Promise<ReportSettings>;
+  updateReportSetting(id: number, data: Partial<InsertReportSettings>): Promise<ReportSettings>;
+  deleteReportSetting(id: number): Promise<boolean>;
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
