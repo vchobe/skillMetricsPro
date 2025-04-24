@@ -229,9 +229,14 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
       // Changed to use the pending skills endpoint that requires admin approval
       const res = await apiRequest("POST", "/api/skills/pending", {
         ...data,
+        // Add snake_case versions of categoryId and subcategoryId
+        category_id: data.categoryId,
+        subcategory_id: data.subcategoryId,
         status: "pending",
         isUpdate: false,
-        submittedAt: new Date().toISOString()
+        is_update: false, // Add snake_case version
+        submittedAt: new Date().toISOString(),
+        submitted_at: new Date().toISOString() // Add snake_case version
       });
       return await res.json();
     },
@@ -394,6 +399,18 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                           // Pre-fill form with template values
                           form.setValue('name', template.name);
                           form.setValue('category', template.category || '');
+                          
+                          // Set categoryId and subcategoryId if available
+                          if (template.categoryId) {
+                            form.setValue('categoryId', template.categoryId);
+                            setSelectedCategoryId(template.categoryId);
+                            
+                            // Set subcategoryId if available
+                            if (template.subcategoryId) {
+                              form.setValue('subcategoryId', template.subcategoryId);
+                            }
+                          }
+                          
                           if (template.targetLevel) {
                             form.setValue('level', 
                               (template.targetLevel as "beginner" | "intermediate" | "expert") || 'beginner');
