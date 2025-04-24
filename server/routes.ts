@@ -585,6 +585,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin routes
   
+  // Get report scheduler status
+  app.get("/api/admin/reports/weekly-resource-report/status", ensureAdmin, async (req, res) => {
+    try {
+      // Calculate the next scheduled run
+      const now = new Date();
+      const nextMonday = new Date(now);
+      nextMonday.setDate(now.getDate() + ((7 - now.getDay() + 1) % 7 || 7)); // Get next Monday
+      nextMonday.setHours(9, 0, 0, 0); // Set to 9:00 AM
+      
+      // If the calculated time is in the past, add 7 days
+      if (nextMonday <= now) {
+        nextMonday.setDate(nextMonday.getDate() + 7);
+      }
+      
+      res.status(200).json({
+        isScheduled: true,
+        nextReportTime: nextMonday.toISOString(),
+        salesEmailRecipient: process.env.SALES_TEAM_EMAIL || "sales@skillsplatform.com",
+        mailjetConfigured: !!(process.env.MAILJET_API_KEY && process.env.MAILJET_SECRET_KEY)
+      });
+    } catch (error) {
+      console.error("Error getting report scheduler status:", error);
+      res.status(500).json({ 
+        message: "Error checking report scheduler status",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
   // Send an immediate weekly resource report (for testing)
   app.post("/api/admin/reports/weekly-resource-report/send", ensureAdmin, async (req, res) => {
     try {
