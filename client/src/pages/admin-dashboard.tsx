@@ -3481,6 +3481,24 @@ export default function AdminDashboard() {
                       </div>
                     </CardContent>
                   </Card>
+                  
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <div>
+                        <CardTitle>Report Settings</CardTitle>
+                        <CardDescription>
+                          Configure your report delivery settings, frequency, and recipients
+                        </CardDescription>
+                      </div>
+                      <Button variant="outline" className="ml-auto" onClick={() => setShowAddReportDialog(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Report Setting
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <ReportSettingsManager />
+                    </CardContent>
+                  </Card>
                 </div>
               </motion.div>
             </TabsContent>
