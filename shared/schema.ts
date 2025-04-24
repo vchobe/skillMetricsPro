@@ -580,12 +580,14 @@ export type InsertProjectResourceHistory = z.infer<typeof insertProjectResourceH
 export const reportSettings = pgTable('report_settings', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
-  frequency: text('frequency', { enum: ['weekly', 'biweekly', 'monthly'] }).notNull().default('weekly'),
-  dayOfWeek: integer('day_of_week').default(1), // 1 = Monday, 7 = Sunday
+  frequency: text('frequency', { enum: ['daily', 'weekly', 'monthly'] }).notNull().default('weekly'),
+  dayOfWeek: integer('day_of_week').default(1), // 0 = Sunday, 1 = Monday
   dayOfMonth: integer('day_of_month'), // For monthly reports, 1-31
-  recipients: text('recipients').notNull(), // Comma-separated list of email addresses
+  recipientEmail: text('recipient_email').notNull(), // Primary recipient
+  baseUrl: text('base_url'), // Custom hostname for links in emails
+  description: text('description'), // Optional description
   clientId: integer('client_id').references(() => clients.id), // NULL means all clients
-  isActive: boolean('is_active').notNull().default(true),
+  active: boolean('active').notNull().default(true),
   lastSentAt: timestamp('last_sent_at'),
   nextScheduledAt: timestamp('next_scheduled_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -598,9 +600,11 @@ export const insertReportSettingsSchema = createInsertSchema(reportSettings).pic
   frequency: true,
   dayOfWeek: true,
   dayOfMonth: true,
-  recipients: true,
+  recipientEmail: true,
+  baseUrl: true,
+  description: true,
   clientId: true,
-  isActive: true,
+  active: true,
 });
 
 export type ReportSettings = typeof reportSettings.$inferSelect;
