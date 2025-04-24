@@ -235,6 +235,40 @@ export default function AdminDashboard() {
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
   const [templateSearchQuery, setTemplateSearchQuery] = useState("");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
+  
+  // Fetch all skill categories
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await fetch('/api/skill-categories');
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      } else {
+        console.error('Failed to fetch categories');
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, []);
+
+  // Fetch subcategories for a specific category
+  const fetchSubcategoriesForCategory = useCallback(async (categoryId: number) => {
+    try {
+      const response = await fetch(`/api/skill-categories/${categoryId}/subcategories`);
+      if (response.ok) {
+        const data = await response.json();
+        setSubcategories(data);
+      } else {
+        setSubcategories([]);
+        console.error('Failed to fetch subcategories');
+      }
+    } catch (error) {
+      setSubcategories([]);
+      console.error('Error fetching subcategories:', error);
+    }
+  }, []);
   
   // Skill targets state
   const [showTargetDialog, setShowTargetDialog] = useState(false);
@@ -2288,7 +2322,10 @@ export default function AdminDashboard() {
                       </CardDescription>
                     </div>
                     <Button 
-                      onClick={() => setShowTemplateDialog(true)}
+                      onClick={() => {
+                        setShowTemplateDialog(true);
+                        fetchCategories();
+                      }}
                       className="flex items-center gap-2"
                     >
                       <Plus className="h-4 w-4" />
@@ -2318,7 +2355,10 @@ export default function AdminDashboard() {
                         <h3 className="mt-2 text-sm font-semibold text-gray-900">No skills</h3>
                         <p className="mt-1 text-sm text-gray-500">Get started by creating a new skill.</p>
                         <div className="mt-6">
-                          <Button onClick={() => setShowTemplateDialog(true)}>
+                          <Button onClick={() => {
+                            setShowTemplateDialog(true);
+                            fetchCategories();
+                          }}>
                             <Plus className="h-4 w-4 mr-2" />
                             New Skill
                           </Button>
@@ -2378,6 +2418,11 @@ export default function AdminDashboard() {
                                       onClick={() => {
                                         setEditingTemplate(template);
                                         setShowTemplateDialog(true);
+                                        fetchCategories();
+                                        // If template has category ID, load subcategories
+                                        if (template.categoryId) {
+                                          fetchSubcategoriesForCategory(template.categoryId);
+                                        }
                                       }}
                                     >
                                       <Edit className="h-4 w-4 mr-2" />
