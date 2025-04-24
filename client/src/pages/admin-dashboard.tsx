@@ -944,7 +944,7 @@ export default function AdminDashboard() {
                     className="flex items-center gap-2 w-full"
                   >
                     <Database className="h-4 w-4" />
-                    <span>Skill Templates</span>
+                    <span>Skills</span>
                   </TabsTrigger>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -2282,9 +2282,9 @@ export default function AdminDashboard() {
                 <Card className="mb-6">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <div>
-                      <CardTitle className="text-2xl font-bold">Skill Templates</CardTitle>
+                      <CardTitle className="text-2xl font-bold">Skills</CardTitle>
                       <CardDescription>
-                        Create and manage skill templates for the organization
+                        Create and manage skills for the organization
                       </CardDescription>
                     </div>
                     <Button 
@@ -2292,7 +2292,7 @@ export default function AdminDashboard() {
                       className="flex items-center gap-2"
                     >
                       <Plus className="h-4 w-4" />
-                      <span>Add Template</span>
+                      <span>Add Skill</span>
                     </Button>
                   </CardHeader>
                   <CardContent>
@@ -2397,11 +2397,11 @@ export default function AdminDashboard() {
                 <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
                   <DialogContent className="sm:max-w-[575px] scrollable-dialog">
                     <DialogHeader>
-                      <DialogTitle>{editingTemplate ? "Edit Skill Template" : "Create Skill Template"}</DialogTitle>
+                      <DialogTitle>{editingTemplate ? "Edit Skill" : "Create Skill"}</DialogTitle>
                       <DialogDescription>
                         {editingTemplate 
-                          ? "Edit the details for this skill template." 
-                          : "Add a new skill template that can be used by employees."}
+                          ? "Edit the details for this skill." 
+                          : "Add a new skill that can be used by employees."}
                       </DialogDescription>
                     </DialogHeader>
                     
@@ -2533,7 +2533,7 @@ export default function AdminDashboard() {
                             setEditingTemplate(null);
                           }}
                         >
-                          {editingTemplate ? "Update Template" : "Create Template"}
+                          {editingTemplate ? "Update Skill" : "Create Skill"}
                         </Button>
                       </DialogFooter>
                     </div>
