@@ -626,7 +626,7 @@ export default function SkillManagementPage() {
                 <TabsList className="grid w-full grid-cols-2 mb-8">
                   <TabsTrigger value="templates" className="text-center">
                     <Database className="h-4 w-4 mr-2" />
-                    Skill Templates
+                    Skills
                   </TabsTrigger>
                   <TabsTrigger value="targets" className="text-center">
                     <Target className="h-4 w-4 mr-2" />
@@ -638,7 +638,7 @@ export default function SkillManagementPage() {
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                       <div>
-                        <CardTitle>Skill Templates</CardTitle>
+                        <CardTitle>Skills</CardTitle>
                         <CardDescription>
                           Define standard skills and categorize them for your organization
                         </CardDescription>
@@ -670,8 +670,8 @@ export default function SkillManagementPage() {
                             <DialogTitle>{editingTemplate ? 'Edit Skill' : 'Create Skill'}</DialogTitle>
                             <DialogDescription>
                               {editingTemplate 
-                                ? 'Update this skill template information.'
-                                : 'Add a new skill template to your organization catalog.'}
+                                ? 'Update this skill information.'
+                                : 'Add a new skill to your organization catalog with the appropriate category and subcategory.'}
                             </DialogDescription>
                           </DialogHeader>
                           
@@ -865,7 +865,7 @@ export default function SkillManagementPage() {
                         <div className="relative flex-1">
                           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                           <Input
-                            placeholder="Search templates..."
+                            placeholder="Search skills..."
                             className="pl-8"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -891,7 +891,7 @@ export default function SkillManagementPage() {
                             {filteredTemplates.length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center">
-                                  No templates found.
+                                  No skills found.
                                 </TableCell>
                               </TableRow>
                             ) : (
@@ -1262,13 +1262,13 @@ export default function SkillManagementPage() {
         </div>
       </div>
 
-      {/* Delete Template Confirmation Dialog */}
+      {/* Delete Skill Confirmation Dialog */}
       <AlertDialog open={showDeleteTemplateDialog} onOpenChange={setShowDeleteTemplateDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the skill template.
+              This action cannot be undone. This will permanently delete the skill.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
