@@ -69,6 +69,8 @@ type SkillTemplate = {
   id: number;
   name: string;
   category: string;
+  categoryId?: number;
+  subcategoryId?: number;
   description?: string;
   isRecommended: boolean;
   targetLevel?: string;
@@ -201,6 +203,8 @@ export default function SkillManagementPage() {
     defaultValues: {
       name: "",
       category: "",
+      categoryId: undefined,
+      subcategoryId: undefined,
       description: "",
       isRecommended: false,
       targetLevel: undefined,
@@ -472,14 +476,37 @@ export default function SkillManagementPage() {
   // Handle editing template
   const handleEditTemplate = (template: SkillTemplate) => {
     setEditingTemplate(template);
+    
+    // Look up categoryId by name if possible
+    const categoryMatch = dbCategories.find((cat: any) => 
+      cat.name.toLowerCase() === template.category.toLowerCase()
+    );
+    const categoryId = categoryMatch ? categoryMatch.id : undefined;
+    
+    // If we found a category, fetch its subcategories
+    if (categoryId) {
+      setSelectedTemplateCategoryId(categoryId);
+      fetch(`/api/skill-categories/${categoryId}/subcategories`)
+        .then(response => response.json())
+        .then(data => {
+          setTemplateSubcategories(data);
+        })
+        .catch(error => {
+          console.error('Error fetching subcategories:', error);
+        });
+    }
+    
     templateForm.reset({
       name: template.name,
       category: template.category,
+      categoryId: categoryId,
+      subcategoryId: template.subcategoryId,
       description: template.description || "",
       isRecommended: template.isRecommended,
       targetLevel: template.targetLevel as "beginner" | "intermediate" | "expert" | undefined,
       targetDate: template.targetDate
     });
+    
     setShowTemplateDialog(true);
   };
   
@@ -624,11 +651,14 @@ export default function SkillManagementPage() {
                               templateForm.reset({
                                 name: "",
                                 category: "",
+                                categoryId: undefined,
+                                subcategoryId: undefined,
                                 description: "",
                                 isRecommended: false,
                                 targetLevel: undefined,
                                 targetDate: undefined
                               });
+                              setSelectedTemplateCategoryId(null);
                             }}
                           >
                             <Plus className="h-4 w-4 mr-2" />
@@ -637,7 +667,7 @@ export default function SkillManagementPage() {
                         </DialogTrigger>
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>{editingTemplate ? 'Edit Skill Template' : 'Create Skill Template'}</DialogTitle>
+                            <DialogTitle>{editingTemplate ? 'Edit Skill' : 'Create Skill'}</DialogTitle>
                             <DialogDescription>
                               {editingTemplate 
                                 ? 'Update this skill template information.'
@@ -822,7 +852,7 @@ export default function SkillManagementPage() {
                                   {(createTemplateMutation.isPending || updateTemplateMutation.isPending) && (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                   )}
-                                  {editingTemplate ? 'Update Template' : 'Create Template'}
+                                  {editingTemplate ? 'Update Skill' : 'Create Skill'}
                                 </Button>
                               </DialogFooter>
                             </form>
