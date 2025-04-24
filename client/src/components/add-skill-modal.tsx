@@ -479,44 +479,87 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
               />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Category Selection - DB-driven dropdown */}
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="categoryId"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="col-span-1 md:col-span-2">
                       <FormLabel>Category</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            placeholder="e.g. Programming, Database"
-                            {...field}
-                            onFocus={() => setShowCategorySuggestions(true)}
-                            onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 200)}
-                          />
-                        </FormControl>
-                        
-                        {/* Category suggestions */}
-                        {showCategorySuggestions && filteredCategorySuggestions.length > 0 && (
-                          <div className="absolute z-10 w-full bg-white shadow-lg rounded-md mt-1 border border-gray-200">
-                            <ul className="py-1 text-sm text-gray-700 max-h-40 overflow-y-auto">
-                              {filteredCategorySuggestions.map((suggestion, index) => (
-                                <li
-                                  key={index}
-                                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                                  onClick={() => form.setValue("category", suggestion)}
-                                >
-                                  {suggestion}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
+                      <FormControl>
+                        <Select 
+                          value={field.value?.toString() || ""}
+                          onValueChange={(value) => {
+                            const categoryId = parseInt(value, 10);
+                            handleCategoryChange(categoryId);
+                            field.onChange(categoryId);
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem key={category.id} value={category.id.toString()}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 
+                {/* Subcategory Selection - Only shown when a category is selected */}
+                {selectedCategoryId && (
+                  <FormField
+                    control={form.control}
+                    name="subcategoryId"
+                    render={({ field }) => (
+                      <FormItem className="col-span-1 md:col-span-2">
+                        <FormLabel>Subcategory</FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value?.toString() || ""}
+                            onValueChange={(value) => {
+                              const subcategoryId = parseInt(value, 10);
+                              field.onChange(subcategoryId);
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select a subcategory" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subcategories.map((subcategory) => (
+                                <SelectItem key={subcategory.id} value={subcategory.id.toString()}>
+                                  {subcategory.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
+                {/* Legacy Category Field - Hidden but maintained for backward compatibility */}
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input {...field} type="hidden" />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Proficiency Level */}
                 <FormField
                   control={form.control}
                   name="level"
