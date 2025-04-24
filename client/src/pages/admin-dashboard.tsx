@@ -2300,7 +2300,7 @@ export default function AdminDashboard() {
                       <div className="relative w-full">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder="Search templates..."
+                          placeholder="Search skills..."
                           className="pl-8"
                           value={templateSearchQuery}
                           onChange={(e) => setTemplateSearchQuery(e.target.value)}
@@ -2315,12 +2315,12 @@ export default function AdminDashboard() {
                     ) : skillTemplates.length === 0 ? (
                       <div className="text-center py-10">
                         <Database className="h-10 w-10 mx-auto text-gray-400" />
-                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No skill templates</h3>
-                        <p className="mt-1 text-sm text-gray-500">Get started by creating a new skill template.</p>
+                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No skills</h3>
+                        <p className="mt-1 text-sm text-gray-500">Get started by creating a new skill.</p>
                         <div className="mt-6">
                           <Button onClick={() => setShowTemplateDialog(true)}>
                             <Plus className="h-4 w-4 mr-2" />
-                            New Template
+                            New Skill
                           </Button>
                         </div>
                       </div>
@@ -2393,7 +2393,7 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Template Dialog */}
+                {/* Skill Dialog */}
                 <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
                   <DialogContent className="sm:max-w-[575px] scrollable-dialog">
                     <DialogHeader>
@@ -2504,8 +2504,8 @@ export default function AdminDashboard() {
                         <Button 
                           type="button"
                           onClick={() => {
-                            // Handle saving the template
-                            const templateData = {
+                            // Handle saving the skill
+                            const skillData = {
                               name: editingTemplate?.name || '',
                               category: editingTemplate?.category || '',
                               description: editingTemplate?.description || '',
@@ -2514,18 +2514,18 @@ export default function AdminDashboard() {
                               targetDate: editingTemplate?.targetDate,
                             };
                             
-                            // Check if editing existing template or creating new
+                            // Check if editing existing skill or creating new
                             if (editingTemplate?.id) {
                               // Call mutation to update
                               toast({
-                                title: "Template updated",
-                                description: "The skill template has been updated successfully."
+                                title: "Skill updated",
+                                description: "The skill has been updated successfully."
                               });
                             } else {
                               // Call mutation to create
                               toast({
-                                title: "Template created",
-                                description: "The new skill template has been created successfully."
+                                title: "Skill created",
+                                description: "The new skill has been created successfully."
                               });
                             }
                             
