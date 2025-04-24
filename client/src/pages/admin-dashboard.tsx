@@ -2427,16 +2427,56 @@ export default function AdminDashboard() {
                           <Label htmlFor="category" className="text-right">
                             Category
                           </Label>
-                          <Input
-                            id="category"
-                            placeholder="e.g., Programming"
-                            className="col-span-3"
-                            value={editingTemplate?.category || ""}
-                            onChange={(e) => setEditingTemplate({
+                          <Select 
+                            value={editingTemplate?.categoryId?.toString() || ""}
+                            onValueChange={(value) => {
+                              const categoryId = parseInt(value);
+                              setEditingTemplate({
+                                ...editingTemplate,
+                                categoryId: categoryId,
+                                // Reset subcategory when category changes
+                                subcategoryId: undefined,
+                              } as any);
+                              // Load subcategories for this category
+                              fetchSubcategoriesForCategory(categoryId);
+                            }}
+                          >
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map((category) => (
+                                <SelectItem key={category.id} value={category.id.toString()}>
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="subcategory" className="text-right">
+                            Subcategory
+                          </Label>
+                          <Select 
+                            value={editingTemplate?.subcategoryId?.toString() || ""}
+                            onValueChange={(value) => setEditingTemplate({
                               ...editingTemplate,
-                              category: e.target.value,
+                              subcategoryId: parseInt(value),
                             } as any)}
-                          />
+                            disabled={!editingTemplate?.categoryId || subcategories.length === 0}
+                          >
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Select a subcategory" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subcategories.map((subcategory) => (
+                                <SelectItem key={subcategory.id} value={subcategory.id.toString()}>
+                                  {subcategory.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         
                         <div className="grid grid-cols-4 items-center gap-4">
@@ -2455,46 +2495,7 @@ export default function AdminDashboard() {
                           />
                         </div>
                         
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="targetLevel" className="text-right">
-                            Target Level
-                          </Label>
-                          <Select 
-                            value={editingTemplate?.targetLevel}
-                            onValueChange={(value) => setEditingTemplate({
-                              ...editingTemplate,
-                              targetLevel: value,
-                            } as any)}
-                          >
-                            <SelectTrigger className="col-span-3">
-                              <SelectValue placeholder="Select a target level" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="beginner">Beginner</SelectItem>
-                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                              <SelectItem value="expert">Expert</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="isRecommended" className="text-right">
-                            Recommended
-                          </Label>
-                          <div className="flex items-center space-x-2 col-span-3">
-                            <Switch
-                              id="isRecommended"
-                              checked={editingTemplate?.isRecommended || false}
-                              onCheckedChange={(checked) => setEditingTemplate({
-                                ...editingTemplate,
-                                isRecommended: checked,
-                              } as any)}
-                            />
-                            <Label htmlFor="isRecommended">
-                              {editingTemplate?.isRecommended ? "Recommended" : "Optional"}
-                            </Label>
-                          </div>
-                        </div>
+
                       </div>
                       
                       <DialogFooter>
