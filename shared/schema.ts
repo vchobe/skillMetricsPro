@@ -575,3 +575,33 @@ export const insertProjectResourceHistorySchema = createInsertSchema(projectReso
 
 export type ProjectResourceHistory = typeof projectResourceHistories.$inferSelect;
 export type InsertProjectResourceHistory = z.infer<typeof insertProjectResourceHistorySchema>;
+
+// Report Settings Schema
+export const reportSettings = pgTable('report_settings', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  frequency: text('frequency', { enum: ['weekly', 'biweekly', 'monthly'] }).notNull().default('weekly'),
+  dayOfWeek: integer('day_of_week').default(1), // 1 = Monday, 7 = Sunday
+  dayOfMonth: integer('day_of_month'), // For monthly reports, 1-31
+  recipients: text('recipients').notNull(), // Comma-separated list of email addresses
+  clientId: integer('client_id').references(() => clients.id), // NULL means all clients
+  isActive: boolean('is_active').notNull().default(true),
+  lastSentAt: timestamp('last_sent_at'),
+  nextScheduledAt: timestamp('next_scheduled_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at')
+});
+
+// Define the insert and select types for report settings
+export const insertReportSettingsSchema = createInsertSchema(reportSettings).pick({
+  name: true,
+  frequency: true,
+  dayOfWeek: true,
+  dayOfMonth: true,
+  recipients: true,
+  clientId: true,
+  isActive: true,
+});
+
+export type ReportSettings = typeof reportSettings.$inferSelect;
+export type InsertReportSettings = z.infer<typeof insertReportSettingsSchema>;
