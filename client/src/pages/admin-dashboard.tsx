@@ -170,7 +170,8 @@ function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSetti
       setSending(true);
       
       // Prepare request body with selected report setting ID if any
-      const requestBody = selectedReportId 
+      // Only include reportSettingId if a specific report setting was selected (not the default option)
+      const requestBody = selectedReportId && selectedReportId !== "default"
         ? { reportSettingId: parseInt(selectedReportId) } 
         : {};
       
@@ -187,7 +188,7 @@ function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSetti
         const result = await response.json();
         toast({
           title: "Report sent successfully",
-          description: selectedReportId 
+          description: selectedReportId && selectedReportId !== "default"
             ? `Report was sent using custom settings (ID: ${selectedReportId})` 
             : "Weekly resource report was sent using default settings",
           variant: "default"
@@ -244,7 +245,7 @@ function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSetti
                   <SelectValue placeholder="Select a report configuration or use default" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Default Settings</SelectItem>
+                  <SelectItem value="default">Default Settings</SelectItem>
                   {reportSettings.map(setting => (
                     <SelectItem key={setting.id} value={setting.id.toString()}>
                       {setting.name} {setting.baseUrl ? `(${setting.baseUrl})` : ''}
@@ -254,7 +255,7 @@ function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSetti
               </Select>
             </div>
             
-            {selectedReportId && (
+            {selectedReportId && selectedReportId !== "default" ? (
               <div className="rounded-md bg-muted p-3 text-sm">
                 <p className="font-medium">Selected Configuration Details:</p>
                 {reportSettings.filter(s => s.id.toString() === selectedReportId).map(setting => (
@@ -266,7 +267,16 @@ function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSetti
                   </div>
                 ))}
               </div>
-            )}
+            ) : selectedReportId === "default" ? (
+              <div className="rounded-md bg-muted p-3 text-sm">
+                <p className="font-medium">Default Configuration</p>
+                <div className="mt-2 space-y-1">
+                  <p><span className="font-medium">Recipient:</span> {'Default recipient (Sales Team)'}</p>
+                  <p><span className="font-medium">Description:</span> Weekly summary of resources added to projects</p>
+                  <p className="text-muted-foreground text-xs">Using system default settings</p>
+                </div>
+              </div>
+            ) : null}
           </div>
           
           <DialogFooter>

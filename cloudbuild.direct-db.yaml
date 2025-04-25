@@ -1,0 +1,44 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/skillmetrics:$COMMIT_SHA', '-f', 'Dockerfile.cloud-run-optimized', '.']
+  
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/skillmetrics:$COMMIT_SHA']
+  
+  # Apply database migrations before deployment
+  - name: 'gcr.io/$PROJECT_ID/skillmetrics:$COMMIT_SHA'
+    entrypoint: 'node'
+    args: ['apply-report-settings-migration.mjs']
+    env:
+      - 'PGHOST=34.30.6.95'
+      - 'PGPORT=5432'
+      - 'PGUSER=neondb_owner'
+      - 'PGPASSWORD=npg_6SNPYmkEt5pa'
+      - 'PGDATABASE=neondb'
+      - 'DATABASE_URL=postgresql://neondb_owner:npg_6SNPYmkEt5pa@34.30.6.95/neondb'
+  
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'skillmetrics'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/skillmetrics:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,PGHOST=34.30.6.95,PGUSER=neondb_owner,PGPASSWORD=npg_6SNPYmkEt5pa,PGDATABASE=neondb,DATABASE_URL=postgresql://neondb_owner:npg_6SNPYmkEt5pa@34.30.6.95/neondb'
+
+# Store images in Google Container Registry
+images:
+  - 'gcr.io/$PROJECT_ID/skillmetrics:$COMMIT_SHA'
+
+# Specify the time limit for this build
+timeout: '1800s' # 30 minutes

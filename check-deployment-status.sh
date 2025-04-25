@@ -1,134 +1,88 @@
 #!/bin/bash
-
 # Script to check Cloud Run deployment status
 
-set -e  # Exit on any error
-
-# Configuration - Use environment variables with fallbacks
-PROJECT_ID="${GCP_PROJECT_ID:-imposing-elixir-440911-u9}"
-SERVICE_NAME="skills-management-app" 
+# Set configuration variables
+PROJECT_ID="imposing-elixir-440911-u9"
 REGION="us-central1"
+SERVICE_NAME="skillmetrics"
 
-echo "===== CHECKING DEPLOYMENT STATUS ====="
-echo "Project ID: $PROJECT_ID"
-echo "Service Name: $SERVICE_NAME"
-echo "Region: $REGION"
-echo "======================================="
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Ensure service account key exists
-if [ ! -f "service-account-key.json" ]; then
-  if [ -z "$GCP_SERVICE_ACCOUNT" ]; then
-    echo "Error: service-account-key.json not found and GCP_SERVICE_ACCOUNT is not set."
-    echo "Please either create a service account key file or set the GCP_SERVICE_ACCOUNT environment variable."
-    exit 1
-  else
-    echo "Creating service-account-key.json from GCP_SERVICE_ACCOUNT environment variable..."
-    echo "$GCP_SERVICE_ACCOUNT" > service-account-key.json
-    chmod 600 service-account-key.json
-  fi
-fi
+echo "Checking Cloud Run deployment status..."
 
-# Authenticate with Google Cloud
-echo "Authenticating with Google Cloud..."
-gcloud auth activate-service-account --key-file=service-account-key.json
-gcloud config set project $PROJECT_ID
-
-# Check service status
-echo "Getting service status..."
-SERVICE_URL=$(gcloud run services describe $SERVICE_NAME \
-  --platform=managed \
-  --region=$REGION \
-  --format="value(status.url)")
-
-if [ -z "$SERVICE_URL" ]; then
-  echo "Error: Could not get service URL. The service may not exist or you might not have permission to access it."
+# Check if gcloud is installed
+if ! command -v gcloud &> /dev/null; then
+  echo -e "${RED}Google Cloud SDK (gcloud) is not installed.${NC}"
   exit 1
 fi
 
-echo "Service URL: $SERVICE_URL"
-
-# Get latest revision
-echo "Getting latest revision status..."
-LATEST_REVISION=$(gcloud run revisions list \
-  --platform=managed \
-  --region=$REGION \
-  --service=$SERVICE_NAME \
-  --format="value(metadata.name)" \
-  --limit=1 \
-  --sort-by=~metadata.creationTimestamp)
-
-if [ -z "$LATEST_REVISION" ]; then
-  echo "Error: Could not get latest revision. The service may not have any revisions."
+# Check if the user is authenticated
+AUTHENTICATED=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null)
+if [ -z "$AUTHENTICATED" ]; then
+  echo -e "${RED}Not authenticated with gcloud. Please run 'gcloud auth login'.${NC}"
   exit 1
 fi
 
-echo "Latest revision: $LATEST_REVISION"
+# Get the service URL and status
+echo "Getting service details..."
+SERVICE_INFO=$(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format json 2>/dev/null)
 
-# Get the image used by this revision
-REVISION_IMAGE=$(gcloud run revisions describe $LATEST_REVISION \
-  --platform=managed \
-  --region=$REGION \
-  --format="value(spec.containers[0].image)")
+if [ $? -ne 0 ]; then
+  echo -e "${RED}Service '$SERVICE_NAME' not found in region '$REGION'.${NC}"
+  exit 1
+fi
 
-# Get container port configuration
-CONTAINER_PORT=$(gcloud run revisions describe $LATEST_REVISION \
-  --platform=managed \
-  --region=$REGION \
-  --format="value(spec.containers[0].ports[0].containerPort)")
+# Extract service details
+SERVICE_URL=$(echo $SERVICE_INFO | jq -r '.status.url')
+LATEST_REVISION=$(echo $SERVICE_INFO | jq -r '.status.latestReadyRevision')
+TRAFFIC_TARGETS=$(echo $SERVICE_INFO | jq -r '.status.traffic')
+REVISION_COUNT=$(echo $SERVICE_INFO | jq -r '.status.traffic | length')
 
-echo "Deployed image: $REVISION_IMAGE"
-echo "Container port: ${CONTAINER_PORT:-Not specified (default: 8080)}"
+echo -e "${GREEN}Service URL:${NC} $SERVICE_URL"
+echo -e "${GREEN}Latest Revision:${NC} $LATEST_REVISION"
+echo -e "${GREEN}Traffic Distribution:${NC}"
+echo $TRAFFIC_TARGETS | jq -r '.[] | "  - " + (.revisionName // "latest") + ": " + (.percent|tostring) + "%"'
 
-# Check revision status
-REVISION_STATUS=$(gcloud run revisions describe $LATEST_REVISION \
-  --platform=managed \
-  --region=$REGION \
-  --format="value(status.conditions)")
+# Check service health
+echo -e "\nChecking service health..."
+HEALTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" $SERVICE_URL/health)
 
-echo "Revision status details:"
-gcloud run revisions describe $LATEST_REVISION \
-  --platform=managed \
-  --region=$REGION \
-  --format="yaml(status)"
-
-# Check if revision is ready
-READY_STATUS=$(gcloud run revisions describe $LATEST_REVISION \
-  --platform=managed \
-  --region=$REGION \
-  --format="value(status.conditions.filter(e.type == 'Ready').status)")
-
-if [ "$READY_STATUS" = "True" ]; then
-  echo "Deployment is READY! 🎉"
-  echo "You can access your application at: $SERVICE_URL"
-  
-  # Test the deployment with curl
-  echo "Testing the deployment with curl..."
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $SERVICE_URL)
-  
-  if [ "$HTTP_STATUS" -eq 200 ]; then
-    echo "Deployment is responding with HTTP status 200 OK! 👍"
-  else
-    echo "Warning: Deployment is responding with HTTP status $HTTP_STATUS 👎"
-  fi
+if [ "$HEALTH_CHECK" == "200" ]; then
+  echo -e "${GREEN}Health check passed (HTTP 200)${NC}"
 else
-  echo "Deployment is NOT READY. 😢"
-  
-  # Get failure reason
-  REASON=$(gcloud run revisions describe $LATEST_REVISION \
-    --platform=managed \
-    --region=$REGION \
-    --format="value(status.conditions.filter(e.type == 'ContainerHealthy').message)")
-  
-  if [ -n "$REASON" ]; then
-    echo "Failure reason: $REASON"
-  fi
-  
-  # Get container logs
-  echo "Container logs:"
-  gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=$SERVICE_NAME AND resource.labels.revision_name=$LATEST_REVISION" \
-    --project=$PROJECT_ID \
-    --limit=20 \
-    --format="table(timestamp,textPayload,jsonPayload.message)"
+  echo -e "${RED}Health check failed (HTTP $HEALTH_CHECK)${NC}"
 fi
 
-echo "======================================="
+# Check recent logs
+echo -e "\nRetrieving recent logs..."
+RECENT_LOGS=$(gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=$SERVICE_NAME" --limit 5 --format json)
+
+# Check for errors in logs
+ERROR_COUNT=$(echo $RECENT_LOGS | grep -c "Error\|Exception\|error\|exception")
+
+if [ $ERROR_COUNT -gt 0 ]; then
+  echo -e "${YELLOW}Found $ERROR_COUNT potential errors in recent logs.${NC}"
+  echo "Log sample:"
+  echo $RECENT_LOGS | jq -r '.[].textPayload' | head -n 10
+else
+  echo -e "${GREEN}No critical errors found in recent logs.${NC}"
+fi
+
+# Check database connection status (if available)
+echo -e "\nChecking database connectivity..."
+DB_CONNECTION=$(curl -s $SERVICE_URL/api/health/database)
+DB_STATUS=$(echo $DB_CONNECTION | jq -r '.status // "unknown"')
+
+if [ "$DB_STATUS" == "connected" ]; then
+  echo -e "${GREEN}Database connection successful${NC}"
+else
+  echo -e "${YELLOW}Database connection status: $DB_STATUS${NC}"
+  echo "Details:"
+  echo $DB_CONNECTION | jq '.'
+fi
+
+echo -e "\n${GREEN}Deployment check completed.${NC}"
