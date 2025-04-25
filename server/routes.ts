@@ -2269,15 +2269,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all project resources for Project Overview
   app.get("/api/project-resources", ensureAuth, async (req, res) => {
     try {
-      // Get all resources from all projects
-      const allProjects = await storage.getAllProjects();
-      const allResources = [];
-      
-      for (const project of allProjects) {
-        const resources = await storage.getProjectResources(project.id);
-        allResources.push(...resources);
-      }
-      
+      // Get all resources from all projects using the optimized function
+      const allResources = await storage.getAllProjectResources();
       res.json(allResources);
     } catch (error) {
       res.status(500).json({ message: "Error fetching all project resources", error });
@@ -2287,15 +2280,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all project skills for Project Overview
   app.get("/api/project-skills", ensureAuth, async (req, res) => {
     try {
-      // Get all skills from all projects
-      const allProjects = await storage.getAllProjects();
-      const allSkills = [];
-      
-      for (const project of allProjects) {
-        const skills = await storage.getProjectSkills(project.id);
-        allSkills.push(...skills);
-      }
-      
+      // Get all skills from all projects using the optimized function
+      const allSkills = await storage.getAllProjectSkills();
       res.json(allSkills);
     } catch (error) {
       res.status(500).json({ message: "Error fetching all project skills", error });
