@@ -1,0 +1,2 @@
+export DATABASE_URL="postgresql://neondb_owner:npg_6SNPYmkEt5pa@localhost/neondb?host=/cloudsql/imposing-elixir-440911-u9:us-central1:skillmetrics-db"
+export NODE_ENV="production"
