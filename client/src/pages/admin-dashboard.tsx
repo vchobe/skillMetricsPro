@@ -67,6 +67,350 @@ import { z } from "zod";
 import { queryClient } from "@/lib/queryClient";
 
 // Helper function to get color for skill badges based on level
+// Helper components for Project and Skill Overview visualization
+function ProjectHierarchyView() {
+  const { hierarchy, isLoading } = useProjectHierarchy();
+  const [expandedClients, setExpandedClients] = useState<string[]>([]);
+  
+  const toggleClient = (clientId: string) => {
+    if (expandedClients.includes(clientId)) {
+      setExpandedClients(expandedClients.filter(id => id !== clientId));
+    } else {
+      setExpandedClients([...expandedClients, clientId]);
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading project hierarchy data...</p>
+      </div>
+    );
+  }
+
+  if (!hierarchy || hierarchy.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-lg border border-gray-200">
+        <Database className="h-12 w-12 text-gray-400 mb-4" />
+        <p className="text-muted-foreground">No project data available.</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-6">
+      {hierarchy.map(client => (
+        <Card key={client.id} className="overflow-hidden">
+          <CardHeader 
+            className="bg-gray-50 cursor-pointer"
+            onClick={() => toggleClient(`client-${client.id}`)}
+          >
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <SquareStack className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {client.name}
+                  <Badge variant="outline" className="ml-2 text-xs font-normal">
+                    {client.industry || 'No Industry'}
+                  </Badge>
+                </CardTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {client.projects.length} Projects
+                </Badge>
+                <ChevronRight className={`h-5 w-5 transition-transform ${
+                  expandedClients.includes(`client-${client.id}`) ? 'rotate-90' : ''
+                }`} />
+              </div>
+            </div>
+          </CardHeader>
+          
+          {expandedClients.includes(`client-${client.id}`) && (
+            <CardContent className="pt-4">
+              {client.projects.length > 0 ? (
+                <div className="space-y-4">
+                  {client.projects.map(project => (
+                    <Accordion type="single" collapsible className="w-full border rounded-md" key={project.id}>
+                      <AccordionItem value={`project-${project.id}`}>
+                        <AccordionTrigger className="px-4 hover:no-underline">
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-primary" />
+                              <span className="font-medium">{project.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {project.resources.length} Resources
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {project.skills.length} Skills
+                              </Badge>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-6 pb-4">
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                <Users className="h-4 w-4" />
+                                Resources
+                              </h4>
+                              {project.resources.length > 0 ? (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Name</TableHead>
+                                      <TableHead>Role</TableHead>
+                                      <TableHead>Allocation</TableHead>
+                                      <TableHead>Skills</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {project.resources.map(resource => (
+                                      <TableRow key={resource.id}>
+                                        <TableCell className="font-medium">
+                                          {resource.user?.firstName} {resource.user?.lastName}
+                                        </TableCell>
+                                        <TableCell>{resource.role || 'N/A'}</TableCell>
+                                        <TableCell>
+                                          {resource.allocation ? `${resource.allocation}%` : 'N/A'}
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="flex flex-wrap gap-1">
+                                            {resource.skills?.slice(0, 3).map((skill, idx) => (
+                                              <Badge 
+                                                key={idx}
+                                                style={{ backgroundColor: getSkillBadgeColor(skill.level, 0.8) }}
+                                                className="text-white text-xs"
+                                              >
+                                                {skill.name}
+                                              </Badge>
+                                            ))}
+                                            {resource.skills && resource.skills.length > 3 && (
+                                              <Badge variant="outline" className="text-xs">
+                                                +{resource.skills.length - 3} more
+                                              </Badge>
+                                            )}
+                                            {(!resource.skills || resource.skills.length === 0) && (
+                                              <span className="text-xs text-muted-foreground">No skills</span>
+                                            )}
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              ) : (
+                                <div className="text-muted-foreground text-sm py-2">No resources assigned to this project.</div>
+                              )}
+                            </div>
+                            
+                            <div>
+                              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                <BrainCircuit className="h-4 w-4" />
+                                Required Skills
+                              </h4>
+                              {project.skills.length > 0 ? (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Skill</TableHead>
+                                      <TableHead>Category</TableHead>
+                                      <TableHead>Required Level</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {project.skills.map(skill => (
+                                      <TableRow key={skill.id}>
+                                        <TableCell className="font-medium">{skill.skillName}</TableCell>
+                                        <TableCell>{skill.category || 'Uncategorized'}</TableCell>
+                                        <TableCell>
+                                          <Badge 
+                                            style={{ backgroundColor: getSkillBadgeColor(skill.requiredLevel || 'beginner', 0.8) }}
+                                            className="text-white text-xs"
+                                          >
+                                            {skill.requiredLevel || 'beginner'}
+                                          </Badge>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              ) : (
+                                <div className="text-muted-foreground text-sm py-2">No specific skills required for this project.</div>
+                              )}
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-muted-foreground text-center py-6">No projects found for this client.</div>
+              )}
+            </CardContent>
+          )}
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function SkillHierarchyView() {
+  const { hierarchy, isLoading, users } = useSkillHierarchy();
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [expandedSubcategories, setExpandedSubcategories] = useState<string[]>([]);
+  
+  const toggleCategory = (categoryId: string) => {
+    if (expandedCategories.includes(categoryId)) {
+      setExpandedCategories(expandedCategories.filter(id => id !== categoryId));
+    } else {
+      setExpandedCategories([...expandedCategories, categoryId]);
+    }
+  };
+  
+  const toggleSubcategory = (subcategoryId: string) => {
+    if (expandedSubcategories.includes(subcategoryId)) {
+      setExpandedSubcategories(expandedSubcategories.filter(id => id !== subcategoryId));
+    } else {
+      setExpandedSubcategories([...expandedSubcategories, subcategoryId]);
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading skill hierarchy data...</p>
+      </div>
+    );
+  }
+
+  if (!hierarchy || hierarchy.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-lg border border-gray-200">
+        <Database className="h-12 w-12 text-gray-400 mb-4" />
+        <p className="text-muted-foreground">No skill category data available.</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-6">
+      {hierarchy.map(category => (
+        <Card key={category.id} className="overflow-hidden">
+          <CardHeader 
+            className={`cursor-pointer ${category.color ? `bg-${category.color}-50` : 'bg-gray-50'}`}
+            onClick={() => toggleCategory(`category-${category.id}`)}
+          >
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                {category.icon ? (
+                  <span className={`text-${category.color}-500`}>
+                    <BrainCircuit className="h-5 w-5" />
+                  </span>
+                ) : (
+                  <BrainCircuit className="h-5 w-5 text-primary" />
+                )}
+                <CardTitle className="text-lg">{category.name}</CardTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {category.subcategories.reduce((count, sub) => count + sub.skills.length, 0)} Skills
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {category.subcategories.length} Subcategories
+                </Badge>
+                <ChevronRight className={`h-5 w-5 transition-transform ${
+                  expandedCategories.includes(`category-${category.id}`) ? 'rotate-90' : ''
+                }`} />
+              </div>
+            </div>
+            {category.description && (
+              <CardDescription>{category.description}</CardDescription>
+            )}
+          </CardHeader>
+          
+          {expandedCategories.includes(`category-${category.id}`) && (
+            <CardContent className="pt-4">
+              {category.subcategories.length > 0 ? (
+                <div className="space-y-4">
+                  {category.subcategories.map(subcategory => (
+                    <div 
+                      key={subcategory.id} 
+                      className="border rounded-md overflow-hidden"
+                    >
+                      <div 
+                        className="bg-gray-50 p-3 cursor-pointer"
+                        onClick={() => toggleSubcategory(`subcategory-${subcategory.id}`)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <Hexagon className="h-4 w-4 text-primary" />
+                            <h3 className="font-medium">{subcategory.name}</h3>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {subcategory.skills.length} Skills
+                            </Badge>
+                            <ChevronRight className={`h-4 w-4 transition-transform ${
+                              expandedSubcategories.includes(`subcategory-${subcategory.id}`) ? 'rotate-90' : ''
+                            }`} />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {expandedSubcategories.includes(`subcategory-${subcategory.id}`) && (
+                        <div className="p-3">
+                          {subcategory.skills.length > 0 ? (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Skill</TableHead>
+                                  <TableHead>Description</TableHead>
+                                  <TableHead>Recommended</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {subcategory.skills.map(skill => (
+                                  <TableRow key={skill.id}>
+                                    <TableCell className="font-medium">{skill.name}</TableCell>
+                                    <TableCell className="max-w-[400px] truncate">
+                                      {skill.description || 'No description'}
+                                    </TableCell>
+                                    <TableCell>
+                                      {skill.isRecommended ? (
+                                        <Badge variant="success" className="text-xs">Recommended</Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-xs">Optional</Badge>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          ) : (
+                            <div className="text-muted-foreground text-sm py-2">No skills in this subcategory.</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-muted-foreground text-center py-6">No subcategories found for this category.</div>
+              )}
+            </CardContent>
+          )}
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 function getSkillBadgeColor(level: string, opacity: number = 1): string {
   const colorMap: Record<string, string> = {
     beginner: `rgba(59, 130, 246, ${opacity})`, // blue
