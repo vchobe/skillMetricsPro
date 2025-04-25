@@ -9,6 +9,9 @@ import {
 import Mailjet from 'node-mailjet';
 import { formatDate } from '../client/src/lib/date-utils';
 import { pool } from './db';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Email addresses for HR, Finance, and Sales teams
 const HR_COORDINATOR_EMAIL = process.env.HR_COORDINATOR_EMAIL || 'hr@skillsplatform.com';
@@ -122,7 +125,7 @@ export async function generateAndSendWeeklyReport(reportSettingId?: number): Pro
     // Add client filter if specified
     if (clientFilter !== null) {
       resourcesQuery += ` AND p.client_id = $2`;
-      queryParams.push(clientFilter);
+      queryParams.push(clientFilter.toString());
     }
     
     resourcesQuery += ` ORDER BY pr.created_at DESC`;
@@ -172,9 +175,9 @@ export async function generateAndSendWeeklyReport(reportSettingId?: number): Pro
     
     // Send the report via email
     try {
-      // Read logo files
-      const fs = require('fs');
-      const path = require('path');
+      // Get correct directory path for ES modules
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
       
       // Read logo files and convert to base64
       const skillMetricsLogo = fs.readFileSync(
