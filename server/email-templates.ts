@@ -92,6 +92,37 @@ export function getWeeklyResourceReportEmailContent(
             ? `From ${resource.startDate}`
             : 'No dates specified';
         
+        // Get the user's top skills if available
+        const userSkills = resourceSkills[resource.userId] || [];
+        const skillsSummary = userSkills.length > 0 ? 
+          userSkills.map(skill => `${skill.name} (${skill.level})`).join(', ') :
+          'No skills information available';
+        
+        // Create skill badges HTML with appropriate color coding for skill levels
+        let skillBadgesHtml = '';
+        if (userSkills.length > 0) {
+          skillBadgesHtml = '<div style="margin-top: 5px;">';
+          userSkills.forEach(skill => {
+            // Color coding based on skill level
+            let badgeColor = '#9ca3af'; // Default gray
+            if (skill.level === 'expert') {
+              badgeColor = '#059669'; // Green for expert
+            } else if (skill.level === 'intermediate') {
+              badgeColor = '#0284c7'; // Blue for intermediate
+            } else if (skill.level === 'beginner') {
+              badgeColor = '#9333ea'; // Purple for beginner
+            }
+            
+            skillBadgesHtml += `
+              <span style="display: inline-block; background-color: ${badgeColor}; color: white; 
+                          font-size: 0.7em; padding: 2px 6px; border-radius: 10px; margin-right: 5px; margin-bottom: 3px;">
+                ${skill.name} - ${skill.level.charAt(0).toUpperCase() + skill.level.slice(1)}
+              </span>
+            `;
+          });
+          skillBadgesHtml += '</div>';
+        }
+        
         resourcesHtml += `
           <tr>
             <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">
@@ -99,6 +130,7 @@ export function getWeeklyResourceReportEmailContent(
                 ${resource.username}
               </a>
               <div style="font-size: 0.85em; color: #666;">${resource.userEmail}</div>
+              ${skillBadgesHtml}
             </td>
             <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">${resource.role || 'Not specified'}</td>
             <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">${resource.allocation ? resource.allocation + '%' : 'Not specified'}</td>
@@ -111,7 +143,8 @@ export function getWeeklyResourceReportEmailContent(
         resourcesText += `  Role: ${resource.role || 'Not specified'}\n`;
         resourcesText += `  Allocation: ${resource.allocation ? resource.allocation + '%' : 'Not specified'}\n`;
         resourcesText += `  Timeline: ${dateRange}\n`;
-        resourcesText += `  Added On: ${resource.addedAt}\n\n`;
+        resourcesText += `  Added On: ${resource.addedAt}\n`;
+        resourcesText += `  Skills: ${skillsSummary}\n\n`;
       });
 
       resourcesHtml += `
@@ -130,6 +163,11 @@ Weekly Project Resource Allocation Report
 ${'-'.repeat(38)}
 Report Date: ${reportDate}
 Reporting Period: ${reportPeriod}
+
+SKILLS INFORMATION
+-----------------
+This report now includes a summary of key skills for each resource added to projects.
+Skills are categorized by level (Beginner, Intermediate, Expert).
 
 ${resourcesText}
 
@@ -153,6 +191,16 @@ This is an automated weekly report from the Employee Skill Metrics system.
       <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p style="margin: 5px 0;"><strong>Report Date:</strong> ${reportDate}</p>
         <p style="margin: 5px 0;"><strong>Reporting Period:</strong> ${reportPeriod}</p>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #4f46e5;">
+        <h4 style="margin-top: 0; margin-bottom: 10px; color: #4f46e5;">Skills Information</h4>
+        <p>This report now includes a summary of key skills for each resource. Skills are shown as colored badges:</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+          <span style="display: inline-block; background-color: #059669; color: white; font-size: 0.8em; padding: 3px 8px; border-radius: 10px;">Expert Level</span>
+          <span style="display: inline-block; background-color: #0284c7; color: white; font-size: 0.8em; padding: 3px 8px; border-radius: 10px;">Intermediate Level</span>
+          <span style="display: inline-block; background-color: #9333ea; color: white; font-size: 0.8em; padding: 3px 8px; border-radius: 10px;">Beginner Level</span>
+        </div>
       </div>
       
       <h3 style="margin-top: 25px; color: #333;">Resources Added This Week</h3>
