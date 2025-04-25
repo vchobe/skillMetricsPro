@@ -33,20 +33,69 @@ export function getWeeklyResourceReportEmailContent(
     // Group resources by project for better readability
     const projectGroups: { [key: string]: typeof resourcesAdded } = {};
     
+    // Group by project name and collect unique client information
+    const clientProjectMap: { [key: string]: Set<string> } = {};
+    
     resourcesAdded.forEach(resource => {
       if (!projectGroups[resource.projectName]) {
         projectGroups[resource.projectName] = [];
+        
+        // Extract client information (will be added in future API enhancements)
+        const clientName = resource.clientName || "Not specified";
+        if (!clientProjectMap[clientName]) {
+          clientProjectMap[clientName] = new Set();
+        }
+        clientProjectMap[clientName].add(resource.projectName);
       }
       projectGroups[resource.projectName].push(resource);
     });
 
-    resourcesHtml = '<div>';
-    resourcesText = '';
+    // Client information summary section for text version
+    resourcesText = 'Client Summary:\n';
+    Object.entries(clientProjectMap).forEach(([clientName, projectSet]) => {
+      resourcesText += `- ${clientName}: ${Array.from(projectSet).join(', ')}\n`;
+    });
+    resourcesText += '\n';
+
+    // Client information summary for HTML
+    resourcesHtml = `
+      <div style="margin-bottom: 20px; border: 1px solid #e5e7eb; border-radius: 5px; padding: 10px; background-color: #f9fafb;">
+        <h3 style="color: #4f46e5; margin-bottom: 10px;">Client Summary</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #f3f4f6;">
+              <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Client</th>
+              <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Projects</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    Object.entries(clientProjectMap).forEach(([clientName, projectSet]) => {
+      resourcesHtml += `
+        <tr>
+          <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">
+            <strong>${clientName}</strong>
+          </td>
+          <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">
+            ${Array.from(projectSet).join(', ')}
+          </td>
+        </tr>
+      `;
+    });
+    
+    resourcesHtml += `
+          </tbody>
+        </table>
+      </div>
+      <div>
+    `;
 
     // Generate report for each project
     Object.entries(projectGroups).forEach(([projectName, resources]) => {
       const firstResource = resources[0];
       const projectLink = projectLinks.find(p => p.projectId === firstResource.projectId)?.projectLink || '#';
+      const clientName = firstResource.clientName || "Not specified";
       
       resourcesHtml += `
         <div style="margin-bottom: 25px;">
@@ -54,6 +103,9 @@ export function getWeeklyResourceReportEmailContent(
             <a href="${projectLink}" style="color: #4f46e5; text-decoration: underline;">
               Project: ${projectName}
             </a>
+            <span style="font-size: 0.85em; color: #666; font-weight: normal; margin-left: 10px;">
+              Client: ${clientName}
+            </span>
           </h3>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
             <thead>
@@ -68,8 +120,8 @@ export function getWeeklyResourceReportEmailContent(
             <tbody>
       `;
 
-      resourcesText += `\nProject: ${projectName}\n`;
-      resourcesText += `${'-'.repeat(projectName.length + 9)}\n`;
+      resourcesText += `\nProject: ${projectName} (Client: ${clientName})\n`;
+      resourcesText += `${'-'.repeat(projectName.length + clientName.length + 19)}\n`;
 
       resources.forEach(resource => {
         const userLink = userLinks.find(u => u.userId === resource.userId)?.userLink || '#';
@@ -126,6 +178,16 @@ This is an automated weekly report from the Employee Skill Metrics system.
   // Complete email HTML version
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+      <!-- Header with logos -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb;">
+        <div>
+          <img src="cid:skill-metrics-logo" alt="Skill Metrics Logo" style="height: 40px; width: auto;" />
+        </div>
+        <div>
+          <img src="cid:atyeti-logo" alt="Atyeti Logo" style="height: 40px; width: auto;" />
+        </div>
+      </div>
+      
       <h2 style="color: #4f46e5;">Weekly Project Resource Allocation Report</h2>
       <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p style="margin: 5px 0;"><strong>Report Date:</strong> ${reportDate}</p>
@@ -135,7 +197,14 @@ This is an automated weekly report from the Employee Skill Metrics system.
       <h3 style="margin-top: 25px; color: #333;">Resources Added This Week</h3>
       ${resourcesHtml}
       
-      <p style="margin-top: 30px; color: #666; font-style: italic;">This is an automated weekly report from the Employee Skill Metrics system.</p>
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+        <p style="color: #666; font-style: italic;">This is an automated weekly report from the Employee Skill Metrics system.</p>
+        <p style="color: #666; font-size: 0.9em;">
+          <a href="https://workspace.vinayak1chobe.repl.co" style="color: #4f46e5; text-decoration: underline;">
+            Access the Skill Metrics Dashboard
+          </a>
+        </p>
+      </div>
     </div>
   `;
 
