@@ -708,6 +708,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Test endpoint for resource skills report
+  app.get("/api/admin/test-skills-report", ensureAdmin, async (req, res) => {
+    try {
+      console.log("Testing weekly report with resource skills data...");
+      
+      // Use the first report setting (ID=1) or take ID from query parameter
+      const reportSettingId = req.query.id ? parseInt(req.query.id as string) : 1;
+      
+      if (req.query.id && isNaN(reportSettingId)) {
+        return res.status(400).json({ message: "Invalid report setting ID in query parameter" });
+      }
+      
+      const success = await sendImmediateWeeklyReport(reportSettingId);
+      
+      if (success) {
+        res.status(200).json({ 
+          message: "Weekly resource report sent successfully",
+          timestamp: new Date().toISOString(),
+          reportSettingId
+        });
+      } else {
+        res.status(500).json({ 
+          message: "Error sending weekly resource report",
+          error: "See server logs for details" 
+        });
+      }
+    } catch (error) {
+      console.error("Error in report-by-id endpoint:", error);
+      res.status(500).json({ 
+        message: "Error sending weekly resource report", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
 
   // Report Settings API Endpoints
   
