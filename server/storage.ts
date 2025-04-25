@@ -154,12 +154,16 @@ export interface IStorage {
   createProjectResource(resource: InsertProjectResource): Promise<ProjectResource>;
   updateProjectResource(id: number, data: Partial<ProjectResource>): Promise<ProjectResource>;
   deleteProjectResource(id: number): Promise<void>;
+  // For Project Overview feature
+  getAllProjectResources(): Promise<ProjectResource[]>;
   
   // Project Skills operations
   getProjectSkills(projectId: number): Promise<ProjectSkill[]>;
   getSkillProjects(skillId: number): Promise<ProjectSkill[]>;
   createProjectSkill(projectSkill: InsertProjectSkill): Promise<ProjectSkill>;
   deleteProjectSkill(id: number): Promise<void>;
+  // For Project Overview feature
+  getAllProjectSkills(): Promise<ProjectSkill[]>;
   
   // Project Resource History operations
   getProjectResourceHistory(projectId: number): Promise<ProjectResourceHistory[]>;
@@ -3089,6 +3093,42 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  
+  // Implementation for Project Overview feature
+  async getAllProjectResources(): Promise<ProjectResource[]> {
+    try {
+      const result = await pool.query(`
+        SELECT pr.*, 
+               u.username, u.email, u.first_name, u.last_name,
+               p.name as project_name,
+               c.name as client_name
+        FROM project_resources pr
+        LEFT JOIN users u ON pr.user_id = u.id
+        LEFT JOIN projects p ON pr.project_id = p.id
+        LEFT JOIN clients c ON p.client_id = c.id
+        ORDER BY pr.id
+      `);
+      
+      // Process resources to include user skills
+      const resources = this.snakeToCamel(result.rows);
+      
+      // For each resource, get the user's skills
+      for (const resource of resources) {
+        try {
+          const userSkills = await this.getUserSkills(resource.userId);
+          resource.skills = userSkills;
+        } catch (error) {
+          console.error(`Error fetching skills for user ${resource.userId}:`, error);
+          resource.skills = [];
+        }
+      }
+      
+      return resources;
+    } catch (error) {
+      console.error("Error getting all project resources:", error);
+      throw error;
+    }
+  }
 
   async getUserProjectResources(userId: number): Promise<ProjectResource[]> {
     try {
@@ -3342,6 +3382,30 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // Implementation for Project Overview feature
+  async getAllProjectSkills(): Promise<ProjectSkill[]> {
+    try {
+      const result = await pool.query(`
+        SELECT ps.*,
+               st.name as skill_name,
+               p.name as project_name,
+               c.name as client_name,
+               sc.name as category,
+               sc.color as category_color
+        FROM project_skills ps
+        LEFT JOIN skills_templates st ON ps.skill_id = st.id
+        LEFT JOIN projects p ON ps.project_id = p.id
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        ORDER BY ps.id
+      `);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all project skills:", error);
+      throw error;
+    }
+  }
+  
   async createProjectSkill(projectSkill: InsertProjectSkill): Promise<ProjectSkill> {
     try {
       // Check if this skill is already associated with the project
