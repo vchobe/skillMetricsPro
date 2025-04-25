@@ -647,6 +647,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Alternate endpoint for sending reports (for backward compatibility)
+  app.post("/api/admin/send-report-now", ensureAdmin, async (req, res) => {
+    try {
+      // This endpoint doesn't expect a body - use default settings
+      console.log("Manually triggering weekly resource report through simplified endpoint...");
+      
+      const success = await sendImmediateWeeklyReport();
+      
+      if (success) {
+        res.status(200).json({ 
+          message: "Weekly resource report sent successfully",
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({ 
+          message: "Error sending weekly resource report",
+          error: "See server logs for details" 
+        });
+      }
+    } catch (error) {
+      console.error("Error in simplified weekly report endpoint:", error);
+      res.status(500).json({ 
+        message: "Error sending weekly resource report", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+  
+  // Report endpoint that accepts a specific reportSettingId in the URL
+  app.post("/api/admin/send-report-now/:id", ensureAdmin, async (req, res) => {
+    try {
+      const reportSettingId = parseInt(req.params.id);
+      
+      if (isNaN(reportSettingId)) {
+        return res.status(400).json({ message: "Invalid report setting ID" });
+      }
+      
+      console.log("Manually triggering weekly resource report for setting ID:", reportSettingId);
+      
+      const success = await sendImmediateWeeklyReport(reportSettingId);
+      
+      if (success) {
+        res.status(200).json({ 
+          message: "Weekly resource report sent successfully",
+          timestamp: new Date().toISOString(),
+          reportSettingId
+        });
+      } else {
+        res.status(500).json({ 
+          message: "Error sending weekly resource report",
+          error: "See server logs for details" 
+        });
+      }
+    } catch (error) {
+      console.error("Error in report-by-id endpoint:", error);
+      res.status(500).json({ 
+        message: "Error sending weekly resource report", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
   // Report Settings API Endpoints
   
   // Get all report settings
