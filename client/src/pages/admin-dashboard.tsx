@@ -260,7 +260,7 @@ function ProjectHierarchyView() {
 }
 
 function SkillHierarchyView() {
-  const { hierarchy, isLoading, users } = useSkillHierarchy();
+  const { hierarchy, isLoading } = useSkillHierarchy();
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [expandedSubcategories, setExpandedSubcategories] = useState<string[]>([]);
   
@@ -303,18 +303,16 @@ function SkillHierarchyView() {
       {hierarchy.map(category => (
         <Card key={category.id} className="overflow-hidden">
           <CardHeader 
-            className={`cursor-pointer ${category.color ? `bg-${category.color}-50` : 'bg-gray-50'}`}
+            className="bg-gray-50 cursor-pointer"
             onClick={() => toggleCategory(`category-${category.id}`)}
+            style={{
+              backgroundColor: category.color ? `${category.color}20` : undefined,
+              borderBottom: category.color ? `1px solid ${category.color}40` : undefined
+            }}
           >
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                {category.icon ? (
-                  <span className={`text-${category.color}-500`}>
-                    <BrainCircuit className="h-5 w-5" />
-                  </span>
-                ) : (
-                  <BrainCircuit className="h-5 w-5 text-primary" />
-                )}
+                <BrainCircuit className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg">{category.name}</CardTitle>
               </div>
               <div className="flex items-center gap-2">
@@ -366,32 +364,61 @@ function SkillHierarchyView() {
                       {expandedSubcategories.includes(`subcategory-${subcategory.id}`) && (
                         <div className="p-3">
                           {subcategory.skills.length > 0 ? (
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Skill</TableHead>
-                                  <TableHead>Description</TableHead>
-                                  <TableHead>Recommended</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {subcategory.skills.map(skill => (
-                                  <TableRow key={skill.id}>
-                                    <TableCell className="font-medium">{skill.name}</TableCell>
-                                    <TableCell className="max-w-[400px] truncate">
-                                      {skill.description || 'No description'}
-                                    </TableCell>
-                                    <TableCell>
-                                      {skill.isRecommended ? (
-                                        <Badge variant="success" className="text-xs">Recommended</Badge>
-                                      ) : (
-                                        <Badge variant="outline" className="text-xs">Optional</Badge>
-                                      )}
-                                    </TableCell>
+                            <>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Skill</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead>Level</TableHead>
                                   </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
+                                </TableHeader>
+                                <TableBody>
+                                  {subcategory.skills.map(skill => (
+                                    <TableRow key={skill.id}>
+                                      <TableCell className="font-medium">{skill.name}</TableCell>
+                                      <TableCell className="max-w-[400px] truncate">
+                                        {(skill as any).description || 'No description'}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge variant="outline" className="text-xs">
+                                          {skill.level || 'Any'}
+                                        </Badge>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                              
+                              <div className="mt-6 border-t pt-4">
+                                <h4 className="text-sm font-semibold mb-2">Users with these skills</h4>
+                                {subcategory.skills.some(skill => skill.users && skill.users.length > 0) ? (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {subcategory.skills
+                                      .filter(skill => skill.users && skill.users.length > 0)
+                                      .flatMap(skill => 
+                                        skill.users?.map(user => (
+                                          <div 
+                                            key={`${skill.id}-${user.id}`}
+                                            className="flex items-center gap-2 bg-gray-50 p-2 rounded-md text-sm"
+                                          >
+                                            <Avatar className="h-6 w-6">
+                                              <AvatarFallback>{(user as any).username?.[0] || 'U'}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                              <div className="font-medium">{(user as any).username}</div>
+                                              <div className="text-xs text-muted-foreground truncate max-w-[120px]">{user.email}</div>
+                                            </div>
+                                          </div>
+                                        )) || []
+                                      )
+                                    }
+                                  </div>
+                                ) : (
+                                  <div className="text-muted-foreground text-sm">No users have skills in this category.</div>
+                                )}
+                              </div>
+                            </>
                           ) : (
                             <div className="text-muted-foreground text-sm py-2">No skills in this subcategory.</div>
                           )}
@@ -560,7 +587,8 @@ import {
   X,
   Mail,
   Send,
-  FileText
+  FileText,
+  Code
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
