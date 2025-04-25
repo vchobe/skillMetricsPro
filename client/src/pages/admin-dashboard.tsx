@@ -719,7 +719,108 @@ function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSetti
   );
 }
 
+// Custom hooks for hierarchical data
+function useProjectHierarchy() {
+  const { data: clients, isLoading: isLoadingClients } = useQuery<Client[]>({
+    queryKey: ["/api/admin/clients"],
+  });
+  
+  const { data: projects, isLoading: isLoadingProjects } = useQuery<Project[]>({
+    queryKey: ["/api/admin/projects"],
+  });
+  
+  const { data: resources, isLoading: isLoadingResources } = useQuery<ProjectResource[]>({
+    queryKey: ["/api/admin/project-resources"],
+  });
+  
+  const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
+    queryKey: ["/api/admin/users"],
+  });
+  
+  const { data: skills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
+    queryKey: ["/api/admin/skills"],
+  });
+  
+  // Hierarchy structure (clients -> projects -> resources -> skills)
+  const projectHierarchy = useMemo(() => {
+    if (!clients || !projects || !resources || !users || !skills) return [];
+    
+    return clients.map(client => {
+      // Get projects for this client
+      const clientProjects = projects.filter(project => project.clientId === client.id);
+      
+      return {
+        ...client,
+        projects: clientProjects.map(project => {
+          // Get resources for this project
+          const projectResources = resources.filter(r => r.projectId === project.id);
+          
+          return {
+            ...project,
+            resources: projectResources.map(resource => {
+              // Get the user for this resource
+              const user = users.find(u => u.id === resource.userId);
+              
+              // Get skills for this user
+              const userSkills = user ? skills.filter(s => s.userId === user.id) : [];
+              
+              return {
+                ...resource,
+                user: user || { id: 0, username: 'Unknown', email: 'unknown@example.com' },
+                skills: userSkills
+              };
             })
+          };
+        })
+      };
+    });
+  }, [clients, projects, resources, users, skills]);
+  
+  const isLoading = isLoadingClients || isLoadingProjects || isLoadingResources || isLoadingUsers || isLoadingSkills;
+  
+  return {
+    hierarchy: projectHierarchy,
+    isLoading,
+    clients,
+    projects,
+    resources,
+    users,
+    skills
+  };
+}
+
+function useSkillHierarchy() {
+  const { data: categories, isLoading: isLoadingCategories } = useQuery<SkillCategory[]>({
+    queryKey: ["/api/admin/skill-categories"],
+  });
+  
+  const { data: allSubcategories, isLoading: isLoadingSubcategories } = useQuery<SkillSubcategory[]>({
+    queryKey: ["/api/admin/skill-subcategories"],
+  });
+  
+  const { data: allSkills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
+    queryKey: ["/api/admin/skills"],
+  });
+  
+  const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
+    queryKey: ["/api/admin/users"],
+  });
+  
+  // Hierarchy structure (category -> subcategory -> skill -> users)
+  const completeHierarchy = useMemo(() => {
+    if (!categories || !allSubcategories || !allSkills || !users) return [];
+    
+    return categories.map(category => {
+      // Get subcategories for this category
+      const subcategories = allSubcategories
+        .filter(sub => sub.categoryId === category.id)
+        .map(subcategory => {
+          // Get skills for this subcategory
+          const subcategorySkills = allSkills
+            .filter(skill => 
+              skill.subcategoryId === subcategory.id || 
+              (skill.category === category.name && !skill.subcategoryId)
+            )
             .map(skill => {
               // Find users who have this skill
               const skillUsers = users.filter(user => {
@@ -747,9 +848,9 @@ function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSetti
       };
     });
   }, [categories, allSubcategories, allSkills, users]);
-
+  
   const isLoading = isLoadingCategories || isLoadingSubcategories || isLoadingSkills || isLoadingUsers;
-
+  
   return {
     hierarchy: completeHierarchy,
     isLoading,
