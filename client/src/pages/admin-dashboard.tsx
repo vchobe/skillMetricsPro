@@ -66,6 +66,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { queryClient } from "@/lib/queryClient";
 
+// Helper function to get color for skill badges based on level
+function getSkillBadgeColor(level: string, opacity: number = 1): string {
+  const colorMap: Record<string, string> = {
+    beginner: `rgba(59, 130, 246, ${opacity})`, // blue
+    intermediate: `rgba(139, 92, 246, ${opacity})`, // purple
+    expert: `rgba(234, 88, 12, ${opacity})`, // orange
+    master: `rgba(22, 163, 74, ${opacity})`, // green
+  };
+  
+  return colorMap[level.toLowerCase()] || `rgba(75, 85, 99, ${opacity})`;
+}
+
 // Template form schema
 const templateSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -1538,6 +1550,376 @@ export default function AdminDashboard() {
                 </motion.div>
               </TabsList>
             </motion.div>
+            
+            <TabsContent value="project-overview">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-primary">Project Hierarchy Overview</h2>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Search projects or clients..."
+                      className="w-64"
+                      onChange={(e) => {
+                        // Implement search functionality if needed
+                      }}
+                    />
+                    <Select>
+                      <SelectTrigger className="w-36">
+                        <SelectValue placeholder="Filter by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Clients</SelectItem>
+                        {projectHierarchy?.map(client => (
+                          <SelectItem key={client.id} value={client.id.toString()}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {isLoadingProjectHierarchy ? (
+                  <div className="w-full flex justify-center items-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : projectHierarchy && projectHierarchy.length > 0 ? (
+                  <div className="space-y-6">
+                    {projectHierarchy.map(client => (
+                      <Card key={client.id} className="overflow-hidden">
+                        <CardHeader className="bg-muted/50">
+                          <div className="flex justify-between items-center">
+                            <CardTitle className="text-xl flex items-center gap-2">
+                              <SquareStack className="h-5 w-5 text-primary" />
+                              <span>{client.name}</span>
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                {client.industry || 'No industry'}
+                              </Badge>
+                            </CardTitle>
+                            <Badge variant="secondary" className="text-sm">
+                              {client.projects.length} Projects
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <Accordion type="multiple" className="w-full">
+                            {client.projects.map(project => (
+                              <AccordionItem key={project.id} value={`project-${project.id}`}>
+                                <AccordionTrigger className="px-6 py-3 hover:bg-muted/20">
+                                  <div className="flex flex-1 justify-between items-center pr-4">
+                                    <div className="font-medium">{project.name}</div>
+                                    <div className="flex items-center gap-3">
+                                      <Badge variant="outline" className="text-xs">
+                                        {project.resources?.length || 0} Resources
+                                      </Badge>
+                                      <Badge variant="outline" className="text-xs">
+                                        {project.skills?.length || 0} Skills
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="px-6 py-3 border-t border-border/50">
+                                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                                      <Users className="h-4 w-4 text-primary" />
+                                      Project Resources
+                                    </h4>
+                                    
+                                    {project.resources && project.resources.length > 0 ? (
+                                      <div className="overflow-x-auto">
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Name</TableHead>
+                                              <TableHead>Role</TableHead>
+                                              <TableHead>Allocation</TableHead>
+                                              <TableHead>Skills</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {project.resources.map(resource => (
+                                              <TableRow key={resource.id}>
+                                                <TableCell className="font-medium">
+                                                  {resource.user?.firstName && resource.user?.lastName
+                                                    ? `${resource.user.firstName} ${resource.user.lastName}`
+                                                    : resource.user?.username || resource.user?.email || 'Unknown'}
+                                                </TableCell>
+                                                <TableCell>{resource.role || 'N/A'}</TableCell>
+                                                <TableCell>{resource.allocation ? `${resource.allocation}%` : 'N/A'}</TableCell>
+                                                <TableCell>
+                                                  <div className="flex flex-wrap gap-1">
+                                                    {resource.skills && resource.skills.length > 0 
+                                                      ? resource.skills.map(skill => (
+                                                          <Badge 
+                                                            key={skill.id} 
+                                                            variant="outline" 
+                                                            className="text-xs"
+                                                            style={{
+                                                              backgroundColor: getSkillBadgeColor(skill.level || 'beginner', 0.1),
+                                                              borderColor: getSkillBadgeColor(skill.level || 'beginner', 0.3),
+                                                              color: getSkillBadgeColor(skill.level || 'beginner', 1)
+                                                            }}
+                                                          >
+                                                            {skill.name} ({skill.level || 'beginner'})
+                                                          </Badge>
+                                                        ))
+                                                      : <span className="text-muted-foreground text-xs">No skills</span>
+                                                    }
+                                                  </div>
+                                                </TableCell>
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </Table>
+                                      </div>
+                                    ) : (
+                                      <div className="text-muted-foreground text-sm py-2">No resources assigned to this project.</div>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="px-6 py-3 border-t border-border/50">
+                                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                                      <BrainCircuit className="h-4 w-4 text-primary" />
+                                      Required Skills
+                                    </h4>
+                                    
+                                    {project.skills && project.skills.length > 0 ? (
+                                      <div className="overflow-x-auto">
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Skill</TableHead>
+                                              <TableHead>Category</TableHead>
+                                              <TableHead>Required Level</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {project.skills.map(skill => (
+                                              <TableRow key={skill.id}>
+                                                <TableCell className="font-medium">{skill.skillName || 'Unknown'}</TableCell>
+                                                <TableCell>{skill.category || 'Uncategorized'}</TableCell>
+                                                <TableCell>
+                                                  <Badge 
+                                                    variant="outline" 
+                                                    style={{
+                                                      backgroundColor: getSkillBadgeColor(skill.requiredLevel || 'beginner', 0.1),
+                                                      borderColor: getSkillBadgeColor(skill.requiredLevel || 'beginner', 0.3),
+                                                      color: getSkillBadgeColor(skill.requiredLevel || 'beginner', 1)
+                                                    }}
+                                                  >
+                                                    {skill.requiredLevel || 'beginner'}
+                                                  </Badge>
+                                                </TableCell>
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </Table>
+                                      </div>
+                                    ) : (
+                                      <div className="text-muted-foreground text-sm py-2">No specific skills required for this project.</div>
+                                    )}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <SquareStack className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-medium mb-2">No Project Data Available</h3>
+                    <p className="text-muted-foreground max-w-md">
+                      There are no clients or projects in the system yet. Add clients and projects to see them displayed here.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            </TabsContent>
+            
+            <TabsContent value="skill-overview">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-primary">Skill Hierarchy Overview</h2>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Search skills or categories..."
+                      className="w-64"
+                      onChange={(e) => {
+                        // Implement search functionality if needed
+                      }}
+                    />
+                    <Select>
+                      <SelectTrigger className="w-36">
+                        <SelectValue placeholder="Filter by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {skillHierarchy?.map(category => (
+                          <SelectItem key={category.id} value={category.id.toString()}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {isLoadingSkillHierarchy ? (
+                  <div className="w-full flex justify-center items-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : skillHierarchy && skillHierarchy.length > 0 ? (
+                  <div className="space-y-6">
+                    {skillHierarchy.map(category => (
+                      <Card key={category.id} className="overflow-hidden">
+                        <CardHeader className="bg-muted/50" 
+                          style={{
+                            backgroundColor: category.color ? `${category.color}20` : undefined,
+                            borderBottom: category.color ? `1px solid ${category.color}40` : undefined
+                          }}
+                        >
+                          <div className="flex justify-between items-center">
+                            <CardTitle className="text-xl flex items-center gap-2">
+                              {category.icon ? (
+                                <div dangerouslySetInnerHTML={{ __html: category.icon }} />
+                              ) : (
+                                <BrainCircuit className="h-5 w-5 text-primary" />
+                              )}
+                              <span>{category.name}</span>
+                            </CardTitle>
+                            <Badge variant="secondary" className="text-sm">
+                              {category.subcategories?.reduce((total, sub) => total + (sub.skills?.length || 0), 0) || 0} Skills
+                            </Badge>
+                          </div>
+                          {category.description && (
+                            <CardDescription>{category.description}</CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <Accordion type="multiple" className="w-full">
+                            {category.subcategories.map(subcategory => (
+                              <AccordionItem key={subcategory.id} value={`subcategory-${subcategory.id}`}>
+                                <AccordionTrigger className="px-6 py-3 hover:bg-muted/20">
+                                  <div className="flex flex-1 justify-between items-center pr-4">
+                                    <div className="font-medium">{subcategory.name}</div>
+                                    <Badge variant="outline" className="text-xs">
+                                      {subcategory.skills?.length || 0} Skills
+                                    </Badge>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="px-6 py-3">
+                                    <Accordion type="multiple" className="w-full">
+                                      {subcategory.skills.map(skill => (
+                                        <AccordionItem key={skill.id} value={`skill-${skill.id}`} className="border-b border-border/30">
+                                          <AccordionTrigger className="py-2 hover:bg-muted/10">
+                                            <div className="flex flex-1 justify-between items-center pr-4">
+                                              <div className="font-medium">{skill.name}</div>
+                                              {skill.users ? (
+                                                <Badge variant="outline" className="text-xs">
+                                                  {skill.users.length} Users
+                                                </Badge>
+                                              ) : null}
+                                            </div>
+                                          </AccordionTrigger>
+                                          <AccordionContent>
+                                            {skill.users && skill.users.length > 0 ? (
+                                              <div className="overflow-x-auto">
+                                                <Table>
+                                                  <TableHeader>
+                                                    <TableRow>
+                                                      <TableHead>User</TableHead>
+                                                      <TableHead>Level</TableHead>
+                                                      <TableHead>Certification</TableHead>
+                                                    </TableRow>
+                                                  </TableHeader>
+                                                  <TableBody>
+                                                    {skill.users.map(user => {
+                                                      // Find the specific skill instance for this user
+                                                      const userSkill = skill.userId === user.id ? skill : 
+                                                        (subcategory.skills.find(s => 
+                                                          s.userId === user.id && s.name === skill.name));
+                                                          
+                                                      return (
+                                                        <TableRow key={user.id}>
+                                                          <TableCell className="font-medium">
+                                                            {user.firstName && user.lastName
+                                                              ? `${user.firstName} ${user.lastName}`
+                                                              : user.username || user.email || 'Unknown'}
+                                                          </TableCell>
+                                                          <TableCell>
+                                                            <Badge 
+                                                              variant="outline" 
+                                                              style={{
+                                                                backgroundColor: getSkillBadgeColor(userSkill?.level || 'beginner', 0.1),
+                                                                borderColor: getSkillBadgeColor(userSkill?.level || 'beginner', 0.3),
+                                                                color: getSkillBadgeColor(userSkill?.level || 'beginner', 1)
+                                                              }}
+                                                            >
+                                                              {userSkill?.level || 'beginner'}
+                                                            </Badge>
+                                                          </TableCell>
+                                                          <TableCell>
+                                                            {userSkill?.certification && userSkill.certification !== 'false' ? (
+                                                              <Badge variant="secondary">Certified</Badge>
+                                                            ) : (
+                                                              <span className="text-muted-foreground text-sm">None</span>
+                                                            )}
+                                                          </TableCell>
+                                                        </TableRow>
+                                                      );
+                                                    })}
+                                                  </TableBody>
+                                                </Table>
+                                              </div>
+                                            ) : (
+                                              <div className="text-muted-foreground text-sm py-2 px-4">
+                                                No users have this skill yet.
+                                              </div>
+                                            )}
+                                          </AccordionContent>
+                                        </AccordionItem>
+                                      ))}
+                                    </Accordion>
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <BrainCircuit className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-medium mb-2">No Skill Data Available</h3>
+                    <p className="text-muted-foreground max-w-md">
+                      There are no skill categories defined in the system yet. Create skill categories to see them displayed here.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            </TabsContent>
             
             <TabsContent value="dashboard">
               <motion.div

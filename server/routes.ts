@@ -2143,6 +2143,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching clients", error });
     }
   });
+  
+  // Get all project resources
+  app.get("/api/project-resources", ensureAuth, async (req, res) => {
+    try {
+      const resources = await storage.getAllProjectResources();
+      res.json(resources);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching project resources", error });
+    }
+  });
+  
+  // Get all project skills
+  app.get("/api/project-skills", ensureAuth, async (req, res) => {
+    try {
+      const skills = await storage.getAllProjectSkills();
+      res.json(skills);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching project skills", error });
+    }
+  });
+  
+  // Get all skill subcategories
+  app.get("/api/skill-subcategories", ensureAuth, async (req, res) => {
+    try {
+      const subcategories = await storage.getAllSkillSubcategories();
+      res.json(subcategories);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching skill subcategories", error });
+    }
+  });
 
   app.get("/api/clients/:id", ensureAuth, async (req, res) => {
     try {
@@ -2233,6 +2263,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(projects);
     } catch (error) {
       res.status(500).json({ message: "Error fetching projects", error });
+    }
+  });
+  
+  // Get all project resources for Project Overview
+  app.get("/api/project-resources", ensureAuth, async (req, res) => {
+    try {
+      // Get all resources from all projects
+      const allProjects = await storage.getAllProjects();
+      const allResources = [];
+      
+      for (const project of allProjects) {
+        const resources = await storage.getProjectResources(project.id);
+        allResources.push(...resources);
+      }
+      
+      res.json(allResources);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching all project resources", error });
+    }
+  });
+  
+  // Get all project skills for Project Overview
+  app.get("/api/project-skills", ensureAuth, async (req, res) => {
+    try {
+      // Get all skills from all projects
+      const allProjects = await storage.getAllProjects();
+      const allSkills = [];
+      
+      for (const project of allProjects) {
+        const skills = await storage.getProjectSkills(project.id);
+        allSkills.push(...skills);
+      }
+      
+      res.json(allSkills);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching all project skills", error });
+    }
+  });
+  
+  // Get all skill subcategories for Skill Overview
+  app.get("/api/skill-subcategories", ensureAuth, async (req, res) => {
+    try {
+      const subcategories = await storage.getAllSkillSubcategories();
+      res.json(subcategories);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching skill subcategories", error });
     }
   });
 
