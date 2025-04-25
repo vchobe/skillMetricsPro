@@ -1,43 +1,126 @@
-# Cloud SQL Connection Setup
+# Cloud SQL Setup Guide
 
-This document outlines the steps needed to connect the application to Cloud SQL when deploying to Google Cloud Run.
+This document provides instructions for setting up and connecting to Cloud SQL for the SkillMetrics application.
 
-## Database Connection String Format
+> **Important Note**: When running the application locally, you may encounter port conflicts. In that case, modify the PORT environment variable in .env to use a different port such as 5001 or 3000.
 
-For Cloud SQL connections in Cloud Run, the connection string should be in this format:
+## Cloud SQL Instance Details
+
+- **Project ID**: imposing-elixir-440911-u9
+- **Region**: us-central1
+- **Instance Name**: skillmetrics-db
+- **Database Name**: neondb
+- **User**: neondb_owner
+- **Direct IP Connection**: 34.30.6.95
+
+## Environment Variables
+
+The following environment variables should be set for database connections:
+
 ```
-postgresql://USER:PASSWORD@localhost/DB_NAME?host=/cloudsql/PROJECT:REGION:INSTANCE
+DATABASE_URL=postgresql://neondb_owner:npg_6SNPYmkEt5pa@34.30.6.95/neondb
+PGHOST=34.30.6.95
+PGUSER=neondb_owner
+PGPASSWORD=npg_6SNPYmkEt5pa
+PGDATABASE=neondb
 ```
 
-The current configuration is:
+## Connection Methods
+
+### Method 1: Direct Connection (IP-based)
+
+This method uses a direct IP connection to the database.
+
+#### Environment variables:
 ```
-postgresql://neondb_owner:npg_6SNPYmkEt5pa@localhost/neondb?host=/cloudsql/imposing-elixir-440911-u9:us-central1:skillmetrics-db
+DATABASE_URL=postgresql://neondb_owner:npg_6SNPYmkEt5pa@34.30.6.95/neondb
 ```
 
-## Configuration Steps
+#### Connection code:
+```javascript
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+```
 
-1. **Set Environment Variables in Cloud Run**:
-   - Set `DATABASE_URL` to the Cloud SQL connection string
-   - Set `NODE_ENV` to "production"
-   - Set `USE_CLOUD_SQL` to "true"
+### Method 2: Cloud SQL Auth Proxy (Local Development)
 
-2. **Service Account Permissions**:
-   - Ensure the service account has the "Cloud SQL Client" role
+For local development, you can use the Cloud SQL Auth Proxy.
 
-3. **Cloud Run Configuration**:
-   - Add the Cloud SQL connection in the Cloud Run service configuration
-   - Set connection name to: `imposing-elixir-440911-u9:us-central1:skillmetrics-db`
+1. Install the Cloud SQL Auth Proxy:
+   ```
+   curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.0.0/cloud-sql-proxy.linux.amd64
+   chmod +x cloud-sql-proxy
+   ```
 
-## Local Development Testing
+2. Start the proxy:
+   ```
+   ./cloud-sql-proxy imposing-elixir-440911-u9:us-central1:skillmetrics-db
+   ```
 
-To test the Cloud SQL connection locally, you need to:
+3. Connect using localhost:
+   ```
+   DATABASE_URL=postgresql://neondb_owner:npg_6SNPYmkEt5pa@localhost/neondb
+   ```
 
-1. Install the Cloud SQL Auth Proxy
-2. Run the proxy to connect to your Cloud SQL instance
-3. Set the database URL to use the proxy
+### Method 3: Cloud Run with Cloud SQL Integration
 
-## Deployment
+When deploying to Cloud Run, use the Cloud SQL integration.
 
-During deployment, the application will automatically detect the Cloud SQL connection string format and use Unix socket connections instead of TCP/IP.
+1. Deploy with the following configuration:
+   ```
+   gcloud run deploy skillmetrics \
+     --image gcr.io/imposing-elixir-440911-u9/skillmetrics \
+     --add-cloudsql-instances imposing-elixir-440911-u9:us-central1:skillmetrics-db \
+     --set-env-vars="DATABASE_URL=postgresql://neondb_owner:npg_6SNPYmkEt5pa@34.30.6.95/neondb" \
+     --region us-central1 \
+     --platform managed \
+     --allow-unauthenticated
+   ```
 
-The detection logic is in `server/db.ts` and looks for `host=/cloudsql/` in the connection string.
+## Verifying Connection
+
+To verify your connection to the database:
+
+```javascript
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
+async function testConnection() {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW()');
+    console.log('Connection successful:', result.rows[0]);
+    client.release();
+  } catch (err) {
+    console.error('Connection error:', err);
+  }
+}
+
+testConnection();
+```
+
+## Troubleshooting
+
+1. **Connection Timeout**:
+   - Check if the IP address is correct
+   - Verify that the database instance is running
+   - Confirm that the network allows connections from your IP
+
+2. **Authentication Errors**:
+   - Verify username and password are correct
+   - Check if the user has appropriate permissions
+
+3. **Port Conflicts**:
+   - If you encounter `EADDRINUSE: address already in use` errors, change the PORT in your .env file
+   - Use `ps aux | grep node` to identify running processes
+   - For Cloud Run deployment, the port will automatically be set to 8080 regardless of environment settings
+
+4. **Cloud Run Integration Issues**:
+   - Make sure the Cloud SQL Admin API is enabled
+   - Verify the service account has the necessary permissions
+   - Confirm the correct instance connection name is used
+   - In the Dockerfile, ensure NODE_ENV is set to 'production'

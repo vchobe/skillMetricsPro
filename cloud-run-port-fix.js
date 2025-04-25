@@ -11,90 +11,153 @@
 
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 
-// Path to the built server file 
-const SERVER_FILE_PATH = path.join(__dirname, 'dist', 'index.js');
+// Default ports
+const DEFAULT_PORT = 5000;        // Default development port
+const CLOUD_RUN_PORT = 8080;      // Default Cloud Run port
 
-// Check if the file exists
-if (!fs.existsSync(SERVER_FILE_PATH)) {
-  console.error(`ERROR: Server file not found at ${SERVER_FILE_PATH}`);
-  console.error('Build the application first with npm run build');
-  process.exit(1);
+/**
+ * Get current running processes on specified port
+ */
+function checkPortUsage(port) {
+  return new Promise((resolve, reject) => {
+    const command = process.platform === 'win32' 
+      ? `netstat -ano | findstr :${port}`
+      : `lsof -i :${port}`;
+    
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        // If the command fails, it likely means nothing is using the port
+        resolve([]);
+        return;
+      }
+      
+      resolve(stdout.split('\n').filter(line => line.trim() !== ''));
+    });
+  });
 }
 
-// Read the current server file
-let serverCode = fs.readFileSync(SERVER_FILE_PATH, 'utf8');
-console.log(`Read ${serverCode.length} bytes from ${SERVER_FILE_PATH}`);
-
-// Make a backup of the original file
-const backupPath = `${SERVER_FILE_PATH}.backup`;
-fs.writeFileSync(backupPath, serverCode);
-console.log(`Backup created at ${backupPath}`);
-
-// Check if the server is already configured correctly
-if (serverCode.includes('const port = 8080;') && 
-    serverCode.includes('const host = "0.0.0.0";') &&
-    serverCode.includes('server.listen(port, host,')) {
-  console.log('Server already configured correctly for Cloud Run');
-  process.exit(0);
-}
-
-console.log('Patching server code for Cloud Run compatibility...');
-
-// Look for the updated Cloud Run detection logic we added to server/index.ts
-if (serverCode.includes('const isCloudRun = process.env.K_SERVICE !== undefined;')) {
-  console.log('Found modern Cloud Run detection logic, no need to patch port');
-} else {
-  // Replace dynamic port with Cloud Run detection logic
-  serverCode = serverCode.replace(
-    /const port = .*process\.env\.PORT.*(\d+);/g, 
-    'const isCloudRun = process.env.K_SERVICE !== undefined;\n' +
-    '    const port = isCloudRun ? 8080 : (process.env.PORT ? parseInt(process.env.PORT, 10) : 5000);'
-  );
+/**
+ * Update the server port in environment configuration
+ */
+function updateServerPort() {
+  // Check .env file
+  const envPath = path.resolve(process.cwd(), '.env');
+  let envContent = '';
+  let envExists = false;
   
-  // Add host configuration if not present
-  if (!serverCode.includes('const host = "0.0.0.0";')) {
-    serverCode = serverCode.replace(
-      /(const port = .*)/,
-      '$1\n    const host = process.env.HOST || "0.0.0.0";'
-    );
+  try {
+    envContent = fs.readFileSync(envPath, 'utf8');
+    envExists = true;
+  } catch (err) {
+    console.log('No .env file found, will create one');
   }
   
-  // Add debug logging
-  if (!serverCode.includes('Cloud Run:')) {
-    serverCode = serverCode.replace(
-      /(console\.log\(`Environment: .*\);)/,
-      '$1\n    console.log(`Cloud Run: ${isCloudRun ? \'Yes\' : \'No\'}`);'
-    );
+  // Check if PORT is already defined
+  const portRegex = /^PORT=(\d+)/m;
+  const portMatch = portRegex.exec(envContent);
+  
+  if (portMatch) {
+    // PORT already defined, update it
+    const currentPort = parseInt(portMatch[1], 10);
+    
+    if (currentPort === DEFAULT_PORT) {
+      // Port is the default that's causing conflicts, change it
+      envContent = envContent.replace(portRegex, `PORT=${DEFAULT_PORT + 1}`);
+      console.log(`Updated PORT in .env from ${currentPort} to ${DEFAULT_PORT + 1}`);
+    } else {
+      console.log(`PORT already set to ${currentPort} in .env`);
+    }
+  } else {
+    // PORT not defined, add it
+    if (envExists) {
+      envContent += `\nPORT=${DEFAULT_PORT + 1}\n`;
+    } else {
+      envContent = `PORT=${DEFAULT_PORT + 1}\n`;
+    }
+    console.log(`Added PORT=${DEFAULT_PORT + 1} to .env`);
   }
+  
+  // Write updated .env file
+  fs.writeFileSync(envPath, envContent);
 }
 
-// Update server.listen call to include host
-serverCode = serverCode.replace(
-  /server\.listen\(port([^,]|$)/g,
-  'server.listen(port, host$1'
-);
-
-// Add debug logging
-serverCode = serverCode.replace(
-  /(server\.listen\(port, host,[^)]*\)\s*=>(?:\s*{)?)/,
-  '$1\n    console.log(`Server started and listening on ${host}:${port}`);'
-);
-
-// Write the patched file
-fs.writeFileSync(SERVER_FILE_PATH, serverCode);
-console.log(`Updated ${SERVER_FILE_PATH} with Cloud Run port configuration`);
-
-// Verify the changes
-const patchedCode = fs.readFileSync(SERVER_FILE_PATH, 'utf8');
-
-// Check for either the old style fixed port or our new Cloud Run detection
-if ((patchedCode.includes('const port = 8080;') && patchedCode.includes('const host = "0.0.0.0";')) || 
-    (patchedCode.includes('const isCloudRun = process.env.K_SERVICE !== undefined;') && 
-     patchedCode.includes('const port = isCloudRun ? 8080'))) {
-  console.log('Successfully patched server for Cloud Run deployment!');
-  process.exit(0);
-} else {
-  console.error('Failed to patch server code correctly');
-  process.exit(1);
+/**
+ * Update Dockerfile for Cloud Run compatibility
+ */
+function updateDockerfile() {
+  const dockerfilePath = path.resolve(process.cwd(), 'Dockerfile.cloud-run-optimized');
+  let dockerfileContent = '';
+  
+  try {
+    dockerfileContent = fs.readFileSync(dockerfilePath, 'utf8');
+  } catch (err) {
+    console.error('Dockerfile.cloud-run-optimized not found');
+    return;
+  }
+  
+  // Update the PORT environment variable
+  const exposeLine = /^EXPOSE\s+(\d+)/m;
+  const exposeMatch = exposeLine.exec(dockerfileContent);
+  
+  if (exposeMatch) {
+    const currentPort = parseInt(exposeMatch[1], 10);
+    if (currentPort !== CLOUD_RUN_PORT) {
+      dockerfileContent = dockerfileContent.replace(exposeLine, `EXPOSE ${CLOUD_RUN_PORT}`);
+      console.log(`Updated EXPOSE in Dockerfile from ${currentPort} to ${CLOUD_RUN_PORT}`);
+    }
+  } else {
+    // Add EXPOSE if not found
+    dockerfileContent += `\nEXPOSE ${CLOUD_RUN_PORT}\n`;
+    console.log(`Added EXPOSE ${CLOUD_RUN_PORT} to Dockerfile`);
+  }
+  
+  // Make sure CMD uses the environment variable
+  const cmdLine = /^CMD\s+(.+)$/m;
+  const cmdMatch = cmdLine.exec(dockerfileContent);
+  
+  if (cmdMatch) {
+    // Check if it needs to be updated to use environment variable
+    if (!cmdMatch[1].includes('$PORT') && !cmdMatch[1].includes('${PORT}')) {
+      // Replace hardcoded port with environment variable
+      const updatedCmd = cmdMatch[1].replace(/\b\d{4,5}\b/, '$PORT');
+      dockerfileContent = dockerfileContent.replace(cmdLine, `CMD ${updatedCmd}`);
+      console.log('Updated CMD in Dockerfile to use $PORT environment variable');
+    }
+  }
+  
+  // Write updated Dockerfile
+  fs.writeFileSync(dockerfilePath, dockerfileContent);
 }
+
+/**
+ * Main function to check and fix port configuration
+ */
+async function fixPortConfiguration() {
+  console.log('Checking for port conflicts...');
+  
+  // Check if default port is in use
+  const portUsage = await checkPortUsage(DEFAULT_PORT);
+  
+  if (portUsage.length > 0) {
+    console.log(`⚠️ Default port ${DEFAULT_PORT} is in use by ${portUsage.length} processes`);
+    console.log(portUsage.join('\n'));
+    
+    // Update server port in .env
+    updateServerPort();
+  } else {
+    console.log(`✅ Default port ${DEFAULT_PORT} is available`);
+  }
+  
+  // Update Dockerfile for Cloud Run
+  updateDockerfile();
+  
+  console.log('\nPort configuration check completed');
+  console.log('Remember to restart the server for changes to take effect');
+}
+
+// Run the port configuration check
+fixPortConfiguration().catch(error => {
+  console.error('Error checking port configuration:', error);
+});

@@ -24,7 +24,7 @@ steps:
       - '--add-cloudsql-instances'
       - '$PROJECT_ID:$_REGION:$_CLOUD_SQL_INSTANCE'
       - '--set-env-vars'
-      - 'NODE_ENV=production,USE_CLOUD_SQL=true,DATABASE_URL=postgresql://$_DB_USER:$_DB_PASSWORD@localhost/$_DB_NAME?host=/cloudsql/$PROJECT_ID:$_REGION:$_CLOUD_SQL_INSTANCE'
+      - 'NODE_ENV=production,PGHOST=$_DB_HOST,PGUSER=$_DB_USER,PGPASSWORD=$_DB_PASSWORD,PGDATABASE=$_DB_NAME,DATABASE_URL=postgresql://$_DB_USER:$_DB_PASSWORD@$_DB_HOST/$_DB_NAME'
 
 images:
   - 'gcr.io/$PROJECT_ID/$_SERVICE_NAME:$COMMIT_SHA'
@@ -36,3 +36,4 @@ substitutions:
   _DB_USER: neondb_owner
   _DB_PASSWORD: npg_6SNPYmkEt5pa
   _DB_NAME: neondb
+  _DB_HOST: 34.30.6.95
