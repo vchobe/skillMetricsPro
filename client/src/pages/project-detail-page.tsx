@@ -1153,8 +1153,8 @@ export default function ProjectDetailPage() {
                     <FormItem>
                       <FormLabel>Client</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                        value={field.value !== null && field.value !== undefined ? field.value.toString() : ""}
+                        onValueChange={(value) => field.onChange(value === "none" ? null : parseInt(value))}
+                        value={field.value !== null && field.value !== undefined ? field.value.toString() : "none"}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1162,7 +1162,7 @@ export default function ProjectDetailPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {clients?.map((client: Client) => (
                             <SelectItem key={client.id} value={client.id.toString()}>
                               {client.name}
@@ -1241,8 +1241,8 @@ export default function ProjectDetailPage() {
                     <FormItem>
                       <FormLabel>Project Lead</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                        value={field.value !== null && field.value !== undefined ? field.value.toString() : ""}
+                        onValueChange={(value) => field.onChange(value === "none" ? null : parseInt(value))}
+                        value={field.value !== null && field.value !== undefined ? field.value.toString() : "none"}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1250,7 +1250,7 @@ export default function ProjectDetailPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {users?.map((user: User) => (
                             <SelectItem key={user.id} value={user.id.toString()}>
                               {user.firstName && user.lastName 
@@ -1272,8 +1272,8 @@ export default function ProjectDetailPage() {
                     <FormItem>
                       <FormLabel>Delivery Lead</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                        value={field.value !== null && field.value !== undefined ? field.value.toString() : ""}
+                        onValueChange={(value) => field.onChange(value === "none" ? null : parseInt(value))}
+                        value={field.value !== null && field.value !== undefined ? field.value.toString() : "none"}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1281,7 +1281,7 @@ export default function ProjectDetailPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {users?.map((user: User) => (
                             <SelectItem key={user.id} value={user.id.toString()}>
                               {user.firstName && user.lastName 
