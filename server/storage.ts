@@ -4229,12 +4229,12 @@ export class PostgresStorage implements IStorage {
         values.push(data.dayOfMonth);
       }
       
-      // Handle recipientEmail (new) or recipients (old)
+      // Handle recipientEmail field (updated column name)
       if (data.recipientEmail !== undefined) {
-        updates.push(`recipients = $${paramCount++}`);
+        updates.push(`recipient_email = $${paramCount++}`);
         values.push(data.recipientEmail);
       } else if (data.recipients !== undefined) {
-        updates.push(`recipients = $${paramCount++}`);
+        updates.push(`recipient_email = $${paramCount++}`);
         values.push(data.recipients);
       }
       
@@ -4243,12 +4243,12 @@ export class PostgresStorage implements IStorage {
         values.push(data.clientId);
       }
       
-      // Handle active (new) or isActive (old)
+      // Handle active field (updated column name)
       if (data.active !== undefined) {
-        updates.push(`is_active = $${paramCount++}`);
+        updates.push(`active = $${paramCount++}`);
         values.push(data.active);
       } else if (data.isActive !== undefined) {
-        updates.push(`is_active = $${paramCount++}`);
+        updates.push(`active = $${paramCount++}`);
         values.push(data.isActive);
       }
       
