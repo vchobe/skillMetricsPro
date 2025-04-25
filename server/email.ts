@@ -266,9 +266,9 @@ export function scheduleWeeklyReport() {
 async function checkAndScheduleCustomReports() {
   try {
     // Get all active report settings
-    // Note: Using is_active until database migration is applied
+    // Using active field (migration has been applied)
     const result = await pool.query(
-      'SELECT * FROM report_settings WHERE is_active = true'
+      'SELECT * FROM report_settings WHERE active = true'
     );
     
     const reportSettings = result.rows;
