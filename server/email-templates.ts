@@ -33,70 +33,22 @@ export function getWeeklyResourceReportEmailContent(
     // Group resources by project for better readability
     const projectGroups: { [key: string]: typeof resourcesAdded } = {};
     
-    // Group by project name and collect unique client information
-    const clientProjectMap: { [key: string]: Set<string> } = {};
-    
     resourcesAdded.forEach(resource => {
       if (!projectGroups[resource.projectName]) {
         projectGroups[resource.projectName] = [];
-        
-        // Extract client information (will be added in future API enhancements)
-        // For now, using a default value for client name until API is updated
-        const clientName = (resource as any).clientName || "Atyeti Client";
-        if (!clientProjectMap[clientName]) {
-          clientProjectMap[clientName] = new Set();
-        }
-        clientProjectMap[clientName].add(resource.projectName);
       }
       projectGroups[resource.projectName].push(resource);
     });
 
-    // Client information summary section for text version
-    resourcesText = 'Client Summary:\n';
-    Object.entries(clientProjectMap).forEach(([clientName, projectSet]) => {
-      resourcesText += `- ${clientName}: ${Array.from(projectSet).join(', ')}\n`;
-    });
-    resourcesText += '\n';
-
-    // Client information summary for HTML
-    resourcesHtml = `
-      <div style="margin-bottom: 20px; border: 1px solid #e5e7eb; border-radius: 5px; padding: 10px; background-color: #f9fafb;">
-        <h3 style="color: #4f46e5; margin-bottom: 10px;">Client Summary</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr style="background-color: #f3f4f6;">
-              <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Client</th>
-              <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Projects</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    
-    Object.entries(clientProjectMap).forEach(([clientName, projectSet]) => {
-      resourcesHtml += `
-        <tr>
-          <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">
-            <strong>${clientName}</strong>
-          </td>
-          <td style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">
-            ${Array.from(projectSet).join(', ')}
-          </td>
-        </tr>
-      `;
-    });
-    
-    resourcesHtml += `
-          </tbody>
-        </table>
-      </div>
-      <div>
-    `;
+    resourcesHtml = '<div>';
 
     // Generate report for each project
     Object.entries(projectGroups).forEach(([projectName, resources]) => {
       const firstResource = resources[0];
       const projectLink = projectLinks.find(p => p.projectId === firstResource.projectId)?.projectLink || '#';
       const clientName = (firstResource as any).clientName || "Atyeti Client";
+      const clientId = (firstResource as any).clientId;
+      const clientLink = clientId ? `${projectLink.split('/projects/')[0]}/clients/${clientId}` : '#';
       
       resourcesHtml += `
         <div style="margin-bottom: 25px;">
@@ -105,7 +57,7 @@ export function getWeeklyResourceReportEmailContent(
               Project: ${projectName}
             </a>
             <span style="font-size: 0.85em; color: #666; font-weight: normal; margin-left: 10px;">
-              Client: ${clientName}
+              Client: <a href="${clientLink}" style="color: #4f46e5; text-decoration: underline;">${clientName}</a>
             </span>
           </h3>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
@@ -179,13 +131,13 @@ This is an automated weekly report from the Employee Skill Metrics system.
   // Complete email HTML version
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
-      <!-- Header with logos -->
+      <!-- Header with company name instead of logos -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb;">
-        <div>
-          <img src="cid:skill-metrics-logo" alt="Skill Metrics Logo" style="height: 40px; width: auto;" />
+        <div style="font-size: 20px; font-weight: bold; color: #4f46e5;">
+          Skill Metrics
         </div>
-        <div>
-          <img src="cid:atyeti-logo" alt="Atyeti Logo" style="height: 40px; width: auto;" />
+        <div style="font-size: 16px; color: #666;">
+          Atyeti Inc.
         </div>
       </div>
       
