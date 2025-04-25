@@ -41,7 +41,8 @@ export function getWeeklyResourceReportEmailContent(
         projectGroups[resource.projectName] = [];
         
         // Extract client information (will be added in future API enhancements)
-        const clientName = resource.clientName || "Not specified";
+        // For now, using a default value for client name until API is updated
+        const clientName = (resource as any).clientName || "Atyeti Client";
         if (!clientProjectMap[clientName]) {
           clientProjectMap[clientName] = new Set();
         }
@@ -95,7 +96,7 @@ export function getWeeklyResourceReportEmailContent(
     Object.entries(projectGroups).forEach(([projectName, resources]) => {
       const firstResource = resources[0];
       const projectLink = projectLinks.find(p => p.projectId === firstResource.projectId)?.projectLink || '#';
-      const clientName = firstResource.clientName || "Not specified";
+      const clientName = (firstResource as any).clientName || "Atyeti Client";
       
       resourcesHtml += `
         <div style="margin-bottom: 25px;">
