@@ -189,7 +189,7 @@ export const updateProject = async (projectId: number, projectData: UpdateProjec
   }
 
   const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
-    method: 'PUT',
+    method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -284,7 +284,7 @@ export const updateProjectResource = async (
   }
 
   const response = await fetch(`${API_BASE_URL}/projects/${projectId}/resources/${resourceId}`, {
-    method: 'PUT',
+    method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -379,7 +379,7 @@ export const updateProjectSkill = async (
   }
 
   const response = await fetch(`${API_BASE_URL}/projects/${projectId}/skills/${skillId}`, {
-    method: 'PUT',
+    method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
