@@ -20,7 +20,15 @@ export function getWeeklyResourceReportEmailContent(
   userLinks: Array<{
     userId: number,
     userLink: string
-  }>
+  }>,
+  resourceSkills: Record<number, Array<{
+    id: number;
+    name: string;
+    level: string;
+    category: string;
+    subcategory?: string;
+    certification?: string;
+  }>> = {}
 ) {
   // Format the resources data into HTML and text
   let resourcesHtml = '';
