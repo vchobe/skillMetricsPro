@@ -175,20 +175,6 @@ export async function generateAndSendWeeklyReport(reportSettingId?: number): Pro
     
     // Send the report via email
     try {
-      // Get correct directory path for ES modules
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = path.dirname(__filename);
-      
-      // Read logo files and convert to base64
-      const skillMetricsLogo = fs.readFileSync(
-        path.join(__dirname, '../public/skill-metrics-logo.svg'),
-        { encoding: 'base64' }
-      );
-      const atyetiLogo = fs.readFileSync(
-        path.join(__dirname, '../public/atyeti-logo.svg'), 
-        { encoding: 'base64' }
-      );
-      
       await mailjet
         .post('send', { version: 'v3.1' })
         .request({
@@ -206,22 +192,7 @@ export async function generateAndSendWeeklyReport(reportSettingId?: number): Pro
               ],
               Subject: subject,
               TextPart: text,
-              HTMLPart: html,
-              // Include logo attachments with Content-IDs for HTML embedding
-              Attachments: [
-                {
-                  ContentType: "image/svg+xml",
-                  Filename: "skill-metrics-logo.svg",
-                  ContentID: "skill-metrics-logo",
-                  Base64Content: skillMetricsLogo
-                },
-                {
-                  ContentType: "image/svg+xml",
-                  Filename: "atyeti-logo.svg",
-                  ContentID: "atyeti-logo",
-                  Base64Content: atyetiLogo
-                }
-              ]
+              HTMLPart: html
             }
           ]
         });
