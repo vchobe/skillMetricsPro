@@ -483,7 +483,7 @@ export default function ReportSettingsManager() {
                   )}
                 />
                 
-                {form.watch("frequency") === "weekly" && (
+                {form.watch('frequency') === 'weekly' && (
                   <FormField
                     control={form.control}
                     name="dayOfWeek"
@@ -497,7 +497,7 @@ export default function ReportSettingsManager() {
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a day" />
+                              <SelectValue placeholder="Select day of week" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -516,7 +516,7 @@ export default function ReportSettingsManager() {
                   />
                 )}
                 
-                {form.watch("frequency") === "monthly" && (
+                {form.watch('frequency') === 'monthly' && (
                   <FormField
                     control={form.control}
                     name="dayOfMonth"
@@ -530,13 +530,13 @@ export default function ReportSettingsManager() {
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a day" />
+                              <SelectValue placeholder="Select day of month" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                              <SelectItem key={day} value={day.toString()}>
-                                {day}
+                            {Array.from({ length: 31 }, (_, i) => (
+                              <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                {i + 1}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -548,38 +548,52 @@ export default function ReportSettingsManager() {
                 )}
               </div>
               
+              <FormField
+                control={form.control}
+                name="baseUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Base URL (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://atyeti.com" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Custom domain for links in email reports
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Weekly report of new resources added to projects" 
+                        {...field}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="baseUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Custom Base URL</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="https://skills.atyeti.com" 
-                          {...field} 
-                          value={field.value || ""}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Used for links in email reports. Leave blank for default.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
                 <FormField
                   control={form.control}
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Client Filter</FormLabel>
+                      <FormLabel>Client Filter (Optional)</FormLabel>
                       <Select 
-                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)} 
-                        defaultValue={field.value?.toString() || ""}
-                        value={field.value?.toString() || ""}
+                        onValueChange={(value) => field.onChange(value === "all" ? null : parseInt(value))} 
+                        defaultValue={field.value?.toString() || "all"}
+                        value={field.value?.toString() || "all"}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -587,7 +601,7 @@ export default function ReportSettingsManager() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">All Clients</SelectItem>
+                          <SelectItem value="all">All Clients</SelectItem>
                           {clients.map(client => (
                             <SelectItem key={client.id} value={client.id.toString()}>
                               {client.name}
@@ -602,74 +616,48 @@ export default function ReportSettingsManager() {
                     </FormItem>
                   )}
                 />
+                
+                <FormField
+                  control={form.control}
+                  name="active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-md border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel>Active</FormLabel>
+                        <FormDescription>
+                          Enable or disable this report
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Weekly report of project resources for sales team..." 
-                        {...field} 
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="active"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Active</FormLabel>
-                      <FormDescription>
-                        Scheduled reports will only be sent if this setting is active
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
+              
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setAddDialogOpen(false)}>
+                <Button variant="outline" type="button" onClick={() => setAddDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create"
-                  )}
-                </Button>
+                <Button type="submit">Create Report Setting</Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
-
+      
       {/* Edit Report Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Edit Report Settings</DialogTitle>
+            <DialogTitle>Edit Report Setting</DialogTitle>
             <DialogDescription>
-              Update this report configuration.
+              Update the report configuration settings.
             </DialogDescription>
           </DialogHeader>
           
@@ -733,7 +721,7 @@ export default function ReportSettingsManager() {
                   )}
                 />
                 
-                {form.watch("frequency") === "weekly" && (
+                {form.watch('frequency') === 'weekly' && (
                   <FormField
                     control={form.control}
                     name="dayOfWeek"
@@ -747,7 +735,7 @@ export default function ReportSettingsManager() {
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a day" />
+                              <SelectValue placeholder="Select day of week" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -766,7 +754,7 @@ export default function ReportSettingsManager() {
                   />
                 )}
                 
-                {form.watch("frequency") === "monthly" && (
+                {form.watch('frequency') === 'monthly' && (
                   <FormField
                     control={form.control}
                     name="dayOfMonth"
@@ -780,13 +768,13 @@ export default function ReportSettingsManager() {
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a day" />
+                              <SelectValue placeholder="Select day of month" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                              <SelectItem key={day} value={day.toString()}>
-                                {day}
+                            {Array.from({ length: 31 }, (_, i) => (
+                              <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                {i + 1}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -798,38 +786,52 @@ export default function ReportSettingsManager() {
                 )}
               </div>
               
+              <FormField
+                control={form.control}
+                name="baseUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Base URL (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://atyeti.com" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormDescription>
+                      Custom domain for links in email reports
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Weekly report of new resources added to projects" 
+                        {...field}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="baseUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Custom Base URL</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="https://skills.atyeti.com" 
-                          {...field} 
-                          value={field.value || ""}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Used for links in email reports. Leave blank for default.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
                 <FormField
                   control={form.control}
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Client Filter</FormLabel>
+                      <FormLabel>Client Filter (Optional)</FormLabel>
                       <Select 
-                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)} 
-                        defaultValue={field.value?.toString() || ""}
-                        value={field.value?.toString() || ""}
+                        onValueChange={(value) => field.onChange(value === "all" ? null : parseInt(value))} 
+                        defaultValue={field.value?.toString() || "all"}
+                        value={field.value?.toString() || "all"}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -837,7 +839,7 @@ export default function ReportSettingsManager() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">All Clients</SelectItem>
+                          <SelectItem value="all">All Clients</SelectItem>
                           {clients.map(client => (
                             <SelectItem key={client.id} value={client.id.toString()}>
                               {client.name}
@@ -852,74 +854,48 @@ export default function ReportSettingsManager() {
                     </FormItem>
                   )}
                 />
+                
+                <FormField
+                  control={form.control}
+                  name="active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-md border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel>Active</FormLabel>
+                        <FormDescription>
+                          Enable or disable this report
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Weekly report of project resources for sales team..." 
-                        {...field} 
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="active"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Active</FormLabel>
-                      <FormDescription>
-                        Scheduled reports will only be sent if this setting is active
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
+              
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                <Button variant="outline" type="button" onClick={() => setEditDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    "Update"
-                  )}
-                </Button>
+                <Button type="submit">Update Report Setting</Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation */}
+      
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the report setting "{currentSetting?.name}".
+              This will delete the report setting "{currentSetting?.name}".
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -927,17 +903,9 @@ export default function ReportSettingsManager() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => currentSetting && deleteMutation.mutate(currentSetting.id)}
-              disabled={deleteMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-red-600 hover:bg-red-700"
             >
-              {deleteMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
