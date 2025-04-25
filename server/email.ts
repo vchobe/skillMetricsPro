@@ -138,6 +138,49 @@ export async function generateAndSendWeeklyReport(reportSettingId?: number): Pro
       addedAt: formatDate(row.addedAt)
     }));
     
+    // Fetch skills for each resource (user)
+    const resourceSkills: Record<number, Array<{
+      id: number;
+      name: string;
+      level: string;
+      category: string;
+      subcategory?: string;
+      certification?: string;
+    }>> = {};
+    
+    for (const resource of resourcesAdded) {
+      try {
+        // Query to get the top skills (limited to 5) for each user
+        const skillsQuery = `
+          SELECT s.*, 
+                sc.name as category_name, 
+                sc.color as category_color, 
+                sc.icon as category_icon,
+                sub.name as subcategory_name
+          FROM skills s
+          LEFT JOIN skill_categories sc ON s.category_id = sc.id
+          LEFT JOIN skill_subcategories sub ON s.subcategory_id = sub.id
+          WHERE s.user_id = $1 
+          ORDER BY s.level DESC, s.last_updated DESC
+          LIMIT 5
+        `;
+        const skillsResult = await pool.query(skillsQuery, [resource.userId]);
+        
+        // Store the skills in the resourceSkills object, indexed by userId
+        resourceSkills[resource.userId] = skillsResult.rows.map(skill => ({
+          id: skill.id,
+          name: skill.name,
+          level: skill.level,
+          category: skill.category_name || skill.category,
+          subcategory: skill.subcategory_name,
+          certification: skill.certification
+        }));
+      } catch (err) {
+        console.error(`Error fetching skills for user ${resource.userId}:`, err);
+        resourceSkills[resource.userId] = [];
+      }
+    }
+    
     // Generate links to projects and users with custom or default baseUrl
     const projectLinks = resourcesAdded.map(resource => ({
       projectId: resource.projectId,
@@ -155,7 +198,8 @@ export async function generateAndSendWeeklyReport(reportSettingId?: number): Pro
       reportPeriod,
       resourcesAdded,
       projectLinks,
-      userLinks
+      userLinks,
+      resourceSkills
     );
     
     // Skip sending email if Mailjet is not configured
