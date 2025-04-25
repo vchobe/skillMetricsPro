@@ -3,6 +3,63 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Skill, User, SkillHistory, ReportSettings } from "@shared/schema";
+
+// Interfaces for hierarchical data structures
+interface Client {
+  id: number;
+  name: string;
+  industry?: string;
+  projects: Project[];
+}
+
+interface Project {
+  id: number;
+  name: string;
+  clientId: number;
+  resources: ProjectResource[];
+  skills: ProjectSkill[];
+}
+
+interface ProjectResource {
+  id: number;
+  projectId: number;
+  userId: number;
+  role: string;
+  allocation?: number;
+  startDate?: string;
+  endDate?: string;
+  user: User;
+  skills: Skill[];
+}
+
+interface ProjectSkill {
+  id: number;
+  projectId: number;
+  skillId: number;
+  requiredLevel: string;
+  skillName?: string;
+  category?: string;
+}
+
+interface SkillCategory {
+  id: number;
+  name: string;
+  color?: string;
+  icon?: string;
+  description?: string;
+  subcategories: SkillSubcategory[];
+}
+
+interface SkillSubcategory {
+  id: number;
+  name: string;
+  categoryId: number;
+  skills: Skill[];
+}
+
+interface UserWithSkills extends User {
+  skills: Skill[];
+}
 import { formatDate, DATE_FORMATS } from "@/lib/date-utils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -306,10 +363,211 @@ function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSetti
   );
 }
 
+// Custom hooks for hierarchical data
+function useProjectHierarchy() {
+  // Fetch clients
+  const { data: clients, isLoading: isLoadingClients } = useQuery<Client[]>({
+    queryKey: ['/api/clients'],
+    select: (clients) => clients || [],
+  });
+
+  // Fetch projects for each client
+  const { data: projects, isLoading: isLoadingProjects } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+    select: (projects) => projects || [],
+  });
+
+  // Combine clients with their projects
+  const clientsWithProjects = useMemo(() => {
+    if (!clients || !projects) return [];
+    
+    return clients.map(client => ({
+      ...client,
+      projects: projects.filter(project => project.clientId === client.id) || []
+    }));
+  }, [clients, projects]);
+
+  // Fetch project resources for all projects
+  const { data: allResources, isLoading: isLoadingResources } = useQuery<ProjectResource[]>({
+    queryKey: ['/api/project-resources'],
+    enabled: !!projects?.length,
+    select: (resources) => resources || [],
+  });
+
+  // Fetch project skills for all projects
+  const { data: allProjectSkills, isLoading: isLoadingProjectSkills } = useQuery<ProjectSkill[]>({
+    queryKey: ['/api/project-skills'],
+    enabled: !!projects?.length,
+    select: (skills) => skills || [],
+  });
+
+  // Fetch users with their skills
+  const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
+    queryKey: ['/api/users'],
+    select: (users) => users || [],
+  });
+
+  // Fetch all skills
+  const { data: skills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
+    queryKey: ['/api/all-skills'],
+    select: (skills) => skills || [],
+  });
+
+  // Combine all data into a complete hierarchy
+  const completeHierarchy = useMemo(() => {
+    if (!clientsWithProjects || !allResources || !allProjectSkills || !users || !skills) return [];
+    
+    return clientsWithProjects.map(client => ({
+      ...client,
+      projects: client.projects.map(project => {
+        // Add resources to each project
+        const projectResources = allResources
+          .filter(resource => resource.projectId === project.id)
+          .map(resource => {
+            // Add user details to each resource
+            const user = users.find(u => u.id === resource.userId);
+            // Add skills for each resource
+            const userSkills = skills.filter(s => s.userId === resource.userId);
+            
+            return {
+              ...resource,
+              user: user || { id: resource.userId, username: 'Unknown', email: 'unknown' },
+              skills: userSkills || []
+            };
+          });
+
+        // Add skills to each project
+        const projectSkills = allProjectSkills
+          .filter(skill => skill.projectId === project.id)
+          .map(skill => {
+            const skillDetails = skills.find(s => s.id === skill.skillId);
+            return {
+              ...skill,
+              skillName: skillDetails?.name || 'Unknown',
+              category: skillDetails?.category || 'Unknown'
+            };
+          });
+
+        return {
+          ...project,
+          resources: projectResources,
+          skills: projectSkills
+        };
+      })
+    }));
+  }, [clientsWithProjects, allResources, allProjectSkills, users, skills]);
+
+  const isLoading = isLoadingClients || isLoadingProjects || isLoadingResources || 
+                   isLoadingProjectSkills || isLoadingUsers || isLoadingSkills;
+
+  return {
+    hierarchy: completeHierarchy,
+    isLoading,
+    clients,
+    projects,
+    allResources,
+    allProjectSkills,
+    users,
+    skills
+  };
+}
+
+function useSkillHierarchy() {
+  // Fetch skill categories
+  const { data: categories, isLoading: isLoadingCategories } = useQuery<SkillCategory[]>({
+    queryKey: ['/api/skill-categories'],
+    select: (categories) => categories || [],
+  });
+
+  // Fetch skill subcategories
+  const { data: allSubcategories, isLoading: isLoadingSubcategories } = useQuery<SkillSubcategory[]>({
+    queryKey: ['/api/skill-subcategories'],
+    enabled: !!categories?.length,
+    select: (subcategories) => subcategories || [],
+  });
+
+  // Fetch all skills
+  const { data: allSkills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
+    queryKey: ['/api/all-skills'],
+    select: (skills) => skills || [],
+  });
+
+  // Fetch all users
+  const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
+    queryKey: ['/api/users'],
+    select: (users) => users || [],
+  });
+
+  // Combine all data into a complete skill hierarchy
+  const completeHierarchy = useMemo(() => {
+    if (!categories || !allSubcategories || !allSkills || !users) return [];
+    
+    return categories.map(category => {
+      // Get subcategories for this category
+      const subcategories = allSubcategories
+        .filter(sub => sub.categoryId === category.id)
+        .map(subcategory => {
+          // Get skills for this subcategory
+          const subcategorySkills = allSkills
+            .filter(skill => {
+              return skill.subcategoryId === subcategory.id || 
+                     (skill.categoryId === category.id && !skill.subcategoryId);
+            })
+            .map(skill => {
+              // Find users who have this skill
+              const skillUsers = users.filter(user => {
+                return allSkills.some(s => 
+                  s.userId === user.id && 
+                  s.name === skill.name
+                );
+              });
+              
+              return {
+                ...skill,
+                users: skillUsers
+              };
+            });
+          
+          return {
+            ...subcategory,
+            skills: subcategorySkills
+          };
+        });
+      
+      return {
+        ...category,
+        subcategories
+      };
+    });
+  }, [categories, allSubcategories, allSkills, users]);
+
+  const isLoading = isLoadingCategories || isLoadingSubcategories || isLoadingSkills || isLoadingUsers;
+
+  return {
+    hierarchy: completeHierarchy,
+    isLoading,
+    categories,
+    allSubcategories,
+    allSkills,
+    users
+  };
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Use our custom hooks for hierarchical data
+  const {
+    hierarchy: projectHierarchy,
+    isLoading: isLoadingProjectHierarchy
+  } = useProjectHierarchy();
+  
+  const {
+    hierarchy: skillHierarchy,
+    isLoading: isLoadingSkillHierarchy
+  } = useSkillHierarchy();
   
   // Form for skill templates
   const templateForm = useForm<z.infer<typeof templateSchema>>({
@@ -1173,7 +1431,7 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <TabsList className="grid w-full grid-cols-8 mb-6">
+              <TabsList className="grid w-full grid-cols-12 gap-1 mb-6">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <TabsTrigger 
                     value="dashboard" 
@@ -1181,6 +1439,24 @@ export default function AdminDashboard() {
                   >
                     <BarChart4 className="h-4 w-4" />
                     <span>Dashboard</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="project-overview" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <SquareStack className="h-4 w-4" />
+                    <span>Project Overview</span>
+                  </TabsTrigger>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="skill-overview" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <BrainCircuit className="h-4 w-4" />
+                    <span>Skill Overview</span>
                   </TabsTrigger>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
