@@ -3097,6 +3097,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Hierarchical data endpoints for admin dashboard visualizations
+  
+  // Get all clients for Project Overview
+  app.get("/api/clients", ensureAuth, async (req, res) => {
+    try {
+      const clients = await storage.getAllClients();
+      res.json(clients);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      res.status(500).json({ message: "Error fetching clients", error: String(error) });
+    }
+  });
+  
+  // Get all projects for Project Overview
+  app.get("/api/projects", ensureAuth, async (req, res) => {
+    try {
+      const projects = await storage.getAllProjects();
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      res.status(500).json({ message: "Error fetching projects", error: String(error) });
+    }
+  });
+  
+  // Get all project resources
+  app.get("/api/project-resources", ensureAuth, async (req, res) => {
+    try {
+      const resources = await storage.getAllProjectResources();
+      res.json(resources);
+    } catch (error) {
+      console.error("Error fetching project resources:", error);
+      res.status(500).json({ message: "Error fetching project resources", error: String(error) });
+    }
+  });
+  
+  // Get all project skills
+  app.get("/api/project-skills", ensureAuth, async (req, res) => {
+    try {
+      const skills = await storage.getAllProjectSkills();
+      res.json(skills);
+    } catch (error) {
+      console.error("Error fetching project skills:", error);
+      res.status(500).json({ message: "Error fetching project skills", error: String(error) });
+    }
+  });
+  
+  // Get all skill categories for Skill Overview
+  app.get("/api/skill-categories", ensureAuth, async (req, res) => {
+    try {
+      const categories = await storage.getAllSkillCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching skill categories:", error);
+      res.status(500).json({ message: "Error fetching skill categories", error: String(error) });
+    }
+  });
+  
+  // Get all skill subcategories for Skill Overview
+  app.get("/api/skill-subcategories", ensureAuth, async (req, res) => {
+    try {
+      const subcategories = await storage.getAllSkillSubcategories();
+      res.json(subcategories);
+    } catch (error) {
+      console.error("Error fetching skill subcategories:", error);
+      res.status(500).json({ message: "Error fetching skill subcategories", error: String(error) });
+    }
+  });
+  
+  // Get all skills for Skill Overview
+  app.get("/api/all-skills", ensureAuth, async (req, res) => {
+    try {
+      const skills = await storage.getAllSkillTemplates();
+      res.json(skills);
+    } catch (error) {
+      console.error("Error fetching skills:", error);
+      res.status(500).json({ message: "Error fetching skills", error: String(error) });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;
