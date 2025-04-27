@@ -4,6 +4,43 @@ import { ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+// Create a global keyboard navigation provider
+export function AccordionKeyboardProvider({ children }: { children: React.ReactNode }) {
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Find the focused accordion trigger
+      const focusedElement = document.activeElement;
+      if (focusedElement?.getAttribute('data-radix-accordion-trigger') !== undefined) {
+        const state = focusedElement.getAttribute('data-state');
+        
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+          e.preventDefault();
+          // If closed, open it with arrow right/down
+          if (state === "closed") {
+            (focusedElement as HTMLElement).click();
+          }
+        } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+          e.preventDefault();
+          // If open, close it with arrow left/up
+          if (state === "open") {
+            (focusedElement as HTMLElement).click();
+          }
+        }
+      }
+    };
+
+    // Add global event listener
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  return <>{children}</>;
+}
+
 const Accordion = AccordionPrimitive.Root
 
 const AccordionItem = React.forwardRef<
@@ -52,6 +89,7 @@ const AccordionTrigger = React.forwardRef<
           props.onKeyDown(e);
         }
       }}
+      tabIndex={0}
     >
       <ChevronRight className="mr-2 h-4 w-4 shrink-0 transition-transform duration-200" />
       <div className="flex-1">{children}</div>
