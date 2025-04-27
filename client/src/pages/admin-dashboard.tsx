@@ -2238,7 +2238,7 @@ export default function AdminDashboard() {
                                       <AccordionTrigger className="px-6 py-3 hover:bg-muted/20 hover:no-underline">
                                         <div className="flex justify-between items-center w-full pr-4">
                                           <div className="flex items-center gap-2">
-                                            <Layers className="h-4 w-4 text-primary" />
+                                            <FolderTree className="h-4 w-4 text-primary" />
                                             <span className="font-medium">{subcategory.name}</span>
                                           </div>
                                           <Badge variant="outline" className="text-xs">
