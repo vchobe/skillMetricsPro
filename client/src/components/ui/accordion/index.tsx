@@ -26,9 +26,10 @@ const AccordionTrigger = React.forwardRef<
 >(({ className, children, onKeyDown, ...props }, ref) => {
   // This handles keyboard navigation for each accordion item
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+    // Left/Right arrows for expanding/collapsing
+    if (e.key === "ArrowRight") {
       e.preventDefault();
-      // Instead of directly accessing click(), dispatch a click event
+      // Expand the item if it's closed
       const element = e.currentTarget;
       if (element.getAttribute("data-state") === "closed") {
         const event = new MouseEvent('click', {
@@ -38,8 +39,9 @@ const AccordionTrigger = React.forwardRef<
         });
         element.dispatchEvent(event);
       }
-    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+    } else if (e.key === "ArrowLeft") {
       e.preventDefault();
+      // Collapse the item if it's open
       const element = e.currentTarget;
       if (element.getAttribute("data-state") === "open") {
         const event = new MouseEvent('click', {
@@ -50,6 +52,7 @@ const AccordionTrigger = React.forwardRef<
         element.dispatchEvent(event);
       }
     }
+    // Up/Down arrows for navigation (default behavior)
     
     // Allow other keyboard handlers to run
     if (onKeyDown) {
