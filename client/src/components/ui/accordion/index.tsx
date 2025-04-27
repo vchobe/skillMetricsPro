@@ -4,43 +4,6 @@ import { ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-// Create a global keyboard navigation provider
-export function AccordionKeyboardProvider({ children }: { children: React.ReactNode }) {
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Find the focused accordion trigger
-      const focusedElement = document.activeElement;
-      if (focusedElement?.getAttribute('data-radix-accordion-trigger') !== undefined) {
-        const state = focusedElement.getAttribute('data-state');
-        
-        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-          e.preventDefault();
-          // If closed, open it with arrow right/down
-          if (state === "closed") {
-            (focusedElement as HTMLElement).click();
-          }
-        } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-          e.preventDefault();
-          // If open, close it with arrow left/up
-          if (state === "open") {
-            (focusedElement as HTMLElement).click();
-          }
-        }
-      }
-    };
-
-    // Add global event listener
-    document.addEventListener('keydown', handleKeyDown);
-    
-    // Clean up
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
-  return <>{children}</>;
-}
-
 const Accordion = AccordionPrimitive.Root
 
 const AccordionItem = React.forwardRef<
@@ -55,47 +18,63 @@ const AccordionItem = React.forwardRef<
 ))
 AccordionItem.displayName = "AccordionItem"
 
+type AccordionTriggerProps = React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>;
+
 const AccordionTrigger = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Header className="flex">
-    <AccordionPrimitive.Trigger
-      ref={ref}
-      className={cn(
-        "flex flex-1 items-center justify-between py-4 font-medium transition-all [&[data-state=open]>svg]:rotate-90",
-        className
-      )}
-      {...props}
-      onKeyDown={(e) => {
-        // Handle keyboard navigation
-        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-          e.preventDefault();
-          // If closed, open it with arrow right/down
-          const trigger = e.currentTarget;
-          if (trigger.getAttribute("data-state") === "closed") {
-            trigger.click();
-          }
-        } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-          e.preventDefault();
-          // If open, close it with arrow left/up
-          const trigger = e.currentTarget;
-          if (trigger.getAttribute("data-state") === "open") {
-            trigger.click();
-          }
-        }
-        // Allow other keyboard handlers to run
-        if (props.onKeyDown) {
-          props.onKeyDown(e);
-        }
-      }}
-      tabIndex={0}
-    >
-      <ChevronRight className="mr-2 h-4 w-4 shrink-0 transition-transform duration-200" />
-      <div className="flex-1">{children}</div>
-    </AccordionPrimitive.Trigger>
-  </AccordionPrimitive.Header>
-))
+  AccordionTriggerProps
+>(({ className, children, onKeyDown, ...props }, ref) => {
+  // This handles keyboard navigation for each accordion item
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      // Instead of directly accessing click(), dispatch a click event
+      const element = e.currentTarget;
+      if (element.getAttribute("data-state") === "closed") {
+        const event = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        });
+        element.dispatchEvent(event);
+      }
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const element = e.currentTarget;
+      if (element.getAttribute("data-state") === "open") {
+        const event = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        });
+        element.dispatchEvent(event);
+      }
+    }
+    
+    // Allow other keyboard handlers to run
+    if (onKeyDown) {
+      onKeyDown(e);
+    }
+  };
+
+  return (
+    <AccordionPrimitive.Header className="flex">
+      <AccordionPrimitive.Trigger
+        ref={ref}
+        className={cn(
+          "flex flex-1 items-center justify-between py-4 font-medium transition-all [&[data-state=open]>svg]:rotate-90 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          className
+        )}
+        {...props}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+      >
+        <ChevronRight className="mr-2 h-4 w-4 shrink-0 transition-transform duration-200" />
+        <div className="flex-1">{children}</div>
+      </AccordionPrimitive.Trigger>
+    </AccordionPrimitive.Header>
+  )
+})
 AccordionTrigger.displayName = "AccordionTrigger"
 
 const AccordionContent = React.forwardRef<
