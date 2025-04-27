@@ -3176,6 +3176,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin API endpoints for hierarchical data (project and skill overviews)
+  app.get("/api/admin/project-hierarchy", ensureAdmin, async (req, res) => {
+    try {
+      // Get all clients, projects, resources, and user skills
+      const clients = await storage.getAllClients();
+      const projects = await storage.getAllProjects();
+      const resources = await storage.getAllProjectResources();
+      const users = await storage.getAllUsers();
+      const skills = await storage.getAllSkills();
+
+      // Build the hierarchy: clients -> projects -> resources -> skills
+      const hierarchy = clients.map(client => ({
+        ...client,
+        projects: projects
+          .filter(project => project.clientId === client.id)
+          .map(project => ({
+            ...project,
+            resources: resources
+              .filter(resource => resource.projectId === project.id)
+              .map(resource => {
+                // Find the user for this resource
+                const user = users.find(u => u.id === resource.userId);
+                // Find user skills
+                const userSkills = skills.filter(skill => skill.userId === resource.userId);
+                
+                return {
+                  ...resource,
+                  user: user || { id: resource.userId, username: "Unknown User" },
+                  skills: userSkills || []
+                };
+              })
+          }))
+      }));
+
+      res.json(hierarchy);
+    } catch (error) {
+      console.error("Error fetching project hierarchy:", error);
+      res.status(500).json({ message: "Error fetching project hierarchy", error: String(error) });
+    }
+  });
+
+  app.get("/api/admin/skill-hierarchy", ensureAdmin, async (req, res) => {
+    try {
+      // Get all categories, subcategories, skills, and users
+      const categories = await storage.getAllSkillCategories();
+      const subcategories = await storage.getAllSkillSubcategories();
+      const skills = await storage.getAllSkills();
+      const users = await storage.getAllUsers();
+
+      // Build the hierarchy: categories -> subcategories -> skills -> users
+      const hierarchy = categories.map(category => ({
+        ...category,
+        subcategories: subcategories
+          .filter(sub => sub.categoryId === category.id)
+          .map(subcategory => ({
+            ...subcategory,
+            skills: skills
+              .filter(skill => skill.categoryId === category.id && skill.subcategoryId === subcategory.id)
+              .reduce((acc, skill) => {
+                // Group skills by name to avoid duplicates
+                const existingSkill = acc.find(s => s.name === skill.name);
+                if (existingSkill) {
+                  // Add the user to the existing skill's users array
+                  const user = users.find(u => u.id === skill.userId);
+                  if (user) {
+                    existingSkill.users.push({
+                      ...user,
+                      skillLevel: skill.level
+                    });
+                  }
+                  return acc;
+                } else {
+                  // Create a new skill entry with a users array
+                  const user = users.find(u => u.id === skill.userId);
+                  return [...acc, {
+                    ...skill,
+                    users: user ? [{
+                      ...user,
+                      skillLevel: skill.level
+                    }] : []
+                  }];
+                }
+              }, [])
+          }))
+      }));
+
+      res.json(hierarchy);
+    } catch (error) {
+      console.error("Error fetching skill hierarchy:", error);
+      res.status(500).json({ message: "Error fetching skill hierarchy", error: String(error) });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;
