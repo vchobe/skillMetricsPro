@@ -1962,148 +1962,177 @@ export default function AdminDashboard() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : projectHierarchy && projectHierarchy.length > 0 ? (
-                  <div className="space-y-6">
-                    {projectHierarchy.map(client => (
-                      <Card key={client.id} className="overflow-hidden">
-                        <CardHeader className="bg-muted/50">
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-xl flex items-center gap-2">
-                              <SquareStack className="h-5 w-5 text-primary" />
-                              <span>{client.name}</span>
-                              <Badge variant="outline" className="ml-2 text-xs">
-                                {client.industry || 'No industry'}
+                  <div className="space-y-4">
+                    <Accordion type="multiple" className="w-full">
+                      {projectHierarchy.map(client => (
+                        <AccordionItem key={`client-${client.id}`} value={`client-${client.id}`} className="border border-border rounded-lg mb-4 overflow-hidden">
+                          <AccordionTrigger className="px-4 py-3 bg-muted/30 hover:bg-muted/50 hover:no-underline">
+                            <div className="flex justify-between items-center w-full pr-4">
+                              <div className="flex items-center gap-2">
+                                <SquareStack className="h-5 w-5 text-primary" />
+                                <span className="font-bold text-lg">{client.name}</span>
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  {client.industry || 'No industry'}
+                                </Badge>
+                              </div>
+                              <Badge variant="secondary" className="text-sm">
+                                {client.projects.length} Projects
                               </Badge>
-                            </CardTitle>
-                            <Badge variant="secondary" className="text-sm">
-                              {client.projects.length} Projects
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                          <Accordion type="multiple" className="w-full">
-                            {client.projects.map(project => (
-                              <AccordionItem key={project.id} value={`project-${project.id}`}>
-                                <AccordionTrigger className="px-6 py-3 hover:bg-muted/20">
-                                  <div className="flex flex-1 justify-between items-center pr-4">
-                                    <div className="font-medium">{project.name}</div>
-                                    <div className="flex items-center gap-3">
-                                      <Badge variant="outline" className="text-xs">
-                                        {project.resources?.length || 0} Resources
-                                      </Badge>
-                                      <Badge variant="outline" className="text-xs">
-                                        {project.skills?.length || 0} Skills
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                  <div className="px-6 py-3 border-t border-border/50">
-                                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                                      <Users className="h-4 w-4 text-primary" />
-                                      Project Resources
-                                    </h4>
-                                    
-                                    {project.resources && project.resources.length > 0 ? (
-                                      <div className="overflow-x-auto">
-                                        <Table>
-                                          <TableHeader>
-                                            <TableRow>
-                                              <TableHead>Name</TableHead>
-                                              <TableHead>Role</TableHead>
-                                              <TableHead>Allocation</TableHead>
-                                              <TableHead>Skills</TableHead>
-                                            </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                            {project.resources.map(resource => (
-                                              <TableRow key={resource.id}>
-                                                <TableCell className="font-medium">
-                                                  {resource.user?.firstName && resource.user?.lastName
-                                                    ? `${resource.user.firstName} ${resource.user.lastName}`
-                                                    : resource.user?.username || resource.user?.email || 'Unknown'}
-                                                </TableCell>
-                                                <TableCell>{resource.role || 'N/A'}</TableCell>
-                                                <TableCell>{resource.allocation ? `${resource.allocation}%` : 'N/A'}</TableCell>
-                                                <TableCell>
-                                                  <div className="flex flex-wrap gap-1">
-                                                    {resource.skills && resource.skills.length > 0 
-                                                      ? resource.skills.map(skill => (
-                                                          <Badge 
-                                                            key={skill.id} 
-                                                            variant="outline" 
-                                                            className="text-xs"
-                                                            style={{
-                                                              backgroundColor: getSkillBadgeColor(skill.level || 'beginner', 0.1),
-                                                              borderColor: getSkillBadgeColor(skill.level || 'beginner', 0.3),
-                                                              color: getSkillBadgeColor(skill.level || 'beginner', 1)
-                                                            }}
-                                                          >
-                                                            {skill.name} ({skill.level || 'beginner'})
-                                                          </Badge>
-                                                        ))
-                                                      : <span className="text-muted-foreground text-xs">No skills</span>
-                                                    }
-                                                  </div>
-                                                </TableCell>
-                                              </TableRow>
-                                            ))}
-                                          </TableBody>
-                                        </Table>
-                                      </div>
-                                    ) : (
-                                      <div className="text-muted-foreground text-sm py-2">No resources assigned to this project.</div>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="px-6 py-3 border-t border-border/50">
-                                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                                      <BrainCircuit className="h-4 w-4 text-primary" />
-                                      Required Skills
-                                    </h4>
-                                    
-                                    {project.skills && project.skills.length > 0 ? (
-                                      <div className="overflow-x-auto">
-                                        <Table>
-                                          <TableHeader>
-                                            <TableRow>
-                                              <TableHead>Skill</TableHead>
-                                              <TableHead>Category</TableHead>
-                                              <TableHead>Required Level</TableHead>
-                                            </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                            {project.skills.map(skill => (
-                                              <TableRow key={skill.id}>
-                                                <TableCell className="font-medium">{skill.skillName || 'Unknown'}</TableCell>
-                                                <TableCell>{skill.category || 'Uncategorized'}</TableCell>
-                                                <TableCell>
-                                                  <Badge 
-                                                    variant="outline" 
-                                                    style={{
-                                                      backgroundColor: getSkillBadgeColor(skill.requiredLevel || 'beginner', 0.1),
-                                                      borderColor: getSkillBadgeColor(skill.requiredLevel || 'beginner', 0.3),
-                                                      color: getSkillBadgeColor(skill.requiredLevel || 'beginner', 1)
-                                                    }}
-                                                  >
-                                                    {skill.requiredLevel || 'beginner'}
-                                                  </Badge>
-                                                </TableCell>
-                                              </TableRow>
-                                            ))}
-                                          </TableBody>
-                                        </Table>
-                                      </div>
-                                    ) : (
-                                      <div className="text-muted-foreground text-sm py-2">No specific skills required for this project.</div>
-                                    )}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            ))}
-                          </Accordion>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pt-0 pb-0">
+                            <div className="border-t border-border/30">
+                              {client.projects.length > 0 ? (
+                                <Accordion type="multiple" className="w-full">
+                                  {client.projects.map(project => (
+                                    <AccordionItem key={`project-${project.id}`} value={`project-${project.id}`} className="border-b last:border-b-0 border-border/30">
+                                      <AccordionTrigger className="px-6 py-3 hover:bg-muted/20 hover:no-underline">
+                                        <div className="flex justify-between items-center w-full pr-4">
+                                          <div className="flex items-center gap-2">
+                                            <FileText className="h-4 w-4 text-primary" />
+                                            <span className="font-medium">{project.name}</span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="text-xs">
+                                              {project.resources?.length || 0} Resources
+                                            </Badge>
+                                            <Badge variant="outline" className="text-xs">
+                                              {project.skills?.length || 0} Skills
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                      </AccordionTrigger>
+                                      <AccordionContent className="pl-8 pr-4 border-t border-border/10">
+                                        <Accordion type="multiple" className="w-full">
+                                          {/* Resources Section */}
+                                          <AccordionItem value={`resources-${project.id}`} className="border border-border/20 rounded-md mb-3">
+                                            <AccordionTrigger className="px-4 py-2 hover:bg-muted/10 hover:no-underline">
+                                              <div className="flex items-center gap-2">
+                                                <Users className="h-4 w-4 text-primary" />
+                                                <span className="font-medium">Project Resources</span>
+                                                <Badge variant="outline" className="text-xs">
+                                                  {project.resources?.length || 0}
+                                                </Badge>
+                                              </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="pt-2">
+                                              {project.resources && project.resources.length > 0 ? (
+                                                <div className="overflow-x-auto">
+                                                  <Table>
+                                                    <TableHeader>
+                                                      <TableRow>
+                                                        <TableHead>Name</TableHead>
+                                                        <TableHead>Role</TableHead>
+                                                        <TableHead>Allocation</TableHead>
+                                                        <TableHead>Skills</TableHead>
+                                                      </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                      {project.resources.map(resource => (
+                                                        <TableRow key={resource.id}>
+                                                          <TableCell className="font-medium">
+                                                            {resource.user?.firstName && resource.user?.lastName
+                                                              ? `${resource.user.firstName} ${resource.user.lastName}`
+                                                              : resource.user?.username || resource.user?.email || 'Unknown'}
+                                                          </TableCell>
+                                                          <TableCell>{resource.role || 'N/A'}</TableCell>
+                                                          <TableCell>{resource.allocation ? `${resource.allocation}%` : 'N/A'}</TableCell>
+                                                          <TableCell>
+                                                            <div className="flex flex-wrap gap-1">
+                                                              {resource.skills && resource.skills.length > 0 
+                                                                ? resource.skills.map(skill => (
+                                                                    <Badge 
+                                                                      key={skill.id} 
+                                                                      variant="outline" 
+                                                                      className="text-xs"
+                                                                      style={{
+                                                                        backgroundColor: getSkillBadgeColor(skill.level || 'beginner', 0.1),
+                                                                        borderColor: getSkillBadgeColor(skill.level || 'beginner', 0.3),
+                                                                        color: getSkillBadgeColor(skill.level || 'beginner', 1)
+                                                                      }}
+                                                                    >
+                                                                      {skill.name} ({skill.level || 'beginner'})
+                                                                    </Badge>
+                                                                  ))
+                                                                : <span className="text-muted-foreground text-xs">No skills</span>
+                                                              }
+                                                            </div>
+                                                          </TableCell>
+                                                        </TableRow>
+                                                      ))}
+                                                    </TableBody>
+                                                  </Table>
+                                                </div>
+                                              ) : (
+                                                <div className="text-muted-foreground text-sm py-2 px-4">No resources assigned to this project.</div>
+                                              )}
+                                            </AccordionContent>
+                                          </AccordionItem>
+                                          
+                                          {/* Required Skills Section */}
+                                          <AccordionItem value={`skills-${project.id}`} className="border border-border/20 rounded-md">
+                                            <AccordionTrigger className="px-4 py-2 hover:bg-muted/10 hover:no-underline">
+                                              <div className="flex items-center gap-2">
+                                                <BrainCircuit className="h-4 w-4 text-primary" />
+                                                <span className="font-medium">Required Skills</span>
+                                                <Badge variant="outline" className="text-xs">
+                                                  {project.skills?.length || 0}
+                                                </Badge>
+                                              </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="pt-2">
+                                              {project.skills && project.skills.length > 0 ? (
+                                                <div className="overflow-x-auto">
+                                                  <Table>
+                                                    <TableHeader>
+                                                      <TableRow>
+                                                        <TableHead>Skill</TableHead>
+                                                        <TableHead>Category</TableHead>
+                                                        <TableHead>Required Level</TableHead>
+                                                      </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                      {project.skills.map(skill => (
+                                                        <TableRow key={skill.id}>
+                                                          <TableCell className="font-medium">{skill.skillName || 'Unknown'}</TableCell>
+                                                          <TableCell>{skill.category || 'Uncategorized'}</TableCell>
+                                                          <TableCell>
+                                                            <Badge 
+                                                              variant="outline" 
+                                                              style={{
+                                                                backgroundColor: getSkillBadgeColor(skill.requiredLevel || 'beginner', 0.1),
+                                                                borderColor: getSkillBadgeColor(skill.requiredLevel || 'beginner', 0.3),
+                                                                color: getSkillBadgeColor(skill.requiredLevel || 'beginner', 1)
+                                                              }}
+                                                            >
+                                                              {skill.requiredLevel || 'beginner'}
+                                                            </Badge>
+                                                          </TableCell>
+                                                        </TableRow>
+                                                      ))}
+                                                    </TableBody>
+                                                  </Table>
+                                                </div>
+                                              ) : (
+                                                <div className="text-muted-foreground text-sm py-2 px-4">No specific skills required for this project.</div>
+                                              )}
+                                            </AccordionContent>
+                                          </AccordionItem>
+                                        </Accordion>
+                                      </AccordionContent>
+                                    </AccordionItem>
+                                  ))}
+                                </Accordion>
+                              ) : (
+                                <div className="px-6 py-4 text-muted-foreground text-sm">
+                                  No projects for this client.
+                                </div>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -2158,126 +2187,175 @@ export default function AdminDashboard() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : skillHierarchy && skillHierarchy.length > 0 ? (
-                  <div className="space-y-6">
-                    {skillHierarchy.map(category => (
-                      <Card key={category.id} className="overflow-hidden">
-                        <CardHeader className="bg-muted/50" 
+                  <div className="space-y-4">
+                    <Accordion type="multiple" className="w-full">
+                      {skillHierarchy.map(category => (
+                        <AccordionItem 
+                          key={`category-${category.id}`} 
+                          value={`category-${category.id}`} 
+                          className="border border-border rounded-lg mb-4 overflow-hidden"
                           style={{
-                            backgroundColor: category.color ? `${category.color}20` : undefined,
-                            borderBottom: category.color ? `1px solid ${category.color}40` : undefined
+                            borderColor: category.color ? `${category.color}40` : undefined
                           }}
                         >
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-xl flex items-center gap-2">
-                              {category.icon ? (
-                                <div dangerouslySetInnerHTML={{ __html: category.icon }} />
-                              ) : (
-                                <BrainCircuit className="h-5 w-5 text-primary" />
+                          <AccordionTrigger 
+                            className="px-4 py-3 hover:no-underline" 
+                            style={{
+                              backgroundColor: category.color ? `${category.color}10` : 'bg-muted/30',
+                              borderBottom: category.color ? `1px solid ${category.color}20` : undefined
+                            }}
+                          >
+                            <div className="flex justify-between items-center w-full pr-4">
+                              <div className="flex items-center gap-2">
+                                {category.icon ? (
+                                  <div dangerouslySetInnerHTML={{ __html: category.icon }} className="h-5 w-5" />
+                                ) : (
+                                  <BrainCircuit className="h-5 w-5 text-primary" />
+                                )}
+                                <span className="font-bold text-lg">{category.name}</span>
+                              </div>
+                              <Badge variant="secondary" className="text-sm">
+                                {category.subcategories?.reduce((total, sub) => total + (sub.skills?.length || 0), 0) || 0} Skills
+                              </Badge>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pt-0 pb-0">
+                            <div className="border-t border-border/30">
+                              {category.description && (
+                                <div className="px-4 py-2 bg-muted/5 border-b border-border/20">
+                                  <p className="text-sm text-muted-foreground">{category.description}</p>
+                                </div>
                               )}
-                              <span>{category.name}</span>
-                            </CardTitle>
-                            <Badge variant="secondary" className="text-sm">
-                              {category.subcategories?.reduce((total, sub) => total + (sub.skills?.length || 0), 0) || 0} Skills
-                            </Badge>
-                          </div>
-                          {category.description && (
-                            <CardDescription>{category.description}</CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent className="p-0">
-                          <Accordion type="multiple" className="w-full">
-                            {category.subcategories.map(subcategory => (
-                              <AccordionItem key={subcategory.id} value={`subcategory-${subcategory.id}`}>
-                                <AccordionTrigger className="px-6 py-3 hover:bg-muted/20">
-                                  <div className="flex flex-1 justify-between items-center pr-4">
-                                    <div className="font-medium">{subcategory.name}</div>
-                                    <Badge variant="outline" className="text-xs">
-                                      {subcategory.skills?.length || 0} Skills
-                                    </Badge>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                  <div className="px-6 py-3">
-                                    <Accordion type="multiple" className="w-full">
-                                      {subcategory.skills.map(skill => (
-                                        <AccordionItem key={skill.id} value={`skill-${skill.id}`} className="border-b border-border/30">
-                                          <AccordionTrigger className="py-2 hover:bg-muted/10">
-                                            <div className="flex flex-1 justify-between items-center pr-4">
-                                              <div className="font-medium">{skill.name}</div>
-                                              {skill.users ? (
-                                                <Badge variant="outline" className="text-xs">
-                                                  {skill.users.length} Users
-                                                </Badge>
-                                              ) : null}
+                              
+                              {category.subcategories.length > 0 ? (
+                                <Accordion type="multiple" className="w-full">
+                                  {category.subcategories.map(subcategory => (
+                                    <AccordionItem 
+                                      key={`subcategory-${subcategory.id}`} 
+                                      value={`subcategory-${subcategory.id}`}
+                                      className="border-b last:border-b-0 border-border/30"
+                                    >
+                                      <AccordionTrigger className="px-6 py-3 hover:bg-muted/20 hover:no-underline">
+                                        <div className="flex justify-between items-center w-full pr-4">
+                                          <div className="flex items-center gap-2">
+                                            <Layers className="h-4 w-4 text-primary" />
+                                            <span className="font-medium">{subcategory.name}</span>
+                                          </div>
+                                          <Badge variant="outline" className="text-xs">
+                                            {subcategory.skills?.length || 0} Skills
+                                          </Badge>
+                                        </div>
+                                      </AccordionTrigger>
+                                      <AccordionContent className="pt-0 pb-0">
+                                        <div className="border-t border-border/10">
+                                          {subcategory.skills.length > 0 ? (
+                                            <Accordion type="multiple" className="w-full">
+                                              {subcategory.skills.map(skill => (
+                                                <AccordionItem 
+                                                  key={`skill-${skill.id}`} 
+                                                  value={`skill-${skill.id}`} 
+                                                  className="border-b last:border-b-0 border-border/10"
+                                                >
+                                                  <AccordionTrigger className="px-8 py-2 hover:bg-muted/10 hover:no-underline">
+                                                    <div className="flex justify-between items-center w-full pr-4">
+                                                      <div className="flex items-center gap-2">
+                                                        <Code className="h-4 w-4 text-primary" />
+                                                        <span className="font-medium">{skill.name}</span>
+                                                      </div>
+                                                      {skill.users ? (
+                                                        <Badge variant="outline" className="text-xs">
+                                                          {skill.users.length} Users
+                                                        </Badge>
+                                                      ) : null}
+                                                    </div>
+                                                  </AccordionTrigger>
+                                                  <AccordionContent className="px-8 pt-2 pb-3 bg-muted/5">
+                                                    <div>
+                                                      {skill.description && (
+                                                        <div className="mb-3">
+                                                          <p className="text-sm text-muted-foreground">{skill.description}</p>
+                                                        </div>
+                                                      )}
+                                                      
+                                                      {skill.users && skill.users.length > 0 ? (
+                                                        <div className="overflow-x-auto">
+                                                          <Table>
+                                                            <TableHeader>
+                                                              <TableRow>
+                                                                <TableHead>User</TableHead>
+                                                                <TableHead>Level</TableHead>
+                                                                <TableHead>Certification</TableHead>
+                                                              </TableRow>
+                                                            </TableHeader>
+                                                            <TableBody>
+                                                              {skill.users.map((user, idx) => {
+                                                                // Find the specific skill instance for this user
+                                                                const userSkill = skill.userId === user.id ? skill : 
+                                                                  (subcategory.skills.find(s => 
+                                                                    s.userId === user.id && s.name === skill.name));
+                                                                    
+                                                                return (
+                                                                  <TableRow key={`${user.id}-${idx}`}>
+                                                                    <TableCell className="font-medium">
+                                                                      {user.firstName && user.lastName
+                                                                        ? `${user.firstName} ${user.lastName}`
+                                                                        : user.username || user.email || 'Unknown'}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                      <Badge 
+                                                                        variant="outline" 
+                                                                        style={{
+                                                                          backgroundColor: getSkillBadgeColor(userSkill?.level || 'beginner', 0.1),
+                                                                          borderColor: getSkillBadgeColor(userSkill?.level || 'beginner', 0.3),
+                                                                          color: getSkillBadgeColor(userSkill?.level || 'beginner', 1)
+                                                                        }}
+                                                                      >
+                                                                        {userSkill?.level || 'beginner'}
+                                                                      </Badge>
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                      {userSkill?.certification && userSkill.certification !== 'false' ? (
+                                                                        <Badge variant="secondary">Certified</Badge>
+                                                                      ) : (
+                                                                        <span className="text-muted-foreground text-sm">None</span>
+                                                                      )}
+                                                                    </TableCell>
+                                                                  </TableRow>
+                                                                );
+                                                              })}
+                                                            </TableBody>
+                                                          </Table>
+                                                        </div>
+                                                      ) : (
+                                                        <div className="text-muted-foreground text-sm py-2">
+                                                          No users have this skill yet.
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  </AccordionContent>
+                                                </AccordionItem>
+                                              ))}
+                                            </Accordion>
+                                          ) : (
+                                            <div className="px-8 py-3 text-muted-foreground text-sm">
+                                              No skills defined for this subcategory.
                                             </div>
-                                          </AccordionTrigger>
-                                          <AccordionContent>
-                                            {skill.users && skill.users.length > 0 ? (
-                                              <div className="overflow-x-auto">
-                                                <Table>
-                                                  <TableHeader>
-                                                    <TableRow>
-                                                      <TableHead>User</TableHead>
-                                                      <TableHead>Level</TableHead>
-                                                      <TableHead>Certification</TableHead>
-                                                    </TableRow>
-                                                  </TableHeader>
-                                                  <TableBody>
-                                                    {skill.users.map(user => {
-                                                      // Find the specific skill instance for this user
-                                                      const userSkill = skill.userId === user.id ? skill : 
-                                                        (subcategory.skills.find(s => 
-                                                          s.userId === user.id && s.name === skill.name));
-                                                          
-                                                      return (
-                                                        <TableRow key={user.id}>
-                                                          <TableCell className="font-medium">
-                                                            {user.firstName && user.lastName
-                                                              ? `${user.firstName} ${user.lastName}`
-                                                              : user.username || user.email || 'Unknown'}
-                                                          </TableCell>
-                                                          <TableCell>
-                                                            <Badge 
-                                                              variant="outline" 
-                                                              style={{
-                                                                backgroundColor: getSkillBadgeColor(userSkill?.level || 'beginner', 0.1),
-                                                                borderColor: getSkillBadgeColor(userSkill?.level || 'beginner', 0.3),
-                                                                color: getSkillBadgeColor(userSkill?.level || 'beginner', 1)
-                                                              }}
-                                                            >
-                                                              {userSkill?.level || 'beginner'}
-                                                            </Badge>
-                                                          </TableCell>
-                                                          <TableCell>
-                                                            {userSkill?.certification && userSkill.certification !== 'false' ? (
-                                                              <Badge variant="secondary">Certified</Badge>
-                                                            ) : (
-                                                              <span className="text-muted-foreground text-sm">None</span>
-                                                            )}
-                                                          </TableCell>
-                                                        </TableRow>
-                                                      );
-                                                    })}
-                                                  </TableBody>
-                                                </Table>
-                                              </div>
-                                            ) : (
-                                              <div className="text-muted-foreground text-sm py-2 px-4">
-                                                No users have this skill yet.
-                                              </div>
-                                            )}
-                                          </AccordionContent>
-                                        </AccordionItem>
-                                      ))}
-                                    </Accordion>
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            ))}
-                          </Accordion>
-                        </CardContent>
-                      </Card>
-                    ))}
+                                          )}
+                                        </div>
+                                      </AccordionContent>
+                                    </AccordionItem>
+                                  ))}
+                                </Accordion>
+                              ) : (
+                                <div className="px-6 py-4 text-muted-foreground text-sm">
+                                  No subcategories defined for this category.
+                                </div>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
