@@ -749,28 +749,39 @@ function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSetti
 
 // Custom hooks for hierarchical data
 function useProjectHierarchy() {
+  // Primary method: Try to fetch the complete hierarchy from a single API endpoint
+  const { data: hierarchyData, isLoading: isLoadingHierarchy, error: hierarchyError } = useQuery<Client[]>({
+    queryKey: ["/api/admin/project-hierarchy"],
+  });
+  
+  // Fallback approach if the hierarchy API fails: Construct from individual endpoints
   const { data: clients, isLoading: isLoadingClients } = useQuery<Client[]>({
     queryKey: ["/api/admin/clients"],
+    enabled: !!hierarchyError,
   });
   
   const { data: projects, isLoading: isLoadingProjects } = useQuery<Project[]>({
     queryKey: ["/api/admin/projects"],
+    enabled: !!hierarchyError,
   });
   
   const { data: resources, isLoading: isLoadingResources } = useQuery<ProjectResource[]>({
     queryKey: ["/api/admin/project-resources"],
+    enabled: !!hierarchyError,
   });
   
   const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+    enabled: !!hierarchyError,
   });
   
   const { data: skills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
     queryKey: ["/api/admin/skills"],
+    enabled: !!hierarchyError,
   });
   
-  // Hierarchy structure (clients -> projects -> resources -> skills)
-  const projectHierarchy = useMemo(() => {
+  // Fallback hierarchy construction (clients -> projects -> resources -> skills)
+  const fallbackHierarchy = useMemo(() => {
     if (!clients || !projects || !resources || !users || !skills) return [];
     
     return clients.map(client => {
@@ -804,11 +815,18 @@ function useProjectHierarchy() {
     });
   }, [clients, projects, resources, users, skills]);
   
-  const isLoading = isLoadingClients || isLoadingProjects || isLoadingResources || isLoadingUsers || isLoadingSkills;
+  // Use the hierarchyData if available, otherwise use the fallback
+  const projectHierarchy = hierarchyData || fallbackHierarchy;
+  
+  // Determine if we're loading data from either approach
+  const isLoading = 
+    isLoadingHierarchy || 
+    (hierarchyError && (isLoadingClients || isLoadingProjects || isLoadingResources || isLoadingUsers || isLoadingSkills));
   
   return {
     hierarchy: projectHierarchy,
     isLoading,
+    error: hierarchyError,
     clients,
     projects,
     resources,
@@ -818,24 +836,34 @@ function useProjectHierarchy() {
 }
 
 function useSkillHierarchy() {
+  // Primary method: Try to fetch the complete hierarchy from a single API endpoint
+  const { data: hierarchyData, isLoading: isLoadingHierarchy, error: hierarchyError } = useQuery<SkillCategory[]>({
+    queryKey: ["/api/admin/skill-hierarchy"],
+  });
+  
+  // Fallback approach if the hierarchy API fails: Construct from individual endpoints
   const { data: categories, isLoading: isLoadingCategories } = useQuery<SkillCategory[]>({
     queryKey: ["/api/admin/skill-categories"],
+    enabled: !!hierarchyError,
   });
   
   const { data: allSubcategories, isLoading: isLoadingSubcategories } = useQuery<SkillSubcategory[]>({
     queryKey: ["/api/admin/skill-subcategories"],
+    enabled: !!hierarchyError,
   });
   
   const { data: allSkills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
     queryKey: ["/api/admin/skills"],
+    enabled: !!hierarchyError,
   });
   
   const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+    enabled: !!hierarchyError,
   });
   
-  // Hierarchy structure (category -> subcategory -> skill -> users)
-  const completeHierarchy = useMemo(() => {
+  // Fallback hierarchy construction (category -> subcategory -> skill -> users)
+  const fallbackHierarchy = useMemo(() => {
     if (!categories || !allSubcategories || !allSkills || !users) return [];
     
     return categories.map(category => {
@@ -849,20 +877,31 @@ function useSkillHierarchy() {
               skill.subcategoryId === subcategory.id || 
               (skill.category === category.name && !skill.subcategoryId)
             )
-            .map(skill => {
-              // Find users who have this skill
-              const skillUsers = users.filter(user => {
-                return allSkills.some(s => 
-                  s.userId === user.id && 
-                  s.name === skill.name
-                );
-              });
-              
-              return {
-                ...skill,
-                users: skillUsers
-              };
-            });
+            .reduce((acc: any[], skill) => {
+              // Group skills by name to avoid duplicates
+              const existingSkill = acc.find(s => s.name === skill.name);
+              if (existingSkill) {
+                // Add the user to the existing skill's users array
+                const user = users.find(u => u.id === skill.userId);
+                if (user) {
+                  existingSkill.users.push({
+                    ...user,
+                    skillLevel: skill.level
+                  });
+                }
+                return acc;
+              } else {
+                // Create a new skill entry with a users array
+                const user = users.find(u => u.id === skill.userId);
+                return [...acc, {
+                  ...skill,
+                  users: user ? [{
+                    ...user,
+                    skillLevel: skill.level
+                  }] : []
+                }];
+              }
+            }, []);
           
           return {
             ...subcategory,
@@ -877,11 +916,18 @@ function useSkillHierarchy() {
     });
   }, [categories, allSubcategories, allSkills, users]);
   
-  const isLoading = isLoadingCategories || isLoadingSubcategories || isLoadingSkills || isLoadingUsers;
+  // Use the hierarchyData if available, otherwise use the fallback
+  const skillHierarchy = hierarchyData || fallbackHierarchy;
+  
+  // Determine if we're loading data from either approach
+  const isLoading = 
+    isLoadingHierarchy || 
+    (hierarchyError && (isLoadingCategories || isLoadingSubcategories || isLoadingSkills || isLoadingUsers));
   
   return {
-    hierarchy: completeHierarchy,
+    hierarchy: skillHierarchy,
     isLoading,
+    error: hierarchyError,
     categories,
     allSubcategories,
     allSkills,
