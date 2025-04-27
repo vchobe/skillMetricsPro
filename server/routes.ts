@@ -3211,9 +3211,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       res.json(hierarchy);
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error("Error fetching project hierarchy:", error);
-      res.status(500).json({ message: "Error fetching project hierarchy", error: String(error) });
+      res.status(500).json({ message: "Error fetching project hierarchy", error: error.message });
     }
   });
 
@@ -3230,42 +3231,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...category,
         subcategories: subcategories
           .filter(sub => sub.categoryId === category.id)
-          .map(subcategory => ({
-            ...subcategory,
-            skills: skills
-              .filter(skill => skill.categoryId === category.id && skill.subcategoryId === subcategory.id)
-              .reduce((acc, skill) => {
-                // Group skills by name to avoid duplicates
-                const existingSkill = acc.find(s => s.name === skill.name);
-                if (existingSkill) {
-                  // Add the user to the existing skill's users array
-                  const user = users.find(u => u.id === skill.userId);
-                  if (user) {
-                    existingSkill.users.push({
-                      ...user,
-                      skillLevel: skill.level
-                    });
-                  }
-                  return acc;
-                } else {
-                  // Create a new skill entry with a users array
-                  const user = users.find(u => u.id === skill.userId);
-                  return [...acc, {
-                    ...skill,
-                    users: user ? [{
-                      ...user,
-                      skillLevel: skill.level
-                    }] : []
-                  }];
+          .map(subcategory => {
+            // Get skills for this category and subcategory
+            const subSkills = skills.filter(skill => 
+              skill.categoryId === category.id && skill.subcategoryId === subcategory.id
+            );
+            
+            // Group skills by name to avoid duplicates
+            const skillsMap = new Map();
+            
+            // Process each skill to prepare them with users
+            subSkills.forEach(skill => {
+              const user = users.find(u => u.id === skill.userId);
+              const userWithLevel = user ? {
+                ...user,
+                skillLevel: skill.level
+              } : null;
+              
+              const skillKey = skill.name;
+              if (skillsMap.has(skillKey)) {
+                // Add user to existing skill's users array
+                if (userWithLevel) {
+                  skillsMap.get(skillKey).users.push(userWithLevel);
                 }
-              }, [])
-          }))
+              } else {
+                // Create new skill entry with users array
+                skillsMap.set(skillKey, {
+                  ...skill,
+                  users: userWithLevel ? [userWithLevel] : []
+                });
+              }
+            });
+            
+            return {
+              ...subcategory,
+              skills: Array.from(skillsMap.values())
+            };
+          })
       }));
 
       res.json(hierarchy);
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error("Error fetching skill hierarchy:", error);
-      res.status(500).json({ message: "Error fetching skill hierarchy", error: String(error) });
+      res.status(500).json({ message: "Error fetching skill hierarchy", error: error.message });
     }
   });
 
