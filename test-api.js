@@ -1,5 +1,6 @@
 // Testing script for client API
 import fetch from 'node-fetch';
+import { CookieJar } from 'tough-cookie';
 
 // Determine the base URL of the server
 // When running in Replit, default to the current environment URL
@@ -9,7 +10,7 @@ const BASE_URL = process.env.REPLIT_ENVIRONMENT === 'true'
 
 // Credentials for login
 const credentials = {
-  username: 'adminatyeti',
+  email: 'admin@atyeti.com',
   password: 'Admin@123'
 };
 
@@ -22,50 +23,68 @@ const testClient = {
   accountManagerId: 1 // Using ID 1 which should exist in most systems
 };
 
-// Storage for cookies and client ID
-let cookies = '';
+// Create a cookie jar to manage cookies
+const cookieJar = new CookieJar();
 let createdClientId = null;
+
+// Helper function to get cookies as string for fetch
+async function getCookiesForUrl(url) {
+  return await cookieJar.getCookieString(url);
+}
+
+// Helper function to add cookies from response
+async function addCookiesFromResponse(response, url) {
+  const setCookieHeader = response.headers.get('set-cookie');
+  if (setCookieHeader) {
+    // Split multiple cookies if needed
+    const cookies = setCookieHeader.split(/,\s*/);
+    for (const cookie of cookies) {
+      await cookieJar.setCookie(cookie, url);
+    }
+    console.log('Added cookies from response');
+    return true;
+  }
+  return false;
+}
 
 async function login() {
   console.log('Attempting to login...');
   
   try {
-    // First, get the CSRF token by loading the login page
+    // First, get any initial cookies by loading the homepage
     const initialResponse = await fetch(`${BASE_URL}/`, {
       method: 'GET'
     });
     
-    // Extract any cookies from the initial response
-    const initialCookies = initialResponse.headers.get('set-cookie');
-    if (initialCookies) {
-      cookies = initialCookies;
-      console.log('Got initial cookies');
-    }
+    // Store any cookies from the initial response
+    await addCookiesFromResponse(initialResponse, BASE_URL);
+    
+    // Get the cookies as a string for the login request
+    const cookieString = await getCookiesForUrl(BASE_URL);
+    console.log('Initial cookies for login:', cookieString || 'none');
     
     // Now attempt the login
     const response = await fetch(`${BASE_URL}/api/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': cookies // Include any cookies we got from the initial request
+        'Cookie': cookieString
       },
       body: JSON.stringify(credentials),
       credentials: 'include',
       redirect: 'manual'
     });
     
-    // Get cookies from response
-    const setCookieHeader = response.headers.get('set-cookie');
-    if (setCookieHeader) {
-      cookies = setCookieHeader;
-      console.log('Login successful, received cookies');
+    // Store any session cookies from the login response
+    const addedCookies = await addCookiesFromResponse(response, BASE_URL);
+    if (addedCookies) {
+      console.log('Login successful, stored session cookies');
     } else {
       console.log('No cookies received from login response');
     }
     
     // Print response for debugging
     let data;
-    let responseText;
     
     try {
       // Clone the response before consuming it
@@ -74,19 +93,50 @@ async function login() {
         data = await responseClone.json();
         console.log('Login response (JSON):', data);
       } catch (e) {
-        responseText = await response.text();
-        console.log('Login response (Text):', responseText);
-        data = responseText;
+        const responseText = await response.text();
+        if (responseText.includes('DOCTYPE html')) {
+          console.log('Login response returned HTML (truncated):', responseText.substring(0, 100) + '...');
+        } else {
+          console.log('Login response (Text):', responseText);
+        }
       }
     } catch (e) {
       console.error('Error parsing response:', e);
-      data = null;
     }
     
     // Check if login was successful based on the response status
     const loginSuccess = response.ok;
-    
-    console.log('Login success?', loginSuccess);
+    console.log('Login success?', loginSuccess, 'Status:', response.status);
+
+    if (loginSuccess) {
+      // After login success, verify with /api/user to confirm session is active
+      console.log('Verifying session with /api/user...');
+      const verifyResponse = await fetch(`${BASE_URL}/api/user`, {
+        method: 'GET',
+        headers: {
+          'Cookie': await getCookiesForUrl(BASE_URL)
+        },
+        credentials: 'include'
+      });
+      
+      const responseClone = verifyResponse.clone();
+      let verifyData;
+      try {
+        verifyData = await responseClone.json();
+        console.log('Session verification:', verifyResponse.status, verifyData);
+      } catch (e) {
+        console.error('Error parsing user verification response:', e);
+      }
+      
+      const sessionValid = verifyResponse.ok && verifyData && verifyData.id;
+      if (sessionValid) {
+        console.log('Session is valid, user ID:', verifyData.id);
+      } else {
+        console.log('Session verification failed');
+      }
+      
+      return sessionValid;
+    }
     
     return loginSuccess;
   } catch (error) {
@@ -100,13 +150,19 @@ async function createClient() {
   
   try {
     // First, get the authenticated user info to test if our session is valid
+    const cookieString = await getCookiesForUrl(BASE_URL);
+    console.log('Current cookies for create client:', cookieString || 'none');
+    
     const authResponse = await fetch(`${BASE_URL}/api/user`, {
       method: 'GET',
       headers: {
-        'Cookie': cookies
+        'Cookie': cookieString
       },
       credentials: 'include'
     });
+    
+    // Store any cookies from the auth response
+    await addCookiesFromResponse(authResponse, BASE_URL);
     
     let authData;
     try {
@@ -129,7 +185,7 @@ async function createClient() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': cookies
+        'Cookie': await getCookiesForUrl(BASE_URL)
       },
       credentials: 'include',
       body: JSON.stringify({
@@ -141,12 +197,8 @@ async function createClient() {
       })
     });
     
-    // Check for any new cookies
-    const setCookieHeader = response.headers.get('set-cookie');
-    if (setCookieHeader) {
-      cookies = setCookieHeader;
-      console.log('Received new cookies from create client response');
-    }
+    // Store any cookies from the create response
+    await addCookiesFromResponse(response, BASE_URL);
     
     if (response.ok) {
       let client;
@@ -166,7 +218,8 @@ async function createClient() {
     } else {
       let error;
       try {
-        error = await response.json();
+        const responseClone = response.clone();
+        error = await responseClone.json();
       } catch (e) {
         error = await response.text();
       }
@@ -188,14 +241,21 @@ async function updateClient() {
   console.log(`Updating client with ID ${createdClientId}...`);
   
   try {
+    // Get current cookies
+    const cookieString = await getCookiesForUrl(BASE_URL);
+    console.log('Current cookies for update client:', cookieString || 'none');
+    
     // First verify we're still authenticated
     const authCheck = await fetch(`${BASE_URL}/api/user`, {
       method: 'GET',
       headers: {
-        'Cookie': cookies
+        'Cookie': cookieString
       },
       credentials: 'include'
     });
+    
+    // Store any cookies from the auth check
+    await addCookiesFromResponse(authCheck, BASE_URL);
     
     let authCheckData;
     try {
@@ -217,7 +277,7 @@ async function updateClient() {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': cookies
+        'Cookie': await getCookiesForUrl(BASE_URL)
       },
       credentials: 'include',
       body: JSON.stringify({
@@ -230,17 +290,15 @@ async function updateClient() {
       })
     });
     
-    // Check for any new cookies
-    const setCookieHeader = response.headers.get('set-cookie');
-    if (setCookieHeader) {
-      cookies = setCookieHeader;
-      console.log('Received new cookies from update client response');
-    }
+    // Store any cookies from the update response
+    await addCookiesFromResponse(response, BASE_URL);
     
     if (response.ok) {
       let client;
       try {
-        client = await response.json();
+        // Clone the response before consuming it
+        const responseClone = response.clone();
+        client = await responseClone.json();
         console.log('Client updated successfully');
         console.log('Updated client data:', client);
       } catch (e) {
@@ -251,7 +309,9 @@ async function updateClient() {
     } else {
       let error;
       try {
-        error = await response.json();
+        // Clone the response before consuming it
+        const responseClone = response.clone();
+        error = await responseClone.json();
       } catch (e) {
         error = await response.text();
       }
@@ -273,14 +333,21 @@ async function deleteClient() {
   console.log(`Deleting client with ID ${createdClientId}...`);
   
   try {
+    // Get current cookies
+    const cookieString = await getCookiesForUrl(BASE_URL);
+    console.log('Current cookies for delete client:', cookieString || 'none');
+    
     // First verify we're still authenticated
     const authCheck = await fetch(`${BASE_URL}/api/user`, {
       method: 'GET',
       headers: {
-        'Cookie': cookies
+        'Cookie': cookieString
       },
       credentials: 'include'
     });
+    
+    // Store any cookies from the auth check
+    await addCookiesFromResponse(authCheck, BASE_URL);
     
     let authCheckData;
     try {
@@ -301,17 +368,13 @@ async function deleteClient() {
     const response = await fetch(`${BASE_URL}/api/clients/${createdClientId}`, {
       method: 'DELETE',
       headers: {
-        'Cookie': cookies
+        'Cookie': await getCookiesForUrl(BASE_URL)
       },
       credentials: 'include'
     });
     
-    // Check for any new cookies
-    const setCookieHeader = response.headers.get('set-cookie');
-    if (setCookieHeader) {
-      cookies = setCookieHeader;
-      console.log('Received new cookies from delete client response');
-    }
+    // Store any cookies from the delete response
+    await addCookiesFromResponse(response, BASE_URL);
     
     if (response.ok) {
       console.log('Client deleted successfully');
@@ -319,7 +382,9 @@ async function deleteClient() {
     } else {
       let error;
       try {
-        error = await response.json();
+        // Clone the response before consuming it
+        const responseClone = response.clone();
+        error = await responseClone.json();
       } catch (e) {
         error = await response.text();
       }
