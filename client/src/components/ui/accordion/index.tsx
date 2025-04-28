@@ -13,6 +13,7 @@ const AccordionItem = React.forwardRef<
   <AccordionPrimitive.Item
     ref={ref}
     className={cn("border-b", className)}
+    data-accordion-item="true"
     {...props}
   />
 ))
@@ -77,38 +78,73 @@ const AccordionTrigger = React.forwardRef<
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
+      console.log('Down arrow pressed');
       
-      // If item is open, try to move to first child
+      // First try to navigate to child if open
       if (currentState === "open") {
-        const contentRegion = currentElement.parentElement?.nextElementSibling;
-        if (contentRegion) {
-          const firstChildTrigger = contentRegion.querySelector('[role="button"]');
-          if (firstChildTrigger && firstChildTrigger instanceof HTMLElement) {
-            firstChildTrigger.focus();
+        const content = currentElement.closest('[data-accordion-item]')?.querySelector('[role="region"]');
+        if (content) {
+          console.log('Item is open with content');
+          const childTrigger = content.querySelector('[data-accordion-trigger]');
+          if (childTrigger && childTrigger instanceof HTMLElement) {
+            console.log('Found child trigger, focusing');
+            childTrigger.focus();
             return;
           }
         }
       }
       
-      // Otherwise move to next sibling
-      const nextTrigger = currentElement.closest('li')?.nextElementSibling?.querySelector('[role="button"]');
-      if (nextTrigger && nextTrigger instanceof HTMLElement) {
-        nextTrigger.focus();
+      // If no child or not open, try to find next sibling
+      console.log('Looking for next sibling');
+      const currentItem = currentElement.closest('[data-accordion-item]');
+      if (currentItem) {
+        console.log('Found current item', currentItem);
+        const nextItem = currentItem.nextElementSibling;
+        
+        if (nextItem) {
+          console.log('Found next item', nextItem);
+          const nextTrigger = nextItem.querySelector('[data-accordion-trigger]');
+          if (nextTrigger && nextTrigger instanceof HTMLElement) {
+            console.log('Found next trigger, focusing');
+            nextTrigger.focus();
+            return;
+          }
+        }
       }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      console.log('Up arrow pressed');
       
-      // Try to move to previous sibling
-      const prevTrigger = currentElement.closest('li')?.previousElementSibling?.querySelector('[role="button"]');
-      if (prevTrigger && prevTrigger instanceof HTMLElement) {
-        prevTrigger.focus();
-      } else {
-        // If at the top of the list, move to parent
-        const parentItem = currentElement.closest('[role="region"]')?.parentElement?.closest('[data-state="open"]');
-        if (parentItem) {
-          const parentTrigger = parentItem.querySelector('[role="button"]');
-          if (parentTrigger && parentTrigger instanceof HTMLElement) {
-            parentTrigger.focus();
+      // First try to find previous sibling
+      const currentItem = currentElement.closest('[data-accordion-item]');
+      if (currentItem) {
+        console.log('Found current item', currentItem);
+        const prevItem = currentItem.previousElementSibling;
+        
+        if (prevItem) {
+          console.log('Found previous item', prevItem);
+          const prevTrigger = prevItem.querySelector('[data-accordion-trigger]');
+          if (prevTrigger && prevTrigger instanceof HTMLElement) {
+            console.log('Found previous trigger, focusing');
+            prevTrigger.focus();
+            return;
+          }
+        } else {
+          // If no previous sibling, go up to parent
+          console.log('No previous sibling, looking for parent');
+          const accordionContent = currentItem.closest('[role="region"]');
+          if (accordionContent) {
+            console.log('Found parent content', accordionContent);
+            const parentItem = accordionContent.closest('[data-accordion-item]');
+            if (parentItem) {
+              console.log('Found parent item', parentItem);
+              const parentTrigger = parentItem.querySelector('[data-accordion-trigger]');
+              if (parentTrigger && parentTrigger instanceof HTMLElement) {
+                console.log('Found parent trigger, focusing');
+                parentTrigger.focus();
+                return;
+              }
+            }
           }
         }
       }
@@ -130,6 +166,7 @@ const AccordionTrigger = React.forwardRef<
         )}
         {...props}
         onKeyDown={handleKeyDown}
+        data-accordion-trigger="true"
         tabIndex={0}
       >
         <ChevronRight className="mr-2 h-4 w-4 shrink-0 transition-transform duration-200" />
