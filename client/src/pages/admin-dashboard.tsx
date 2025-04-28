@@ -1163,6 +1163,30 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/skill-history"],
   });
   
+  // Calculate filtered skill histories based on search query and level filter
+  const filteredSkillHistories = useMemo(() => {
+    if (!skillHistories) return [];
+    
+    return skillHistories.filter(history => {
+      // Apply level filter
+      if (skillHistoryLevelFilter !== "all" && history.newLevel !== skillHistoryLevelFilter) {
+        return false;
+      }
+      
+      // Apply search filter
+      if (skillHistorySearchQuery) {
+        const searchLower = skillHistorySearchQuery.toLowerCase();
+        return (
+          (history.skill_name?.toLowerCase().includes(searchLower) || false) ||
+          (history.user_email?.toLowerCase().includes(searchLower) || false) ||
+          (history.changeNote?.toLowerCase().includes(searchLower) || false)
+        );
+      }
+      
+      return true;
+    });
+  }, [skillHistories, skillHistorySearchQuery, skillHistoryLevelFilter]);
+  
   // Get certification report
   const { data: certificationReport, isLoading: isLoadingCertifications } = useQuery<{ user: User, certifications: any[] }[]>({
     queryKey: ["/api/admin/certification-report"],
