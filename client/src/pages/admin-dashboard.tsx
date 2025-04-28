@@ -186,10 +186,10 @@ function ProjectHierarchyView() {
                                         <TableCell>
                                           <div className="flex flex-wrap gap-1">
                                             {resource.skills?.slice(0, 3).map((skill, idx) => (
-                                              <Link to={`/skills/${skill.id}`} key={idx}>
+                                              <Link to={`/skills/${skill.id}`} key={idx} className="hover:scale-105 transition-transform">
                                                 <Badge 
-                                                  style={{ backgroundColor: getSkillBadgeColor(skill.level, 0.8) }}
-                                                  className="text-white text-xs"
+                                                  style={{ backgroundColor: getSkillBadgeColor(skill.level, 0.8), boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                                                  className="text-white text-xs border border-white border-opacity-30"
                                                 >
                                                   {skill.name}
                                                 </Badge>
@@ -388,7 +388,7 @@ function SkillHierarchyView() {
                                   {subcategory.skills.map(skill => (
                                     <TableRow key={skill.id}>
                                       <TableCell className="font-medium">
-                                        <Link to={`/skills/${skill.id}`} className="hover:underline text-primary">
+                                        <Link to={`/skills/${skill.id}`} className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
                                           {skill.name}
                                         </Link>
                                       </TableCell>
@@ -421,7 +421,7 @@ function SkillHierarchyView() {
                                               <AvatarFallback>{(user as any).username?.[0] || 'U'}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                              <Link to={`/users/${user.id}`} className="hover:underline text-primary">
+                                              <Link to={`/users/${user.id}`} className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
                                                 <div className="font-medium">{(user as any).username}</div>
                                               </Link>
                                               <div className="text-xs text-muted-foreground truncate max-w-[120px]">{user.email}</div>
