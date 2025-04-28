@@ -504,7 +504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Ensure user owns the skill or is admin
       if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
-        return res.status(403).json({ message: "Forbidden" });
+        return res.status(403).json({ message: "Access denied", details: "You can only access skills that you own or as an administrator", errorCode: "NOT_SKILL_OWNER" });
       }
       
       res.json(skill);
@@ -524,7 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Ensure user owns the skill or is admin
       if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
-        return res.status(403).json({ message: "Forbidden" });
+        return res.status(403).json({ message: "Access denied", details: "You can only update skills that you own or as an administrator", errorCode: "NOT_SKILL_OWNER" });
       }
       
       // Create a copy of the request body without changeNote for skill update
@@ -559,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Ensure user owns the skill or is admin
       if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
-        return res.status(403).json({ message: "Forbidden" });
+        return res.status(403).json({ message: "Access denied", details: "You can only delete skills that you own or as an administrator", errorCode: "NOT_SKILL_OWNER" });
       }
       
       await storage.deleteSkill(skillId);
@@ -580,7 +580,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Ensure user owns the skill or is admin
       if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
-        return res.status(403).json({ message: "Forbidden" });
+        return res.status(403).json({ message: "Access denied", details: "You can only view skill history for skills that you own or as an administrator", errorCode: "NOT_SKILL_OWNER" });
       }
       
       const history = await storage.getSkillHistory(skillId);
