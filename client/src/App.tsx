@@ -14,7 +14,7 @@ import AddSkillsPage from "@/pages/add-skills-page";
 import ProfilePage from "@/pages/profile-page";
 import UserProfilePage from "@/pages/user-profile-page";
 import UsersPage from "@/pages/users-page";
-import AdminDashboard from "@/pages/admin-dashboard-new";
+import AdminDashboard from "@/pages/admin-dashboard-fixed";
 import OrgDashboard from "@/pages/org-dashboard";
 import LeaderboardPage from "@/pages/leaderboard-page";
 import SkillManagementPage from "@/pages/skill-management-page";
