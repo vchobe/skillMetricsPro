@@ -2234,7 +2234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/clients/:id", ensureAdmin, async (req, res) => {
+  app.patch("/api/clients/:id", ensureSuperAdmin, async (req, res) => {
     try {
       console.log("PATCH /api/clients/:id - Request body:", JSON.stringify(req.body, null, 2));
       const clientId = parseInt(req.params.id);
@@ -2291,7 +2291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/clients/:id", ensureAdmin, async (req, res) => {
+  app.delete("/api/clients/:id", ensureSuperAdmin, async (req, res) => {
     try {
       const clientId = parseInt(req.params.id);
       const client = await storage.getClient(clientId);
@@ -2435,7 +2435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/projects/:id", ensureAdmin, async (req, res) => {
+  app.delete("/api/projects/:id", ensureSuperAdmin, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const project = await storage.getProject(projectId);
