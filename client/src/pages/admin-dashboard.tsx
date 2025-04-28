@@ -3982,345 +3982,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <TabsContent value="skill-targets">
-              {/* Moved to skills-management tab as requested */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  duration: 0.5,
-                  delay: 0.1,
-                  ease: "easeOut"
-                }}
-              >
-                <Card className="mb-6">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div>
-                      <CardTitle className="text-2xl font-bold">Skill Targets</CardTitle>
-                      <CardDescription>
-                        Set and manage organizational skill targets and track progress
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      onClick={() => setShowTargetDialog(true)}
-                      className="flex items-center gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span>Add Target</span>
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex mb-4">
-                      <div className="relative w-full">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search targets..."
-                          className="pl-8"
-                          value={targetSearchQuery}
-                          onChange={(e) => setTargetSearchQuery(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    {isLoadingTargets ? (
-                      <div className="flex justify-center items-center h-64">
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                      </div>
-                    ) : skillTargets.length === 0 ? (
-                      <div className="text-center py-10">
-                        <Target className="h-10 w-10 mx-auto text-gray-400" />
-                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No skill targets</h3>
-                        <p className="mt-1 text-sm text-gray-500">Create targets to help guide your team's skill development.</p>
-                        <div className="mt-6">
-                          <Button onClick={() => setShowTargetDialog(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Target
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto scrollable-container">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Name</TableHead>
-                              <TableHead>Target Level</TableHead>
-                              <TableHead>Target Date</TableHead>
-                              <TableHead>Progress</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {skillTargets
-                              .filter(target => {
-                                if (!targetSearchQuery) return true;
-                                const query = targetSearchQuery.toLowerCase();
-                                return (
-                                  (target.name || "").toLowerCase().includes(query) ||
-                                  target.targetLevel.toLowerCase().includes(query) ||
-                                  (target.description || "").toLowerCase().includes(query)
-                                );
-                              })
-                              .map((target) => {
-                                // Calculate progress
-                                const targetAnalysis = skillGapAnalysis.find(analysis => 
-                                  analysis?.name === (target.name || `Target ${target.id}`)
-                                );
-                                
-                                const progressPercent = targetAnalysis 
-                                  ? Math.round((targetAnalysis.currentLevel / targetAnalysis.targetLevel) * 100)
-                                  : 0;
-                                
-                                return (
-                                  <TableRow key={target.id}>
-                                    <TableCell className="font-medium">{target.name || `Target ${target.id}`}</TableCell>
-                                    <TableCell>
-                                      <SkillLevelBadge level={target.targetLevel} />
-                                    </TableCell>
-                                    <TableCell>
-                                      {target.targetDate ? (
-                                        format(new Date(target.targetDate), "MMM dd, yyyy")
-                                      ) : (
-                                        <span className="text-gray-500">Not specified</span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                          <div 
-                                            className="bg-blue-600 h-2.5 rounded-full" 
-                                            style={{ width: `${progressPercent}%` }}
-                                          ></div>
-                                        </div>
-                                        <span className="text-sm">{progressPercent}%</span>
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          setTargetFormData({
-                                            id: target.id,
-                                            name: target.name || '',
-                                            skillIds: target.skillIds || [],
-                                            targetLevel: target.targetLevel || 'intermediate',
-                                            targetDate: target.targetDate || '',
-                                            targetNumber: target.targetNumber,
-                                            description: target.description || ''
-                                          });
-                                          setShowTargetDialog(true);
-                                        }}
-                                      >
-                                        <Edit className="h-4 w-4 mr-2" />
-                                        Edit
-                                      </Button>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Target Dialog */}
-                <Dialog open={showTargetDialog} onOpenChange={setShowTargetDialog}>
-                  <DialogContent className="sm:max-w-[575px] scrollable-dialog">
-                    <DialogHeader>
-                      <DialogTitle>{targetFormData.id ? "Edit Skill Target" : "Create Skill Target"}</DialogTitle>
-                      <DialogDescription>
-                        {targetFormData.id 
-                          ? "Edit the details for this skill target." 
-                          : "Add a new organizational skill target."}
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="name" className="text-right">
-                            Name
-                          </Label>
-                          <Input
-                            id="name"
-                            placeholder="e.g., JavaScript Expertise"
-                            className="col-span-3"
-                            value={targetFormData.name}
-                            onChange={(e) => setTargetFormData({
-                              ...targetFormData,
-                              name: e.target.value,
-                            })}
-                          />
-                        </div>
-                        
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="description" className="text-right">
-                            Description
-                          </Label>
-                          <Textarea
-                            id="description"
-                            placeholder="Describe this skill target"
-                            className="col-span-3"
-                            value={targetFormData.description}
-                            onChange={(e) => setTargetFormData({
-                              ...targetFormData,
-                              description: e.target.value,
-                            })}
-                          />
-                        </div>
-                        
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="targetLevel" className="text-right">
-                            Target Level
-                          </Label>
-                          <Select 
-                            value={targetFormData.targetLevel}
-                            onValueChange={(value) => setTargetFormData({
-                              ...targetFormData,
-                              targetLevel: value,
-                            })}
-                          >
-                            <SelectTrigger className="col-span-3">
-                              <SelectValue placeholder="Select a target level" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="beginner">Beginner</SelectItem>
-                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                              <SelectItem value="expert">Expert</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="targetDate" className="text-right">
-                            Target Date
-                          </Label>
-                          <Input
-                            id="targetDate"
-                            type="date"
-                            className="col-span-3"
-                            value={targetFormData.targetDate}
-                            onChange={(e) => setTargetFormData({
-                              ...targetFormData,
-                              targetDate: e.target.value,
-                            })}
-                          />
-                        </div>
-                        
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="targetNumber" className="text-right">
-                            Target Number
-                          </Label>
-                          <Input
-                            id="targetNumber"
-                            type="number"
-                            className="col-span-3"
-                            placeholder="e.g., 5 skills"
-                            value={targetFormData.targetNumber || ""}
-                            onChange={(e) => setTargetFormData({
-                              ...targetFormData,
-                              targetNumber: e.target.value ? parseInt(e.target.value) : undefined,
-                            })}
-                          />
-                        </div>
-                        
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label className="text-right">
-                            Skills
-                          </Label>
-                          <div className="col-span-3">
-                            {skills && (
-                              <div className="p-4 border rounded-md max-h-64 overflow-y-auto overflow-x-auto">
-                                <div className="space-y-2">
-                                  {skills.map(skill => (
-                                    <div key={skill.id} className="flex items-center">
-                                      <input
-                                        type="checkbox"
-                                        id={`skill-${skill.id}`}
-                                        className="mr-2"
-                                        checked={targetFormData.skillIds.includes(skill.id)}
-                                        onChange={(e) => {
-                                          if (e.target.checked) {
-                                            setTargetFormData({
-                                              ...targetFormData,
-                                              skillIds: [...targetFormData.skillIds, skill.id]
-                                            });
-                                          } else {
-                                            setTargetFormData({
-                                              ...targetFormData,
-                                              skillIds: targetFormData.skillIds.filter(id => id !== skill.id)
-                                            });
-                                          }
-                                        }}
-                                      />
-                                      <label htmlFor={`skill-${skill.id}`} className="flex-1 flex items-center justify-between">
-                                        <span>{skill.name}</span>
-                                        <SkillLevelBadge level={skill.level} size="sm" />
-                                      </label>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setShowTargetDialog(false)}>
-                          Cancel
-                        </Button>
-                        <Button 
-                          type="button"
-                          onClick={() => {
-                            // Handle saving the target
-                            const targetData = {
-                              name: targetFormData.name,
-                              description: targetFormData.description,
-                              targetLevel: targetFormData.targetLevel,
-                              targetDate: targetFormData.targetDate,
-                              targetNumber: targetFormData.targetNumber,
-                              skillIds: Array.from(new Set(targetFormData.skillIds)), // Remove duplicates
-                            };
-                            
-                            // Check if editing existing target or creating new
-                            if (targetFormData.id) {
-                              // Call mutation to update
-                              toast({
-                                title: "Target updated",
-                                description: "The skill target has been updated successfully."
-                              });
-                            } else {
-                              // Call mutation to create
-                              toast({
-                                title: "Target created",
-                                description: "The new skill target has been created successfully."
-                              });
-                            }
-                            
-                            setShowTargetDialog(false);
-                            setTargetFormData({
-                              id: null,
-                              name: '',
-                              skillIds: [],
-                              targetLevel: 'beginner',
-                              targetDate: "",
-                              targetNumber: undefined,
-                              description: ''
-                            });
-                          }}
-                        >
-                          {targetFormData.id ? "Update Target" : "Create Target"}
-                        </Button>
-                      </DialogFooter>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </motion.div>
-            </TabsContent>
+            {/* Removed standalone skill-targets tab as it's now part of the Skills Management section */}
             
             <TabsContent value="users">
               <motion.div
@@ -4337,24 +3999,37 @@ export default function AdminDashboard() {
                   <div>
                     <CardTitle>User Management</CardTitle>
                   </div>
-                  <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                      <input 
-                        type="text" 
-                        placeholder="Search users..." 
-                        className="pl-8 h-9 w-full sm:w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
-                      <Select 
-                        value={roleFilter} 
-                        onValueChange={(value) => {
-                          setRoleFilter(value);
-                        }}
-                      >
+                </CardHeader>
+                <CardContent>
+                  <p>User management content will appear here.</p>
+                </CardContent>
+              </Card>
+              </motion.div>
+            </TabsContent>
+            
+            <TabsContent value="reports">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: 0.1,
+                  ease: "easeOut"
+                }}
+              >
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Reports</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>Reports will appear here.</p>
+                </CardContent>
+              </Card>
+              </motion.div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
                         <SelectTrigger className="w-full md:w-[180px] h-10">
                           <SelectValue placeholder="Filter by role" />
                         </SelectTrigger>
