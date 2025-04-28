@@ -41,6 +41,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -65,15 +72,13 @@ const clientSchema = z.object({
   industry: z.string().optional(),
   description: z.string().optional(),
   website: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  contactName: z.string().optional(),
-  contactEmail: z.string().email("Must be a valid email").optional().or(z.literal("")),
-  contactPhone: z.string().optional(),
+  accountManagerId: z.number().optional().nullable(),
   address: z.string().optional()
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
 
-type SortField = "name" | "industry" | "contactName";
+type SortField = "name" | "industry" | "accountManager";
 type SortDirection = "asc" | "desc";
 
 export default function ClientsPage() {
@@ -99,14 +104,16 @@ export default function ClientsPage() {
     id: number;
     name: string;
     industry?: string;
-    contactName?: string;
-    contactEmail?: string;
-    contactPhone?: string;
+    accountManagerId?: number;
     website?: string;
     description?: string;
     address?: string;
     createdAt: string;
     updatedAt?: string;
+    // Keep old contact fields for backward compatibility
+    contactName?: string;
+    contactEmail?: string;
+    contactPhone?: string;
   }
 
   // Fetch all clients
@@ -114,6 +121,22 @@ export default function ClientsPage() {
     queryKey: ["/api/clients"],
     refetchOnWindowFocus: false,
   });
+
+  // Fetch all users for account manager dropdown
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+    refetchOnWindowFocus: false,
+  });
+
+  // Define User interface
+  interface User {
+    id: number;
+    username: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    role?: string;
+  }
 
   // Form for creating new client
   const newClientForm = useForm<ClientFormValues>({
@@ -123,9 +146,7 @@ export default function ClientsPage() {
       industry: "",
       description: "",
       website: "",
-      contactName: "",
-      contactEmail: "",
-      contactPhone: "",
+      accountManagerId: null,
       address: ""
     },
   });
@@ -138,9 +159,7 @@ export default function ClientsPage() {
       industry: "",
       description: "",
       website: "",
-      contactName: "",
-      contactEmail: "",
-      contactPhone: "",
+      accountManagerId: null,
       address: ""
     },
   });
@@ -155,9 +174,7 @@ export default function ClientsPage() {
       industry: client.industry || "",
       description: client.description || "",
       website: client.website || "",
-      contactName: client.contactName || "",
-      contactEmail: client.contactEmail || "",
-      contactPhone: client.contactPhone || "",
+      accountManagerId: client.accountManagerId || null,
       address: client.address || ""
     });
     
@@ -264,12 +281,17 @@ export default function ClientsPage() {
   const filteredClients = clients
     ? clients
         .filter((client: Client) => {
+          // Get account manager name if exists
+          const accountManager = users.find(user => user.id === client.accountManagerId);
+          const accountManagerName = accountManager 
+            ? `${accountManager.firstName || ''} ${accountManager.lastName || ''} ${accountManager.username || ''}` 
+            : '';
+            
           return (
             client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (client.industry && 
               client.industry.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (client.contactName && 
-              client.contactName.toLowerCase().includes(searchTerm.toLowerCase()))
+            accountManagerName.toLowerCase().includes(searchTerm.toLowerCase())
           );
         })
         .sort((a: Client, b: Client) => {
@@ -286,11 +308,12 @@ export default function ClientsPage() {
               if (!b.industry) return direction === "asc" ? -1 : 1;
               comparison = a.industry.localeCompare(b.industry);
               break;
-            case "contactName":
-              // Handle null contactName
-              if (!a.contactName) return direction === "asc" ? 1 : -1;
-              if (!b.contactName) return direction === "asc" ? -1 : 1;
-              comparison = a.contactName.localeCompare(b.contactName);
+            case "accountManager":
+              // We can't sort by account manager name since we only have the ID
+              // Sort by ID instead
+              const aId = a.accountManagerId || 0;
+              const bId = b.accountManagerId || 0;
+              comparison = aId - bId;
               break;
             default:
               comparison = 0;
@@ -416,51 +439,38 @@ export default function ClientsPage() {
                         )}
                       />
                       
-                      <h3 className="text-lg font-medium mt-6 mb-2">Contact Information</h3>
+                      <h3 className="text-lg font-medium mt-6 mb-2">Account Manager</h3>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField
-                          control={newClientForm.control}
-                          name="contactName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Contact Name</FormLabel>
+                      <FormField
+                        control={newClientForm.control}
+                        name="accountManagerId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Account Manager</FormLabel>
+                            <Select
+                              onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                              value={field.value?.toString() || ""}
+                            >
                               <FormControl>
-                                <Input {...field} />
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select an account manager" />
+                                </SelectTrigger>
                               </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={newClientForm.control}
-                          name="contactEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <Input {...field} type="email" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={newClientForm.control}
-                          name="contactPhone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Phone</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                              <SelectContent>
+                                <SelectItem value="">None</SelectItem>
+                                {users.map((user) => (
+                                  <SelectItem key={user.id} value={user.id.toString()}>
+                                    {user.firstName && user.lastName
+                                      ? `${user.firstName} ${user.lastName}`
+                                      : user.username}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       
                       <DialogFooter>
                         <Button
@@ -529,9 +539,9 @@ export default function ClientsPage() {
                       </TableHead>
                       <TableHead 
                         className="cursor-pointer"
-                        onClick={() => handleSort("contactName")}
+                        onClick={() => handleSort("accountManager")}
                       >
-                        Contact {renderSortIcon("contactName")}
+                        Account Manager {renderSortIcon("accountManager")}
                       </TableHead>
                       <TableHead>
                         Projects
@@ -563,15 +573,22 @@ export default function ClientsPage() {
                             {client.industry || "—"}
                           </TableCell>
                           <TableCell>
-                            {client.contactName ? (
-                              <div>
-                                <div>{client.contactName}</div>
-                                {client.contactEmail && (
-                                  <div className="text-xs text-gray-500">
-                                    {client.contactEmail}
+                            {client.accountManagerId ? (
+                              (() => {
+                                const manager = users.find(user => user.id === client.accountManagerId);
+                                return manager ? (
+                                  <div>
+                                    <div>
+                                      {manager.firstName && manager.lastName
+                                        ? `${manager.firstName} ${manager.lastName}`
+                                        : manager.username}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {manager.email}
+                                    </div>
                                   </div>
-                                )}
-                              </div>
+                                ) : "—";
+                              })()
                             ) : (
                               "—"
                             )}
@@ -681,51 +698,38 @@ export default function ClientsPage() {
                                             )}
                                           />
                                           
-                                          <h3 className="text-lg font-medium mt-6 mb-2">Contact Information</h3>
+                                          <h3 className="text-lg font-medium mt-6 mb-2">Account Manager</h3>
                                           
-                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <FormField
-                                              control={editClientForm.control}
-                                              name="contactName"
-                                              render={({ field }) => (
-                                                <FormItem>
-                                                  <FormLabel>Contact Name</FormLabel>
+                                          <FormField
+                                            control={editClientForm.control}
+                                            name="accountManagerId"
+                                            render={({ field }) => (
+                                              <FormItem>
+                                                <FormLabel>Account Manager</FormLabel>
+                                                <Select
+                                                  onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                                                  value={field.value?.toString() || ""}
+                                                >
                                                   <FormControl>
-                                                    <Input {...field} />
+                                                    <SelectTrigger>
+                                                      <SelectValue placeholder="Select an account manager" />
+                                                    </SelectTrigger>
                                                   </FormControl>
-                                                  <FormMessage />
-                                                </FormItem>
-                                              )}
-                                            />
-                                            
-                                            <FormField
-                                              control={editClientForm.control}
-                                              name="contactEmail"
-                                              render={({ field }) => (
-                                                <FormItem>
-                                                  <FormLabel>Email</FormLabel>
-                                                  <FormControl>
-                                                    <Input {...field} type="email" />
-                                                  </FormControl>
-                                                  <FormMessage />
-                                                </FormItem>
-                                              )}
-                                            />
-                                            
-                                            <FormField
-                                              control={editClientForm.control}
-                                              name="contactPhone"
-                                              render={({ field }) => (
-                                                <FormItem>
-                                                  <FormLabel>Phone</FormLabel>
-                                                  <FormControl>
-                                                    <Input {...field} />
-                                                  </FormControl>
-                                                  <FormMessage />
-                                                </FormItem>
-                                              )}
-                                            />
-                                          </div>
+                                                  <SelectContent>
+                                                    <SelectItem value="">None</SelectItem>
+                                                    {users.map((user) => (
+                                                      <SelectItem key={user.id} value={user.id.toString()}>
+                                                        {user.firstName && user.lastName
+                                                          ? `${user.firstName} ${user.lastName}`
+                                                          : user.username}
+                                                      </SelectItem>
+                                                    ))}
+                                                  </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                              </FormItem>
+                                            )}
+                                          />
                                           
                                           <DialogFooter>
                                             <Button
