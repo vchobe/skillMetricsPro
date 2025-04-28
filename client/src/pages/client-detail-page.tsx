@@ -93,7 +93,6 @@ const clientSchema = z.object({
   industry: z.string().optional(),
   accountManagerId: z.number().nullable().optional(),
   website: z.string().optional(),
-  address: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -150,7 +149,6 @@ export default function ClientDetailPage() {
       industry: "",
       accountManagerId: null,
       website: "",
-      address: "",
       notes: ""
     }
   });
@@ -163,7 +161,6 @@ export default function ClientDetailPage() {
         industry: client.industry || "",
         accountManagerId: client.accountManagerId || null,
         website: client.website || "",
-        address: client.address || "",
         notes: client.notes || ""
       });
     }
@@ -391,19 +388,7 @@ export default function ClientDetailPage() {
                 </CardContent>
               </Card>
               
-              {client.address && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-gray-500 flex items-center">
-                      <Building className="h-4 w-4 mr-2" />
-                      Address
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-md whitespace-pre-line">{client.address}</p>
-                  </CardContent>
-                </Card>
-              )}
+              {/* Address field has been removed from schema and UI */}
             </div>
             
             {client.website && (
@@ -621,19 +606,7 @@ export default function ClientDetailPage() {
                     )}
                   />
                   
-                  <FormField
-                    control={editClientForm.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Address field has been removed */}
                   
                   <DialogFooter>
                     <Button type="submit" disabled={updateClient.isPending}>
