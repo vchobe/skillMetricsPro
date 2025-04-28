@@ -3179,50 +3179,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin API endpoints for hierarchical data (project and skill overviews)
   app.get("/api/admin/project-hierarchy", ensureAdmin, async (req, res) => {
     try {
+      console.log("Fetching project hierarchy data...");
+      
       // Get all clients, projects, resources, and user skills
       const clients = await storage.getAllClients();
+      console.log(`Fetched ${clients.length} clients`);
+      
       const projects = await storage.getAllProjects();
+      console.log(`Fetched ${projects.length} projects`);
+      
       const resources = await storage.getAllProjectResources();
+      console.log(`Fetched ${resources.length} resources`);
+      
       const users = await storage.getAllUsers();
+      console.log(`Fetched ${users.length} users`);
+      
       const skills = await storage.getAllSkills();
+      console.log(`Fetched ${skills.length} user skills`);
+      
       // Get project required skills
+      console.log("Fetching project skills...");
       const projectSkills = await storage.getAllProjectSkills();
+      console.log(`Fetched ${projectSkills.length} project skills`);
 
       // Build the hierarchy: clients -> projects -> resources -> skills
-      const hierarchy = clients.map(client => ({
-        ...client,
-        projects: projects
-          .filter(project => project.clientId === client.id)
-          .map(project => {
+      console.log("Building hierarchy data...");
+      const hierarchy = clients.map(client => {
+        const clientProjects = projects.filter(project => project.clientId === client.id);
+        console.log(`Client ${client.id} (${client.name}) has ${clientProjects.length} projects`);
+        
+        return {
+          ...client,
+          projects: clientProjects.map(project => {
             // Get project required skills
             const projectRequiredSkills = projectSkills.filter(ps => ps.projectId === project.id);
+            console.log(`Project ${project.id} (${project.name}) has ${projectRequiredSkills.length} required skills`);
+            
+            // Get project resources
+            const projectResources = resources.filter(resource => resource.projectId === project.id);
+            console.log(`Project ${project.id} (${project.name}) has ${projectResources.length} resources`);
             
             return {
               ...project,
               // Add project skills
               skills: projectRequiredSkills || [],
-              resources: resources
-                .filter(resource => resource.projectId === project.id)
-                .map(resource => {
-                  // Find the user for this resource
-                  const user = users.find(u => u.id === resource.userId);
-                  // Find user skills
-                  const userSkills = skills.filter(skill => skill.userId === resource.userId);
-                  
-                  return {
-                    ...resource,
-                    user: user || { id: resource.userId, username: "Unknown User" },
-                    skills: userSkills || []
-                  };
-                })
+              resources: projectResources.map(resource => {
+                // Find the user for this resource
+                const user = users.find(u => u.id === resource.userId);
+                // Find user skills
+                const userSkills = skills.filter(skill => skill.userId === resource.userId);
+                
+                return {
+                  ...resource,
+                  user: user || { id: resource.userId, username: "Unknown User" },
+                  skills: userSkills || []
+                };
+              })
             };
           })
-      }));
+        };
+      });
 
+      console.log("Sending hierarchy response...");
       res.json(hierarchy);
     } catch (err) {
       const error = err as Error;
       console.error("Error fetching project hierarchy:", error);
+      console.error("Stack trace:", error.stack);
       res.status(500).json({ message: "Error fetching project hierarchy", error: error.message });
     }
   });
