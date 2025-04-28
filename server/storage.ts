@@ -2616,6 +2616,7 @@ export class PostgresStorage implements IStorage {
 
   async updateClient(id: number, data: Partial<Client>): Promise<Client> {
     try {
+      console.log("Updating client with data:", JSON.stringify(data, null, 2));
       const updateFields: string[] = [];
       const params: any[] = [];
       let paramCount = 1;
@@ -2623,7 +2624,9 @@ export class PostgresStorage implements IStorage {
       // Build update statement
       for (const key in data) {
         if (data.hasOwnProperty(key) && key !== 'id') {
-          updateFields.push(`${this.camelToSnake(key)} = $${paramCount}`);
+          const snakeCaseKey = this.camelToSnake(key);
+          console.log(`Converting key ${key} to ${snakeCaseKey}`);
+          updateFields.push(`${snakeCaseKey} = $${paramCount}`);
           params.push(data[key as keyof typeof data]);
           paramCount++;
         }
