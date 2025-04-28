@@ -1958,7 +1958,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 
-                <div className="mb-6 p-3 bg-muted rounded-md flex items-center justify-center text-sm text-muted-foreground space-x-6">
+                <div className="mb-6 p-3 bg-muted rounded-md flex flex-wrap items-center justify-center text-sm text-muted-foreground gap-4">
                   <div className="flex items-center">
                     <span className="inline-block border px-1 rounded mr-2">←</span> 
                     <span>Collapse Item</span>
@@ -1968,8 +1968,12 @@ export default function AdminDashboard() {
                     <span>Expand Item</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="inline-block border px-1 rounded mr-2">↑↓</span> 
-                    <span>Navigate Items</span>
+                    <span className="inline-block border px-1 rounded mr-2">↓</span> 
+                    <span>Move to Child/Next</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="inline-block border px-1 rounded mr-2">↑</span> 
+                    <span>Move to Previous/Parent</span>
                   </div>
                 </div>
 
@@ -2172,7 +2176,7 @@ export default function AdminDashboard() {
                   ease: "easeOut"
                 }}
               >
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold text-primary">Skill Hierarchy Overview</h2>
                   <div className="flex items-center gap-2">
                     <Input
@@ -2195,6 +2199,25 @@ export default function AdminDashboard() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+                
+                <div className="mb-6 p-3 bg-muted rounded-md flex flex-wrap items-center justify-center text-sm text-muted-foreground gap-4">
+                  <div className="flex items-center">
+                    <span className="inline-block border px-1 rounded mr-2">←</span> 
+                    <span>Collapse Item</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="inline-block border px-1 rounded mr-2">→</span> 
+                    <span>Expand Item</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="inline-block border px-1 rounded mr-2">↓</span> 
+                    <span>Move to Child/Next</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="inline-block border px-1 rounded mr-2">↑</span> 
+                    <span>Move to Previous/Parent</span>
                   </div>
                 </div>
 
