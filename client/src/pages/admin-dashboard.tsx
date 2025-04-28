@@ -1814,8 +1814,8 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <TabsList className="grid w-full grid-cols-12 gap-1 mb-6">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <TabsList className="w-full mb-6 flex flex-wrap gap-2">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="dashboard" 
                     className="flex items-center gap-2 w-full"
@@ -1824,7 +1824,7 @@ export default function AdminDashboard() {
                     <span>Dashboard</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="project-overview" 
                     className="flex items-center gap-2 w-full"
@@ -1833,7 +1833,7 @@ export default function AdminDashboard() {
                     <span>Project Overview</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="skill-overview" 
                     className="flex items-center gap-2 w-full"
@@ -1842,7 +1842,7 @@ export default function AdminDashboard() {
                     <span>Skill Overview</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="skill-history" 
                     className="flex items-center gap-2 w-full"
@@ -1851,7 +1851,7 @@ export default function AdminDashboard() {
                     <span>Skill History</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="certifications" 
                     className="flex items-center gap-2 w-full"
@@ -1860,7 +1860,7 @@ export default function AdminDashboard() {
                     <span>Certifications</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="skill-templates" 
                     className="flex items-center gap-2 w-full"
@@ -1869,7 +1869,7 @@ export default function AdminDashboard() {
                     <span>Skills</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="skill-targets" 
                     className="flex items-center gap-2 w-full"
@@ -1878,7 +1878,7 @@ export default function AdminDashboard() {
                     <span>Skill Targets</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="users" 
                     className="flex items-center gap-2 w-full"
@@ -1887,7 +1887,7 @@ export default function AdminDashboard() {
                     <span>Users</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="user-management" 
                     className="flex items-center gap-2 w-full"
@@ -1896,7 +1896,7 @@ export default function AdminDashboard() {
                     <span>Admin Access</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="reports" 
                     className="flex items-center gap-2 w-full"
@@ -1905,7 +1905,7 @@ export default function AdminDashboard() {
                     <span>Reports</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="approvals" 
                     className="flex items-center gap-2 w-full relative"
