@@ -198,6 +198,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
   
+  // Middleware to ensure user is a super admin (admin@atyeti.com)
+  const ensureSuperAdmin = async (req: Request, res: Response, next: Function) => {
+    if (!req.isAuthenticated()) {
+      console.log("Super admin check failed - user not authenticated");
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    
+    // Check if user is admin first
+    const isAdmin = isUserAdmin(req.user) || await checkIsUserAdminDirectly(req.user!.id);
+    
+    if (!isAdmin) {
+      console.log("Super admin check failed - user is not an admin:", req.user?.email || req.user?.username);
+      return res.status(403).json({ message: "Forbidden - admin privileges required" });
+    }
+    
+    // Check if user is the super admin (admin@atyeti.com)
+    const isSuperAdmin = req.user!.email === "admin@atyeti.com";
+    
+    if (!isSuperAdmin) {
+      console.log("Super admin check failed - user is not the super admin:", req.user?.email);
+      return res.status(403).json({ message: "Forbidden - only super admin can perform this action" });
+    }
+    
+    console.log("Super admin check passed for user:", req.user?.email);
+    next();
+  };
+  
   // Middleware to ensure user is either an admin or an approver
   const ensureApprover = async (req: Request, res: Response, next: Function) => {
     if (!req.isAuthenticated()) {
