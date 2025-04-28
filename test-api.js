@@ -1,14 +1,12 @@
 // Testing script for client API
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 // The base URL of the server
-const BASE_URL = process.env.REPL_SLUG 
-  ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-  : 'https://b67a8223-ba73-4896-8b24-a3f11658d6d4-00-2b630wghr12ay.janeway.replit.dev';
+const BASE_URL = 'http://localhost:5000';
 
 // Credentials for login
 const credentials = {
-  username: 'adminatyeti',
+  username: 'admin@atyeti.com',
   password: 'Admin@123'
 };
 
@@ -18,7 +16,7 @@ const testClient = {
   industry: 'Technology',
   website: 'https://example.com',
   notes: 'Created via API test',
-  accountManagerId: 44 // Make sure this ID exists in your system
+  accountManagerId: 1 // Using ID 1 which should exist in most systems
 };
 
 // Storage for cookies and client ID

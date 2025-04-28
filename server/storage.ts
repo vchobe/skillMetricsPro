@@ -2634,30 +2634,57 @@ export class PostgresStorage implements IStorage {
   async updateClient(id: number, data: Partial<Client>): Promise<Client> {
     try {
       console.log("Updating client with data:", JSON.stringify(data, null, 2));
+      
+      // Validate we have valid data structure with allowed fields
+      if (!data || typeof data !== 'object') {
+        throw new Error("Invalid client data");
+      }
+      
+      // Only allow fields that exist in clients table
+      // Based on database schema: id, name, industry, contact_name, contact_email, contact_phone, website, logo_url, notes, created_at, updated_at, account_manager_id
+      const allowedFields = [
+        'name', 'industry', 'contactName', 'contactEmail', 'contactPhone',
+        'website', 'logoUrl', 'notes', 'accountManagerId'
+      ];
+      
+      // Filter out non-allowed fields
+      const filteredData: Partial<Client> = {};
+      for (const key in data) {
+        if (data.hasOwnProperty(key) && allowedFields.includes(key)) {
+          filteredData[key as keyof Client] = data[key as keyof typeof data];
+        } else if (data.hasOwnProperty(key) && key !== 'id') {
+          console.warn(`Skipping non-existent field in client update: ${key}`);
+        }
+      }
+      
+      // Proceed with the update using filtered data
       const updateFields: string[] = [];
       const params: any[] = [];
       let paramCount = 1;
 
       // Build update statement
-      for (const key in data) {
-        if (data.hasOwnProperty(key) && key !== 'id') {
+      for (const key in filteredData) {
+        if (filteredData.hasOwnProperty(key) && key !== 'id') {
           const snakeCaseKey = this.camelToSnake(key);
           console.log(`Converting key ${key} to ${snakeCaseKey}`);
           updateFields.push(`${snakeCaseKey} = $${paramCount}`);
-          params.push(data[key as keyof typeof data]);
+          params.push(filteredData[key as keyof typeof filteredData]);
           paramCount++;
         }
       }
 
+      // If we don't have any valid fields to update, just return the current client
       if (updateFields.length === 0) {
+        console.log("No valid fields to update for client");
         return await this.getClient(id) as Client;
       }
 
       params.push(id);
-      const result = await pool.query(
-        `UPDATE clients SET ${updateFields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
-        params
-      );
+      const updateQuery = `UPDATE clients SET ${updateFields.join(', ')} WHERE id = $${paramCount} RETURNING *`;
+      console.log("Executing update query:", updateQuery);
+      console.log("With parameters:", params);
+      
+      const result = await pool.query(updateQuery, params);
 
       if (result.rowCount === 0) {
         throw new Error("Client not found");

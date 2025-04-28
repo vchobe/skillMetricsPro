@@ -179,9 +179,20 @@ export default function ClientDetailPage() {
         data.accountManagerId = parseInt(data.accountManagerId);
       }
       
-      console.log("Data after normalization:", JSON.stringify(data, null, 2));
+      // Only include fields that exist in the database schema
+      const validFields = ['name', 'industry', 'website', 'notes', 'accountManagerId'];
+      const sanitizedData: Record<string, any> = {};
       
-      const res = await apiRequest<any>("PATCH", `/api/clients/${clientId}`, data);
+      // Filter out non-existent fields
+      validFields.forEach(field => {
+        if (data[field as keyof typeof data] !== undefined) {
+          sanitizedData[field] = data[field as keyof typeof data];
+        }
+      });
+      
+      console.log("Data after sanitization:", JSON.stringify(sanitizedData, null, 2));
+      
+      const res = await apiRequest<any>("PATCH", `/api/clients/${clientId}`, sanitizedData);
       
       console.log("Update response status:", res.status);
       
@@ -241,25 +252,10 @@ export default function ClientDetailPage() {
   
   // Handle client form submission
   const onEditClientSubmit = (data: z.infer<typeof clientSchema>) => {
-    // Only include fields that exist in the clients table per database schema:
-    // id, name, industry, contact_name, contact_email, contact_phone, website, logo_url, notes, created_at, updated_at, account_manager_id
-    const sanitizedData: Record<string, any> = {
-      name: data.name,
-      industry: data.industry || "",
-      website: data.website || "",
-      notes: data.notes || "",
-      accountManagerId: data.accountManagerId
-    };
-    
-    // Remove undefined fields
-    Object.keys(sanitizedData).forEach(key => {
-      if (sanitizedData[key] === undefined) {
-        delete sanitizedData[key];
-      }
-    });
-    
-    console.log("Sanitized data for client update:", sanitizedData);
-    updateClient.mutate(sanitizedData);
+    // The mutation function already handles sanitization of the data
+    // Just pass the form data directly to the mutation
+    console.log("Submitting form data:", data);
+    updateClient.mutate(data);
   };
   
   // Loading state
