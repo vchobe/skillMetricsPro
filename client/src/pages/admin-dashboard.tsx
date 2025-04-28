@@ -3684,7 +3684,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <TabsContent value="skill-templates">
+            <TabsContent value="skill-templates" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -3968,7 +3968,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <TabsContent value="skill-targets">
+            <TabsContent value="skill-targets" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -4307,7 +4307,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <TabsContent value="users">
+            <TabsContent value="users" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -4738,7 +4738,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <TabsContent value="reports">
+            <TabsContent value="reports" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -4809,7 +4809,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <TabsContent value="user-management">
+            <TabsContent value="user-management" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -4824,7 +4824,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
 
-            <TabsContent value="approvals">
+            <TabsContent value="approvals" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
