@@ -2615,26 +2615,27 @@ export class PostgresStorage implements IStorage {
    *  - "credlyLink" becomes "credly_link"
    */
   private camelToSnake(str: string): string {
-    // Special cases for account manager field which can have multiple variations
-    if (str === 'accountManagerId' || str === 'account_managerId' || str === 'accountManagerID') {
-      console.log("Special handling for accountManagerId -> account_manager_id");
+    // Handle specific cases immediately to avoid regex issues
+    if (str === 'accountManagerId') {
+      console.log("🔍 Special handling: accountManagerId -> account_manager_id");
       return 'account_manager_id';
     }
     
-    // Handle special case for 'ID' or 'Id' at the end of words
+    // General case for handling camelCase to snake_case conversion
     let replaced = str;
     
-    // First handle case where the key ends with ID (uppercase)
-    replaced = replaced.replace(/([a-z])ID$/g, '$1_id');
-    
-    // Then handle case where the key ends with Id (mixed case)
-    replaced = replaced.replace(/([a-z])Id$/g, '$1_id');
-    
-    // Convert camelCase to snake_case
-    // For example: accountManagerId -> account_manager_id
+    // Main conversion rule: insert underscore before capital letters and convert to lowercase
     replaced = replaced.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
     
-    console.log(`camelToSnake converted: ${str} -> ${replaced}`);
+    // Handle ID suffix specifically (after the main conversion)
+    if (replaced.endsWith('_i_d')) {
+      replaced = replaced.replace(/_i_d$/, '_id');
+    }
+    
+    // Debug output to track all conversions
+    if (str !== replaced) {
+      console.log(`🔍 camelToSnake: ${str} -> ${replaced}`);
+    }
     return replaced;
   }
 
