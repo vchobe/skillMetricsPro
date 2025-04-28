@@ -3972,7 +3972,7 @@ export default function AdminDashboard() {
                             </Button>
                           </CardHeader>
                           <CardContent>
-                            <!-- Content from skill-targets tab will be moved here -->
+                            {/* Content from skill-targets tab will be moved here */}
                           </CardContent>
                         </Card>
                       </TabsContent>
@@ -3982,7 +3982,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <!-- Removed skill-targets tab as requested -->
+            {/* Removed skill-targets tab as requested */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
