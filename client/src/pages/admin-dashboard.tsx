@@ -110,7 +110,7 @@ function ProjectHierarchyView() {
               <div className="flex items-center gap-2">
                 <SquareStack className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Link to={`/clients/${client.id}`} className="hover:underline text-primary">
+                  <Link to={`/clients/${client.id}`} className="hover:underline text-primary font-semibold border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
                     {client.name}
                   </Link>
                   <Badge variant="outline" className="ml-2 text-xs font-normal">
@@ -140,7 +140,7 @@ function ProjectHierarchyView() {
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4 text-primary" />
-                              <Link to={`/projects/${project.id}`} className="font-medium hover:underline text-primary">
+                              <Link to={`/projects/${project.id}`} className="font-medium hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
                                 {project.name}
                               </Link>
                             </div>
@@ -175,7 +175,7 @@ function ProjectHierarchyView() {
                                     {project.resources.map(resource => (
                                       <TableRow key={resource.id}>
                                         <TableCell className="font-medium">
-                                          <Link to={`/users/${resource.userId}`} className="hover:underline text-primary">
+                                          <Link to={`/users/${resource.userId}`} className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
                                             {resource.user?.firstName} {resource.user?.lastName}
                                           </Link>
                                         </TableCell>
@@ -232,7 +232,7 @@ function ProjectHierarchyView() {
                                     {project.skills.map(skill => (
                                       <TableRow key={skill.id}>
                                         <TableCell className="font-medium">
-                                        <Link to={`/skills/${skill.skillId}`} className="hover:underline text-primary">
+                                        <Link to={`/skills/${skill.skillId}`} className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
                                           {skill.skillName}
                                         </Link>
                                       </TableCell>
