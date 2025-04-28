@@ -2226,28 +2226,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("PATCH /api/clients/:id - accountManagerId in request:", 
         req.body.accountManagerId !== undefined ? req.body.accountManagerId : "undefined");
       
-      // Filter out fields that don't exist in the database
+      // IMPORTANT: Only include fields that exist in the clients table
       // Based on database schema: id, name, industry, contact_name, contact_email, contact_phone, website, logo_url, notes, created_at, updated_at, account_manager_id
-      const sanitizedData: Record<string, any> = {
-        name: req.body.name,
-        industry: req.body.industry,
-        website: req.body.website,
-        notes: req.body.notes,
-        logoUrl: req.body.logoUrl,
-        contactName: req.body.contactName,
-        contactEmail: req.body.contactEmail,
-        contactPhone: req.body.contactPhone,
-        accountManagerId: req.body.accountManagerId
-      };
+      const sanitizedData: Record<string, any> = {};
       
-      // Remove undefined fields
+      // Explicitly whitelist only the fields that exist in the database schema
+      if (req.body.name !== undefined) sanitizedData.name = req.body.name;
+      if (req.body.industry !== undefined) sanitizedData.industry = req.body.industry;
+      if (req.body.website !== undefined) sanitizedData.website = req.body.website;
+      if (req.body.notes !== undefined) sanitizedData.notes = req.body.notes;
+      if (req.body.logoUrl !== undefined) sanitizedData.logoUrl = req.body.logoUrl;
+      if (req.body.contactName !== undefined) sanitizedData.contactName = req.body.contactName;
+      if (req.body.contactEmail !== undefined) sanitizedData.contactEmail = req.body.contactEmail;
+      if (req.body.contactPhone !== undefined) sanitizedData.contactPhone = req.body.contactPhone;
+      if (req.body.accountManagerId !== undefined) sanitizedData.accountManagerId = req.body.accountManagerId;
+      
+      // Log to ensure we have the right fields
+      console.log("PATCH /api/clients/:id - Sanitized data:", JSON.stringify(sanitizedData, null, 2));
+      
+      // Extra validation to ensure we don't send non-existent fields
+      const allowedFields = ['name', 'industry', 'website', 'notes', 'logoUrl', 'contactName', 'contactEmail', 'contactPhone', 'accountManagerId'];
+      
       Object.keys(sanitizedData).forEach(key => {
-        if (sanitizedData[key] === undefined) {
+        if (!allowedFields.includes(key)) {
+          console.warn(`PATCH /api/clients/:id - Removing non-allowed field: ${key}`);
           delete sanitizedData[key];
         }
       });
-      
-      console.log("PATCH /api/clients/:id - Sanitized data:", JSON.stringify(sanitizedData, null, 2));
       
       const updatedClient = await storage.updateClient(clientId, sanitizedData);
       console.log("PATCH /api/clients/:id - Updated client:", JSON.stringify(updatedClient, null, 2));
