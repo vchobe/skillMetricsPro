@@ -1137,7 +1137,7 @@ export default function AdminDashboard() {
     const tab = pathParts[2]; // /admin/tab format
     
     // Only initialize tab from URL, don't modify URL here
-    if (tab === "users" || tab === "skill-history" || tab === "certifications" || tab === "user-management") {
+    if (tab === "users" || tab === "certifications" || tab === "user-management") {
       setActiveTab(tab);
     } else if (currentPath === "/admin" || currentPath.startsWith("/admin/")) {
       // Default to dashboard if no valid tab is specified
@@ -2929,8 +2929,8 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
               
-              {/* Skill History Log Section (moved from skill-history tab) */}
-              <Card>
+              {/* Skill History Log Section (moved from dashboard tab) */}
+              <Card id="skill-history-log">
                 <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
                   <div>
                     <CardTitle>Skill History Log</CardTitle>
