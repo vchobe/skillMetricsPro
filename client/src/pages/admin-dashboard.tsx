@@ -110,9 +110,11 @@ function ProjectHierarchyView() {
               <div className="flex items-center gap-2">
                 <SquareStack className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Link to={`/clients/${client.id}`} className="hover:underline text-primary font-semibold border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
+                  <div className="relative z-10">
+                  <Link to={`/clients/${client.id}`} className="hover:underline text-primary font-semibold border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all relative z-20 inline-block" onClick={(e) => e.stopPropagation()}>
                     {client.name}
                   </Link>
+                </div>
                   <Badge variant="outline" className="ml-2 text-xs font-normal">
                     {client.industry || 'No Industry'}
                   </Badge>
@@ -140,9 +142,15 @@ function ProjectHierarchyView() {
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4 text-primary" />
-                              <Link to={`/projects/${project.id}`} className="font-medium hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
-                                {project.name}
-                              </Link>
+                              <div className="relative z-10">
+                                <Link 
+                                  to={`/projects/${project.id}`} 
+                                  className="font-medium hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all relative z-20 inline-block" 
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {project.name}
+                                </Link>
+                              </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className="text-xs">
@@ -175,9 +183,15 @@ function ProjectHierarchyView() {
                                     {project.resources.map(resource => (
                                       <TableRow key={resource.id}>
                                         <TableCell className="font-medium">
-                                          <Link to={`/users/${resource.userId}`} className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
-                                            {resource.user?.firstName} {resource.user?.lastName}
-                                          </Link>
+                                          <div className="relative z-10">
+                                            <Link 
+                                              to={`/users/${resource.userId}`} 
+                                              className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all relative z-20 inline-block" 
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              {resource.user?.firstName} {resource.user?.lastName}
+                                            </Link>
+                                          </div>
                                         </TableCell>
                                         <TableCell>{resource.role || 'N/A'}</TableCell>
                                         <TableCell>
@@ -186,14 +200,20 @@ function ProjectHierarchyView() {
                                         <TableCell>
                                           <div className="flex flex-wrap gap-1">
                                             {resource.skills?.slice(0, 3).map((skill, idx) => (
-                                              <Link to={`/skills/${skill.id}`} key={idx} className="hover:scale-105 transition-transform">
-                                                <Badge 
-                                                  style={{ backgroundColor: getSkillBadgeColor(skill.level, 0.8), boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
-                                                  className="text-white text-xs border border-white border-opacity-30"
+                                              <div className="relative z-10 inline-block" key={idx}>
+                                                <Link 
+                                                  to={`/skills/${skill.id}`} 
+                                                  className="hover:scale-105 transition-transform inline-block"
+                                                  onClick={(e) => e.stopPropagation()}
                                                 >
-                                                  {skill.name}
-                                                </Badge>
-                                              </Link>
+                                                  <Badge 
+                                                    style={{ backgroundColor: getSkillBadgeColor(skill.level, 0.8), boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                                                    className="text-white text-xs border border-white border-opacity-30 relative z-20"
+                                                  >
+                                                    {skill.name}
+                                                  </Badge>
+                                                </Link>
+                                              </div>
                                             ))}
                                             {resource.skills && resource.skills.length > 3 && (
                                               <Badge variant="outline" className="text-xs">
@@ -232,9 +252,15 @@ function ProjectHierarchyView() {
                                     {project.skills.map(skill => (
                                       <TableRow key={skill.id}>
                                         <TableCell className="font-medium">
-                                        <Link to={`/skills/${skill.skillId}`} className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
-                                          {skill.skillName}
-                                        </Link>
+                                        <div className="relative z-10">
+                                          <Link 
+                                            to={`/skills/${skill.skillId}`} 
+                                            className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all relative z-20 inline-block"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {skill.skillName}
+                                          </Link>
+                                        </div>
                                       </TableCell>
                                         <TableCell>{skill.category || 'Uncategorized'}</TableCell>
                                         <TableCell>
@@ -388,9 +414,15 @@ function SkillHierarchyView() {
                                   {subcategory.skills.map(skill => (
                                     <TableRow key={skill.id}>
                                       <TableCell className="font-medium">
-                                        <Link to={`/skills/${skill.id}`} className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
-                                          {skill.name}
-                                        </Link>
+                                        <div className="relative z-10">
+                                          <Link 
+                                            to={`/skills/${skill.id}`} 
+                                            className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all relative z-20 inline-block" 
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {skill.name}
+                                          </Link>
+                                        </div>
                                       </TableCell>
                                       <TableCell className="max-w-[400px] truncate">
                                         {(skill as any).description || 'No description'}
@@ -421,9 +453,15 @@ function SkillHierarchyView() {
                                               <AvatarFallback>{(user as any).username?.[0] || 'U'}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                              <Link to={`/users/${user.id}`} className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all">
-                                                <div className="font-medium">{(user as any).username}</div>
-                                              </Link>
+                                              <div className="relative z-10">
+                                                <Link 
+                                                  to={`/users/${user.id}`} 
+                                                  className="hover:underline text-primary border-b-2 border-primary border-opacity-50 hover:border-opacity-100 transition-all relative z-20 inline-block"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                >
+                                                  <div className="font-medium">{(user as any).username}</div>
+                                                </Link>
+                                              </div>
                                               <div className="text-xs text-muted-foreground truncate max-w-[120px]">{user.email}</div>
                                             </div>
                                           </div>
