@@ -169,13 +169,31 @@ export default function ClientDetailPage() {
   // Update client mutation
   const updateClient = useMutation({
     mutationFn: async (data: z.infer<typeof clientSchema>) => {
+      console.log("Sending update request with data:", JSON.stringify(data, null, 2));
+      
+      // Ensure accountManagerId is properly set as a number or null
+      if (data.accountManagerId === undefined || data.accountManagerId === "") {
+        data.accountManagerId = null;
+      } else if (typeof data.accountManagerId === "string") {
+        data.accountManagerId = parseInt(data.accountManagerId);
+      }
+      
+      console.log("Data after normalization:", JSON.stringify(data, null, 2));
+      
       const res = await apiRequest<any>("PATCH", `/api/clients/${clientId}`, data);
+      
+      console.log("Update response status:", res.status);
+      
       if (res.status === 204) {
         return {}; // Return empty object for success with no content
       }
-      return await res.json();
+      
+      const responseData = await res.json();
+      console.log("Update response data:", JSON.stringify(responseData, null, 2));
+      return responseData;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Client update successful, received data:", JSON.stringify(data, null, 2));
       toast({
         title: "Client updated",
         description: "Client information has been updated successfully.",
@@ -185,6 +203,7 @@ export default function ClientDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/clients', clientId] });
     },
     onError: (error: Error) => {
+      console.error("Client update error:", error);
       toast({
         title: "Failed to update client",
         description: error.message || "An error occurred while updating the client.",
@@ -582,7 +601,12 @@ export default function ClientDetailPage() {
                       <FormItem>
                         <FormLabel>Account Manager</FormLabel>
                         <Select
-                          onValueChange={(value) => field.onChange(value && value !== "none" ? parseInt(value) : null)}
+                          onValueChange={(value) => {
+                            console.log("Select value changed to:", value);
+                            const numericalValue = value && value !== "none" ? parseInt(value) : null;
+                            console.log("Converted to numerical value:", numericalValue);
+                            field.onChange(numericalValue);
+                          }}
                           value={field.value?.toString() || "none"}
                         >
                           <FormControl>
@@ -594,6 +618,7 @@ export default function ClientDetailPage() {
                             <SelectItem value="none">None</SelectItem>
                             {users.map((user) => (
                               <SelectItem key={user.id} value={user.id.toString()}>
+                                {`${user.id}: `}
                                 {user.firstName && user.lastName
                                   ? `${user.firstName} ${user.lastName}`
                                   : user.username}
@@ -602,6 +627,11 @@ export default function ClientDetailPage() {
                           </SelectContent>
                         </Select>
                         <FormMessage />
+                        <div className="text-xs text-gray-500 mt-1">
+                          Current value: {field.value === null ? "null" : (
+                            typeof field.value === 'number' ? field.value : 'invalid'
+                          )}
+                        </div>
                       </FormItem>
                     )}
                   />
