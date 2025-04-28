@@ -1854,20 +1854,11 @@ export default function AdminDashboard() {
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <TabsTrigger 
-                    value="skill-templates" 
+                    value="skills-management" 
                     className="flex items-center gap-2 w-full"
                   >
                     <Database className="h-4 w-4" />
-                    <span>Skills</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <TabsTrigger 
-                    value="skill-targets" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <Target className="h-4 w-4" />
-                    <span>Skill Targets</span>
+                    <span>Skills Management</span>
                   </TabsTrigger>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -2806,20 +2797,9 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
-              </motion.div>
-            </TabsContent>
-            
-            <TabsContent value="skill-history">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  duration: 0.5,
-                  delay: 0.1,
-                  ease: "easeOut"
-                }}
-              >
-              <Card className="mb-6">
+                {/* Skill History Section */}
+                <h2 className="text-2xl font-bold text-primary mt-12 mb-6">Skill History</h2>
+                <Card className="mb-6">
                 <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
                   <div>
                     <CardTitle>Skill History Timeline</CardTitle>
