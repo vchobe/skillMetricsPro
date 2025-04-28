@@ -91,10 +91,10 @@ import {
 // Match only fields that exist in the database
 const clientSchema = z.object({
   name: z.string().min(1, "Client name is required"),
-  industry: z.string().optional(),
+  industry: z.string().optional().or(z.literal("")),
   accountManagerId: z.number().nullable().optional(),
-  website: z.string().optional(),
-  notes: z.string().optional(),
+  website: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  notes: z.string().optional().or(z.literal("")),
 });
 
 export default function ClientDetailPage() {
@@ -172,37 +172,49 @@ export default function ClientDetailPage() {
     mutationFn: async (data: z.infer<typeof clientSchema>) => {
       console.log("Sending update request with data:", JSON.stringify(data, null, 2));
       
-      // Ensure accountManagerId is properly set as a number or null
-      if (data.accountManagerId === undefined || data.accountManagerId === "") {
-        data.accountManagerId = null;
-      } else if (typeof data.accountManagerId === "string") {
-        data.accountManagerId = parseInt(data.accountManagerId);
+      // Create a deep copy of the data to avoid mutating the original
+      const formData = { ...data };
+      
+      // Handle accountManagerId properly - ensure it's null or a number
+      if (formData.accountManagerId === undefined || formData.accountManagerId === "" || formData.accountManagerId === 0) {
+        formData.accountManagerId = null;
+      } else if (typeof formData.accountManagerId === "string") {
+        const parsedId = parseInt(formData.accountManagerId);
+        formData.accountManagerId = isNaN(parsedId) ? null : parsedId;
       }
+      
+      // Handle empty strings by converting them to null for optional fields
+      if (formData.industry === "") formData.industry = null;
+      if (formData.website === "") formData.website = null;
+      if (formData.notes === "") formData.notes = null;
       
       // Only include fields that exist in the database schema
       const validFields = ['name', 'industry', 'website', 'notes', 'accountManagerId'];
       const sanitizedData: Record<string, any> = {};
       
-      // Filter out non-existent fields
+      // Filter out non-existent fields and undefined values
       validFields.forEach(field => {
-        if (data[field as keyof typeof data] !== undefined) {
-          sanitizedData[field] = data[field as keyof typeof data];
+        const value = formData[field as keyof typeof formData];
+        if (value !== undefined) {
+          sanitizedData[field] = value;
         }
       });
       
       console.log("Data after sanitization:", JSON.stringify(sanitizedData, null, 2));
       
-      const res = await apiRequest<any>("PATCH", `/api/clients/${clientId}`, sanitizedData);
-      
-      console.log("Update response status:", res.status);
-      
-      if (res.status === 204) {
-        return {}; // Return empty object for success with no content
+      try {
+        const res = await apiRequest<any>("PATCH", `/api/clients/${clientId}`, sanitizedData);
+        console.log("Update response status:", res.status);
+        
+        if (res.status === 204) {
+          return {}; // Return empty object for success with no content
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error("Error in client update:", error);
+        throw error;
       }
-      
-      const responseData = await res.json();
-      console.log("Update response data:", JSON.stringify(responseData, null, 2));
-      return responseData;
     },
     onSuccess: (data) => {
       console.log("Client update successful, received data:", JSON.stringify(data, null, 2));
