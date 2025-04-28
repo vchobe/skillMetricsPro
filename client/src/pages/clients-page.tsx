@@ -448,8 +448,8 @@ export default function ClientsPage() {
                           <FormItem>
                             <FormLabel>Account Manager</FormLabel>
                             <Select
-                              onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                              value={field.value?.toString() || ""}
+                              onValueChange={(value) => field.onChange(value && value !== "none" ? parseInt(value) : null)}
+                              value={field.value?.toString() || "none"}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -457,7 +457,7 @@ export default function ClientsPage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="none">None</SelectItem>
                                 {users.map((user) => (
                                   <SelectItem key={user.id} value={user.id.toString()}>
                                     {user.firstName && user.lastName
@@ -499,7 +499,7 @@ export default function ClientsPage() {
             <CardHeader className="pb-3">
               <CardTitle>Search Clients</CardTitle>
               <CardDescription>
-                Find clients by name, industry, or contact person
+                Find clients by name, industry, or account manager
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -707,8 +707,8 @@ export default function ClientsPage() {
                                               <FormItem>
                                                 <FormLabel>Account Manager</FormLabel>
                                                 <Select
-                                                  onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                                                  value={field.value?.toString() || ""}
+                                                  onValueChange={(value) => field.onChange(value && value !== "none" ? parseInt(value) : null)}
+                                                  value={field.value?.toString() || "none"}
                                                 >
                                                   <FormControl>
                                                     <SelectTrigger>
@@ -716,7 +716,7 @@ export default function ClientsPage() {
                                                     </SelectTrigger>
                                                   </FormControl>
                                                   <SelectContent>
-                                                    <SelectItem value="">None</SelectItem>
+                                                    <SelectItem value="none">None</SelectItem>
                                                     {users.map((user) => (
                                                       <SelectItem key={user.id} value={user.id.toString()}>
                                                         {user.firstName && user.lastName
