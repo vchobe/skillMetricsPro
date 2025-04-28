@@ -2654,8 +2654,11 @@ export default function AdminDashboard() {
                       <Button 
                         variant="link" 
                         onClick={() => {
-                          // Just update the state without changing the URL
-                          setActiveTab("skill-history");
+                          // Scroll to the Skill History Log section instead
+                          const skillHistoryLogSection = document.getElementById('skill-history-log');
+                          if (skillHistoryLogSection) {
+                            skillHistoryLogSection.scrollIntoView({ behavior: 'smooth' });
+                          }
                         }}
                         className="p-0 h-auto font-medium text-indigo-600 hover:text-indigo-900"
                       >
