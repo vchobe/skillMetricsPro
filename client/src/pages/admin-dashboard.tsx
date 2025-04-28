@@ -3982,7 +3982,8 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            {/* Removed skill-targets tab as requested */}
+            <TabsContent value="skill-targets">
+              {/* Moved to skills-management tab as requested */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
