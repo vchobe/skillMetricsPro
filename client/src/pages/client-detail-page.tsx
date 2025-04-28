@@ -84,10 +84,9 @@ import {
 const clientSchema = z.object({
   name: z.string().min(1, "Client name is required"),
   industry: z.string().optional(),
-  contactName: z.string().optional(),
-  contactEmail: z.string().email("Invalid email format").optional().or(z.literal("")),
-  contactPhone: z.string().optional(),
+  accountManagerId: z.number().nullable().optional(),
   website: z.string().optional(),
+  address: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -129,6 +128,12 @@ export default function ClientDetailPage() {
     },
     enabled: !isNaN(clientId)
   });
+  
+  // Fetch all users for account manager dropdown
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+    refetchOnWindowFocus: false,
+  });
 
   // Edit client form
   const editClientForm = useForm<z.infer<typeof clientSchema>>({
@@ -136,10 +141,9 @@ export default function ClientDetailPage() {
     defaultValues: {
       name: "",
       industry: "",
-      contactName: "",
-      contactEmail: "",
-      contactPhone: "",
+      accountManagerId: null,
       website: "",
+      address: "",
       notes: ""
     }
   });
@@ -150,10 +154,9 @@ export default function ClientDetailPage() {
       editClientForm.reset({
         name: client.name || "",
         industry: client.industry || "",
-        contactName: client.contactName || "",
-        contactEmail: client.contactEmail || "",
-        contactPhone: client.contactPhone || "",
+        accountManagerId: client.accountManagerId || null,
         website: client.website || "",
+        address: client.address || "",
         notes: client.notes || ""
       });
     }
@@ -347,54 +350,53 @@ export default function ClientDetailPage() {
               </Card>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-gray-500 flex items-center">
                     <User className="h-4 w-4 mr-2" />
-                    Contact
+                    Account Manager
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-md font-medium">{client.contactName || "Not specified"}</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-500 flex items-center">
-                    <Mail className="h-4 w-4 mr-2" />
-                    Email
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {client.contactEmail ? (
-                    <a href={`mailto:${client.contactEmail}`} className="text-blue-500 hover:underline">
-                      {client.contactEmail}
-                    </a>
+                  {client.accountManagerId ? (
+                    (() => {
+                      const manager = users.find(user => user.id === client.accountManagerId);
+                      return manager ? (
+                        <div>
+                          <p className="text-md font-medium">
+                            {manager.firstName && manager.lastName
+                              ? `${manager.firstName} ${manager.lastName}`
+                              : manager.username}
+                          </p>
+                          <a 
+                            href={`mailto:${manager.email}`} 
+                            className="text-blue-500 hover:underline text-sm"
+                          >
+                            {manager.email}
+                          </a>
+                        </div>
+                      ) : "Not specified";
+                    })()
                   ) : (
                     <p className="text-gray-500">Not specified</p>
                   )}
                 </CardContent>
               </Card>
               
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-500 flex items-center">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Phone
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {client.contactPhone ? (
-                    <a href={`tel:${client.contactPhone}`} className="text-blue-500 hover:underline">
-                      {client.contactPhone}
-                    </a>
-                  ) : (
-                    <p className="text-gray-500">Not specified</p>
-                  )}
-                </CardContent>
-              </Card>
+              {client.address && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-500 flex items-center">
+                      <Building className="h-4 w-4 mr-2" />
+                      Address
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-md whitespace-pre-line">{client.address}</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
             
             {client.website && (
@@ -579,51 +581,52 @@ export default function ClientDetailPage() {
                     )}
                   />
                   
-                  <h3 className="text-lg font-medium mt-6 mb-2">Contact Information</h3>
+                  <h3 className="text-lg font-medium mt-6 mb-2">Account Manager</h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField
-                      control={editClientForm.control}
-                      name="contactName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Contact Name</FormLabel>
+                  <FormField
+                    control={editClientForm.control}
+                    name="accountManagerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Account Manager</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(value && value !== "none" ? parseInt(value) : null)}
+                          value={field.value?.toString() || "none"}
+                        >
                           <FormControl>
-                            <Input {...field} />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an account manager" />
+                            </SelectTrigger>
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={editClientForm.control}
-                      name="contactEmail"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="email" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={editClientForm.control}
-                      name="contactPhone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {users.map((user) => (
+                              <SelectItem key={user.id} value={user.id.toString()}>
+                                {user.firstName && user.lastName
+                                  ? `${user.firstName} ${user.lastName}`
+                                  : user.username}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={editClientForm.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
                   <DialogFooter>
                     <Button type="submit" disabled={updateClient.isPending}>
