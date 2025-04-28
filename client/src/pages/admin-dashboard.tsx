@@ -186,13 +186,14 @@ function ProjectHierarchyView() {
                                         <TableCell>
                                           <div className="flex flex-wrap gap-1">
                                             {resource.skills?.slice(0, 3).map((skill, idx) => (
-                                              <Badge 
-                                                key={idx}
-                                                style={{ backgroundColor: getSkillBadgeColor(skill.level, 0.8) }}
-                                                className="text-white text-xs"
-                                              >
-                                                {skill.name}
-                                              </Badge>
+                                              <Link to={`/skills/${skill.id}`} key={idx}>
+                                                <Badge 
+                                                  style={{ backgroundColor: getSkillBadgeColor(skill.level, 0.8) }}
+                                                  className="text-white text-xs"
+                                                >
+                                                  {skill.name}
+                                                </Badge>
+                                              </Link>
                                             ))}
                                             {resource.skills && resource.skills.length > 3 && (
                                               <Badge variant="outline" className="text-xs">
@@ -230,7 +231,11 @@ function ProjectHierarchyView() {
                                   <TableBody>
                                     {project.skills.map(skill => (
                                       <TableRow key={skill.id}>
-                                        <TableCell className="font-medium">{skill.skillName}</TableCell>
+                                        <TableCell className="font-medium">
+                                        <Link to={`/skills/${skill.skillId}`} className="hover:underline text-primary">
+                                          {skill.skillName}
+                                        </Link>
+                                      </TableCell>
                                         <TableCell>{skill.category || 'Uncategorized'}</TableCell>
                                         <TableCell>
                                           <Badge 
@@ -382,7 +387,11 @@ function SkillHierarchyView() {
                                 <TableBody>
                                   {subcategory.skills.map(skill => (
                                     <TableRow key={skill.id}>
-                                      <TableCell className="font-medium">{skill.name}</TableCell>
+                                      <TableCell className="font-medium">
+                                        <Link to={`/skills/${skill.id}`} className="hover:underline text-primary">
+                                          {skill.name}
+                                        </Link>
+                                      </TableCell>
                                       <TableCell className="max-w-[400px] truncate">
                                         {(skill as any).description || 'No description'}
                                       </TableCell>
@@ -412,7 +421,9 @@ function SkillHierarchyView() {
                                               <AvatarFallback>{(user as any).username?.[0] || 'U'}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                              <div className="font-medium">{(user as any).username}</div>
+                                              <Link to={`/users/${user.id}`} className="hover:underline text-primary">
+                                                <div className="font-medium">{(user as any).username}</div>
+                                              </Link>
                                               <div className="text-xs text-muted-foreground truncate max-w-[120px]">{user.email}</div>
                                             </div>
                                           </div>
