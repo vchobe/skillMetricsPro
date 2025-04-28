@@ -161,7 +161,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware to ensure user is authenticated
   const ensureAuth = (req: Request, res: Response, next: Function) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ 
+        message: "Authentication required", 
+        details: "You must be logged in to access this resource",
+        errorCode: "AUTH_REQUIRED"
+      });
     }
     next();
   };
@@ -170,7 +174,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const ensureAdmin = async (req: Request, res: Response, next: Function) => {
     if (!req.isAuthenticated()) {
       console.log("Admin check failed - user not authenticated");
-      return res.status(403).json({ message: "Forbidden" });
+      return res.status(403).json({ 
+        message: "Authentication required", 
+        details: "You must be logged in to access this resource",
+        errorCode: "AUTH_REQUIRED"
+      });
     }
     
     // First try the user object from the session
@@ -190,7 +198,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!directAdminCheck) {
         console.log("Admin check failed for user:", req.user?.email || req.user?.username);
-        return res.status(403).json({ message: "Forbidden" });
+        return res.status(403).json({ 
+          message: "Admin privileges required", 
+          details: "This action requires administrator privileges",
+          errorCode: "ADMIN_REQUIRED"
+        });
       }
     }
     
@@ -202,7 +214,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const ensureSuperAdmin = async (req: Request, res: Response, next: Function) => {
     if (!req.isAuthenticated()) {
       console.log("Super admin check failed - user not authenticated");
-      return res.status(403).json({ message: "Forbidden" });
+      return res.status(403).json({ 
+        message: "Authentication required", 
+        details: "You must be logged in to access this resource",
+        errorCode: "AUTH_REQUIRED"
+      });
     }
     
     // Check if user is admin first
@@ -210,7 +226,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     if (!isAdmin) {
       console.log("Super admin check failed - user is not an admin:", req.user?.email || req.user?.username);
-      return res.status(403).json({ message: "Forbidden - admin privileges required" });
+      return res.status(403).json({ 
+        message: "Admin privileges required", 
+        details: "This action requires administrator privileges",
+        errorCode: "ADMIN_REQUIRED"
+      });
     }
     
     // Check if user is the super admin (admin@atyeti.com)
@@ -218,7 +238,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     if (!isSuperAdmin) {
       console.log("Super admin check failed - user is not the super admin:", req.user?.email);
-      return res.status(403).json({ message: "Forbidden - only super admin can perform this action" });
+      return res.status(403).json({ 
+        message: "Super admin privileges required", 
+        details: "This action can only be performed by the super administrator (admin@atyeti.com)",
+        errorCode: "SUPER_ADMIN_REQUIRED"
+      });
     }
     
     console.log("Super admin check passed for user:", req.user?.email);
@@ -229,7 +253,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const ensureApprover = async (req: Request, res: Response, next: Function) => {
     if (!req.isAuthenticated()) {
       console.log("Approver check failed - user not authenticated");
-      return res.status(403).json({ message: "Forbidden" });
+      return res.status(403).json({ 
+        message: "Authentication required", 
+        details: "You must be logged in to access this resource",
+        errorCode: "AUTH_REQUIRED"
+      });
     }
     
     const userId = req.user!.id;
@@ -247,7 +275,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     if (!isApprover) {
       console.log("Approver check failed for user:", req.user?.email || req.user?.username);
-      return res.status(403).json({ message: "Forbidden" });
+      return res.status(403).json({ 
+        message: "Approver privileges required", 
+        details: "This action requires approver privileges",
+        errorCode: "APPROVER_REQUIRED"
+      });
     }
     
     console.log("Approver check passed for user:", req.user?.email || req.user?.username);
