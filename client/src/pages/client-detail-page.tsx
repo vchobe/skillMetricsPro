@@ -243,13 +243,20 @@ export default function ClientDetailPage() {
   const onEditClientSubmit = (data: z.infer<typeof clientSchema>) => {
     // Only include fields that exist in the clients table per database schema:
     // id, name, industry, contact_name, contact_email, contact_phone, website, logo_url, notes, created_at, updated_at, account_manager_id
-    const sanitizedData = {
+    const sanitizedData: Record<string, any> = {
       name: data.name,
       industry: data.industry || "",
       website: data.website || "",
       notes: data.notes || "",
       accountManagerId: data.accountManagerId
     };
+    
+    // Remove undefined fields
+    Object.keys(sanitizedData).forEach(key => {
+      if (sanitizedData[key] === undefined) {
+        delete sanitizedData[key];
+      }
+    });
     
     console.log("Sanitized data for client update:", sanitizedData);
     updateClient.mutate(sanitizedData);
