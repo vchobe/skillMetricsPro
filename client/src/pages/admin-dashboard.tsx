@@ -1808,13 +1808,15 @@ export default function AdminDashboard() {
               // This prevents unnecessary re-renders caused by location changes
               setActiveTab(value);
             }}
+            className="relative"
           >
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
+              className="sticky top-0 z-10 bg-background pt-4 pb-4"
             >
-              <TabsList className="w-full mb-6 flex flex-wrap gap-2">
+              <TabsList className="w-full mb-2 flex flex-wrap gap-2">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                   <TabsTrigger 
                     value="dashboard" 
@@ -1922,7 +1924,7 @@ export default function AdminDashboard() {
               </TabsList>
             </motion.div>
             
-            <TabsContent value="project-overview">
+            <TabsContent value="project-overview" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2166,7 +2168,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <TabsContent value="skill-overview">
+            <TabsContent value="skill-overview" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2404,7 +2406,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <TabsContent value="dashboard">
+            <TabsContent value="dashboard" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2817,7 +2819,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <TabsContent value="skill-history">
+            <TabsContent value="skill-history" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -3156,7 +3158,7 @@ export default function AdminDashboard() {
               </motion.div>
             </TabsContent>
             
-            <TabsContent value="certifications">
+            <TabsContent value="certifications" className="mt-4 pt-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
