@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Skill, User, SkillHistory, ReportSettings } from "@shared/schema";
 
 // Interfaces for hierarchical data structures
@@ -110,7 +110,9 @@ function ProjectHierarchyView() {
               <div className="flex items-center gap-2">
                 <SquareStack className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg flex items-center gap-2">
-                  {client.name}
+                  <Link to={`/clients/${client.id}`} className="hover:underline text-primary">
+                    {client.name}
+                  </Link>
                   <Badge variant="outline" className="ml-2 text-xs font-normal">
                     {client.industry || 'No Industry'}
                   </Badge>
@@ -138,7 +140,9 @@ function ProjectHierarchyView() {
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4 text-primary" />
-                              <span className="font-medium">{project.name}</span>
+                              <Link to={`/projects/${project.id}`} className="font-medium hover:underline text-primary">
+                                {project.name}
+                              </Link>
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className="text-xs">
@@ -171,7 +175,9 @@ function ProjectHierarchyView() {
                                     {project.resources.map(resource => (
                                       <TableRow key={resource.id}>
                                         <TableCell className="font-medium">
-                                          {resource.user?.firstName} {resource.user?.lastName}
+                                          <Link to={`/users/${resource.userId}`} className="hover:underline text-primary">
+                                            {resource.user?.firstName} {resource.user?.lastName}
+                                          </Link>
                                         </TableCell>
                                         <TableCell>{resource.role || 'N/A'}</TableCell>
                                         <TableCell>
