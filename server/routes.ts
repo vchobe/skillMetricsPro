@@ -2216,7 +2216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/clients", ensureAdmin, async (req, res) => {
+  app.post("/api/clients", ensureSuperAdmin, async (req, res) => {
     try {
       const parsedData = insertClientSchema.safeParse(req.body);
       
@@ -2381,7 +2381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects", ensureAdmin, async (req, res) => {
+  app.post("/api/projects", ensureSuperAdmin, async (req, res) => {
     try {
       console.log("Project creation request body:", JSON.stringify(req.body, null, 2));
       

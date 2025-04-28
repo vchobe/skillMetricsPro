@@ -1,8 +1,6 @@
 // Direct API test script with simplified authentication
 import fetch from 'node-fetch';
-
-// Use require for database since we're in a CommonJS environment
-const { pool } = require('./server/db');
+import { pool } from './server/db.ts';
 
 // Determine the base URL for testing
 const isReplit = process.env.REPLIT_SLUG !== undefined;
