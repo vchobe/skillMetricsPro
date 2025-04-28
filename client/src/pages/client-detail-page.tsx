@@ -88,6 +88,7 @@ import {
 } from "lucide-react";
 
 // Client form schema for validation
+// Match only fields that exist in the database
 const clientSchema = z.object({
   name: z.string().min(1, "Client name is required"),
   industry: z.string().optional(),
@@ -240,7 +241,18 @@ export default function ClientDetailPage() {
   
   // Handle client form submission
   const onEditClientSubmit = (data: z.infer<typeof clientSchema>) => {
-    updateClient.mutate(data);
+    // Only include fields that exist in the clients table per database schema:
+    // id, name, industry, contact_name, contact_email, contact_phone, website, logo_url, notes, created_at, updated_at, account_manager_id
+    const sanitizedData = {
+      name: data.name,
+      industry: data.industry || "",
+      website: data.website || "",
+      notes: data.notes || "",
+      accountManagerId: data.accountManagerId
+    };
+    
+    console.log("Sanitized data for client update:", sanitizedData);
+    updateClient.mutate(sanitizedData);
   };
   
   // Loading state
