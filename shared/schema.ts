@@ -424,6 +424,7 @@ export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   industry: text("industry"),
+  accountManagerId: integer("account_manager_id").references(() => users.id),
   contactName: text("contact_name"),
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
@@ -437,6 +438,7 @@ export const clients = pgTable("clients", {
 export const insertClientSchema = createInsertSchema(clients).pick({
   name: true,
   industry: true,
+  accountManagerId: true,
   contactName: true,
   contactEmail: true,
   contactPhone: true,
