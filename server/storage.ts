@@ -201,19 +201,16 @@ export class PostgresStorage implements IStorage {
     }
     
     return Object.keys(obj).reduce((result, key) => {
-      // Convert snake_case to camelCase
-      // Handle special cases like 'something_id' -> 'somethingId'
-      let camelKey;
-      if (key.endsWith('_id')) {
-        // Special handling for id fields
-        camelKey = key.replace(/_id$/, 'Id');
-      } else {
-        // Regular conversion for other fields
-        camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-      }
+      // Handle specific cases first
+      let camelKey = key;
       
-      // Special case handling for credential URLs and dates in keys
-      if (key === 'credly_link') {
+      // Special case for account_manager_id specifically
+      if (key === 'account_manager_id') {
+        camelKey = 'accountManagerId';
+        console.log("🔍 Found account_manager_id, converted to accountManagerId");
+      }
+      // Special cases for other known fields
+      else if (key === 'credly_link') {
         camelKey = 'credlyLink';
       } else if (key === 'certification_date') {
         camelKey = 'certificationDate';
@@ -225,6 +222,14 @@ export class PostgresStorage implements IStorage {
         camelKey = 'userId'; 
       } else if (key === 'is_update') {
         camelKey = 'isUpdate';
+      } 
+      // General snake_case to camelCase conversion
+      else if (key.includes('_')) {
+        // Handle compound snake_case (e.g., foo_bar_baz → fooBarBaz)
+        camelKey = key.split('_').map((part, i) => {
+          // First part remains as is, subsequent parts get capitalized
+          return i === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1);
+        }).join('');
       }
       
       // Standard date fields that should be properly formatted
