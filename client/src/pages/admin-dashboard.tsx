@@ -120,10 +120,24 @@ function ProjectHierarchyView() {
                   </Badge>
                 </CardTitle>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Badge variant="secondary" className="text-xs">
                   {client.projects.length} Projects
                 </Badge>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs gap-1"
+                  asChild
+                >
+                  <Link 
+                    to={`/clients/${client.id}`} 
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Eye className="h-3.5 w-3.5 mr-1" />
+                    View
+                  </Link>
+                </Button>
                 <ChevronRight className={`h-5 w-5 transition-transform ${
                   expandedClients.includes(`client-${client.id}`) ? 'rotate-90' : ''
                 }`} />
@@ -159,6 +173,20 @@ function ProjectHierarchyView() {
                               <Badge variant="outline" className="text-xs">
                                 {project.skills.length} Skills
                               </Badge>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-7 px-2 text-xs gap-1 ml-1"
+                                asChild
+                              >
+                                <Link 
+                                  to={`/projects/${project.id}`} 
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Eye className="h-3.5 w-3.5 mr-1" />
+                                  View
+                                </Link>
+                              </Button>
                             </div>
                           </div>
                         </AccordionTrigger>
@@ -177,6 +205,7 @@ function ProjectHierarchyView() {
                                       <TableHead>Role</TableHead>
                                       <TableHead>Allocation</TableHead>
                                       <TableHead>Skills</TableHead>
+                                      <TableHead className="w-20">Actions</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -224,6 +253,22 @@ function ProjectHierarchyView() {
                                               <span className="text-xs text-muted-foreground">No skills</span>
                                             )}
                                           </div>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="h-7 px-2 text-xs gap-1"
+                                            asChild
+                                          >
+                                            <Link 
+                                              to={`/users/${resource.userId}`} 
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <Eye className="h-3.5 w-3.5 mr-1" />
+                                              View
+                                            </Link>
+                                          </Button>
                                         </TableCell>
                                       </TableRow>
                                     ))}
@@ -464,6 +509,20 @@ function SkillHierarchyView() {
                                               </div>
                                               <div className="text-xs text-muted-foreground truncate max-w-[120px]">{user.email}</div>
                                             </div>
+                                            <Button 
+                                              variant="outline" 
+                                              size="sm" 
+                                              className="h-7 px-2 text-xs gap-1 ml-auto"
+                                              asChild
+                                            >
+                                              <Link 
+                                                to={`/users/${user.id}`} 
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                <Eye className="h-3.5 w-3.5 mr-1" />
+                                                View
+                                              </Link>
+                                            </Button>
                                           </div>
                                         )) || []
                                       )
@@ -644,7 +703,8 @@ import {
   Send,
   FileText,
   Code,
-  FolderTree
+  FolderTree,
+  Eye
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
