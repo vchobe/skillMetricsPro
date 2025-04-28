@@ -2209,16 +2209,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/clients/:id", ensureAdmin, async (req, res) => {
     try {
+      console.log("PATCH /api/clients/:id - Request body:", JSON.stringify(req.body, null, 2));
       const clientId = parseInt(req.params.id);
+      console.log("PATCH /api/clients/:id - Client ID:", clientId);
+      
       const client = await storage.getClient(clientId);
       
       if (!client) {
+        console.log("PATCH /api/clients/:id - Client not found");
         return res.status(404).json({ message: "Client not found" });
       }
       
+      console.log("PATCH /api/clients/:id - Current client:", JSON.stringify(client, null, 2));
+      
+      // Explicitly log the accountManagerId value
+      console.log("PATCH /api/clients/:id - accountManagerId in request:", 
+        req.body.accountManagerId !== undefined ? req.body.accountManagerId : "undefined");
+      
       const updatedClient = await storage.updateClient(clientId, req.body);
+      console.log("PATCH /api/clients/:id - Updated client:", JSON.stringify(updatedClient, null, 2));
+      
       res.json(updatedClient);
     } catch (error) {
+      console.error("PATCH /api/clients/:id - Error:", error);
       res.status(500).json({ message: "Error updating client", error });
     }
   });
