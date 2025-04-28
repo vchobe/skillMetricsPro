@@ -1,8 +1,11 @@
 // Testing script for client API
 import fetch from 'node-fetch';
 
-// The base URL of the server
-const BASE_URL = 'https://b67a8223-ba73-4896-8b24-a3f11658d6d4-00-2b630wghr12ay.janeway.replit.dev';
+// Determine the base URL of the server
+// When running in Replit, default to the current environment URL
+const BASE_URL = process.env.REPLIT_ENVIRONMENT === 'true' 
+  ? (process.env.REPLIT_URL || 'http://localhost:5000')
+  : (process.env.API_URL || 'http://localhost:5000');
 
 // Credentials for login
 const credentials = {
