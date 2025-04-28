@@ -3185,29 +3185,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const resources = await storage.getAllProjectResources();
       const users = await storage.getAllUsers();
       const skills = await storage.getAllSkills();
+      // Get project required skills
+      const projectSkills = await storage.getAllProjectSkills();
 
       // Build the hierarchy: clients -> projects -> resources -> skills
       const hierarchy = clients.map(client => ({
         ...client,
         projects: projects
           .filter(project => project.clientId === client.id)
-          .map(project => ({
-            ...project,
-            resources: resources
-              .filter(resource => resource.projectId === project.id)
-              .map(resource => {
-                // Find the user for this resource
-                const user = users.find(u => u.id === resource.userId);
-                // Find user skills
-                const userSkills = skills.filter(skill => skill.userId === resource.userId);
-                
-                return {
-                  ...resource,
-                  user: user || { id: resource.userId, username: "Unknown User" },
-                  skills: userSkills || []
-                };
-              })
-          }))
+          .map(project => {
+            // Get project required skills
+            const projectRequiredSkills = projectSkills.filter(ps => ps.projectId === project.id);
+            
+            return {
+              ...project,
+              // Add project skills
+              skills: projectRequiredSkills || [],
+              resources: resources
+                .filter(resource => resource.projectId === project.id)
+                .map(resource => {
+                  // Find the user for this resource
+                  const user = users.find(u => u.id === resource.userId);
+                  // Find user skills
+                  const userSkills = skills.filter(skill => skill.userId === resource.userId);
+                  
+                  return {
+                    ...resource,
+                    user: user || { id: resource.userId, username: "Unknown User" },
+                    skills: userSkills || []
+                  };
+                })
+            };
+          })
       }));
 
       res.json(hierarchy);
