@@ -3387,16 +3387,16 @@ export class PostgresStorage implements IStorage {
     try {
       const result = await pool.query(`
         SELECT ps.*,
-               st.name as skill_name,
+               s.name as skill_name,
                p.name as project_name,
                c.name as client_name,
                sc.name as category,
                sc.color as category_color
         FROM project_skills ps
-        LEFT JOIN skills_templates st ON ps.skill_id = st.id
+        LEFT JOIN skills s ON ps.skill_id = s.id
         LEFT JOIN projects p ON ps.project_id = p.id
         LEFT JOIN clients c ON p.client_id = c.id
-        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        LEFT JOIN skill_categories sc ON s.category_id = sc.id
         ORDER BY ps.id
       `);
       return this.snakeToCamel(result.rows);
