@@ -1137,7 +1137,7 @@ export default function AdminDashboard() {
     const tab = pathParts[2]; // /admin/tab format
     
     // Only initialize tab from URL, don't modify URL here
-    if (tab === "users" || tab === "certifications" || tab === "user-management") {
+    if (tab === "users" || tab === "skill-history" || tab === "certifications" || tab === "user-management") {
       setActiveTab(tab);
     } else if (currentPath === "/admin" || currentPath.startsWith("/admin/")) {
       // Default to dashboard if no valid tab is specified
@@ -1162,30 +1162,6 @@ export default function AdminDashboard() {
   const { data: skillHistories, isLoading: isLoadingHistories } = useQuery<(SkillHistory & { skill_name: string, user_email: string })[]>({
     queryKey: ["/api/admin/skill-history"],
   });
-  
-  // Calculate filtered skill histories based on search query and level filter
-  const filteredSkillHistories = useMemo(() => {
-    if (!skillHistories) return [];
-    
-    return skillHistories.filter(history => {
-      // Apply level filter
-      if (skillHistoryLevelFilter !== "all" && history.newLevel !== skillHistoryLevelFilter) {
-        return false;
-      }
-      
-      // Apply search filter
-      if (skillHistorySearchQuery) {
-        const searchLower = skillHistorySearchQuery.toLowerCase();
-        return (
-          (history.skill_name?.toLowerCase().includes(searchLower) || false) ||
-          (history.user_email?.toLowerCase().includes(searchLower) || false) ||
-          (history.changeNote?.toLowerCase().includes(searchLower) || false)
-        );
-      }
-      
-      return true;
-    });
-  }, [skillHistories, skillHistorySearchQuery, skillHistoryLevelFilter]);
   
   // Get certification report
   const { data: certificationReport, isLoading: isLoadingCertifications } = useQuery<{ user: User, certifications: any[] }[]>({
@@ -1866,7 +1842,15 @@ export default function AdminDashboard() {
                     <span>Skill Overview</span>
                   </TabsTrigger>
                 </motion.div>
-
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <TabsTrigger 
+                    value="skill-history" 
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <History className="h-4 w-4" />
+                    <span>Skill History</span>
+                  </TabsTrigger>
+                </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <TabsTrigger 
                     value="certifications" 
@@ -2654,11 +2638,8 @@ export default function AdminDashboard() {
                       <Button 
                         variant="link" 
                         onClick={() => {
-                          // Scroll to the Skill History Log section instead
-                          const skillHistoryLogSection = document.getElementById('skill-history-log');
-                          if (skillHistoryLogSection) {
-                            skillHistoryLogSection.scrollIntoView({ behavior: 'smooth' });
-                          }
+                          // Just update the state without changing the URL
+                          setActiveTab("skill-history");
                         }}
                         className="p-0 h-auto font-medium text-indigo-600 hover:text-indigo-900"
                       >
@@ -2833,279 +2814,10 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Skill History Timeline Section (moved from skill-history tab) */}
-              <Card className="mb-6 mt-6">
-                <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
-                  <div>
-                    <CardTitle>Skill History Timeline</CardTitle>
-                    <CardDescription>Track changes in skill levels across the organization</CardDescription>
-                  </div>
-                  <Button className="mt-4 md:mt-0">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export History
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {isLoadingHistories ? (
-                    <div className="flex justify-center items-center h-64">
-                      <div className="animate-spin h-8 w-8 border-4 border-indigo-500 rounded-full border-t-transparent"></div>
-                    </div>
-                  ) : skillHistories && skillHistories.length > 0 ? (
-                    <div className="p-6">
-                      <div className="h-96">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart
-                            data={skillHistories.slice(0, 50).map(history => ({
-                              id: history.id,
-                              date: (() => {
-                                try {
-                                  // Parse the date using proper ISO format
-                                  const date = new Date(history.createdAt);
-                                  return isNaN(date.getTime()) ? Date.now() : date.getTime();
-                                } catch (e) {
-                                  return Date.now(); // Fallback to current time if invalid
-                                }
-                              })(),
-                              formattedDate: (() => {
-                                try {
-                                  // Parse the date using proper ISO format
-                                  const date = new Date(history.createdAt);
-                                  return isNaN(date.getTime()) ? 
-                                    format(new Date(), "MMM dd") : // Use current date as fallback but formatted
-                                    format(date, "MMM dd");
-                                } catch (e) {
-                                  return format(new Date(), "MMM dd"); // Consistent fallback
-                                }
-                              })(),
-                              skill: history.skill_name,
-                              user: history.user_email,
-                              level: history.newLevel === 'beginner' ? 1 : history.newLevel === 'intermediate' ? 2 : 3,
-                              change: history.changeNote
-                            }))}
-                            margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis 
-                              dataKey="formattedDate" 
-                              type="category"
-                              padding={{ left: 30, right: 30 }}
-                            />
-                            <YAxis
-                              label={{ value: 'Skill Level', angle: -90, position: 'insideLeft' }}
-                              ticks={[1, 2, 3]}
-                              tickFormatter={(tick) => tick === 1 ? 'Beginner' : tick === 2 ? 'Intermediate' : 'Expert'}
-                            />
-                            <Tooltip 
-                              labelFormatter={(value) => 'Date: ' + value}
-                              formatter={(value, name, props) => {
-                                if (name === 'level') {
-                                  return [value === 1 ? 'Beginner' : value === 2 ? 'Intermediate' : 'Expert', 'Level'];
-                                }
-                                return [value, name];
-                              }}
-                              contentStyle={{ backgroundColor: '#fff', borderRadius: '0.5rem', border: '1px solid #e2e8f0', padding: '0.75rem' }}
-                            />
-                            <Legend />
-                            <Line
-                              type="monotone"
-                              dataKey="level"
-                              stroke="#8884d8"
-                              strokeWidth={2}
-                              activeDot={{ r: 8 }}
-                              name="Skill Level"
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="py-12 text-center text-gray-500">
-                      <History className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No skill history</h3>
-                      <p className="mt-1 text-sm text-gray-500">There are no skill updates recorded yet.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              {/* Skill History Log Section (moved from dashboard tab) */}
-              <Card id="skill-history-log">
-                <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
-                  <div>
-                    <CardTitle>Skill History Log</CardTitle>
-                    <CardDescription>View all skill level changes</CardDescription>
-                  </div>
-                  <div className="flex flex-col md:flex-row gap-4 mt-4 md:mt-0">
-                    <div className="relative w-full md:w-64">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <input
-                        placeholder="Search by skill or user..."
-                        className="pl-8 h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={skillHistorySearchQuery}
-                        onChange={(e) => setSkillHistorySearchQuery(e.target.value)}
-                      />
-                    </div>
-                    <Select 
-                      value={skillHistoryLevelFilter} 
-                      onValueChange={setSkillHistoryLevelFilter}
-                    >
-                      <SelectTrigger className="w-full md:w-[180px] h-10">
-                        <SelectValue placeholder="Filter by level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Levels</SelectItem>
-                        <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">Intermediate</SelectItem>
-                        <SelectItem value="expert">Expert</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="px-0">
-                  <div className="overflow-x-auto scrollable-container">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th 
-                            scope="col" 
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                            onClick={() => {
-                              if (skillHistorySortField === "user_email") {
-                                setSkillHistorySortDirection(skillHistorySortDirection === "asc" ? "desc" : "asc");
-                              } else {
-                                setSkillHistorySortField("user_email");
-                                setSkillHistorySortDirection("asc");
-                              }
-                            }}
-                          >
-                            <div className="flex items-center">
-                              <span>User</span>
-                              {skillHistorySortField === "user_email" && (
-                                <ArrowUpDown className={`ml-1 h-4 w-4 ${skillHistorySortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
-                              )}
-                            </div>
-                          </th>
-                          <th 
-                            scope="col" 
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                            onClick={() => {
-                              if (skillHistorySortField === "skill_name") {
-                                setSkillHistorySortDirection(skillHistorySortDirection === "asc" ? "desc" : "asc");
-                              } else {
-                                setSkillHistorySortField("skill_name");
-                                setSkillHistorySortDirection("asc");
-                              }
-                            }}
-                          >
-                            <div className="flex items-center">
-                              <span>Skill</span>
-                              {skillHistorySortField === "skill_name" && (
-                                <ArrowUpDown className={`ml-1 h-4 w-4 ${skillHistorySortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
-                              )}
-                            </div>
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
-                          <th 
-                            scope="col" 
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                            onClick={() => {
-                              if (skillHistorySortField === "newLevel") {
-                                setSkillHistorySortDirection(skillHistorySortDirection === "asc" ? "desc" : "asc");
-                              } else {
-                                setSkillHistorySortField("newLevel");
-                                setSkillHistorySortDirection("asc");
-                              }
-                            }}
-                          >
-                            <div className="flex items-center">
-                              <span>To</span>
-                              {skillHistorySortField === "newLevel" && (
-                                <ArrowUpDown className={`ml-1 h-4 w-4 ${skillHistorySortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
-                              )}
-                            </div>
-                          </th>
-                          <th 
-                            scope="col" 
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                            onClick={() => {
-                              if (skillHistorySortField === "createdAt") {
-                                setSkillHistorySortDirection(skillHistorySortDirection === "asc" ? "desc" : "asc");
-                              } else {
-                                setSkillHistorySortField("createdAt");
-                                setSkillHistorySortDirection("desc");
-                              }
-                            }}
-                          >
-                            <div className="flex items-center">
-                              <span>Date</span>
-                              {skillHistorySortField === "createdAt" && (
-                                <ArrowUpDown className={`ml-1 h-4 w-4 ${skillHistorySortDirection === "asc" ? "text-gray-500" : "text-gray-900"}`} />
-                              )}
-                            </div>
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {isLoadingHistories ? (
-                          <tr>
-                            <td colSpan={6} className="px-6 py-8 text-center">
-                              <div className="flex justify-center items-center">
-                                <svg className="animate-spin h-5 w-5 mr-3 text-indigo-500" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span>Loading skill history...</span>
-                              </div>
-                            </td>
-                          </tr>
-                        ) : filteredSkillHistories.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                              <div className="flex flex-col items-center">
-                                <History className="h-12 w-12 text-gray-400 mb-2" />
-                                <p>No skill history records match your filter criteria.</p>
-                              </div>
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredSkillHistories.map(history => (
-                            <tr key={history.id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                {history.user_email}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                {history.skill_name}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                {history.previousLevel ? (
-                                  <SkillLevelBadge level={history.previousLevel} size="sm" />
-                                ) : (
-                                  <span className="text-gray-500">New</span>
-                                )}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                <SkillLevelBadge level={history.newLevel} size="sm" />
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {formatDate(history.createdAt)}
-                              </td>
-                              <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                                {history.changeNote || "-"}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
               </motion.div>
             </TabsContent>
             
+            <TabsContent value="skill-history">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -3442,6 +3154,7 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
               </motion.div>
+            </TabsContent>
             
             <TabsContent value="certifications">
               <motion.div
