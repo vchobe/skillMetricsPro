@@ -2608,10 +2608,26 @@ export class PostgresStorage implements IStorage {
    *  - "credlyLink" becomes "credly_link"
    */
   private camelToSnake(str: string): string {
-    // Handle special case for 'ID' at the end of words
-    const replaced = str.replace(/([a-z])ID$/g, '$1_id');
+    // Handle special case for 'ID' or 'Id' at the end of words
+    let replaced = str;
+    
+    // First handle case where the key ends with ID (uppercase)
+    replaced = replaced.replace(/([a-z])ID$/g, '$1_id');
+    
+    // Then handle case where the key ends with Id (mixed case)
+    replaced = replaced.replace(/([a-z])Id$/g, '$1_id');
+    
+    // Special handling for accountManagerId -> account_manager_id
+    if (str === 'accountManagerId') {
+      console.log("Special handling for accountManagerId -> account_manager_id");
+      return 'account_manager_id';
+    }
+    
     // Handle normal camelCase to snake_case conversion
-    return replaced.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+    const result = replaced.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+    
+    console.log(`camelToSnake converted: ${str} -> ${result}`);
+    return result;
   }
 
   async updateClient(id: number, data: Partial<Client>): Promise<Client> {
