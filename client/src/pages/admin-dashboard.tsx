@@ -1842,15 +1842,7 @@ export default function AdminDashboard() {
                     <span>Skill Overview</span>
                   </TabsTrigger>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <TabsTrigger 
-                    value="skill-history" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <History className="h-4 w-4" />
-                    <span>Skill History</span>
-                  </TabsTrigger>
-                </motion.div>
+
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <TabsTrigger 
                     value="certifications" 
