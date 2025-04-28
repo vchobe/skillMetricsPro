@@ -26,33 +26,93 @@ const AccordionTrigger = React.forwardRef<
 >(({ className, children, onKeyDown, ...props }, ref) => {
   // This handles keyboard navigation for each accordion item
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    const currentElement = e.currentTarget;
+    const currentState = currentElement.getAttribute("data-state");
+    
     // Left/Right arrows for expanding/collapsing
     if (e.key === "ArrowRight") {
       e.preventDefault();
       // Expand the item if it's closed
-      const element = e.currentTarget;
-      if (element.getAttribute("data-state") === "closed") {
-        const event = new MouseEvent('click', {
+      if (currentState === "closed") {
+        const clickEvent = new MouseEvent('click', {
           bubbles: true,
           cancelable: true,
           view: window
         });
-        element.dispatchEvent(event);
+        currentElement.dispatchEvent(clickEvent);
+      } 
+      // If already open, try to move focus to first child
+      else if (currentState === "open") {
+        // Find the content area associated with this trigger
+        const accordionItem = currentElement.closest('[role="region"]');
+        if (accordionItem) {
+          // Try to find the first focusable element in the content
+          const firstChildTrigger = accordionItem.querySelector('[role="button"]');
+          if (firstChildTrigger && firstChildTrigger instanceof HTMLElement) {
+            firstChildTrigger.focus();
+          }
+        }
       }
     } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       // Collapse the item if it's open
-      const element = e.currentTarget;
-      if (element.getAttribute("data-state") === "open") {
-        const event = new MouseEvent('click', {
+      if (currentState === "open") {
+        const clickEvent = new MouseEvent('click', {
           bubbles: true,
           cancelable: true,
           view: window
         });
-        element.dispatchEvent(event);
+        currentElement.dispatchEvent(clickEvent);
+      } 
+      // If already closed, try to move focus to parent
+      else {
+        // Find parent accordion trigger
+        const parentAccordionItem = currentElement.closest('[data-state="open"]');
+        if (parentAccordionItem) {
+          const parentTrigger = parentAccordionItem.querySelector('[role="button"]');
+          if (parentTrigger && parentTrigger instanceof HTMLElement) {
+            parentTrigger.focus();
+          }
+        }
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      
+      // If item is open, try to move to first child
+      if (currentState === "open") {
+        const contentRegion = currentElement.parentElement?.nextElementSibling;
+        if (contentRegion) {
+          const firstChildTrigger = contentRegion.querySelector('[role="button"]');
+          if (firstChildTrigger && firstChildTrigger instanceof HTMLElement) {
+            firstChildTrigger.focus();
+            return;
+          }
+        }
+      }
+      
+      // Otherwise move to next sibling
+      const nextTrigger = currentElement.closest('li')?.nextElementSibling?.querySelector('[role="button"]');
+      if (nextTrigger && nextTrigger instanceof HTMLElement) {
+        nextTrigger.focus();
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      
+      // Try to move to previous sibling
+      const prevTrigger = currentElement.closest('li')?.previousElementSibling?.querySelector('[role="button"]');
+      if (prevTrigger && prevTrigger instanceof HTMLElement) {
+        prevTrigger.focus();
+      } else {
+        // If at the top of the list, move to parent
+        const parentItem = currentElement.closest('[role="region"]')?.parentElement?.closest('[data-state="open"]');
+        if (parentItem) {
+          const parentTrigger = parentItem.querySelector('[role="button"]');
+          if (parentTrigger && parentTrigger instanceof HTMLElement) {
+            parentTrigger.focus();
+          }
+        }
       }
     }
-    // Up/Down arrows for navigation (default behavior)
     
     // Allow other keyboard handlers to run
     if (onKeyDown) {
