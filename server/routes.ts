@@ -994,7 +994,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!isSuperAdmin) {
         return res.status(403).json({ 
-          message: "Only the super admin can modify admin privileges" 
+          message: "Super admin privileges required", 
+          details: "Only the super administrator (admin@atyeti.com) can modify admin privileges for other users",
+          errorCode: "SUPER_ADMIN_REQUIRED" 
         });
       }
       
@@ -1016,7 +1018,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Don't allow changing admin status of the super admin
       if (user.email === "admin@atyeti.com") {
         return res.status(403).json({ 
-          message: "Cannot modify super admin privileges" 
+          message: "Operation not allowed", 
+          details: "The super administrator account privileges cannot be modified",
+          errorCode: "UNCHANGEABLE_SUPER_ADMIN" 
         });
       }
       
@@ -1820,7 +1824,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endorsementId = parseInt(req.params.id);
       // Only admins can delete endorsements
       if (!req.user!.is_admin) {
-        return res.status(403).json({ message: "Only admins can delete endorsements" });
+        return res.status(403).json({ 
+          message: "Admin privileges required", 
+          details: "Only administrators can delete endorsements",
+          errorCode: "ADMIN_REQUIRED" 
+        });
       }
       
       await storage.deleteEndorsement(endorsementId);
@@ -2722,7 +2730,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Admin can see any user's history, but regular users should only see their own
       const requestUser = req.user;
       if (!requestUser || (parseInt(String(requestUser.id)) !== userId && !requestUser.is_admin)) {
-        return res.status(403).json({ message: "Not authorized to view this user's project history" });
+        return res.status(403).json({ 
+          message: "Access denied", 
+          details: "You can only view your own project history unless you have administrator privileges",
+          errorCode: "UNAUTHORIZED_ACCESS" 
+        });
       }
 
       // Get the user's project history
