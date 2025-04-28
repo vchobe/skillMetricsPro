@@ -2226,7 +2226,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("PATCH /api/clients/:id - accountManagerId in request:", 
         req.body.accountManagerId !== undefined ? req.body.accountManagerId : "undefined");
       
-      const updatedClient = await storage.updateClient(clientId, req.body);
+      // Filter out fields that don't exist in the database
+      // Based on database schema: id, name, industry, contact_name, contact_email, contact_phone, website, logo_url, notes, created_at, updated_at, account_manager_id
+      const sanitizedData: Record<string, any> = {
+        name: req.body.name,
+        industry: req.body.industry,
+        website: req.body.website,
+        notes: req.body.notes,
+        logoUrl: req.body.logoUrl,
+        contactName: req.body.contactName,
+        contactEmail: req.body.contactEmail,
+        contactPhone: req.body.contactPhone,
+        accountManagerId: req.body.accountManagerId
+      };
+      
+      // Remove undefined fields
+      Object.keys(sanitizedData).forEach(key => {
+        if (sanitizedData[key] === undefined) {
+          delete sanitizedData[key];
+        }
+      });
+      
+      console.log("PATCH /api/clients/:id - Sanitized data:", JSON.stringify(sanitizedData, null, 2));
+      
+      const updatedClient = await storage.updateClient(clientId, sanitizedData);
       console.log("PATCH /api/clients/:id - Updated client:", JSON.stringify(updatedClient, null, 2));
       
       res.json(updatedClient);
