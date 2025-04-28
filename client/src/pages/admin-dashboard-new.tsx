@@ -42,14 +42,19 @@ export default function AdminDashboard() {
     );
   }
 
-  // Check if user is admin
-  if (user.role !== "admin") {
+  // Check if user is admin - using both possible properties for backward compatibility
+  const isAdmin = user.is_admin === true || user.isAdmin === true || user.role === "admin";
+  
+  if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Access Denied</h1>
           <p className="text-gray-500 mt-2">
             You do not have permission to access the admin dashboard.
+          </p>
+          <p className="text-gray-500 mt-2">
+            User: {user.email} (Admin status: {String(isAdmin)})
           </p>
         </div>
       </div>
