@@ -1568,9 +1568,11 @@ export class PostgresStorage implements IStorage {
 
   async createClient(client: InsertClient): Promise<Client> {
     try {
+      console.log("Creating client with data:", JSON.stringify(client, null, 2));
+      
       const result = await pool.query(
-        `INSERT INTO clients (name, industry, contact_name, contact_email, contact_phone, website, logo_url, notes) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+        `INSERT INTO clients (name, industry, contact_name, contact_email, contact_phone, website, logo_url, notes, account_manager_id) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
          RETURNING *`,
         [
           client.name,
@@ -1580,9 +1582,14 @@ export class PostgresStorage implements IStorage {
           client.contactPhone || null,
           client.website || null,
           client.logoUrl || null,
-          client.notes || null
+          client.notes || null,
+          client.accountManagerId || null // Add the account manager ID
         ]
       );
+      
+      // Log the created client for debugging
+      console.log("Created client:", JSON.stringify(result.rows[0], null, 2));
+      
       return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating client:", error);
