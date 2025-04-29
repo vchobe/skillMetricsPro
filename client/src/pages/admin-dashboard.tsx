@@ -1078,15 +1078,7 @@ export default function AdminDashboard() {
     isLoadingApprover
   });
   
-  // Data loading state for displaying diagnostic information
-  const dataState = {
-    isAdmin,
-    isApprover,
-    isLoadingApprover,
-    conditionalDataEnabled: isAdmin, // Only admins should load hierarchical project/skill data
-    pendingSkillsEnabled: !!user && (isAdmin || isApprover === true),
-    user: user?.email || 'Not logged in'
-  };
+  // Removed data diagnostic information
   
   // Use our custom hooks for hierarchical data, but only for admins
   // This prevents unnecessary 403 errors for non-admin approvers
@@ -5060,20 +5052,7 @@ export default function AdminDashboard() {
                       <CardTitle>Pending Skill Approvals</CardTitle>
                       <CardDescription>Review and approve or reject skill updates submitted by users</CardDescription>
                       
-                      {/* Diagnostic information (development only) */}
-                      {process.env.NODE_ENV !== 'production' && (
-                        <div className="mt-2 p-2 bg-muted/50 rounded text-xs font-mono overflow-auto max-h-48">
-                          <div className="font-semibold">User Rights:</div>
-                          <pre className="whitespace-pre-wrap">{JSON.stringify(dataState, null, 2)}</pre>
-                          
-                          <div className="font-semibold mt-2">Pending Skills Data:</div>
-                          <pre className="whitespace-pre-wrap">
-                            {isLoadingPendingSkills ? "Loading pending skills..." : 
-                             pendingSkills ? `Found ${pendingSkills.length} user(s) with pending skills` : 
-                             "No pending skills available"}
-                          </pre>
-                        </div>
-                      )}
+                      {/* Debug information removed */}
                     </div>
                     {pendingSkills && pendingSkills.length === 0 && (
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
