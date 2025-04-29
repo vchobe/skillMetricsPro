@@ -27,7 +27,7 @@ export function ProtectedRoute({
   // This ensures we have the approver status available when needed
   const { data: isUserApprover, isLoading: isLoadingApprover } = useQuery<boolean>({
     queryKey: ['/api/user/is-approver'],
-    enabled: !!user && adminOnly && approversAllowed, // Always check for users on admin routes that allow approvers
+    enabled: !!user, // Always check for all authenticated users
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 3, // Retry up to 3 times if the query fails
   });

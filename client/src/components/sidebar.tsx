@@ -163,6 +163,43 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
             </div>
           </div>
 
+          {/* Approver Section - Only visible to approvers who are not admins */}
+          {isApprover && !(user?.is_admin || user?.isAdmin) && (
+            <div className="mt-8">
+              {(isOpen || !isMobile) && (
+                <h3 className={`px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider ${!isOpen && "lg:hidden"}`}>
+                  Approver
+                </h3>
+              )}
+              <div className="mt-2 space-y-2">
+                <div>
+                  <a 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // For approvers, always navigate to the approvals tab
+                      const approverUrl = "/admin?tab=approvals";
+                      
+                      // Update URL and navigate
+                      window.history.pushState({}, "", approverUrl);
+                      setLocation(approverUrl);
+                    }}
+                    className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
+                      currentPath.startsWith("/admin") 
+                        ? "bg-gray-900 text-white" 
+                        : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                    }`}
+                  >
+                    <Tag className="h-5 w-5" />
+                    {(isOpen || !isMobile) && (
+                      <span className={`ml-3 ${!isOpen && "lg:hidden"}`}>Skill Approvals</span>
+                    )}
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Admin Section - Only visible to admins */}
           {(user?.is_admin || user?.isAdmin) && (
             <div className="mt-8">

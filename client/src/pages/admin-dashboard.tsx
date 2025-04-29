@@ -1261,27 +1261,25 @@ export default function AdminDashboard() {
     if (user && !isAdmin) {
       console.log("User is not admin, checking approver status:", { isApprover, activeTab });
       
-      // Get the current tab from URL parameters
-      const queryParams = new URLSearchParams(window.location.search);
-      const currentTab = queryParams.get("tab") || activeTab;
-      
-      // If they're an approver and looking at approvals tab, let them stay
-      // Otherwise, redirect them away
-      if (isApprover && currentTab === "approvals") {
-        console.log("User is approver and on approvals tab - allowing access");
+      // If they're an approver, force them to the approvals tab
+      if (isApprover) {
+        console.log("User is approver - allowing access and forcing approvals tab");
         
-        // Make sure the active tab is set to approvals
+        // Force non-admin approvers to always see approvals tab
         if (activeTab !== "approvals") {
           setActiveTab("approvals");
         }
+        
+        // Update URL to include tab=approvals parameter without page reload
+        const url = new URL(window.location.href);
+        url.searchParams.set("tab", "approvals");
+        window.history.replaceState({}, "", url.toString());
       } else {
-        console.log("User is not approved for this page, redirecting", {
-          isApprover,
-          currentTab,
-          activeTab
+        console.log("User is not an approver, redirecting to home", {
+          isApprover
         });
         
-        // Redirect non-admin users who aren't approvers or aren't on the approvals tab
+        // Redirect non-admin users who aren't approvers
         setLocation("/");
       }
     }
