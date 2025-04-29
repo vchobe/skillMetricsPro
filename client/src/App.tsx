@@ -33,13 +33,13 @@ const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
   const [sessionId, setSessionId] = useState<string>(() => localStorage.getItem("sessionId") || "initial");
   const { user } = useAuth(); // Use the useAuth hook to detect user changes
   
-  // Check if user is admin
-  const isAdmin = user?.is_admin === true || user?.isAdmin === true;
+  // Determine user admin status
+  const userIsAdmin = user?.is_admin === true || user?.isAdmin === true;
   
   // Use React Query for better caching and loading state management
   const { data: isUserApprover = false } = useQuery<boolean>({
     queryKey: ['/api/user/is-approver'],
-    enabled: !!user && !isAdmin, // Only check for non-admin users
+    enabled: !!user && !userIsAdmin, // Only check for non-admin users
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 3, // Retry up to 3 times if the query fails
   });
@@ -67,10 +67,8 @@ const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
     }
   }, [user]);
   
-  // Use sessionId, admin status, and approver status as the key to ensure proper remounting
-  // Check both is_admin and isAdmin properties as backend might use either
-  const isAdmin = user?.is_admin === true || user?.isAdmin === true;
-  const userRole = isAdmin ? "admin" : (isUserApprover ? "approver" : "regular");
+  // Determine the user role based on admin status and approver permissions
+  const userRole = userIsAdmin ? "admin" : (isUserApprover ? "approver" : "regular");
   
   // Logging for debugging
   console.log("User in AdminWrapper:", user);

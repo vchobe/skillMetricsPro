@@ -17,11 +17,14 @@ export function ProtectedRoute({
 }) {
   const { user, isLoading } = useAuth();
   
+  // Determine user admin status using consistent variable naming
+  const userIsAdmin = user && (user.is_admin === true || user.isAdmin === true);
+  
   // For non-admins on protected routes that allow approvers, check approver status
-  const needsApproverCheck = !!user && adminOnly && approversAllowed && !(user.is_admin === true || user.isAdmin === true);
+  const needsApproverCheck = !!user && adminOnly && approversAllowed && !userIsAdmin;
   
   // Use React Query for proper caching and loading state management
-  const { data: isApprover, isLoading: isLoadingApprover } = useQuery<boolean>({
+  const { data: isUserApprover, isLoading: isLoadingApprover } = useQuery<boolean>({
     queryKey: ['/api/user/is-approver'],
     enabled: needsApproverCheck, // Only check for non-admin users on protected routes that allow approvers
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -47,19 +50,16 @@ export function ProtectedRoute({
     );
   }
   
-  // Check both is_admin and isAdmin properties for admin access
-  const isAdmin = user.is_admin === true || user.isAdmin === true;
-  
   // Determine access based on user role and route permissions
   let hasAccess = false;
   
   if (!adminOnly) {
     // Regular routes accessible to all authenticated users
     hasAccess = true;
-  } else if (isAdmin) {
+  } else if (userIsAdmin) {
     // Admin routes accessible to admins
     hasAccess = true;
-  } else if (approversAllowed && isApprover === true) {
+  } else if (approversAllowed && isUserApprover === true) {
     // Admin routes that allow approvers
     hasAccess = true;
   }
@@ -67,8 +67,8 @@ export function ProtectedRoute({
   if (!hasAccess) {
     console.log("Access denied: User is not authorized", { 
       userId: user.id,
-      isAdmin,
-      isApprover,
+      userIsAdmin,
+      isUserApprover,
       approversAllowed
     });
     
