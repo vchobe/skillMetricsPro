@@ -1611,15 +1611,20 @@ export default function AdminDashboard() {
   // Handlers for approving and rejecting pending skill updates
   const approveMutation = useMutation({
     mutationFn: async (skillId: number) => {
+      // Add the expected notes parameter
       const res = await fetch(`/api/admin/pending-skills/${skillId}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ reviewerId: user?.id })
+        body: JSON.stringify({ 
+          reviewerId: user?.id,
+          notes: "Approved by administrator" 
+        })
       });
       
       if (!res.ok) {
+        console.error("Approval API error response:", await res.text());
         throw new Error("Failed to approve skill");
       }
       
