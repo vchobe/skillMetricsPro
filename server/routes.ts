@@ -3189,6 +3189,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Check if current user is an approver (has approval rights for any category/skill)
+  app.get("/api/user/is-approver", ensureAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const isApprover = await storage.isUserApprover(userId);
+      
+      res.json(isApprover);
+    } catch (error) {
+      console.error("Error checking if user is an approver:", error);
+      res.status(500).json({ message: "Error checking approver status", error });
+    }
+  });
+  
   // Check if current user can approve a skill in a specific subcategory
   app.get("/api/can-approve/:categoryId/:subcategoryId", ensureAuth, async (req, res) => {
     try {

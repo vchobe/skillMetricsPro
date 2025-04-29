@@ -1232,11 +1232,31 @@ export default function AdminDashboard() {
   const csvExportRef = useRef<HTMLAnchorElement>(null);
   const skillGapExportRef = useRef<HTMLAnchorElement>(null);
   
+  // Check if user is approver
+  const { data: isApprover = false } = useQuery<boolean>({
+    queryKey: ['/api/user/is-approver'],
+    enabled: !!user && !user.is_admin,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
   useEffect(() => {
+    // This useEffect checks if the user should be able to access this page
+    // If they are not an admin, check if they are an approver looking at approvals tab
     if (user && !user.is_admin) {
-      setLocation("/");
+      // Check if they're an approver and if they're trying to access the approvals tab
+      const queryParams = new URLSearchParams(window.location.search);
+      const currentTab = queryParams.get("tab");
+      
+      // If they're an approver and looking at approvals tab, let them stay
+      // Otherwise, redirect them away
+      if (isApprover && currentTab === "approvals") {
+        // Allow access - they're an approver looking at the approvals tab
+      } else {
+        // Redirect non-admin users who aren't approvers or aren't on approvals tab
+        setLocation("/");
+      }
     }
-  }, [user, setLocation]);
+  }, [user, setLocation, isApprover]);
   
   // Initialize tab from URL on first render only
   // We use a ref to ensure this only runs on initial render
@@ -1944,110 +1964,132 @@ export default function AdminDashboard() {
               className="sticky top-0 z-10 bg-background pt-4 pb-4"
             >
               <TabsList className="w-full mb-2 flex flex-wrap gap-2">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="dashboard" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <BarChart4 className="h-4 w-4" />
-                    <span>Dashboard</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="project-overview" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <SquareStack className="h-4 w-4" />
-                    <span>Project Overview</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="skill-overview" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <BrainCircuit className="h-4 w-4" />
-                    <span>Skill Overview</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="skill-history" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <History className="h-4 w-4" />
-                    <span>Skill History</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="certifications" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <Award className="h-4 w-4" />
-                    <span>Certifications</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="skill-templates" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <Database className="h-4 w-4" />
-                    <span>Skills</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="skill-targets" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <Target className="h-4 w-4" />
-                    <span>Skill Targets</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="users" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <Users className="h-4 w-4" />
-                    <span>Users</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="user-management" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <UserIcon className="h-4 w-4" />
-                    <span>Admin Access</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="reports" 
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span>Reports</span>
-                  </TabsTrigger>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
-                  <TabsTrigger 
-                    value="approvals" 
-                    className="flex items-center gap-2 w-full relative"
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Pending Approvals</span>
-                    {pendingSkills && pendingSkills.length > 0 && (
-                      <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
-                        {pendingSkills.reduce((acc, group) => acc + group.pendingSkills.length, 0)}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                </motion.div>
+                {/* Show either admin tabs or just the approvals tab for non-admin approvers */}
+                {user?.is_admin ? (
+                  // Full admin UI with all tabs
+                  <>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="dashboard" 
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <BarChart4 className="h-4 w-4" />
+                        <span>Dashboard</span>
+                      </TabsTrigger>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="project-overview" 
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <SquareStack className="h-4 w-4" />
+                        <span>Project Overview</span>
+                      </TabsTrigger>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="skill-overview" 
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <BrainCircuit className="h-4 w-4" />
+                        <span>Skill Overview</span>
+                      </TabsTrigger>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="skill-history" 
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <History className="h-4 w-4" />
+                        <span>Skill History</span>
+                      </TabsTrigger>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="certifications" 
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <Award className="h-4 w-4" />
+                        <span>Certifications</span>
+                      </TabsTrigger>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="skill-templates" 
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <Database className="h-4 w-4" />
+                        <span>Skills</span>
+                      </TabsTrigger>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="skill-targets" 
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <Target className="h-4 w-4" />
+                        <span>Skill Targets</span>
+                      </TabsTrigger>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="users" 
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Users</span>
+                      </TabsTrigger>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="user-management" 
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <UserIcon className="h-4 w-4" />
+                        <span>Admin Access</span>
+                      </TabsTrigger>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="reports" 
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span>Reports</span>
+                      </TabsTrigger>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
+                      <TabsTrigger 
+                        value="approvals" 
+                        className="flex items-center gap-2 w-full relative"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Pending Approvals</span>
+                        {pendingSkills && pendingSkills.length > 0 && (
+                          <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                            {pendingSkills.reduce((acc, group) => acc + group.pendingSkills.length, 0)}
+                          </Badge>
+                        )}
+                      </TabsTrigger>
+                    </motion.div>
+                  </>
+                ) : (
+                  // Non-admin approver UI - only show approvals tab
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[200px]">
+                    <TabsTrigger 
+                      value="approvals" 
+                      className="flex items-center gap-2 w-full relative"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      <span>Pending Skill Approvals</span>
+                      {pendingSkills && pendingSkills.length > 0 && (
+                        <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                          {pendingSkills.reduce((acc, group) => acc + group.pendingSkills.length, 0)}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  </motion.div>
+                )}
               </TabsList>
             </motion.div>
             

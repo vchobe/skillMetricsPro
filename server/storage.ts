@@ -4050,6 +4050,49 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  async isUserApprover(userId: number): Promise<boolean> {
+    try {
+      // Check if user is super admin first
+      const userResult = await pool.query(
+        'SELECT email, is_admin FROM users WHERE id = $1',
+        [userId]
+      );
+      
+      // If user is not found, they can't approve
+      if (userResult.rows.length === 0) {
+        console.log(`User ${userId} not found, can't be approver`);
+        return false;
+      }
+      
+      // Super admin can approve everything
+      if (userResult.rows[0].email === "admin@atyeti.com") {
+        console.log(`User ${userId} is super admin, can approve all skills`);
+        return true;
+      }
+      
+      // If the user is an admin, they can approve
+      if (userResult.rows[0].is_admin) {
+        console.log(`User ${userId} is an admin, can approve skills`);
+        return true;
+      }
+      
+      // Check if they have any approver assignments in the skill_approvers table
+      const approverQuery = `
+        SELECT COUNT(*) FROM skill_approvers 
+        WHERE user_id = $1
+      `;
+      const approverResult = await pool.query(approverQuery, [userId]);
+      
+      const hasApproverRole = parseInt(approverResult.rows[0].count) > 0;
+      console.log(`User ${userId} approver status: ${hasApproverRole ? 'is approver' : 'not approver'}`);
+      
+      return hasApproverRole;
+    } catch (error) {
+      console.error(`Error checking if user ${userId} is an approver:`, error);
+      return false;
+    }
+  }
+  
   async canUserApproveSkill(userId: number, categoryId: number, subcategoryId?: number, skillId?: number): Promise<boolean> {
     try {
       // Check if user is super admin
