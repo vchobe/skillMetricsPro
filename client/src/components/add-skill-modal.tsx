@@ -380,190 +380,199 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
             <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
           </div>
         ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Skill Templates - only shown when adding a new skill */}
-              {!skillId && (
-                <div className="mb-6">
-                  <h3 className="text-base font-medium mb-2">Select from Template</h3>
-                  <p className="text-sm text-gray-500 mb-3">
-                    Choose a recommended skill template or create your own
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
-                    {skillTemplates.map((template: SkillTemplate) => (
-                      <div 
-                        key={template.id}
-                        className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                        onClick={() => {
-                          // Pre-fill form with template values
-                          form.setValue('name', template.name);
-                          form.setValue('category', template.category || '');
-                          
-                          // Set categoryId and subcategoryId if available
-                          if (template.categoryId) {
-                            form.setValue('categoryId', template.categoryId);
-                            setSelectedCategoryId(template.categoryId);
+          <>
+            {/* Display skill details when editing */}
+            {skillId && skill && (
+              <div className="mb-6 p-4 border border-gray-200 bg-gray-50 rounded-md">
+                <div className="mb-1 font-medium text-lg text-gray-900">{skill.name}</div>
+                <div className="text-sm text-gray-500">
+                  {skill.category}
+                  {skill.subcategoryId && subcategories.find(sc => sc.id === skill.subcategoryId) && (
+                    <> / {subcategories.find(sc => sc.id === skill.subcategoryId)?.name}</>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Skill Templates - only shown when adding a new skill */}
+                {!skillId && (
+                  <div className="mb-6">
+                    <h3 className="text-base font-medium mb-2">Select from Template</h3>
+                    <p className="text-sm text-gray-500 mb-3">
+                      Choose a recommended skill template or create your own
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+                      {skillTemplates.map((template: SkillTemplate) => (
+                        <div 
+                          key={template.id}
+                          className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => {
+                            // Pre-fill form with template values
+                            form.setValue('name', template.name);
+                            form.setValue('category', template.category || '');
                             
-                            // Set subcategoryId if available
-                            if (template.subcategoryId) {
-                              form.setValue('subcategoryId', template.subcategoryId);
+                            // Set categoryId and subcategoryId if available
+                            if (template.categoryId) {
+                              form.setValue('categoryId', template.categoryId);
+                              setSelectedCategoryId(template.categoryId);
+                              
+                              // Set subcategoryId if available
+                              if (template.subcategoryId) {
+                                form.setValue('subcategoryId', template.subcategoryId);
+                              }
                             }
-                          }
-                          
-                          if (template.targetLevel) {
-                            form.setValue('level', 
-                              (template.targetLevel as "beginner" | "intermediate" | "expert") || 'beginner');
-                          }
-                          form.setValue('notes', template.description || '');
-                          
-                          // Show toast
-                          toast({
-                            title: "Template Applied",
-                            description: `Applied "${template.name}" template to this skill`
-                          });
-                        }}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="font-medium">{template.name}</span>
-                            <p className="text-xs text-gray-500">{template.category}</p>
+                            
+                            if (template.targetLevel) {
+                              form.setValue('level', 
+                                (template.targetLevel as "beginner" | "intermediate" | "expert") || 'beginner');
+                            }
+                            form.setValue('notes', template.description || '');
+                            
+                            // Show toast
+                            toast({
+                              title: "Template Applied",
+                              description: `Applied "${template.name}" template to this skill`
+                            });
+                          }}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="font-medium">{template.name}</span>
+                              <p className="text-xs text-gray-500">{template.category}</p>
+                            </div>
+                            {template.isRecommended && (
+                              <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                                Recommended
+                              </div>
+                            )}
                           </div>
-                          {template.isRecommended && (
-                            <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                              Recommended
+                          {template.description && (
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{template.description}</p>
+                          )}
+                          {template.targetLevel && (
+                            <div className="mt-2 flex items-center">
+                              <span className="text-xs text-gray-500 mr-2">Target Level:</span>
+                              <div className={`text-xs rounded-full px-2 py-0.5 font-medium ${
+                                template.targetLevel === 'beginner' ? 'bg-blue-100 text-blue-800' :
+                                template.targetLevel === 'intermediate' ? 'bg-yellow-100 text-yellow-800' : 
+                                'bg-purple-100 text-purple-800'
+                              }`}>
+                                {template.targetLevel.charAt(0).toUpperCase() + template.targetLevel.slice(1)}
+                              </div>
                             </div>
                           )}
                         </div>
-                        {template.description && (
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{template.description}</p>
-                        )}
-                        {template.targetLevel && (
-                          <div className="mt-2 flex items-center">
-                            <span className="text-xs text-gray-500 mr-2">Target Level:</span>
-                            <div className={`text-xs rounded-full px-2 py-0.5 font-medium ${
-                              template.targetLevel === 'beginner' ? 'bg-blue-100 text-blue-800' :
-                              template.targetLevel === 'intermediate' ? 'bg-yellow-100 text-yellow-800' : 
-                              'bg-purple-100 text-purple-800'
-                            }`}>
-                              {template.targetLevel.charAt(0).toUpperCase() + template.targetLevel.slice(1)}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="border-t my-4 pt-4">
-                    <p className="text-sm font-medium">Or create your own skill below</p>
-                  </div>
-                </div>
-              )}
-            
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Skill Name</FormLabel>
-                    <div className="relative">
-                      <FormControl>
-                        {skillId ? (
-                          // When editing, show as read-only
-                          <div className="px-3 py-2 border rounded-md bg-gray-50 text-gray-700">
-                            {field.value}
-                          </div>
-                        ) : (
-                          // When adding, show as editable
-                          <Input
-                            placeholder="e.g. JavaScript, Python, AWS"
-                            {...field}
-                            onFocus={() => setShowNameSuggestions(true)}
-                            onBlur={() => setTimeout(() => setShowNameSuggestions(false), 200)}
-                          />
-                        )}
-                      </FormControl>
-                      
-                      {/* Skill name suggestions */}
-                      {showNameSuggestions && filteredNameSuggestions.length > 0 && (
-                        <div className="absolute z-10 w-full bg-white shadow-lg rounded-md mt-1 border border-gray-200">
-                          <ul className="py-1 text-sm text-gray-700 max-h-40 overflow-y-auto">
-                            {filteredNameSuggestions.map((suggestion, index) => (
-                              <li
-                                key={index}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                                onClick={() => form.setValue("name", suggestion)}
-                              >
-                                {suggestion}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      ))}
                     </div>
-                    <FormMessage />
-                  </FormItem>
+                    
+                    <div className="border-t my-4 pt-4">
+                      <p className="text-sm font-medium">Or create your own skill below</p>
+                    </div>
+                  </div>
                 )}
-              />
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Category Selection - DB-driven dropdown */}
-                <FormField
-                  control={form.control}
-                  name="categoryId"
-                  render={({ field }) => (
-                    <FormItem className="col-span-1 md:col-span-2">
-                      <FormLabel>Category</FormLabel>
-                      <FormControl>
-                        {skillId ? (
-                          // When editing, show as read-only
-                          <div className="px-3 py-2 border rounded-md bg-gray-50 text-gray-700">
-                            {categories.find(c => c.id === field.value)?.name || skill?.category || ''}
-                          </div>
-                        ) : (
-                          // When adding, show as editable
-                          <Select 
-                            value={field.value?.toString() || ""}
-                            onValueChange={(value) => {
-                              const categoryId = parseInt(value, 10);
-                              handleCategoryChange(categoryId);
-                              field.onChange(categoryId);
-                            }}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem key={category.id} value={category.id.toString()}>
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Subcategory Selection - Only shown when a category is selected */}
-                {selectedCategoryId && (
+                {/* Skill Name - Only shown when adding a new skill */}
+                {!skillId ? (
                   <FormField
                     control={form.control}
-                    name="subcategoryId"
+                    name="name"
                     render={({ field }) => (
-                      <FormItem className="col-span-1 md:col-span-2">
-                        <FormLabel>Subcategory</FormLabel>
-                        <FormControl>
-                          {skillId ? (
-                            // When editing, show as read-only
-                            <div className="px-3 py-2 border rounded-md bg-gray-50 text-gray-700">
-                              {subcategories.find(sc => sc.id === field.value)?.name || ''}
+                      <FormItem>
+                        <FormLabel>Skill Name</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              placeholder="e.g. JavaScript, Python, AWS"
+                              {...field}
+                              onFocus={() => setShowNameSuggestions(true)}
+                              onBlur={() => setTimeout(() => setShowNameSuggestions(false), 200)}
+                            />
+                          </FormControl>
+                          
+                          {/* Skill name suggestions */}
+                          {showNameSuggestions && filteredNameSuggestions.length > 0 && (
+                            <div className="absolute z-10 w-full bg-white shadow-lg rounded-md mt-1 border border-gray-200">
+                              <ul className="py-1 text-sm text-gray-700 max-h-40 overflow-y-auto">
+                                {filteredNameSuggestions.map((suggestion, index) => (
+                                  <li
+                                    key={index}
+                                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => form.setValue("name", suggestion)}
+                                  >
+                                    {suggestion}
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
-                          ) : (
-                            // When adding, show as editable
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  /* When editing, keep the field in form state but hidden from UI */
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="hidden">
+                        <FormControl>
+                          <Input type="hidden" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Category Selection - Only shown when adding a new skill */}
+                  {!skillId && (
+                    <FormField
+                      control={form.control}
+                      name="categoryId"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1 md:col-span-2">
+                          <FormLabel>Category</FormLabel>
+                          <FormControl>
+                            <Select 
+                              value={field.value?.toString() || ""}
+                              onValueChange={(value) => {
+                                const categoryId = parseInt(value, 10);
+                                handleCategoryChange(categoryId);
+                                field.onChange(categoryId);
+                              }}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem key={category.id} value={category.id.toString()}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  
+                  {/* Subcategory Selection - Only shown when adding and a category is selected */}
+                  {!skillId && selectedCategoryId && (
+                    <FormField
+                      control={form.control}
+                      name="subcategoryId"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1 md:col-span-2">
+                          <FormLabel>Subcategory</FormLabel>
+                          <FormControl>
                             <Select
                               value={field.value?.toString() || ""}
                               onValueChange={(value) => {
@@ -582,7 +591,187 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                                 ))}
                               </SelectContent>
                             </Select>
-                          )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  
+                  {/* Hidden fields to maintain category and subcategory IDs when editing */}
+                  {skillId && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="categoryId"
+                        render={({ field }) => (
+                          <FormItem className="hidden">
+                            <FormControl>
+                              <Input 
+                                type="hidden" 
+                                value={field.value?.toString() || ""} 
+                                onChange={(e) => {
+                                  const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                                  field.onChange(value);
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="subcategoryId"
+                        render={({ field }) => (
+                          <FormItem className="hidden">
+                            <FormControl>
+                              <Input 
+                                type="hidden" 
+                                value={field.value?.toString() || ""} 
+                                onChange={(e) => {
+                                  const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                                  field.onChange(value);
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                  
+                  {/* Legacy Category Field - Hidden but maintained for backward compatibility */}
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem className="hidden">
+                        <FormControl>
+                          <Input {...field} type="hidden" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Proficiency Level */}
+                  <FormField
+                    control={form.control}
+                    name="level"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Proficiency Level</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange}
+                          defaultValue="beginner"
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="beginner">Beginner</SelectItem>
+                            <SelectItem value="intermediate">Intermediate</SelectItem>
+                            <SelectItem value="expert">Expert</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="certification"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Certification (if any)</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            placeholder="e.g. AWS Certified Developer"
+                            {...field}
+                            value={field.value || ""}
+                            onFocus={() => setShowCertificationSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowCertificationSuggestions(false), 200)}
+                          />
+                        </FormControl>
+                        
+                        {/* Certification suggestions */}
+                        {showCertificationSuggestions && filteredCertificationSuggestions.length > 0 && (
+                          <div className="absolute z-10 w-full bg-white shadow-lg rounded-md mt-1 border border-gray-200">
+                            <ul className="py-1 text-sm text-gray-700 max-h-40 overflow-y-auto">
+                              {filteredCertificationSuggestions.map((suggestion, index) => (
+                                <li
+                                  key={index}
+                                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                  onClick={() => form.setValue("certification", suggestion)}
+                                >
+                                  {suggestion}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="credlyLink"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Credly Link (optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="https://www.credly.com/badges/..." 
+                          {...field}
+                          value={field.value || ""} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes (optional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Additional details about your skill level, experience, etc."
+                          className="resize-none"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {skillId && skill && (
+                  <FormField
+                    control={form.control}
+                    name="changeNote"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Change Note (optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Reason for updating this skill"
+                            {...field}
+                            value={field.value || ""}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -590,160 +779,23 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                   />
                 )}
                 
-                {/* Legacy Category Field - Hidden but maintained for backward compatibility */}
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem className="hidden">
-                      <FormControl>
-                        <Input {...field} type="hidden" />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Proficiency Level */}
-                <FormField
-                  control={form.control}
-                  name="level"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Proficiency Level</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange}
-                        defaultValue="beginner"
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select level" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="beginner">Beginner</SelectItem>
-                          <SelectItem value="intermediate">Intermediate</SelectItem>
-                          <SelectItem value="expert">Expert</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="certification"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Certification (if any)</FormLabel>
-                    <div className="relative">
-                      <FormControl>
-                        <Input
-                          placeholder="e.g. AWS Certified Developer"
-                          {...field}
-                          value={field.value || ""}
-                          onFocus={() => setShowCertificationSuggestions(true)}
-                          onBlur={() => setTimeout(() => setShowCertificationSuggestions(false), 200)}
-                        />
-                      </FormControl>
-                      
-                      {/* Certification suggestions */}
-                      {showCertificationSuggestions && filteredCertificationSuggestions.length > 0 && (
-                        <div className="absolute z-10 w-full bg-white shadow-lg rounded-md mt-1 border border-gray-200">
-                          <ul className="py-1 text-sm text-gray-700 max-h-40 overflow-y-auto">
-                            {filteredCertificationSuggestions.map((suggestion, index) => (
-                              <li
-                                key={index}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                                onClick={() => form.setValue("certification", suggestion)}
-                              >
-                                {suggestion}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="credlyLink"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Credly Link (optional)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://www.credly.com/badges/..." 
-                        {...field}
-                        value={field.value || ""} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes (optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Additional details about your skill level, experience, etc."
-                        className="resize-none"
-                        {...field}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {skillId && skill && (
-                <FormField
-                  control={form.control}
-                  name="changeNote"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Change Note (optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Reason for updating this skill"
-                          {...field}
-                          value={field.value || ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={onClose}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {skillId ? "Update Skill" : "Add Skill"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={onClose}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {skillId ? "Update Skill" : "Add Skill"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </>
         )}
       </DialogContent>
     </Dialog>
