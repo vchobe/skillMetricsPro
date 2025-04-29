@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -32,29 +32,13 @@ const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
   // Use a reference to sessionId from localStorage to force remount on user changes only
   const [sessionId, setSessionId] = useState<string>(() => localStorage.getItem("sessionId") || "initial");
   const { user } = useAuth(); // Use the useAuth hook to detect user changes
-  const [isUserApprover, setIsUserApprover] = useState<boolean | null>(null);
   
-  // Check if user is an approver
-  useEffect(() => {
-    if (!user) return;
-
-    async function checkApproverStatus() {
-      try {
-        const response = await fetch('/api/user/is-approver');
-        if (response.ok) {
-          const approverStatus = await response.json();
-          setIsUserApprover(!!approverStatus); // Convert to boolean
-        } else {
-          setIsUserApprover(false);
-        }
-      } catch (error) {
-        console.error("Error checking approver status:", error);
-        setIsUserApprover(false);
-      }
-    }
-    
-    checkApproverStatus();
-  }, [user]);
+  // Use React Query for better caching and loading state management
+  const { data: isUserApprover = false } = useQuery<boolean>({
+    queryKey: ['/api/user/is-approver'],
+    enabled: !!user && !(user?.is_admin === true || user?.isAdmin === true), // Only check for non-admins
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
   
   // Listen for storage events (login/logout)
   useEffect(() => {
