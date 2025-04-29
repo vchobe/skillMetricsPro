@@ -36,12 +36,21 @@ const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
   // Determine user admin status
   const userIsAdmin = user?.is_admin === true || user?.isAdmin === true;
   
-  // Use React Query for better caching and loading state management
-  const { data: isUserApprover = false } = useQuery<boolean>({
+  // Always fetch approver status to ensure it's available
+  const { data: isUserApprover = false, isLoading: isApproverLoading } = useQuery<boolean>({
     queryKey: ['/api/user/is-approver'],
-    enabled: !!user && !userIsAdmin, // Only check for non-admin users
+    enabled: !!user, // Always check for authenticated users
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 3, // Retry up to 3 times if the query fails
+  });
+  
+  // Add comprehensive logging
+  console.log("AdminWrapper state:", { 
+    userId: user?.id,
+    email: user?.email,
+    userIsAdmin, 
+    isUserApprover,
+    isApproverLoading
   });
   
   // Listen for storage events (login/logout)

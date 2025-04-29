@@ -290,25 +290,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user/is-approver", ensureAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
+      const userEmail = req.user?.email || 'unknown';
+      
+      console.log(`[APPROVER CHECK] Checking if user ${userId} (${userEmail}) is an approver...`);
       
       // First check if the user is an admin
       const isAdmin = isUserAdmin(req.user) || await checkIsUserAdminDirectly(userId);
       
       if (isAdmin) {
         // Admins have all approver permissions
-        console.log("User is an admin, returning true for is-approver check:", req.user?.email);
+        console.log(`[APPROVER CHECK] User ${userId} is an admin, returning true for is-approver check`);
         return res.json(true);
       }
       
       // If not admin, check if user is an approver
+      // Add debug query to check the approver table directly
+      const approverDebugQuery = `SELECT COUNT(*) FROM skill_approvers WHERE user_id = $1`;
+      const debugResult = await pool.query(approverDebugQuery, [userId]);
+      const approverCount = parseInt(debugResult.rows[0].count);
+      
+      console.log(`[APPROVER CHECK] User ${userId} has ${approverCount} approver assignments in the database`);
+      
+      // Now call the storage function
       const isApprover = await storage.isUserApprover(userId);
       
-      console.log("is-approver check result for", req.user?.email, ":", isApprover);
+      console.log(`[APPROVER CHECK] Final result for user ${userId} (${userEmail}): ${isApprover}`);
       
       // Return the result as a boolean
       res.json(isApprover);
     } catch (error) {
-      console.error("Error checking approver status:", error);
+      console.error("[APPROVER CHECK] Error checking approver status:", error);
       res.status(500).json({ 
         message: "Error checking approver status", 
         error: error instanceof Error ? error.message : "Unknown error"

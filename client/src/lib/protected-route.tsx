@@ -35,11 +35,14 @@ export function ProtectedRoute({
   // Show loading indicator while checking auth or approver status
   // For admin routes that allow approvers, always wait for approver status to load
   if (isLoading || (adminOnly && approversAllowed && isLoadingApprover)) {
-    console.log("Showing loading state:", { isLoading, isLoadingApprover, adminOnly, approversAllowed });
+    console.log("Showing loading state:", { isLoading, isLoadingApprover, adminOnly, approversAllowed, path });
     return (
       <Route path={path}>
         <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-border" />
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="text-sm text-muted-foreground">Loading permissions...</div>
+          </div>
         </div>
       </Route>
     );
