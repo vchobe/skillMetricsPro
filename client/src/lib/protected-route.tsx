@@ -85,13 +85,27 @@ export function ProtectedRoute({
     hasAccess = true;
     console.log("Access granted: User is confirmed approver");
     
-    // For non-admin approvers, make sure the URL contains the approvals tab parameter
-    if (path.startsWith('/admin') && !window.location.search.includes('tab=approvals')) {
-      // Redirect to approvals tab
-      const url = new URL(window.location.href);
-      url.searchParams.set('tab', 'approvals');
-      window.history.replaceState({}, '', url.toString());
-      console.log("Redirected approver to approvals tab");
+    // For non-admin approvers, create a simple URL-modifying component 
+    // that displays the approver route with the approvals tab parameter
+    if (path.startsWith('/admin')) {
+      // Redirect the component that's rendered, not the URL (important distinction)
+      const ApproverRedirectedComponent = () => {
+        useEffect(() => {
+          // Update URL parameter without triggering router change
+          if (!window.location.search.includes('tab=approvals')) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', 'approvals');
+            window.history.replaceState({}, '', url.toString());
+            console.log("Redirected approver to approvals tab");
+          }
+        }, []);
+        
+        // Render the original component
+        return <Component />;
+      };
+      
+      // Replace the original component with our wrapper
+      return <Route path={path} component={ApproverRedirectedComponent} />;
     }
   }
   

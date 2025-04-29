@@ -46,18 +46,14 @@ const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
     refetchOnMount: true, // Always refetch when component mounts
   });
   
-  // Set a specific tab for non-admin approvers
+  // We're not modifying URL here anymore - ProtectedRoute handles that
+  // This useEffect just logs the user state
   useEffect(() => {
     if (user && !userIsAdmin && isUserApprover === true) {
-      // Force the approvals tab for non-admin approvers
-      const url = new URL(window.location.href);
-      const currentTab = url.searchParams.get('tab');
-      
-      if (!currentTab || currentTab !== 'approvals') {
-        url.searchParams.set('tab', 'approvals');
-        window.history.replaceState({}, '', url.toString());
-        console.log("AdminWrapper: Redirected approver to approvals tab");
-      }
+      console.log("AdminWrapper: Non-admin approver detected", {
+        userId: user.id,
+        email: user.email
+      });
     }
   }, [user, userIsAdmin, isUserApprover]);
   

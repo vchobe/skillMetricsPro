@@ -1287,34 +1287,17 @@ export default function AdminDashboard() {
   // Don't re-declare it here
   
   useEffect(() => {
-    // This useEffect checks if the user should be able to access this page
-    // If they're not an admin, check if they are an approver looking at the approvals tab
-    if (user && !isAdmin) {
-      console.log("User is not admin, checking approver status:", { isApprover, activeTab });
+    // This useEffect ensures non-admin approvers can only see the approvals tab
+    if (user && !isAdmin && isApprover === true) {
+      console.log("Non-admin approver detected - enforcing approvals tab view");
       
-      // If they're an approver, force them to the approvals tab
-      if (isApprover) {
-        console.log("User is approver - allowing access and forcing approvals tab");
-        
-        // Force non-admin approvers to always see approvals tab
-        if (activeTab !== "approvals") {
-          setActiveTab("approvals");
-        }
-        
-        // Update URL to include tab=approvals parameter without page reload
-        const url = new URL(window.location.href);
-        url.searchParams.set("tab", "approvals");
-        window.history.replaceState({}, "", url.toString());
-      } else {
-        console.log("User is not an approver, redirecting to home", {
-          isApprover
-        });
-        
-        // Redirect non-admin users who aren't approvers
-        setLocation("/");
+      // Force non-admin approvers to always see approvals tab
+      if (activeTab !== "approvals") {
+        setActiveTab("approvals");
+        console.log("Forced activeTab to 'approvals'");
       }
     }
-  }, [user, isAdmin, isApprover, activeTab, setLocation]);
+  }, [user, isAdmin, isApprover, activeTab]);
   
   // Initialize tab from URL on first render only
   // We use a ref to ensure this only runs on initial render
