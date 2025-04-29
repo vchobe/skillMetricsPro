@@ -618,6 +618,30 @@ export class PostgresStorage implements IStorage {
   
   async updateSkill(id: number, data: Partial<Skill>): Promise<Skill> {
     try {
+      // Log the incoming data for debugging
+      console.log("UpdateSkill input data:", JSON.stringify(data));
+
+      // Create a sanitized copy of the data to ensure we don't have empty strings for ID fields
+      const sanitizedData: Partial<Skill> = {};
+      for (const [key, value] of Object.entries(data)) {
+        if (key === 'categoryId' || key === 'subcategoryId') {
+          // Convert empty strings to null for ID fields
+          if (value === '' || value === undefined) {
+            sanitizedData[key as keyof Skill] = null;
+          } else if (typeof value === 'number' || value === null) {
+            sanitizedData[key as keyof Skill] = value;
+          } else if (typeof value === 'string' && !isNaN(parseInt(value))) {
+            sanitizedData[key as keyof Skill] = parseInt(value); // Convert numeric string to number
+          } else {
+            sanitizedData[key as keyof Skill] = null; // Default to null for invalid values
+          }
+        } else {
+          sanitizedData[key as keyof Skill] = value;
+        }
+      }
+
+      console.log("Sanitized data:", JSON.stringify(sanitizedData));
+      
       const sets: string[] = [];
       const params: any[] = [];
       let paramIndex = 1;
@@ -625,20 +649,16 @@ export class PostgresStorage implements IStorage {
       // Add last_updated timestamp
       sets.push(`last_updated = CURRENT_TIMESTAMP`);
       
-      // Build SET clause and parameters
-      for (const [key, value] of Object.entries(data)) {
+      // Build SET clause and parameters using the sanitized data
+      for (const [key, value] of Object.entries(sanitizedData)) {
         if (key === 'id' || key === 'userId') continue; // Skip id and userId
         
         // Convert camelCase to snake_case for database column names
         const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
         sets.push(`${columnName} = $${paramIndex}`);
         
-        // Special handling for numeric fields - keep null instead of converting to empty string
-        if (key === 'categoryId' || key === 'subcategoryId') {
-          params.push(value); // Keep null for ID fields
-        } else {
-          params.push(value === null ? '' : value); // Convert null to empty string for other fields
-        }
+        // For all fields, use the value directly since we've already sanitized it
+        params.push(value);
         paramIndex++;
       }
       
