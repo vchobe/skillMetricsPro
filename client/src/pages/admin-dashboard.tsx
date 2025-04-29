@@ -1076,16 +1076,21 @@ export default function AdminDashboard() {
     isLoadingApprover
   });
   
-  // Use our custom hooks for hierarchical data
+  // Use our custom hooks for hierarchical data, but only for admins
+  // This prevents unnecessary 403 errors for non-admin approvers
   const {
     hierarchy: projectHierarchy,
     isLoading: isLoadingProjectHierarchy
-  } = useProjectHierarchy();
+  } = useProjectHierarchy({
+    enabled: isAdmin // Only fetch for admins
+  });
   
   const {
     hierarchy: skillHierarchy,
     isLoading: isLoadingSkillHierarchy
-  } = useSkillHierarchy();
+  } = useSkillHierarchy({
+    enabled: isAdmin // Only fetch for admins
+  });
   
   // Form for skill templates
   const templateForm = useForm<z.infer<typeof templateSchema>>({
