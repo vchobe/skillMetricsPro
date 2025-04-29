@@ -3,72 +3,82 @@ const { Pool } = pkg;
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
-// Check for database URL
-const databaseUrl = process.env.DATABASE_URL || process.env.CLOUD_SQL_URL || '';
-
-if (!databaseUrl) {
-  throw new Error(
-    "No database connection string found. Set DATABASE_URL or CLOUD_SQL_URL environment variable.",
-  );
-}
-
-// Log database URL (with password masked) and environment info
-const maskedUrl = databaseUrl.replace(/:[^:@]*@/, ':****@');
-console.log('Database URL:', maskedUrl);
-console.log('Environment:', process.env.NODE_ENV || 'development');
-console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
-console.log('DB Connection Mode:', databaseUrl.includes('host=/cloudsql/') ? 'Cloud SQL Socket' : 'Standard Connection');
-
-// Check if we're in production environment (GCP Cloud Run)
-const isProduction = process.env.NODE_ENV === 'production' || process.env.USE_CLOUD_SQL === 'true';
-
-// Parse connection configuration
-function parseConnectionConfig() {
-  let config: any;
+// Configuration for database connection
+function getDatabaseConfig() {
+  console.log('Environment:', process.env.NODE_ENV || 'development');
+  console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
   
-  // Check if we're in Cloud Run and have a DATABASE_URL with host=/cloudsql/
-  if (isProduction && databaseUrl.includes('host=/cloudsql/')) {
-    try {
-      // Parse the Cloud SQL connection string for PostgreSQL socket connection
-      // Format expected: postgresql://USER:PASSWORD@localhost/DB_NAME?host=/cloudsql/PROJECT:REGION:INSTANCE
-      const regex = /postgresql:\/\/([^:]+):([^@]+)@[^\/]+\/([^?]+)\?host=\/cloudsql\/([^&]+)/;
-      const match = databaseUrl.match(regex);
-      
-      if (match) {
-        const [_, user, password, dbName, instanceConnectionName] = match;
-        console.log(`Using Cloud SQL socket connection to: ${instanceConnectionName}`);
-        
-        return {
-          user,
-          password,
-          database: dbName,
-          host: `/cloudsql/${instanceConnectionName}`,
-          ssl: false, // SSL is not used with Unix socket
-          max: 20,
-          idleTimeoutMillis: 30000,
-          connectionTimeoutMillis: 10000
-        };
-      } else {
-        console.warn('DATABASE_URL includes host=/cloudsql/ but could not be parsed correctly');
-      }
-    } catch (error) {
-      console.error('Error parsing Cloud SQL connection string:', error);
-      console.log('Falling back to standard connection');
-    }
+  // Check for fallback DATABASE_URL first (this is already working)
+  const databaseUrl = process.env.DATABASE_URL || '';
+  const fallbackEnabled = process.env.USE_FALLBACK_DB === 'true';
+  
+  // Check for Google Cloud SQL configuration
+  const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
+  const cloudSqlUser = process.env.CLOUD_SQL_USER;
+  const cloudSqlPassword = process.env.CLOUD_SQL_PASSWORD;
+  const cloudSqlDatabase = process.env.CLOUD_SQL_DATABASE;
+  
+  // Check if we have Cloud SQL configuration
+  const hasCloudSqlConfig = cloudSqlConnectionName && cloudSqlUser && cloudSqlPassword && cloudSqlDatabase;
+  
+  // For now, we'll use DATABASE_URL since we know it works
+  // We can implement Cloud SQL connection later when we have Auth Proxy set up
+  if (databaseUrl && (fallbackEnabled || !hasCloudSqlConfig)) {
+    // Use the standard DATABASE_URL
+    console.log('Using standard PostgreSQL connection from DATABASE_URL');
+    const maskedUrl = databaseUrl.replace(/:[^:@]*@/, ':****@');
+    console.log('Database URL:', maskedUrl);
+    
+    return { 
+      connectionString: databaseUrl,
+      max: 20, 
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    };
   }
   
-  // For development or fallback: use standard PostgreSQL connection
-  console.log('Using standard PostgreSQL connection');
-  return { 
-    connectionString: databaseUrl,
-    max: 20, 
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000
-  };
+  // If we're here, we have Cloud SQL config and fallback is disabled
+  // Use Google Cloud SQL configuration
+  console.log('Using Google Cloud SQL connection');
+  
+  // Check if we're in production environment (GCP Cloud Run)
+  const isCloudRun = process.env.K_SERVICE || process.env.USE_CLOUD_SQL === 'true';
+  
+  if (isCloudRun) {
+    // In Cloud Run, use Unix socket connection
+    console.log(`Using Cloud SQL socket connection to: ${cloudSqlConnectionName}`);
+    
+    return {
+      user: cloudSqlUser,
+      password: cloudSqlPassword,
+      database: cloudSqlDatabase,
+      host: `/cloudsql/${cloudSqlConnectionName}`,
+      ssl: false, // SSL is not used with Unix socket
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    };
+  } else {
+    // In development, use TCP connection
+    // This requires Cloud SQL Auth Proxy to be running locally
+    console.log('Using Cloud SQL TCP connection (requires Cloud SQL Auth Proxy)');
+    
+    return {
+      user: cloudSqlUser,
+      password: cloudSqlPassword,
+      database: cloudSqlDatabase,
+      host: 'localhost',
+      port: 5432, // Default PostgreSQL port used by Cloud SQL Auth Proxy
+      ssl: false,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    };
+  }
 }
 
-// Configure pool with parsed connection config
-export const pool = new Pool(parseConnectionConfig());
+// Configure pool with our database config
+export const pool = new Pool(getDatabaseConfig());
 
 // Setup event handlers for connection issues
 pool.on('error', (err) => {
@@ -94,6 +104,7 @@ export async function testDatabaseConnection() {
 // Ensure the connection is valid at startup
 testDatabaseConnection().catch(err => {
   console.error('Initial database connection test failed:', err);
+  console.error('Please check your database connection configuration.');
 });
 
 export const db = drizzle(pool, { schema });
