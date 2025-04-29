@@ -1078,6 +1078,21 @@ export default function AdminDashboard() {
     isLoadingApprover
   });
   
+  // Data loading state for displaying diagnostic information
+  const dataState = {
+    isAdmin,
+    isApprover,
+    isLoadingApprover,
+    conditionalDataEnabled: isAdmin, // Only admins should load hierarchical project/skill data
+    user: user?.email || 'Not logged in'
+  };
+  
+  // This query should work for approvers (even if they're not admins)
+  const { data: pendingSkillUpdates, isLoading: isLoadingPendingSkillUpdates, error: pendingSkillsError } = useQuery({
+    queryKey: ['/api/admin/pending-skills'],
+    enabled: !!user && isApprover === true, // Only run for approvers
+  });
+  
   // Use our custom hooks for hierarchical data, but only for admins
   // This prevents unnecessary 403 errors for non-admin approvers
   const {
@@ -5056,6 +5071,14 @@ export default function AdminDashboard() {
                     <div>
                       <CardTitle>Pending Skill Approvals</CardTitle>
                       <CardDescription>Review and approve or reject skill updates submitted by users</CardDescription>
+                      
+                      {/* Diagnostic information (development only) */}
+                      {process.env.NODE_ENV !== 'production' && (
+                        <div className="mt-2 p-2 bg-muted/50 rounded text-xs font-mono overflow-auto max-h-32">
+                          <div className="font-semibold">User Rights:</div>
+                          <pre className="whitespace-pre-wrap">{JSON.stringify(dataState, null, 2)}</pre>
+                        </div>
+                      )}
                     </div>
                     {pendingSkills && pendingSkills.length === 0 && (
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
