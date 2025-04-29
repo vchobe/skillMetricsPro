@@ -1084,14 +1084,9 @@ export default function AdminDashboard() {
     isApprover,
     isLoadingApprover,
     conditionalDataEnabled: isAdmin, // Only admins should load hierarchical project/skill data
+    pendingSkillsEnabled: !!user && (isAdmin || isApprover === true),
     user: user?.email || 'Not logged in'
   };
-  
-  // This query should work for approvers (even if they're not admins)
-  const { data: pendingSkillUpdates, isLoading: isLoadingPendingSkillUpdates, error: pendingSkillsError } = useQuery({
-    queryKey: ['/api/admin/pending-skills'],
-    enabled: !!user && isApprover === true, // Only run for approvers
-  });
   
   // Use our custom hooks for hierarchical data, but only for admins
   // This prevents unnecessary 403 errors for non-admin approvers
@@ -1448,6 +1443,8 @@ export default function AdminDashboard() {
     }>
   }[]>({
     queryKey: ["/api/admin/pending-skills"],
+    // Enable this query for both admin and approver users
+    enabled: !!user && (isAdmin || isApprover === true),
   });
   
   // Get report settings
@@ -5074,9 +5071,16 @@ export default function AdminDashboard() {
                       
                       {/* Diagnostic information (development only) */}
                       {process.env.NODE_ENV !== 'production' && (
-                        <div className="mt-2 p-2 bg-muted/50 rounded text-xs font-mono overflow-auto max-h-32">
+                        <div className="mt-2 p-2 bg-muted/50 rounded text-xs font-mono overflow-auto max-h-48">
                           <div className="font-semibold">User Rights:</div>
                           <pre className="whitespace-pre-wrap">{JSON.stringify(dataState, null, 2)}</pre>
+                          
+                          <div className="font-semibold mt-2">Pending Skills Data:</div>
+                          <pre className="whitespace-pre-wrap">
+                            {isLoadingPendingSkills ? "Loading pending skills..." : 
+                             pendingSkills ? `Found ${pendingSkills.length} user(s) with pending skills` : 
+                             "No pending skills available"}
+                          </pre>
                         </div>
                       )}
                     </div>
