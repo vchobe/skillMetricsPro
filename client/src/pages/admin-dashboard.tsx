@@ -1965,7 +1965,7 @@ export default function AdminDashboard() {
             >
               <TabsList className="w-full mb-2 flex flex-wrap gap-2">
                 {/* Show either admin tabs or just the approvals tab for non-admin approvers */}
-                {user?.is_admin ? (
+                {isAdmin ? (
                   // Full admin UI with all tabs
                   <>
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
