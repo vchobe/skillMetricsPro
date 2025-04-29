@@ -1246,17 +1246,29 @@ export default function AdminDashboard() {
     // Skip if already initialized
     if (initialRenderCompleted.current) return;
     
-    // Get the tab from URL path parameter
-    const currentPath = window.location.pathname;
-    const pathParts = currentPath.split('/');
-    const tab = pathParts[2]; // /admin/tab format
+    // First check for query parameter tab (used by non-admin approvers)
+    const queryParams = new URLSearchParams(window.location.search);
+    const queryTab = queryParams.get("tab");
     
-    // Only initialize tab from URL, don't modify URL here
-    if (tab === "users" || tab === "skill-history" || tab === "certifications" || tab === "user-management") {
-      setActiveTab(tab);
-    } else if (currentPath === "/admin" || currentPath.startsWith("/admin/")) {
-      // Default to dashboard if no valid tab is specified
-      setActiveTab("dashboard");
+    if (queryTab === "approvals") {
+      // For non-admin approvers, we want to show the approvals tab
+      setActiveTab("approvals");
+    } else if (queryTab === "users" || queryTab === "skill-history" || queryTab === "certifications" || queryTab === "user-management") {
+      // Handle other query parameter tabs
+      setActiveTab(queryTab);
+    } else {
+      // Fallback to path parameter for backward compatibility
+      const currentPath = window.location.pathname;
+      const pathParts = currentPath.split('/');
+      const pathTab = pathParts[2]; // /admin/tab format
+      
+      // Only initialize tab from URL, don't modify URL here
+      if (pathTab === "users" || pathTab === "skill-history" || pathTab === "certifications" || pathTab === "user-management") {
+        setActiveTab(pathTab);
+      } else if (currentPath === "/admin" || currentPath.startsWith("/admin/")) {
+        // Default to dashboard if no valid tab is specified
+        setActiveTab("dashboard");
+      }
     }
     
     // Mark initialization as completed

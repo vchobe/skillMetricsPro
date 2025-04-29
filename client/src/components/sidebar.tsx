@@ -257,17 +257,15 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                     href="#" 
                     onClick={(e) => {
                       e.preventDefault();
-                      // Preserve current tab state in URL, default to skill-updates tab for approvers
-                      const params = new URLSearchParams(window.location.search);
-                      const tab = params.get("tab");
-                      const adminUrl = tab ? `/admin?tab=${tab}` : "/admin?tab=skill-updates";
+                      // For non-admin approvers, always navigate to the skill-updates tab
+                      const adminUrl = "/admin?tab=approvals";
                       
                       // Update URL and navigate to the proper tab
                       window.history.pushState({}, "", adminUrl);
                       setLocation(adminUrl);
                     }}
                     className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-                      currentPath === "/admin" 
+                      currentPath === "/admin" && new URLSearchParams(window.location.search).get("tab") === "approvals"
                         ? "bg-gray-900 text-white" 
                         : "text-gray-300 hover:bg-gray-700 hover:text-white"
                     }`}
