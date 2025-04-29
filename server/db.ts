@@ -3,7 +3,13 @@ const { Pool } = pkg;
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
-// Configuration for database connection
+/**
+ * Database Configuration
+ * 
+ * This module handles connecting to Google Cloud SQL as the permanent database
+ * for the application. It supports both direct TCP connections and Unix socket
+ * connections for Cloud Run deployments.
+ */
 function getDatabaseConfig() {
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
@@ -17,12 +23,13 @@ function getDatabaseConfig() {
   // Check if we have Cloud SQL configuration
   const hasCloudSqlConfig = cloudSqlConnectionName && cloudSqlUser && cloudSqlPassword && cloudSqlDatabase;
   
+  // Verify required credentials
   if (!hasCloudSqlConfig) {
     throw new Error('Google Cloud SQL configuration is missing. Please set CLOUD_SQL_CONNECTION_NAME, CLOUD_SQL_USER, CLOUD_SQL_PASSWORD, and CLOUD_SQL_DATABASE environment variables.');
   }
   
-  // Using Google Cloud SQL exclusively
-  console.log('Using Google Cloud SQL connection exclusively');
+  // PERMANENT CONFIGURATION: Using Google Cloud SQL exclusively
+  console.log('PERMANENT DATABASE CONFIGURATION: Using Google Cloud SQL');
   
   // For GCP Cloud Run, use Unix socket connection
   const isCloudRun = process.env.K_SERVICE || process.env.USE_CLOUD_SQL === 'true';
@@ -51,6 +58,7 @@ function getDatabaseConfig() {
     const dbPort = parseInt(process.env.CLOUD_SQL_PORT || '5432', 10);
     
     console.log(`Using direct TCP connection to: ${dbHost}:${dbPort}`);
+    console.log('SSL Enabled:', process.env.CLOUD_SQL_USE_SSL === 'true' ? 'Yes' : 'No');
     
     return {
       user: cloudSqlUser,
