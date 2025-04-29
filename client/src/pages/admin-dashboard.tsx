@@ -864,16 +864,17 @@ function SendReportButton({ reportSettings = [] }: { reportSettings: ReportSetti
 }
 
 // Custom hooks for hierarchical data
-function useProjectHierarchy() {
+function useProjectHierarchy({ enabled = true } = {}) {
   // Primary method: Try to fetch the complete hierarchy from a single API endpoint
   const { data: hierarchyData, isLoading: isLoadingHierarchy, error: hierarchyError } = useQuery<Client[]>({
     queryKey: ["/api/admin/project-hierarchy"],
+    enabled: enabled, // Only fetch if enabled is true
   });
   
   // Fallback approach if the hierarchy API fails: Construct from individual endpoints
   const { data: clients, isLoading: isLoadingClients } = useQuery<Client[]>({
     queryKey: ["/api/admin/clients"],
-    enabled: !!hierarchyError,
+    enabled: enabled && !!hierarchyError, // Only fetch if enabled AND hierarchyError
   });
   
   const { data: projects, isLoading: isLoadingProjects } = useQuery<Project[]>({
@@ -951,16 +952,17 @@ function useProjectHierarchy() {
   };
 }
 
-function useSkillHierarchy() {
+function useSkillHierarchy({ enabled = true } = {}) {
   // Primary method: Try to fetch the complete hierarchy from a single API endpoint
   const { data: hierarchyData, isLoading: isLoadingHierarchy, error: hierarchyError } = useQuery<SkillCategory[]>({
     queryKey: ["/api/admin/skill-hierarchy"],
+    enabled: enabled, // Only fetch if enabled is true
   });
   
   // Fallback approach if the hierarchy API fails: Construct from individual endpoints
   const { data: categories, isLoading: isLoadingCategories } = useQuery<SkillCategory[]>({
     queryKey: ["/api/admin/skill-categories"],
-    enabled: !!hierarchyError,
+    enabled: enabled && !!hierarchyError, // Only fetch if enabled AND hierarchyError
   });
   
   const { data: allSubcategories, isLoading: isLoadingSubcategories } = useQuery<SkillSubcategory[]>({
