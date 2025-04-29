@@ -33,8 +33,8 @@ export function ProtectedRoute({
   });
 
   // Show loading indicator while checking auth or approver status
-  // For admin routes that allow approvers, always wait for approver status to load
-  if (isLoading || (adminOnly && approversAllowed && isLoadingApprover)) {
+  // For admin routes or routes that allow approvers, always wait for approver status to load
+  if (isLoading || (adminOnly && isLoadingApprover)) {
     console.log("Showing loading state:", { isLoading, isLoadingApprover, adminOnly, approversAllowed, path });
     return (
       <Route path={path}>
@@ -77,10 +77,10 @@ export function ProtectedRoute({
     // Admin routes accessible to admins
     hasAccess = true;
     console.log("Access granted: User is admin");
-  } else if (approversAllowed && isUserApprover === true) {
-    // Admin routes that allow approvers
+  } else if (approversAllowed && isUserApprover) {
+    // Admin routes that allow approvers - strict equality check was causing issues
     hasAccess = true;
-    console.log("Access granted: User is approver");
+    console.log("Access granted: User is approver with value:", isUserApprover);
   }
   
   if (!hasAccess) {
@@ -93,8 +93,10 @@ export function ProtectedRoute({
       approversAllowed
     });
     
-    // If this is an admin page and approvers are allowed, check if approver status is undefined
-    // This could happen if the query hasn't completed yet
+    // This block is no longer needed since we're handling loading states separately
+    // and we adjusted how we check for the approver status
+    // Keeping the commented code for reference:
+    /*
     if (adminOnly && approversAllowed && isUserApprover === undefined) {
       console.log("Approver status is undefined, showing loading state");
       return (
@@ -105,6 +107,7 @@ export function ProtectedRoute({
         </Route>
       );
     }
+    */
     
     return (
       <Route path={path}>
