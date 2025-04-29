@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export function ProtectedRoute({
   path,
@@ -15,35 +16,17 @@ export function ProtectedRoute({
   approversAllowed?: boolean;
 }) {
   const { user, isLoading } = useAuth();
-  const [isApprover, setIsApprover] = useState<boolean | null>(null);
-  const [checkingApprover, setCheckingApprover] = useState<boolean>(false);
   
-  // Check if user is an approver when needed
-  useEffect(() => {
-    if (!user || !approversAllowed || checkingApprover) return;
-    
-    async function checkApproverStatus() {
-      try {
-        setCheckingApprover(true);
-        const response = await fetch('/api/user/is-approver');
-        if (response.ok) {
-          const approverStatus = await response.json();
-          setIsApprover(!!approverStatus); // Convert to boolean
-        } else {
-          setIsApprover(false);
-        }
-      } catch (error) {
-        console.error("Error checking approver status:", error);
-        setIsApprover(false);
-      } finally {
-        setCheckingApprover(false);
-      }
-    }
-    
-    checkApproverStatus();
-  }, [user, approversAllowed, checkingApprover]);
+  // Use React Query for proper caching and loading state management
+  const { data: isApprover, isLoading: isLoadingApprover } = useQuery<boolean>({
+    queryKey: ['/api/user/is-approver'],
+    enabled: !!user && adminOnly && approversAllowed && !(user.is_admin === true || user.isAdmin === true), // Only check for non-admin users on protected routes
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
-  if (isLoading || (approversAllowed && isApprover === null && !checkingApprover)) {
+  // Show loading indicator while checking auth or approver status (only when needed)
+  const needsApproverCheck = approversAllowed && adminOnly && !!user && !(user.is_admin === true || user.isAdmin === true);
+  if (isLoading || (needsApproverCheck && isLoadingApprover)) {
     return (
       <Route path={path}>
         <div className="flex items-center justify-center min-h-screen">
@@ -66,8 +49,13 @@ export function ProtectedRoute({
   
   // Allow access if:
   // - user is admin, or
-  // - route allows approvers and user is an approver
+  // - route allows approvers and user is an approver (check needs to handle undefined case)
+  // - for approvers, we only need to check if route allows them and we know they're an approver from the API
   const hasAccess = isAdmin || (approversAllowed && isApprover === true);
+  
+  // For admins, we know they have access to all admin routes
+  // For approvers, if we're still loading data, we'll handle it below
+  // If user is neither admin nor approver, they don't have access
   
   if (adminOnly && !hasAccess) {
     console.log("Access denied: User is not authorized", { 
