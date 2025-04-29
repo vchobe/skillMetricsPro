@@ -2796,10 +2796,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ----- SKILL CATEGORY MANAGEMENT ROUTES -----
   
-  // Get all skill categories
-  app.get("/api/skill-categories", ensureAuth, async (req, res) => {
+  // Get all skill categories - making this public for skill management UI
+  app.get("/api/skill-categories", async (req, res) => {
     try {
       const categories = await storage.getAllSkillCategories();
+      
+      // Log to help with debugging
+      console.log(`Found ${categories.length} skill categories`);
+      
       res.json(categories);
     } catch (error) {
       console.error("Error fetching skill categories:", error);
@@ -2902,8 +2906,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // ----- SKILL SUBCATEGORY MANAGEMENT ROUTES -----
   
-  // Get all subcategories
-  app.get("/api/skill-subcategories", ensureAuth, async (req, res) => {
+  // Get all subcategories - making this public for skill management UI
+  app.get("/api/skill-subcategories", async (req, res) => {
     try {
       // Optional query param to filter by category ID
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
@@ -2917,6 +2921,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subcategories = await storage.getAllSkillSubcategories();
       }
       
+      // Log to help with debugging
+      console.log(`Found ${subcategories.length} skill subcategories${categoryId ? ` for category ${categoryId}` : ''}`);
+      
       res.json(subcategories);
     } catch (error) {
       console.error("Error fetching skill subcategories:", error);
@@ -2924,8 +2931,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get subcategories for a specific category
-  app.get("/api/skill-categories/:id/subcategories", ensureAuth, async (req, res) => {
+  // Get subcategories for a specific category - making this public for skill management UI
+  app.get("/api/skill-categories/:id/subcategories", async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
       
@@ -2940,6 +2947,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const subcategories = await storage.getSubcategoriesByCategory(categoryId);
+      
+      // Log to help with debugging
+      console.log(`Found ${subcategories.length} subcategories for category ${categoryId} (${category.name})`);
+      
       res.json(subcategories);
     } catch (error) {
       console.error("Error fetching subcategories for category:", error);
@@ -3299,27 +3310,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get all skill categories for Skill Overview
-  app.get("/api/skill-categories", ensureAuth, async (req, res) => {
-    try {
-      const categories = await storage.getAllSkillCategories();
-      res.json(categories);
-    } catch (error) {
-      console.error("Error fetching skill categories:", error);
-      res.status(500).json({ message: "Error fetching skill categories", error: String(error) });
-    }
-  });
+  // Removed duplicate route for /api/skill-categories
+  // The route is now defined as public above
   
-  // Get all skill subcategories for Skill Overview
-  app.get("/api/skill-subcategories", ensureAuth, async (req, res) => {
-    try {
-      const subcategories = await storage.getAllSkillSubcategories();
-      res.json(subcategories);
-    } catch (error) {
-      console.error("Error fetching skill subcategories:", error);
-      res.status(500).json({ message: "Error fetching skill subcategories", error: String(error) });
-    }
-  });
+  // Removed duplicate route for /api/skill-subcategories
+  // The route is now defined as public above
   
   // Get all skills for Skill Overview
   app.get("/api/all-skills", ensureAuth, async (req, res) => {
