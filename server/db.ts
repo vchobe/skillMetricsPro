@@ -8,26 +8,6 @@ function getDatabaseConfig() {
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
   
-  // First, check if fallback is explicitly enabled
-  const fallbackEnabled = process.env.USE_FALLBACK_DB === 'true';
-  
-  // Get DATABASE_URL (the existing working connection)
-  const databaseUrl = process.env.DATABASE_URL || '';
-  
-  // If fallback is enabled and we have a DATABASE_URL, use it
-  if (fallbackEnabled && databaseUrl) {
-    console.log('Fallback enabled: Using standard PostgreSQL connection from DATABASE_URL');
-    const maskedUrl = databaseUrl.replace(/:[^:@]*@/, ':****@');
-    console.log('Database URL:', maskedUrl);
-    
-    return { 
-      connectionString: databaseUrl,
-      max: 20, 
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000
-    };
-  }
-  
   // Check for Google Cloud SQL configuration
   const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
   const cloudSqlUser = process.env.CLOUD_SQL_USER;
@@ -37,24 +17,14 @@ function getDatabaseConfig() {
   // Check if we have Cloud SQL configuration
   const hasCloudSqlConfig = cloudSqlConnectionName && cloudSqlUser && cloudSqlPassword && cloudSqlDatabase;
   
-  // If we don't have Cloud SQL config, fall back to DATABASE_URL
-  if (!hasCloudSqlConfig && databaseUrl) {
-    console.log('No Cloud SQL config: Using standard PostgreSQL connection from DATABASE_URL');
-    const maskedUrl = databaseUrl.replace(/:[^:@]*@/, ':****@');
-    console.log('Database URL:', maskedUrl);
-    
-    return { 
-      connectionString: databaseUrl,
-      max: 20, 
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000
-    };
+  if (!hasCloudSqlConfig) {
+    throw new Error('Google Cloud SQL configuration is missing. Please set CLOUD_SQL_CONNECTION_NAME, CLOUD_SQL_USER, CLOUD_SQL_PASSWORD, and CLOUD_SQL_DATABASE environment variables.');
   }
   
-  // If we're here, we have Cloud SQL config and fallback is not enabled
-  console.log('Using Google Cloud SQL connection');
+  // Using Google Cloud SQL exclusively
+  console.log('Using Google Cloud SQL connection exclusively');
   
-  // Check if we're in production environment (GCP Cloud Run)
+  // For GCP Cloud Run, use Unix socket connection
   const isCloudRun = process.env.K_SERVICE || process.env.USE_CLOUD_SQL === 'true';
   
   if (isCloudRun) {
@@ -72,31 +42,23 @@ function getDatabaseConfig() {
       connectionTimeoutMillis: 10000
     };
   } else {
-    // In development, use TCP connection
-    // This requires Cloud SQL Auth Proxy to be running locally
-    console.log('Using Cloud SQL TCP connection (requires Cloud SQL Auth Proxy)');
-    // If we have a DATABASE_URL, use it as a fallback in development
-    if (databaseUrl) {
-      console.log('No Cloud SQL Auth Proxy detected, falling back to DATABASE_URL');
-      const maskedUrl = databaseUrl.replace(/:[^:@]*@/, ':****@');
-      console.log('Database URL:', maskedUrl);
-      
-      return { 
-        connectionString: databaseUrl,
-        max: 20, 
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000
-      };
-    }
+    // In development or direct connection mode, use TCP connection
+    // This requires the database to be publicly accessible or using
+    // Cloud SQL Auth Proxy if connecting to private instances
     
-    // No fallback available, return Cloud SQL config
+    // Check if we have host and port override - useful for direct connections
+    const dbHost = process.env.CLOUD_SQL_HOST || 'localhost';
+    const dbPort = parseInt(process.env.CLOUD_SQL_PORT || '5432', 10);
+    
+    console.log(`Using direct TCP connection to: ${dbHost}:${dbPort}`);
+    
     return {
       user: cloudSqlUser,
       password: cloudSqlPassword,
       database: cloudSqlDatabase,
-      host: 'localhost',
-      port: 5432, // Default PostgreSQL port used by Cloud SQL Auth Proxy
-      ssl: false,
+      host: dbHost,
+      port: dbPort,
+      ssl: process.env.CLOUD_SQL_USE_SSL === 'true',
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000
