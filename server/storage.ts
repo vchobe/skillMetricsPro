@@ -615,7 +615,13 @@ export class PostgresStorage implements IStorage {
         // Convert camelCase to snake_case for database column names
         const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
         sets.push(`${columnName} = $${paramIndex}`);
-        params.push(value === null ? '' : value); // Convert null to empty string
+        
+        // Special handling for numeric fields - keep null instead of converting to empty string
+        if (key === 'categoryId' || key === 'subcategoryId') {
+          params.push(value); // Keep null for ID fields
+        } else {
+          params.push(value === null ? '' : value); // Convert null to empty string for other fields
+        }
         paramIndex++;
       }
       
