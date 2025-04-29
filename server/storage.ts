@@ -1435,10 +1435,28 @@ export class PostgresStorage implements IStorage {
         throw new Error('Pending skill update not found');
       }
       
-      const pendingUpdate = this.snakeToCamel(pendingResult.rows[0]) as PendingSkillUpdate;
+      // Get the raw pending update and log it
+      const rawPendingUpdate = pendingResult.rows[0];
+      console.log("Raw pending update from DB:", JSON.stringify(rawPendingUpdate, null, 2));
+      
+      const pendingUpdate = this.snakeToCamel(rawPendingUpdate) as PendingSkillUpdate;
+      console.log("Converted pending update:", JSON.stringify(pendingUpdate, null, 2));
       
       let skill: Skill;
       let previousLevel: string | null = null;
+      
+      // Ensure we have valid values for category_id and subcategory_id
+      // If they're empty strings, set them to null
+      if (pendingUpdate.categoryId === '') {
+        pendingUpdate.categoryId = null;
+      }
+      
+      if (pendingUpdate.subcategoryId === '') {
+        pendingUpdate.subcategoryId = null;
+      }
+      
+      console.log("Processed categoryId:", pendingUpdate.categoryId);
+      console.log("Processed subcategoryId:", pendingUpdate.subcategoryId);
       
       // Handle skill creation or update based on isUpdate flag
       if (pendingUpdate.isUpdate && pendingUpdate.skillId) {
@@ -1452,34 +1470,44 @@ export class PostgresStorage implements IStorage {
         
         previousLevel = existingSkill.level;
         
-        // Update the existing skill
-        skill = await this.updateSkill(pendingUpdate.skillId, {
+        // Create a clean update object, ensuring IDs are either numbers or null
+        const updateData = {
           name: pendingUpdate.name,
           category: pendingUpdate.category,
-          categoryId: pendingUpdate.categoryId,
-          subcategoryId: pendingUpdate.subcategoryId,
+          categoryId: typeof pendingUpdate.categoryId === 'number' ? pendingUpdate.categoryId : null,
+          subcategoryId: typeof pendingUpdate.subcategoryId === 'number' ? pendingUpdate.subcategoryId : null,
           level: pendingUpdate.level,
           certification: pendingUpdate.certification,
           credlyLink: pendingUpdate.credlyLink,
           notes: pendingUpdate.notes,
           certificationDate: pendingUpdate.certificationDate,
           expirationDate: pendingUpdate.expirationDate
-        });
+        };
+        
+        console.log("Update data to be sent to updateSkill:", JSON.stringify(updateData, null, 2));
+        
+        // Update the existing skill
+        skill = await this.updateSkill(pendingUpdate.skillId, updateData);
       } else {
-        // Create a new skill
-        skill = await this.createSkill({
+        // Create a clean create object, ensuring IDs are either numbers or null
+        const createData = {
           userId: pendingUpdate.userId,
           name: pendingUpdate.name,
           category: pendingUpdate.category,
-          categoryId: pendingUpdate.categoryId,
-          subcategoryId: pendingUpdate.subcategoryId,
+          categoryId: typeof pendingUpdate.categoryId === 'number' ? pendingUpdate.categoryId : null,
+          subcategoryId: typeof pendingUpdate.subcategoryId === 'number' ? pendingUpdate.subcategoryId : null,
           level: pendingUpdate.level,
           certification: pendingUpdate.certification,
           credlyLink: pendingUpdate.credlyLink,
           notes: pendingUpdate.notes,
           certificationDate: pendingUpdate.certificationDate,
           expirationDate: pendingUpdate.expirationDate
-        });
+        };
+        
+        console.log("Create data to be sent to createSkill:", JSON.stringify(createData, null, 2));
+        
+        // Create a new skill
+        skill = await this.createSkill(createData);
       }
       
       // Create a skill history entry for tracking
