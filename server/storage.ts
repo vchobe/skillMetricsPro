@@ -1444,6 +1444,8 @@ export class PostgresStorage implements IStorage {
       // Start a transaction
       await pool.query('BEGIN');
 
+      console.log(`Starting approval for pending skill update ID ${id} by reviewer ${reviewerId}`);
+
       // First, get the pending update
       const pendingResult = await pool.query(
         'SELECT * FROM pending_skill_updates WHERE id = $1',
@@ -1457,27 +1459,35 @@ export class PostgresStorage implements IStorage {
       
       // Get the pending update data
       const rawPendingUpdate = pendingResult.rows[0];
+      console.log(`Raw pending update data:`, JSON.stringify(rawPendingUpdate));
       
-      // Fix null/empty string issues before converting to camelCase
-      // The database might return empty strings for nullable integer columns
-      if (rawPendingUpdate.subcategory_id === '') {
-        rawPendingUpdate.subcategory_id = null;
+      // Create a sanitized version of the raw data that handles empty strings properly
+      const sanitizedData = {...rawPendingUpdate};
+      
+      // Handle numeric fields specifically
+      if (sanitizedData.subcategory_id === '' || sanitizedData.subcategory_id === undefined) {
+        sanitizedData.subcategory_id = null;
+        console.log('Fixed empty subcategory_id to null');
       }
       
-      if (rawPendingUpdate.category_id === '') {
-        rawPendingUpdate.category_id = null;
+      if (sanitizedData.category_id === '' || sanitizedData.category_id === undefined) {
+        sanitizedData.category_id = null;
+        console.log('Fixed empty category_id to null');
       }
       
-      console.log(`Raw pending update ID ${id}:`, JSON.stringify(rawPendingUpdate));
+      console.log(`Sanitized pending update data:`, JSON.stringify(sanitizedData));
       
       // Now convert to camelCase
-      const pendingUpdate = this.snakeToCamel(rawPendingUpdate) as PendingSkillUpdate;
+      const pendingUpdate = this.snakeToCamel(sanitizedData) as PendingSkillUpdate;
+      console.log(`CamelCase pending update data:`, JSON.stringify(pendingUpdate));
       
       let skill: Skill;
       let previousLevel: string | null = null;
       
       // Handle skill creation or update based on isUpdate flag
       if (pendingUpdate.isUpdate && pendingUpdate.skillId) {
+        console.log(`Updating existing skill ID ${pendingUpdate.skillId}`);
+        
         // Get the existing skill to capture its current level
         const existingSkill = await this.getSkill(pendingUpdate.skillId);
         
@@ -1487,62 +1497,153 @@ export class PostgresStorage implements IStorage {
         }
         
         previousLevel = existingSkill.level;
+        console.log(`Previous skill level: ${previousLevel}`);
         
-        // Update the existing skill - direct SQL to bypass any issues with updateSkill method
-        const updateResult = await pool.query(
-          `UPDATE skills SET 
-            name = $1, 
-            category = $2, 
-            category_id = $3, 
-            subcategory_id = $4, 
-            level = $5, 
-            certification = $6, 
-            credly_link = $7, 
-            notes = $8,
-            certification_date = $9,
-            expiration_date = $10,
-            last_updated = CURRENT_TIMESTAMP
-           WHERE id = $11 
-           RETURNING *`,
-          [
-            pendingUpdate.name,
-            pendingUpdate.category,
-            pendingUpdate.categoryId,  // Already fixed to be null instead of empty string
-            pendingUpdate.subcategoryId, // Already fixed to be null instead of empty string
-            pendingUpdate.level,
-            pendingUpdate.certification || '',
-            pendingUpdate.credlyLink || '',
-            pendingUpdate.notes || '',
-            pendingUpdate.certificationDate,
-            pendingUpdate.expirationDate,
-            pendingUpdate.skillId
-          ]
-        );
-        
-        if (updateResult.rows.length === 0) {
-          await pool.query('ROLLBACK');
-          throw new Error('Failed to update skill');
+        // IMPORTANT: Use direct SQL to avoid type conversion issues
+        try {
+          const updateResult = await pool.query(
+            `UPDATE skills SET 
+              name = $1, 
+              category = $2, 
+              level = $3, 
+              certification = $4, 
+              credly_link = $5, 
+              notes = $6,
+              certification_date = $7,
+              expiration_date = $8,
+              category_id = $9,
+              subcategory_id = $10,
+              last_updated = CURRENT_TIMESTAMP
+             WHERE id = $11 
+             RETURNING *`,
+            [
+              pendingUpdate.name,
+              pendingUpdate.category,
+              pendingUpdate.level,
+              pendingUpdate.certification || '',
+              pendingUpdate.credlyLink || '',
+              pendingUpdate.notes || '',
+              pendingUpdate.certificationDate,
+              pendingUpdate.expirationDate,
+              // Use nulls for empty or invalid ID fields
+              (pendingUpdate.categoryId === '' || pendingUpdate.categoryId === undefined) ? null : pendingUpdate.categoryId,
+              (pendingUpdate.subcategoryId === '' || pendingUpdate.subcategoryId === undefined) ? null : pendingUpdate.subcategoryId,
+              pendingUpdate.skillId
+            ]
+          );
+          
+          if (updateResult.rows.length === 0) {
+            await pool.query('ROLLBACK');
+            throw new Error('Failed to update skill');
+          }
+          
+          skill = this.snakeToCamel(updateResult.rows[0]);
+          console.log(`Skill updated successfully:`, JSON.stringify(skill));
+        } catch (updateError) {
+          console.error("Error updating skill with direct SQL:", updateError);
+          
+          // Try another approach with simpler SQL if the first attempt fails
+          console.log("Trying alternative update approach...");
+          
+          const updateResult = await pool.query(
+            `UPDATE skills SET 
+              name = $1, 
+              category = $2, 
+              level = $3, 
+              certification = $4, 
+              credly_link = $5, 
+              notes = $6,
+              last_updated = CURRENT_TIMESTAMP
+             WHERE id = $7 
+             RETURNING *`,
+            [
+              pendingUpdate.name,
+              pendingUpdate.category,
+              pendingUpdate.level,
+              pendingUpdate.certification || '',
+              pendingUpdate.credlyLink || '',
+              pendingUpdate.notes || '',
+              pendingUpdate.skillId
+            ]
+          );
+          
+          // Special handling for subcategory_id - update it separately
+          await pool.query(
+            `UPDATE skills SET subcategory_id = NULL WHERE id = $1`,
+            [pendingUpdate.skillId]
+          );
+          
+          // Fix the category_id field separately if needed
+          if (pendingUpdate.categoryId) {
+            await pool.query(
+              `UPDATE skills SET category_id = $1 WHERE id = $2`,
+              [pendingUpdate.categoryId, pendingUpdate.skillId]
+            );
+          } else {
+            await pool.query(
+              `UPDATE skills SET category_id = NULL WHERE id = $1`,
+              [pendingUpdate.skillId]
+            );
+          }
+          
+          if (updateResult.rows.length === 0) {
+            await pool.query('ROLLBACK');
+            throw new Error('Failed to update skill with fallback method');
+          }
+          
+          // Get the updated skill after our separate updates
+          const refreshedSkillResult = await pool.query(
+            `SELECT * FROM skills WHERE id = $1`,
+            [pendingUpdate.skillId]
+          );
+          
+          skill = this.snakeToCamel(refreshedSkillResult.rows[0]);
+          console.log(`Skill updated with fallback method:`, JSON.stringify(skill));
         }
-        
-        skill = this.snakeToCamel(updateResult.rows[0]);
       } else {
-        // Create a new skill
-        skill = await this.createSkill({
+        // Create a new skill - make sure integer fields are handled correctly
+        console.log(`Creating new skill for user ${pendingUpdate.userId}`);
+        
+        // Sanitize fields for new skill creation
+        const createSkillData: InsertSkill = {
           userId: pendingUpdate.userId,
           name: pendingUpdate.name,
           category: pendingUpdate.category,
-          categoryId: pendingUpdate.categoryId,
-          subcategoryId: pendingUpdate.subcategoryId,
           level: pendingUpdate.level,
           certification: pendingUpdate.certification,
           credlyLink: pendingUpdate.credlyLink,
-          notes: pendingUpdate.notes,
-          certificationDate: pendingUpdate.certificationDate,
-          expirationDate: pendingUpdate.expirationDate
-        });
+          notes: pendingUpdate.notes
+        };
+        
+        // Only add these fields if they have valid values
+        if (pendingUpdate.certificationDate) {
+          createSkillData.certificationDate = pendingUpdate.certificationDate;
+        }
+        
+        if (pendingUpdate.expirationDate) {
+          createSkillData.expirationDate = pendingUpdate.expirationDate;
+        }
+        
+        // These are the integer fields that need special handling
+        if (pendingUpdate.categoryId !== null && pendingUpdate.categoryId !== undefined && pendingUpdate.categoryId !== '') {
+          createSkillData.categoryId = typeof pendingUpdate.categoryId === 'string' 
+            ? parseInt(pendingUpdate.categoryId) 
+            : pendingUpdate.categoryId;
+        }
+        
+        if (pendingUpdate.subcategoryId !== null && pendingUpdate.subcategoryId !== undefined && pendingUpdate.subcategoryId !== '') {
+          createSkillData.subcategoryId = typeof pendingUpdate.subcategoryId === 'string' 
+            ? parseInt(pendingUpdate.subcategoryId) 
+            : pendingUpdate.subcategoryId;
+        }
+        
+        console.log(`Creating skill with data:`, JSON.stringify(createSkillData));
+        skill = await this.createSkill(createSkillData);
+        console.log(`New skill created:`, JSON.stringify(skill));
       }
       
       // Create a skill history entry for tracking
+      console.log(`Creating skill history entry`);
       await this.createSkillHistory({
         skillId: skill.id,
         userId: pendingUpdate.userId,
@@ -1552,6 +1653,7 @@ export class PostgresStorage implements IStorage {
       });
       
       // Create a notification for the user
+      console.log(`Creating notification for user ${pendingUpdate.userId}`);
       await this.createNotification({
         userId: pendingUpdate.userId,
         type: 'achievement',
@@ -1561,6 +1663,7 @@ export class PostgresStorage implements IStorage {
       });
       
       // Update the pending update status
+      console.log(`Updating pending skill update status to approved`);
       await pool.query(
         `UPDATE pending_skill_updates SET 
          status = 'approved', 
@@ -1573,6 +1676,7 @@ export class PostgresStorage implements IStorage {
       
       // Commit the transaction
       await pool.query('COMMIT');
+      console.log(`Transaction committed successfully`);
       
       return skill;
     } catch (error) {
@@ -1588,6 +1692,8 @@ export class PostgresStorage implements IStorage {
       // Start a transaction
       await pool.query('BEGIN');
       
+      console.log(`Starting rejection for pending skill update ID ${id} by reviewer ${reviewerId}`);
+      
       // Get the pending update to be rejected
       const pendingResult = await pool.query(
         'SELECT * FROM pending_skill_updates WHERE id = $1',
@@ -1599,20 +1705,32 @@ export class PostgresStorage implements IStorage {
         throw new Error('Pending skill update not found');
       }
       
-      // Fix null/empty string issues before converting to camelCase
-      // The database might return empty strings for nullable integer columns
+      // Get the pending update data
       const rawPendingUpdate = pendingResult.rows[0];
-      if (rawPendingUpdate.subcategory_id === '') {
-        rawPendingUpdate.subcategory_id = null;
+      console.log(`Raw pending update data for rejection:`, JSON.stringify(rawPendingUpdate));
+      
+      // Create a sanitized version of the raw data that handles empty strings properly
+      const sanitizedData = {...rawPendingUpdate};
+      
+      // Handle numeric fields specifically
+      if (sanitizedData.subcategory_id === '' || sanitizedData.subcategory_id === undefined) {
+        sanitizedData.subcategory_id = null;
+        console.log('Fixed empty subcategory_id to null for rejection');
       }
       
-      if (rawPendingUpdate.category_id === '') {
-        rawPendingUpdate.category_id = null;
+      if (sanitizedData.category_id === '' || sanitizedData.category_id === undefined) {
+        sanitizedData.category_id = null;
+        console.log('Fixed empty category_id to null for rejection');
       }
       
-      const pendingUpdate = this.snakeToCamel(rawPendingUpdate) as PendingSkillUpdate;
+      console.log(`Sanitized pending update data for rejection:`, JSON.stringify(sanitizedData));
+      
+      // Now convert to camelCase
+      const pendingUpdate = this.snakeToCamel(sanitizedData) as PendingSkillUpdate;
+      console.log(`CamelCase pending update data for rejection:`, JSON.stringify(pendingUpdate));
       
       // Update the pending update status
+      console.log(`Updating pending skill update status to rejected`);
       await pool.query(
         `UPDATE pending_skill_updates SET 
          status = 'rejected', 
@@ -1624,6 +1742,7 @@ export class PostgresStorage implements IStorage {
       );
       
       // Create a notification for the user
+      console.log(`Creating notification for rejected skill update for user ${pendingUpdate.userId}`);
       await this.createNotification({
         userId: pendingUpdate.userId,
         type: 'achievement', // Reusing achievement type for now
@@ -1633,6 +1752,7 @@ export class PostgresStorage implements IStorage {
       
       // Commit the transaction
       await pool.query('COMMIT');
+      console.log(`Rejection transaction committed successfully`);
     } catch (error) {
       // Roll back the transaction on error
       await pool.query('ROLLBACK');
