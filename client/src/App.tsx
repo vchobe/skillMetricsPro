@@ -32,6 +32,29 @@ const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
   // Use a reference to sessionId from localStorage to force remount on user changes only
   const [sessionId, setSessionId] = useState<string>(() => localStorage.getItem("sessionId") || "initial");
   const { user } = useAuth(); // Use the useAuth hook to detect user changes
+  const [isUserApprover, setIsUserApprover] = useState<boolean | null>(null);
+  
+  // Check if user is an approver
+  useEffect(() => {
+    if (!user) return;
+
+    async function checkApproverStatus() {
+      try {
+        const response = await fetch('/api/user/is-approver');
+        if (response.ok) {
+          const approverStatus = await response.json();
+          setIsUserApprover(!!approverStatus); // Convert to boolean
+        } else {
+          setIsUserApprover(false);
+        }
+      } catch (error) {
+        console.error("Error checking approver status:", error);
+        setIsUserApprover(false);
+      }
+    }
+    
+    checkApproverStatus();
+  }, [user]);
   
   // Listen for storage events (login/logout)
   useEffect(() => {
@@ -56,16 +79,16 @@ const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
     }
   }, [user]);
   
-  // Use both sessionId and admin status as the key to ensure proper remounting
+  // Use sessionId, admin status, and approver status as the key to ensure proper remounting
   // Check both is_admin and isAdmin properties as backend might use either
   const isAdmin = user?.is_admin === true || user?.isAdmin === true;
-  const adminStatus = isAdmin ? "admin" : "regular";
+  const userRole = isAdmin ? "admin" : (isUserApprover ? "approver" : "regular");
   
   // Logging for debugging
   console.log("User in AdminWrapper:", user);
-  console.log("Admin status:", adminStatus);
+  console.log("User role:", userRole);
   
-  return <Component key={`${sessionId}-${adminStatus}`} />;
+  return <Component key={`${sessionId}-${userRole}`} />;
 };
 
 function Router() {
