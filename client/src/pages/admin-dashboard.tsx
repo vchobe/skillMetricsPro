@@ -1148,7 +1148,21 @@ export default function AdminDashboard() {
       description: ''
     });
   };
-  const [activeTab, setActiveTab] = useState("dashboard");
+  // Set the initial tab based on user roles
+  // Default to dashboard for admins, approvals for non-admin approvers
+  const getInitialTab = () => {
+    const urlTab = new URLSearchParams(window.location.search).get("tab");
+    
+    // For non-admin approvers, always default to approvals tab
+    if (!isAdmin && isApprover === true) {
+      return "approvals";
+    }
+    
+    // For admins, use the tab from URL or default to dashboard
+    return urlTab || "dashboard";
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab());
   const [showAddReportDialog, setShowAddReportDialog] = useState(false);
   const [selectedReportSetting, setSelectedReportSetting] = useState<ReportSettings | null>(null);
   const [showEditReportDialog, setShowEditReportDialog] = useState(false);
@@ -1991,6 +2005,7 @@ export default function AdminDashboard() {
               className="sticky top-0 z-10 bg-background pt-4 pb-4"
             >
               <TabsList className="w-full mb-2 flex flex-wrap gap-2">
+                {/* Determine tabs based on user role */}
                 {isAdmin ? (
                   // Admin tabs - show all tabs
                   <>
