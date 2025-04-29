@@ -286,6 +286,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  // Check if current user is an approver
+  app.get("/api/user/is-approver", ensureAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // First check if the user is an admin
+      const isAdmin = isUserAdmin(req.user) || await checkIsUserAdminDirectly(userId);
+      
+      if (isAdmin) {
+        // Admins have all approver permissions
+        console.log("User is an admin, returning true for is-approver check:", req.user?.email);
+        return res.json(true);
+      }
+      
+      // If not admin, check if user is an approver
+      const isApprover = await storage.isUserApprover(userId);
+      
+      console.log("is-approver check result for", req.user?.email, ":", isApprover);
+      
+      // Return the result as a boolean
+      res.json(isApprover);
+    } catch (error) {
+      console.error("Error checking approver status:", error);
+      res.status(500).json({ 
+        message: "Error checking approver status", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // User profile routes
   app.get("/api/user/profile", ensureAuth, async (req, res) => {
     try {
@@ -439,17 +469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Check if current user is an approver (used in sidebar)
-  app.get("/api/user/is-approver", ensureAuth, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      const isApprover = await storage.isUserApprover(userId);
-      res.json(isApprover);
-    } catch (error) {
-      console.error("Error checking if user is an approver:", error);
-      res.status(500).json({ message: "Error checking approver status", error });
-    }
-  });
+  // The approver check endpoint is now defined above
 
   // Skills routes
   app.get("/api/skills", ensureAuth, async (req, res) => {
