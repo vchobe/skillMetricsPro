@@ -1336,27 +1336,31 @@ export default function AdminDashboard() {
     initialRenderCompleted.current = true;
   }, []); // Empty dependency array means this only runs once
   
-  // Get all users
+  // Get all users - admin only
   const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+    enabled: isAdmin, // Only fetch for admin users
   });
   
-  // Get all skills
+  // Get all skills - admin only
   const { data: skills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
     queryKey: ["/api/admin/skills"],
+    enabled: isAdmin, // Only fetch for admin users
   });
 
-  // Get all skill histories for admin
+  // Get all skill histories - admin only
   const { data: skillHistories, isLoading: isLoadingHistories } = useQuery<(SkillHistory & { skill_name: string, user_email: string })[]>({
     queryKey: ["/api/admin/skill-history"],
+    enabled: isAdmin, // Only fetch for admin users
   });
   
-  // Get certification report
+  // Get certification report - admin only
   const { data: certificationReport, isLoading: isLoadingCertifications } = useQuery<{ user: User, certifications: any[] }[]>({
     queryKey: ["/api/admin/certification-report"],
+    enabled: isAdmin, // Only fetch for admin users
   });
   
-  // Get advanced analytics data
+  // Get advanced analytics data - admin only
   const { data: advancedAnalytics, isLoading: isLoadingAnalytics } = useQuery<{
     monthlyData: { month: string; count: number }[];
     skillLevelTrends: { month: string; beginner: number; intermediate: number; expert: number }[];
@@ -1366,9 +1370,10 @@ export default function AdminDashboard() {
     certifiedUsers: { userId: number; name: string; certCount: number }[];
   }>({
     queryKey: ["/api/admin/advanced-analytics"],
+    enabled: isAdmin, // Only fetch for admin users
   });
   
-  // Get skill targets
+  // Get skill targets - admin only
   const { data: skillTargets = [], isLoading: isLoadingTargets } = useQuery<{
     id: number;
     name?: string;
@@ -1380,9 +1385,10 @@ export default function AdminDashboard() {
     assignedUsers?: number[];
   }[]>({
     queryKey: ["/api/admin/skill-targets"],
+    enabled: isAdmin, // Only fetch for admin users
   });
   
-  // Get skill templates
+  // Get skill templates - admin only
   const { data: skillTemplates = [], isLoading: isLoadingTemplates } = useQuery<{
     id: number;
     name: string;
@@ -1393,6 +1399,7 @@ export default function AdminDashboard() {
     isRecommended: boolean;
   }[]>({
     queryKey: ["/api/admin/skill-templates"],
+    enabled: isAdmin, // Only fetch for admin users
   });
   
   // Get pending skill updates
@@ -1430,13 +1437,14 @@ export default function AdminDashboard() {
     enabled: !!user && (isAdmin || isApprover === true),
   });
   
-  // Get report settings
+  // Get report settings - admin only
   const { 
     data: reportSettings = [], 
     isLoading: isLoadingReportSettings,
     refetch: refetchReportSettings
   } = useQuery<ReportSettings[]>({
     queryKey: ["/api/admin/report-settings"],
+    enabled: isAdmin, // Only fetch for admin users
   });
   
   // Calculate stats
