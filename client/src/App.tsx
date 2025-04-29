@@ -36,13 +36,30 @@ const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
   // Determine user admin status
   const userIsAdmin = user?.is_admin === true || user?.isAdmin === true;
   
-  // Always fetch approver status to ensure it's available
+  // Always fetch approver status to ensure it's available with optimal settings
   const { data: isUserApprover = false, isLoading: isApproverLoading } = useQuery<boolean>({
     queryKey: ['/api/user/is-approver'],
     enabled: !!user, // Always check for authenticated users
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 3, // Retry up to 3 times if the query fails
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    refetchOnMount: true, // Always refetch when component mounts
   });
+  
+  // Set a specific tab for non-admin approvers
+  useEffect(() => {
+    if (user && !userIsAdmin && isUserApprover === true) {
+      // Force the approvals tab for non-admin approvers
+      const url = new URL(window.location.href);
+      const currentTab = url.searchParams.get('tab');
+      
+      if (!currentTab || currentTab !== 'approvals') {
+        url.searchParams.set('tab', 'approvals');
+        window.history.replaceState({}, '', url.toString());
+        console.log("AdminWrapper: Redirected approver to approvals tab");
+      }
+    }
+  }, [user, userIsAdmin, isUserApprover]);
   
   // Add comprehensive logging
   console.log("AdminWrapper state:", { 

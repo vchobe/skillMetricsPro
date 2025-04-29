@@ -23,13 +23,15 @@ export function ProtectedRoute({
   // For non-admins on protected routes that allow approvers, check approver status
   const needsApproverCheck = !!user && adminOnly && approversAllowed && !userIsAdmin;
   
-  // Always check for approver status if the user is authenticated and the route might need it
+  // Always check for approver status if the user is authenticated
   // This ensures we have the approver status available when needed
   const { data: isUserApprover, isLoading: isLoadingApprover } = useQuery<boolean>({
     queryKey: ['/api/user/is-approver'],
     enabled: !!user, // Always check for all authenticated users
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 3, // Retry up to 3 times if the query fails
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    refetchOnMount: true, // Always refetch when component mounts
   });
 
   // Show loading indicator while checking auth or approver status
@@ -77,10 +79,20 @@ export function ProtectedRoute({
     // Admin routes accessible to admins
     hasAccess = true;
     console.log("Access granted: User is admin");
-  } else if (approversAllowed && isUserApprover) {
-    // Admin routes that allow approvers - strict equality check was causing issues
+  } else if (approversAllowed && isUserApprover === true) {
+    // Admin routes that allow approvers
+    // Force strict comparison with true to avoid "truthy" values
     hasAccess = true;
-    console.log("Access granted: User is approver with value:", isUserApprover);
+    console.log("Access granted: User is confirmed approver");
+    
+    // For non-admin approvers, make sure the URL contains the approvals tab parameter
+    if (path.startsWith('/admin') && !window.location.search.includes('tab=approvals')) {
+      // Redirect to approvals tab
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'approvals');
+      window.history.replaceState({}, '', url.toString());
+      console.log("Redirected approver to approvals tab");
+    }
   }
   
   if (!hasAccess) {
