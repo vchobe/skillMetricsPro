@@ -103,7 +103,8 @@ function Router() {
       <ProtectedRoute 
         path="/admin/:tab?" 
         component={() => <AdminWrapper Component={AdminDashboard} />} 
-        adminOnly={true} 
+        adminOnly={true}
+        approversAllowed={true}
       />
       <Route path="/auth" component={AuthPage} />
       <Route path="/api-test" component={ApiTestPage} />

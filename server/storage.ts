@@ -4186,39 +4186,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  async isUserApprover(userId: number): Promise<boolean> {
-    try {
-      // Check if user exists and is admin (admins are automatically approvers)
-      const userResult = await pool.query(
-        'SELECT is_admin FROM users WHERE id = $1',
-        [userId]
-      );
-      
-      if (userResult.rows.length === 0) {
-        return false;
-      }
-      
-      // If user is admin, they're an approver
-      if (userResult.rows[0].is_admin) {
-        return true;
-      }
-      
-      // Check if user has any approver assignments
-      const approverQuery = `
-        SELECT COUNT(*) as count 
-        FROM skill_approvers 
-        WHERE user_id = $1
-      `;
-      
-      const approverResult = await pool.query(approverQuery, [userId]);
-      
-      // Return true if they have at least one approver assignment
-      return parseInt(approverResult.rows[0].count) > 0;
-    } catch (error) {
-      console.error("Error checking if user is an approver:", error);
-      return false;
-    }
-  }
+  // This is a duplicate implementation - using the one above
   
   // Report Settings operations
   async getReportSettings(): Promise<ReportSettings[]> {
