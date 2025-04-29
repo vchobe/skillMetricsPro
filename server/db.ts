@@ -8,24 +8,15 @@ function getDatabaseConfig() {
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
   
-  // Check for fallback DATABASE_URL first (this is already working)
-  const databaseUrl = process.env.DATABASE_URL || '';
+  // First, check if fallback is explicitly enabled
   const fallbackEnabled = process.env.USE_FALLBACK_DB === 'true';
   
-  // Check for Google Cloud SQL configuration
-  const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
-  const cloudSqlUser = process.env.CLOUD_SQL_USER;
-  const cloudSqlPassword = process.env.CLOUD_SQL_PASSWORD;
-  const cloudSqlDatabase = process.env.CLOUD_SQL_DATABASE;
+  // Get DATABASE_URL (the existing working connection)
+  const databaseUrl = process.env.DATABASE_URL || '';
   
-  // Check if we have Cloud SQL configuration
-  const hasCloudSqlConfig = cloudSqlConnectionName && cloudSqlUser && cloudSqlPassword && cloudSqlDatabase;
-  
-  // For now, we'll use DATABASE_URL since we know it works
-  // We can implement Cloud SQL connection later when we have Auth Proxy set up
-  if (databaseUrl && (fallbackEnabled || !hasCloudSqlConfig)) {
-    // Use the standard DATABASE_URL
-    console.log('Using standard PostgreSQL connection from DATABASE_URL');
+  // If fallback is enabled and we have a DATABASE_URL, use it
+  if (fallbackEnabled && databaseUrl) {
+    console.log('Fallback enabled: Using standard PostgreSQL connection from DATABASE_URL');
     const maskedUrl = databaseUrl.replace(/:[^:@]*@/, ':****@');
     console.log('Database URL:', maskedUrl);
     
@@ -37,8 +28,30 @@ function getDatabaseConfig() {
     };
   }
   
-  // If we're here, we have Cloud SQL config and fallback is disabled
-  // Use Google Cloud SQL configuration
+  // Check for Google Cloud SQL configuration
+  const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
+  const cloudSqlUser = process.env.CLOUD_SQL_USER;
+  const cloudSqlPassword = process.env.CLOUD_SQL_PASSWORD;
+  const cloudSqlDatabase = process.env.CLOUD_SQL_DATABASE;
+  
+  // Check if we have Cloud SQL configuration
+  const hasCloudSqlConfig = cloudSqlConnectionName && cloudSqlUser && cloudSqlPassword && cloudSqlDatabase;
+  
+  // If we don't have Cloud SQL config, fall back to DATABASE_URL
+  if (!hasCloudSqlConfig && databaseUrl) {
+    console.log('No Cloud SQL config: Using standard PostgreSQL connection from DATABASE_URL');
+    const maskedUrl = databaseUrl.replace(/:[^:@]*@/, ':****@');
+    console.log('Database URL:', maskedUrl);
+    
+    return { 
+      connectionString: databaseUrl,
+      max: 20, 
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    };
+  }
+  
+  // If we're here, we have Cloud SQL config and fallback is not enabled
   console.log('Using Google Cloud SQL connection');
   
   // Check if we're in production environment (GCP Cloud Run)
@@ -62,7 +75,21 @@ function getDatabaseConfig() {
     // In development, use TCP connection
     // This requires Cloud SQL Auth Proxy to be running locally
     console.log('Using Cloud SQL TCP connection (requires Cloud SQL Auth Proxy)');
+    // If we have a DATABASE_URL, use it as a fallback in development
+    if (databaseUrl) {
+      console.log('No Cloud SQL Auth Proxy detected, falling back to DATABASE_URL');
+      const maskedUrl = databaseUrl.replace(/:[^:@]*@/, ':****@');
+      console.log('Database URL:', maskedUrl);
+      
+      return { 
+        connectionString: databaseUrl,
+        max: 20, 
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000
+      };
+    }
     
+    // No fallback available, return Cloud SQL config
     return {
       user: cloudSqlUser,
       password: cloudSqlPassword,
