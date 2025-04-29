@@ -468,12 +468,20 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                     <FormLabel>Skill Name</FormLabel>
                     <div className="relative">
                       <FormControl>
-                        <Input
-                          placeholder="e.g. JavaScript, Python, AWS"
-                          {...field}
-                          onFocus={() => setShowNameSuggestions(true)}
-                          onBlur={() => setTimeout(() => setShowNameSuggestions(false), 200)}
-                        />
+                        {skillId ? (
+                          // When editing, show as read-only
+                          <div className="px-3 py-2 border rounded-md bg-gray-50 text-gray-700">
+                            {field.value}
+                          </div>
+                        ) : (
+                          // When adding, show as editable
+                          <Input
+                            placeholder="e.g. JavaScript, Python, AWS"
+                            {...field}
+                            onFocus={() => setShowNameSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowNameSuggestions(false), 200)}
+                          />
+                        )}
                       </FormControl>
                       
                       {/* Skill name suggestions */}
@@ -507,25 +515,33 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                     <FormItem className="col-span-1 md:col-span-2">
                       <FormLabel>Category</FormLabel>
                       <FormControl>
-                        <Select 
-                          value={field.value?.toString() || ""}
-                          onValueChange={(value) => {
-                            const categoryId = parseInt(value, 10);
-                            handleCategoryChange(categoryId);
-                            field.onChange(categoryId);
-                          }}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category.id} value={category.id.toString()}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {skillId ? (
+                          // When editing, show as read-only
+                          <div className="px-3 py-2 border rounded-md bg-gray-50 text-gray-700">
+                            {categories.find(c => c.id === field.value)?.name || skill?.category || ''}
+                          </div>
+                        ) : (
+                          // When adding, show as editable
+                          <Select 
+                            value={field.value?.toString() || ""}
+                            onValueChange={(value) => {
+                              const categoryId = parseInt(value, 10);
+                              handleCategoryChange(categoryId);
+                              field.onChange(categoryId);
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map((category) => (
+                                <SelectItem key={category.id} value={category.id.toString()}>
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -541,24 +557,32 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                       <FormItem className="col-span-1 md:col-span-2">
                         <FormLabel>Subcategory</FormLabel>
                         <FormControl>
-                          <Select
-                            value={field.value?.toString() || ""}
-                            onValueChange={(value) => {
-                              const subcategoryId = parseInt(value, 10);
-                              field.onChange(subcategoryId);
-                            }}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select a subcategory" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {subcategories.map((subcategory) => (
-                                <SelectItem key={subcategory.id} value={subcategory.id.toString()}>
-                                  {subcategory.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {skillId ? (
+                            // When editing, show as read-only
+                            <div className="px-3 py-2 border rounded-md bg-gray-50 text-gray-700">
+                              {subcategories.find(sc => sc.id === field.value)?.name || ''}
+                            </div>
+                          ) : (
+                            // When adding, show as editable
+                            <Select
+                              value={field.value?.toString() || ""}
+                              onValueChange={(value) => {
+                                const subcategoryId = parseInt(value, 10);
+                                field.onChange(subcategoryId);
+                              }}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a subcategory" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {subcategories.map((subcategory) => (
+                                  <SelectItem key={subcategory.id} value={subcategory.id.toString()}>
+                                    {subcategory.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </FormControl>
                         <FormMessage />
                       </FormItem>
