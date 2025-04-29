@@ -1257,22 +1257,35 @@ export default function AdminDashboard() {
   
   useEffect(() => {
     // This useEffect checks if the user should be able to access this page
-    // If they are not an admin, check if they are an approver looking at approvals tab
-    if (user && !user.is_admin) {
-      // Check if they're an approver and if they're trying to access the approvals tab
+    // If they're not an admin, check if they are an approver looking at the approvals tab
+    if (user && !isAdmin) {
+      console.log("User is not admin, checking approver status:", { isApprover, activeTab });
+      
+      // Get the current tab from URL parameters
       const queryParams = new URLSearchParams(window.location.search);
-      const currentTab = queryParams.get("tab");
+      const currentTab = queryParams.get("tab") || activeTab;
       
       // If they're an approver and looking at approvals tab, let them stay
       // Otherwise, redirect them away
       if (isApprover && currentTab === "approvals") {
-        // Allow access - they're an approver looking at the approvals tab
+        console.log("User is approver and on approvals tab - allowing access");
+        
+        // Make sure the active tab is set to approvals
+        if (activeTab !== "approvals") {
+          setActiveTab("approvals");
+        }
       } else {
-        // Redirect non-admin users who aren't approvers or aren't on approvals tab
+        console.log("User is not approved for this page, redirecting", {
+          isApprover,
+          currentTab,
+          activeTab
+        });
+        
+        // Redirect non-admin users who aren't approvers or aren't on the approvals tab
         setLocation("/");
       }
     }
-  }, [user, setLocation, isApprover]);
+  }, [user, isAdmin, isApprover, activeTab, setLocation]);
   
   // Initialize tab from URL on first render only
   // We use a ref to ensure this only runs on initial render
@@ -1980,9 +1993,8 @@ export default function AdminDashboard() {
               className="sticky top-0 z-10 bg-background pt-4 pb-4"
             >
               <TabsList className="w-full mb-2 flex flex-wrap gap-2">
-                {/* Show either admin tabs or just the approvals tab for non-admin approvers */}
                 {isAdmin ? (
-                  // Full admin UI with all tabs
+                  // Admin tabs - show all tabs
                   <>
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1 min-w-[150px]">
                       <TabsTrigger 
