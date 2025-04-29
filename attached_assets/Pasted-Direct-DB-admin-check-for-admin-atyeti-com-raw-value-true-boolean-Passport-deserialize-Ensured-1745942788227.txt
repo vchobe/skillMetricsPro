@@ -1,0 +1,51 @@
+Direct DB admin check for admin@atyeti.com: raw value = true (boolean)
+Passport deserialize: Ensured admin status (true) is available under both properties for user admin@atyeti.com
+Approver check passed (admin) for user: admin@atyeti.com
+Error updating skill: error: invalid input syntax for type integer: ""
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PostgresStorage.updateSkill (/home/runner/workspace/server/storage.ts:624:22)
+    at async PostgresStorage.approvePendingSkillUpdate (/home/runner/workspace/server/storage.ts:1433:17)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:2185:29) {
+  length: 140,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $4 = ''",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'numutils.c',
+  line: '617',
+  routine: 'pg_strtoint32_safe'
+}
+Error approving pending skill update: error: invalid input syntax for type integer: ""
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PostgresStorage.updateSkill (/home/runner/workspace/server/storage.ts:624:22)
+    at async PostgresStorage.approvePendingSkillUpdate (/home/runner/workspace/server/storage.ts:1433:17)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:2185:29) {
+  length: 140,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $4 = ''",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'numutils.c',
+  line: '617',
+  routine: 'pg_strtoint32_safe'
+}
