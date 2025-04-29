@@ -1056,6 +1056,26 @@ export default function AdminDashboard() {
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
+  // Determine admin status consistently
+  const isAdmin = user && (user.is_admin === true || user.isAdmin === true);
+  
+  // Check if user is an approver with React Query
+  const { data: isApprover = false, isLoading: isLoadingApprover } = useQuery<boolean>({
+    queryKey: ['/api/user/is-approver'],
+    enabled: !!user, // Run for all authenticated users
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 3, // Retry up to 3 times if the query fails
+  });
+  
+  // Debugging logs
+  console.log("AdminDashboard current user:", {
+    userId: user?.id,
+    email: user?.email,
+    isAdmin,
+    isApprover,
+    isLoadingApprover
+  });
+  
   // Use our custom hooks for hierarchical data
   const {
     hierarchy: projectHierarchy,
@@ -1232,12 +1252,8 @@ export default function AdminDashboard() {
   const csvExportRef = useRef<HTMLAnchorElement>(null);
   const skillGapExportRef = useRef<HTMLAnchorElement>(null);
   
-  // Check if user is approver
-  const { data: isApprover = false } = useQuery<boolean>({
-    queryKey: ['/api/user/is-approver'],
-    enabled: !!user && !user.is_admin,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // We already have isApprover from the top of the component
+  // Don't re-declare it here
   
   useEffect(() => {
     // This useEffect checks if the user should be able to access this page
