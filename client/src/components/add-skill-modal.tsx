@@ -231,7 +231,9 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
         ...data,
         // Add snake_case versions of categoryId and subcategoryId
         category_id: data.categoryId,
-        subcategory_id: data.subcategoryId,
+        // Convert null subcategoryId to undefined to prevent validation error
+        subcategoryId: data.subcategoryId || undefined,
+        subcategory_id: data.subcategoryId || undefined,
         status: "pending",
         isUpdate: false,
         is_update: false, // Add snake_case version
@@ -281,8 +283,10 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
         skillId: skillId, // Reference to existing skill
         skill_id: skillId, // Also include snake_case version
         // Add snake_case versions of categoryId and subcategoryId
-        category_id: updateData.categoryId,
-        subcategory_id: updateData.subcategoryId,
+        category_id: updateData.categoryId, 
+        // Convert null subcategoryId to undefined to prevent validation error
+        subcategoryId: updateData.subcategoryId || undefined,
+        subcategory_id: updateData.subcategoryId || undefined,
         status: "pending",
         isUpdate: true, // Mark as an update, not a new skill
         is_update: true, // Also include snake_case version
