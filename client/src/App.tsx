@@ -33,11 +33,15 @@ const AdminWrapper = ({ Component }: { Component: React.ComponentType }) => {
   const [sessionId, setSessionId] = useState<string>(() => localStorage.getItem("sessionId") || "initial");
   const { user } = useAuth(); // Use the useAuth hook to detect user changes
   
+  // Check if user is admin
+  const isAdmin = user?.is_admin === true || user?.isAdmin === true;
+  
   // Use React Query for better caching and loading state management
   const { data: isUserApprover = false } = useQuery<boolean>({
     queryKey: ['/api/user/is-approver'],
-    enabled: !!user && !(user?.is_admin === true || user?.isAdmin === true), // Only check for non-admins
+    enabled: !!user && !isAdmin, // Only check for non-admin users
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 3, // Retry up to 3 times if the query fails
   });
   
   // Listen for storage events (login/logout)
