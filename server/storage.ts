@@ -504,18 +504,24 @@ export class PostgresStorage implements IStorage {
       // If categoryId is provided, use it directly
       if (skill.categoryId) {
         const result = await pool.query(
-          `INSERT INTO skills (user_id, name, category, category_id, level, certification, credly_link, notes) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+          `INSERT INTO skills (
+            user_id, name, category, category_id, subcategory_id, level, 
+            certification, credly_link, notes, certification_date, expiration_date
+           ) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
            RETURNING *`,
           [
             skill.userId, 
             skill.name, 
             skill.category, 
             skill.categoryId,
+            skill.subcategoryId, // Pass subcategory_id as is (null is fine)
             skill.level, 
             skill.certification || '', 
             skill.credlyLink || '',
-            skill.notes || ''
+            skill.notes || '',
+            skill.certificationDate || null,
+            skill.expirationDate || null
           ]
         );
         
@@ -548,18 +554,24 @@ export class PostgresStorage implements IStorage {
         const categoryId = categoryResult.rows.length > 0 ? categoryResult.rows[0].id : null;
         
         const result = await pool.query(
-          `INSERT INTO skills (user_id, name, category, category_id, level, certification, credly_link, notes) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+          `INSERT INTO skills (
+            user_id, name, category, category_id, subcategory_id, level, 
+            certification, credly_link, notes, certification_date, expiration_date
+           ) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
            RETURNING *`,
           [
             skill.userId, 
             skill.name, 
             skill.category, 
             categoryId,
+            skill.subcategoryId, // Pass subcategory_id as is (null is fine)
             skill.level, 
             skill.certification || '', 
             skill.credlyLink || '',
-            skill.notes || ''
+            skill.notes || '',
+            skill.certificationDate || null,
+            skill.expirationDate || null
           ]
         );
         
@@ -578,8 +590,11 @@ export class PostgresStorage implements IStorage {
       // Fallback to just category text (legacy support)
       else {
         const result = await pool.query(
-          `INSERT INTO skills (user_id, name, category, level, certification, credly_link, notes) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7) 
+          `INSERT INTO skills (
+            user_id, name, category, level, certification, credly_link, notes,
+            certification_date, expiration_date
+           ) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
            RETURNING *`,
           [
             skill.userId, 
@@ -588,7 +603,9 @@ export class PostgresStorage implements IStorage {
             skill.level, 
             skill.certification || '', 
             skill.credlyLink || '',
-            skill.notes || ''
+            skill.notes || '',
+            skill.certificationDate || null,
+            skill.expirationDate || null
           ]
         );
         return this.snakeToCamel(result.rows[0]);
