@@ -56,6 +56,7 @@ function CategoryForm({ category, onSave, onCancel }: CategoryFormProps) {
   const [visibility, setVisibility] = useState<"visible" | "hidden">(category?.visibility || "visible");
   const [color, setColor] = useState(category?.color || "#3B82F6");
   const [icon, setIcon] = useState(category?.icon || "code");
+  const [categoryType, setCategoryType] = useState<"technical" | "functional">(category?.categoryType || "technical");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +66,8 @@ function CategoryForm({ category, onSave, onCancel }: CategoryFormProps) {
       tabOrder: parseInt(tabOrder),
       visibility,
       color,
-      icon
+      icon,
+      categoryType
     });
   };
 
