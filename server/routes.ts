@@ -2420,15 +2420,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get all skill subcategories for Skill Overview
-  app.get("/api/skill-subcategories", ensureAuth, async (req, res) => {
-    try {
-      const subcategories = await storage.getAllSkillSubcategories();
-      res.json(subcategories);
-    } catch (error) {
-      res.status(500).json({ message: "Error fetching skill subcategories", error });
-    }
-  });
+  // This route has been replaced by a more comprehensive public version below
+  // See the public implementation around line 2910
 
   app.get("/api/projects/:id", ensureAuth, async (req, res) => {
     try {
