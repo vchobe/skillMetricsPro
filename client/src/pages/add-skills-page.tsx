@@ -442,11 +442,39 @@ export default function AddSkillsPage() {
   // Function to track tab visits
   const markTabVisited = (tab: string) => {
     console.log(`Marking tab visited: ${tab}`);
+    
+    // Map category names to their lowercase equivalent used in visitedTabs state
+    const tabMappings: Record<string, string> = {
+      // Main tabs
+      "technical": "technical",
+      "functional": "functional",
+      "other": "other",
+      
+      // Technical categories mapped to technical sub-tabs
+      "Programming": "programming",
+      "Database": "database",
+      "Cloud": "cloud",
+      "DevOps": "devops",
+      "Mobile Development": "frontend",
+      "Data Science": "data",
+      
+      // Functional categories mapped to functional sub-tabs
+      "Marketing": "marketing",
+      "Design": "design",
+      "Communication": "communication",
+      "Project Management": "project",
+      "Leadership": "leadership"
+    };
+    
+    // Get the correct tab key to update (default to the original tab value)
+    const tabKey = tabMappings[tab] || tab;
+    
     setVisitedTabs(prev => {
       const newState = {
         ...prev,
-        [tab]: true
+        [tabKey]: true
       };
+      console.log(`Updating tab state for ${tab} -> ${tabKey}`);
       console.log("Updated visitedTabs state:", newState);
       return newState;
     });
