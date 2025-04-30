@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Skill, insertSkillSchema, PendingSkillUpdate, SkillTemplate } from "@shared/schema";
+import { Skill, insertSkillSchema, PendingSkillUpdate, SkillTemplate, SkillCategory } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 
@@ -107,6 +107,11 @@ export default function AddSkillsPage() {
   // Get user skills to avoid duplicates
   const { data: userSkills = [], isLoading: isLoadingSkills } = useQuery<Skill[]>({
     queryKey: ["/api/skills"],
+  });
+  
+  // Get categories to dynamically generate tabs
+  const { data: skillCategories = [], isLoading: isLoadingCategories } = useQuery<SkillCategory[]>({
+    queryKey: ["/api/skill-categories"],
   });
 
   // Process all skills when loaded
@@ -256,20 +261,39 @@ export default function AddSkillsPage() {
     }));
   };
 
-  // Technical skill categories
-  const technicalCategories = ["Programming", "UI", "Database", "Cloud", "Data Science", "DevOps"];
+  // Create derived category lists based on the database values
+  const technicalCategoryNames = skillCategories
+    .filter(cat => cat.categoryType === "technical")
+    .map(cat => cat.name);
   
-  // Functional skill categories
-  const functionalCategories = ["Marketing", "Design", "Communication", "Project Management", "Leadership"];
+  const functionalCategoryNames = skillCategories
+    .filter(cat => cat.categoryType === "functional")
+    .map(cat => cat.name);
+  
+  // Log the derived category names for debugging
+  useEffect(() => {
+    if (skillCategories.length > 0) {
+      console.log("Technical categories from database:", technicalCategoryNames);
+      console.log("Functional categories from database:", functionalCategoryNames);
+    }
+  }, [skillCategories]);
   
   // Filter skills by category
   const getFilteredSkills = () => {
-    if (activeTab === "technical") {
-      // Filter for skills in the technical categories
-      return skillsList.filter(skill => technicalCategories.includes(skill.category));
+    if (activeTab === "technical" && technicalCategoryNames.length > 0) {
+      // Filter for skills in the technical categories (from database)
+      return skillsList.filter(skill => technicalCategoryNames.includes(skill.category));
+    } else if (activeTab === "functional" && functionalCategoryNames.length > 0) {
+      // Filter for skills in the functional categories (from database)
+      return skillsList.filter(skill => functionalCategoryNames.includes(skill.category));
+    } else if (activeTab === "technical") {
+      // Fallback to hardcoded technical categories if database categories not yet loaded
+      const fallbackTechnicalCategories = ["Programming", "UI", "Database", "Cloud", "Data Science", "DevOps"];
+      return skillsList.filter(skill => fallbackTechnicalCategories.includes(skill.category));
     } else if (activeTab === "functional") {
-      // Filter for skills in the functional categories
-      return skillsList.filter(skill => functionalCategories.includes(skill.category));
+      // Fallback to hardcoded functional categories if database categories not yet loaded
+      const fallbackFunctionalCategories = ["Marketing", "Design", "Communication", "Project Management", "Leadership"];
+      return skillsList.filter(skill => fallbackFunctionalCategories.includes(skill.category));
     }
     return [];
   };
@@ -492,40 +516,56 @@ export default function AddSkillsPage() {
                   <div className="mt-4">
                     <div className="mb-6">
                       <Tabs 
-                        defaultValue="programming"
+                        defaultValue={skillCategories.filter(cat => cat.categoryType === "technical").length > 0 
+                          ? skillCategories.filter(cat => cat.categoryType === "technical")[0]?.name?.toLowerCase() 
+                          : "programming"}
                         onValueChange={(value) => markTabVisited(value)}
                       >
                         <TabsList className="mb-4">
-                          <TabsTrigger value="programming">
-                            <Code className="h-4 w-4 mr-1" />
-                            Programming
-                            {visitedTabs.programming && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
-                          <TabsTrigger value="frontend">
-                            <LayoutDashboard className="h-4 w-4 mr-1" />
-                            UI/Front End
-                            {visitedTabs.frontend && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
-                          <TabsTrigger value="database">
-                            <Database className="h-4 w-4 mr-1" />
-                            Database
-                            {visitedTabs.database && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
-                          <TabsTrigger value="data">
-                            <BarChart2 className="h-4 w-4 mr-1" />
-                            Data
-                            {visitedTabs.data && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
-                          <TabsTrigger value="cloud">
-                            <Cloud className="h-4 w-4 mr-1" />
-                            Cloud
-                            {visitedTabs.cloud && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
-                          <TabsTrigger value="devops">
-                            <GitBranch className="h-4 w-4 mr-1" />
-                            DevOps
-                            {visitedTabs.devops && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
+                          {isLoadingCategories ? (
+                            <div className="flex items-center justify-center p-4">
+                              <span className="animate-spin mr-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10"></circle>
+                                  <path d="M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path>
+                                </svg>
+                              </span>
+                              Loading categories...
+                            </div>
+                          ) : (
+                            // Use categories from the database if available
+                            skillCategories
+                              .filter(category => category.categoryType === "technical")
+                              .map(category => {
+                                const tabId = category.name.toLowerCase().replace(/\s+/g, '');
+                                const getCategoryIcon = (name: string) => {
+                                  switch(name.toLowerCase()) {
+                                    case 'programming': return <Code className="h-4 w-4 mr-1" />;
+                                    case 'ui': 
+                                    case 'front end': 
+                                    case 'frontend': return <LayoutDashboard className="h-4 w-4 mr-1" />;
+                                    case 'database': return <Database className="h-4 w-4 mr-1" />;
+                                    case 'data science': 
+                                    case 'data': return <BarChart2 className="h-4 w-4 mr-1" />;
+                                    case 'cloud': return <Cloud className="h-4 w-4 mr-1" />;
+                                    case 'devops': return <GitBranch className="h-4 w-4 mr-1" />;
+                                    default: return <Code className="h-4 w-4 mr-1" />;
+                                  }
+                                };
+                                
+                                return (
+                                  <TabsTrigger key={tabId} value={category.name}>
+                                    {category.icon ? (
+                                      <span className="mr-1">{getCategoryIcon(category.name)}</span>
+                                    ) : (
+                                      getCategoryIcon(category.name)
+                                    )}
+                                    {category.name}
+                                    {visitedTabs[tabId] && <Check className="h-3 w-3 ml-1 text-green-500" />}
+                                  </TabsTrigger>
+                                );
+                              })
+                          )}
                         </TabsList>
                         
                         {/* Programming Tab */}
