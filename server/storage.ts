@@ -764,28 +764,44 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // Updated to use new schema (user_skills joined with skill_templates) and return in Skill format
   async getSkill(id: number): Promise<Skill | undefined> {
     try {
-      const result = await pool.query(`
-        SELECT s.*, 
-               sc.name as category_name, 
-               sc.color as category_color, 
-               sc.icon as category_icon,
-               ssc.name as subcategory_name,
-               ssc.color as subcategory_color,
-               ssc.icon as subcategory_icon
-        FROM skills s
-        LEFT JOIN skill_categories sc ON s.category_id = sc.id
-        LEFT JOIN skill_subcategories ssc ON s.subcategory_id = ssc.id
-        WHERE s.id = $1
-      `, [id]);
+      // First check if we can find this skill in the user_skills table
+      const userSkill = await this.getUserSkillById(id);
       
-      if (!result.rows[0]) return undefined;
+      if (userSkill) {
+        // Convert from UserSkill to Skill format for API compatibility
+        const transformedSkill = {
+          id: userSkill.id,
+          userId: userSkill.userId,
+          name: userSkill.skillName || '', // From the joined skill_templates.name
+          category: userSkill.skillCategory || '', // From the joined skill_templates.category
+          level: userSkill.level,
+          lastUpdated: userSkill.lastUpdated,
+          certification: userSkill.certification,
+          credlyLink: userSkill.credlyLink,
+          notes: userSkill.notes,
+          endorsementCount: userSkill.endorsementCount,
+          certificationDate: userSkill.certificationDate,
+          expirationDate: userSkill.expirationDate,
+          categoryId: null, // These fields won't be used in new schema
+          subcategoryId: null,
+          categoryName: userSkill.categoryName || null,
+          categoryColor: userSkill.categoryColor || null,
+          categoryIcon: userSkill.categoryIcon || null,
+          subcategoryName: userSkill.subcategoryName || null,
+          subcategoryColor: userSkill.subcategoryColor || null,
+          subcategoryIcon: userSkill.subcategoryIcon || null,
+        };
+        
+        console.log(`Retrieved skill ${id} from user_skills:`, JSON.stringify(transformedSkill));
+        
+        return transformedSkill;
+      }
       
-      // Log detailed info about the skill being retrieved for debugging
-      console.log(`Retrieved skill ${id} with subcategory info:`, JSON.stringify(this.snakeToCamel(result.rows[0])));
-      
-      return this.snakeToCamel(result.rows[0]);
+      console.log(`Skill ${id} not found in user_skills table`);
+      return undefined;
     } catch (error) {
       console.error("Error getting skill:", error);
       throw error;
@@ -909,77 +925,94 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // Updated to work with user_skills table instead of skills table
   async updateSkill(id: number, data: Partial<Skill>): Promise<Skill> {
     try {
       // Log the incoming data for debugging
       console.log("UpdateSkill input data:", JSON.stringify(data));
 
-      // Create a sanitized copy of the data to ensure we don't have empty strings for ID fields
-      const sanitizedData: Partial<Skill> = {};
-      for (const [key, value] of Object.entries(data)) {
-        if (key === 'categoryId' || key === 'subcategoryId') {
-          // Convert empty strings to null for ID fields
-          if (value === '' || value === undefined) {
-            sanitizedData[key as keyof Skill] = null;
-          } else if (typeof value === 'number' || value === null) {
-            sanitizedData[key as keyof Skill] = value;
-          } else if (typeof value === 'string' && !isNaN(parseInt(value))) {
-            sanitizedData[key as keyof Skill] = parseInt(value); // Convert numeric string to number
-          } else {
-            sanitizedData[key as keyof Skill] = null; // Default to null for invalid values
-          }
-        } else {
-          sanitizedData[key as keyof Skill] = value;
-        }
-      }
-
-      console.log("Sanitized data:", JSON.stringify(sanitizedData));
+      // First check if we can find this skill in the user_skills table
+      const userSkill = await this.getUserSkillById(id);
       
-      const sets: string[] = [];
-      const params: any[] = [];
-      let paramIndex = 1;
-      
-      // Add last_updated timestamp
-      sets.push(`last_updated = CURRENT_TIMESTAMP`);
-      
-      // Build SET clause and parameters using the sanitized data
-      for (const [key, value] of Object.entries(sanitizedData)) {
-        if (key === 'id' || key === 'userId') continue; // Skip id and userId
-        
-        // Convert camelCase to snake_case for database column names
-        const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-        sets.push(`${columnName} = $${paramIndex}`);
-        
-        // For all fields, use the value directly since we've already sanitized it
-        params.push(value);
-        paramIndex++;
+      if (!userSkill) {
+        throw new Error(`User skill with ID ${id} not found`);
       }
       
-      params.push(id); // Add id as the last parameter
+      // Map the legacy Skill data to UserSkill format for updating
+      const updateData: Partial<UserSkill> = {};
       
-      const result = await pool.query(
-        `UPDATE skills SET ${sets.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
-        params
-      );
+      // Only copy fields that exist in user_skills table
+      if (data.level) updateData.level = data.level;
+      if (data.certification !== undefined) updateData.certification = data.certification;
+      if (data.credlyLink !== undefined) updateData.credlyLink = data.credlyLink;
+      if (data.notes !== undefined) updateData.notes = data.notes;
+      if (data.certificationDate !== undefined) updateData.certificationDate = data.certificationDate;
+      if (data.expirationDate !== undefined) updateData.expirationDate = data.expirationDate;
       
-      if (result.rows.length === 0) {
-        throw new Error("Skill not found");
-      }
+      console.log("Updating user skill with data:", JSON.stringify(updateData));
       
-      return this.snakeToCamel(result.rows[0]);
+      // Use the existing updateUserSkill method
+      const updatedUserSkill = await this.updateUserSkill(id, updateData);
+      
+      // Convert back to Skill format for API compatibility
+      const convertedSkill = {
+        id: updatedUserSkill.id,
+        userId: updatedUserSkill.userId,
+        name: updatedUserSkill.skillName || '', // From the joined skill_templates.name
+        category: updatedUserSkill.skillCategory || '', // From the joined skill_templates.category
+        level: updatedUserSkill.level,
+        lastUpdated: updatedUserSkill.lastUpdated,
+        certification: updatedUserSkill.certification,
+        credlyLink: updatedUserSkill.credlyLink,
+        notes: updatedUserSkill.notes,
+        endorsementCount: updatedUserSkill.endorsementCount,
+        certificationDate: updatedUserSkill.certificationDate,
+        expirationDate: updatedUserSkill.expirationDate,
+        categoryId: null, // These fields won't be used in new schema
+        subcategoryId: null,
+        categoryName: updatedUserSkill.categoryName || null,
+        categoryColor: updatedUserSkill.categoryColor || null,
+        categoryIcon: updatedUserSkill.categoryIcon || null,
+        subcategoryName: updatedUserSkill.subcategoryName || null,
+        subcategoryColor: updatedUserSkill.subcategoryColor || null,
+        subcategoryIcon: updatedUserSkill.subcategoryIcon || null,
+      };
+      
+      console.log(`Updated skill ${id} successfully:`, JSON.stringify(convertedSkill));
+      
+      return convertedSkill;
     } catch (error) {
       console.error("Error updating skill:", error);
       throw error;
     }
   }
   
+  // Updated to delete from user_skills instead of skills table
   async deleteSkill(id: number): Promise<void> {
     try {
-      const result = await pool.query('DELETE FROM skills WHERE id = $1', [id]);
+      // First check if the skill exists in user_skills
+      const userSkill = await this.getUserSkillById(id);
+      
+      if (!userSkill) {
+        throw new Error(`User skill with ID ${id} not found`);
+      }
+      
+      console.log(`Deleting user skill ${id} from user_skills table`);
+      
+      // Delete any endorsements for this skill
+      await pool.query('DELETE FROM endorsements WHERE skill_id = $1', [id]);
+      
+      // Delete any skill histories for this skill
+      await pool.query('DELETE FROM skill_histories WHERE skill_id = $1', [id]);
+      
+      // Delete the user skill itself
+      const result = await pool.query('DELETE FROM user_skills WHERE id = $1', [id]);
       
       if (result.rowCount === 0) {
-        throw new Error("Skill not found");
+        throw new Error("User skill not found or already deleted");
       }
+      
+      console.log(`Successfully deleted user skill ${id}`);
     } catch (error) {
       console.error("Error deleting skill:", error);
       throw error;
@@ -1228,8 +1261,23 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // Updated to handle history for user_skills
   async createSkillHistory(history: InsertSkillHistory): Promise<SkillHistory> {
     try {
+      // Check if the skill exists in the user_skills table
+      const userSkill = await this.getUserSkillById(history.skillId);
+      
+      if (!userSkill) {
+        throw new Error(`User skill with ID ${history.skillId} not found for history creation`);
+      }
+      
+      // Get the skill name from the user skill's template for better logging
+      const skillTemplate = await this.getSkillTemplate(userSkill.skillTemplateId);
+      const skillName = skillTemplate ? skillTemplate.name : 'Unknown skill';
+      
+      console.log(`Creating history for ${skillName} (user skill ID: ${history.skillId}, user ID: ${history.userId})`);
+      console.log(`Level change: ${history.previousLevel || 'none'} -> ${history.newLevel}`);
+      
       const result = await pool.query(
         `INSERT INTO skill_histories (skill_id, user_id, previous_level, new_level, change_note) 
          VALUES ($1, $2, $3, $4, $5) 
@@ -1242,7 +1290,12 @@ export class PostgresStorage implements IStorage {
           history.changeNote || ''
         ]
       );
-      return this.snakeToCamel(result.rows[0]);
+      
+      // Add skill_name for downstream processing
+      const historyRecord = result.rows[0];
+      historyRecord.skill_name = skillName;
+      
+      return this.snakeToCamel(historyRecord);
     } catch (error) {
       console.error("Error creating skill history:", error);
       throw error;
