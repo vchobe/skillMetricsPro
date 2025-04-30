@@ -148,7 +148,7 @@ async function migrateSkillsToUserSkills() {
     
     // 1. Get only unmigrated skills in a smaller batch to avoid timeouts
     // Adding an offset to skip skills that might be in a loop
-    const OFFSET = 60; // Adjust as needed based on progress
+    const OFFSET = 80; // Try offset 80 to find more unmigrated skills
     const { rows: skills } = await client.query(`
       SELECT s.* FROM skills s
       LEFT JOIN skill_migration_map m ON s.id = m.old_skill_id
