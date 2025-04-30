@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { CategoryForm } from "@/components/category-form";
 import { 
   Trash2, Edit2, Plus, Save, X, Eye, EyeOff, 
   Check, AlertTriangle, ChevronUp, ChevronDown,
@@ -40,141 +41,6 @@ const availableIcons = [
 function getIconByName(name: string) {
   const icon = availableIcons.find(i => i.name === name);
   return icon ? icon.component : <Code size={16} />;
-}
-
-// Category Edit Form Component
-interface CategoryFormProps {
-  category?: SkillCategory;
-  onSave: (category: Partial<SkillCategory>) => void;
-  onCancel: () => void;
-}
-
-function CategoryForm({ category, onSave, onCancel }: CategoryFormProps) {
-  const [name, setName] = useState(category?.name || "");
-  const [description, setDescription] = useState(category?.description || "");
-  const [tabOrder, setTabOrder] = useState(category?.tabOrder?.toString() || "0");
-  const [visibility, setVisibility] = useState<"visible" | "hidden">(category?.visibility || "visible");
-  const [color, setColor] = useState(category?.color || "#3B82F6");
-  const [icon, setIcon] = useState(category?.icon || "code");
-  const [categoryType, setCategoryType] = useState<"technical" | "functional">(category?.categoryType || "technical");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      name,
-      description,
-      tabOrder: parseInt(tabOrder),
-      visibility,
-      color,
-      icon,
-      categoryType
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Category Name</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Frontend Development"
-            required
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Input
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Skills related to frontend web development"
-          />
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="tabOrder">Tab Order</Label>
-            <Input
-              id="tabOrder"
-              type="number"
-              value={tabOrder}
-              onChange={(e) => setTabOrder(e.target.value)}
-              placeholder="0"
-              min="0"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="visibility">Visibility</Label>
-            <Select value={visibility} onValueChange={(value: "visible" | "hidden") => setVisibility(value)}>
-              <SelectTrigger id="visibility">
-                <SelectValue placeholder="Select visibility" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="visible">Visible</SelectItem>
-                <SelectItem value="hidden">Hidden</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="color">Color</Label>
-            <div className="flex space-x-2">
-              <Input
-                id="color"
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-12 h-10 p-1"
-              />
-              <Input
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                placeholder="#3B82F6"
-                pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
-                className="flex-1"
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="icon">Icon</Label>
-            <Select value={icon} onValueChange={(value) => setIcon(value)}>
-              <SelectTrigger id="icon" className="flex items-center">
-                <div className="mr-2">
-                  {getIconByName(icon)}
-                </div>
-                <SelectValue placeholder="Select icon" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableIcons.map((icon) => (
-                  <SelectItem key={icon.name} value={icon.name} className="flex items-center">
-                    <div className="mr-2">{icon.component}</div>
-                    <span className="capitalize">{icon.name}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-      
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          <X size={16} className="mr-2" /> Cancel
-        </Button>
-        <Button type="submit">
-          <Save size={16} className="mr-2" /> Save Category
-        </Button>
-      </div>
-    </form>
-  );
 }
 
 // Subcategory Name Display Component
