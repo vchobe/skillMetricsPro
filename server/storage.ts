@@ -468,13 +468,26 @@ export class PostgresStorage implements IStorage {
         SELECT s.*, 
                sc.name as category_name, 
                sc.color as category_color, 
-               sc.icon as category_icon 
+               sc.icon as category_icon,
+               ssc.name as subcategory_name,
+               ssc.color as subcategory_color,
+               ssc.icon as subcategory_icon
         FROM skills s
         LEFT JOIN skill_categories sc ON s.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON s.subcategory_id = ssc.id
         WHERE s.user_id = $1 
         ORDER BY s.last_updated DESC
       `, [userId]);
-      return this.snakeToCamel(result.rows);
+      
+      console.log(`Retrieved ${result.rows.length} skills for user ${userId} including subcategory details`);
+      const processed = this.snakeToCamel(result.rows);
+      
+      // Log a few samples for debugging
+      if (result.rows.length > 0) {
+        console.log("Sample skill with subcategory info:", JSON.stringify(processed[0]));
+      }
+      
+      return processed;
     } catch (error) {
       console.error("Error getting user skills:", error);
       throw error;
@@ -487,13 +500,21 @@ export class PostgresStorage implements IStorage {
         SELECT s.*, 
                sc.name as category_name, 
                sc.color as category_color, 
-               sc.icon as category_icon 
+               sc.icon as category_icon,
+               ssc.name as subcategory_name,
+               ssc.color as subcategory_color,
+               ssc.icon as subcategory_icon
         FROM skills s
         LEFT JOIN skill_categories sc ON s.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON s.subcategory_id = ssc.id
         WHERE s.id = $1
       `, [id]);
       
       if (!result.rows[0]) return undefined;
+      
+      // Log detailed info about the skill being retrieved for debugging
+      console.log(`Retrieved skill ${id} with subcategory info:`, JSON.stringify(this.snakeToCamel(result.rows[0])));
+      
       return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error getting skill:", error);
@@ -701,11 +722,24 @@ export class PostgresStorage implements IStorage {
         SELECT s.*, 
                sc.name as category_name, 
                sc.color as category_color, 
-               sc.icon as category_icon 
+               sc.icon as category_icon,
+               ssc.name as subcategory_name,
+               ssc.color as subcategory_color,
+               ssc.icon as subcategory_icon,
+               ssc.id as subcategory_id
         FROM skills s
         LEFT JOIN skill_categories sc ON s.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON s.subcategory_id = ssc.id
         ORDER BY s.last_updated DESC
       `);
+      
+      console.log(`Retrieved ${result.rows.length} total skills including subcategory details`);
+      
+      // Log a few samples for debugging
+      if (result.rows.length > 0) {
+        console.log("Sample skill with subcategory info:", JSON.stringify(result.rows[0]));
+      }
+      
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting all skills:", error);
@@ -721,18 +755,24 @@ export class PostgresStorage implements IStorage {
         SELECT s.*, 
                sc.name as category_name, 
                sc.color as category_color, 
-               sc.icon as category_icon 
+               sc.icon as category_icon,
+               ssc.name as subcategory_name,
+               ssc.color as subcategory_color,
+               ssc.icon as subcategory_icon
         FROM skills s
         LEFT JOIN skill_categories sc ON s.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON s.subcategory_id = ssc.id
         WHERE LOWER(s.name) LIKE $1 
           OR LOWER(s.category) LIKE $1 
           OR LOWER(s.level) LIKE $1 
           OR LOWER(s.certification) LIKE $1
           OR LOWER(s.notes) LIKE $1
           OR LOWER(sc.name) LIKE $1
+          OR LOWER(ssc.name) LIKE $1
         ORDER BY s.last_updated DESC
       `, [searchQuery]);
       
+      console.log(`Search found ${result.rows.length} skills matching "${query}"`);
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error searching skills:", error);
