@@ -494,6 +494,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching skills", error });
     }
   });
+  
+  // User Skills routes (new schema with skill templates)
+  app.get("/api/user-skills", ensureAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const skills = await storage.getUserSkillsByUser(userId);
+      res.json(skills);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching user skills", error });
+    }
+  });
+  
+  // Get a specific user skill by ID
+  app.get("/api/user-skills/:id", ensureAuth, async (req, res) => {
+    try {
+      const skillId = parseInt(req.params.id);
+      if (isNaN(skillId)) {
+        return res.status(400).json({ message: "Invalid skill ID" });
+      }
+      
+      const skill = await storage.getUserSkillById(skillId);
+      if (!skill) {
+        return res.status(404).json({ message: "Skill not found" });
+      }
+      
+      // Check if the user is authorized to view this skill
+      const userId = req.user!.id;
+      if (skill.userId !== userId && !isUserAdmin(req.user)) {
+        return res.status(403).json({ message: "You do not have permission to view this skill" });
+      }
+      
+      res.json(skill);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching skill", error });
+    }
+  });
+  
+  // Create a new user skill
+  app.post("/api/user-skills", ensureAuth, async (req, res) => {
+    try {
+      // Parse and validate the request body
+      const userSkillData = insertUserSkillSchema.parse({
+        ...req.body,
+        userId: req.user!.id // Override the userId with the current user's ID
+      });
+      
+      // Create the skill
+      const skill = await storage.createUserSkill(userSkillData);
+      
+      // Create initial skill history
+      await storage.createSkillHistory({
+        skillId: skill.id,
+        userId: req.user!.id,
+        previousLevel: null, // New skill
+        newLevel: skill.level,
+        changeNote: "Initial skill creation"
+      });
+      
+      res.status(201).json(skill);
+    } catch (error) {
+      console.error("Error creating user skill:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid skill data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error creating skill", error });
+    }
+  });
+  
+  // Update a user skill
+  app.patch("/api/user-skills/:id", ensureAuth, async (req, res) => {
+    try {
+      const skillId = parseInt(req.params.id);
+      if (isNaN(skillId)) {
+        return res.status(400).json({ message: "Invalid skill ID" });
+      }
+      
+      // Check if the skill exists
+      const existingSkill = await storage.getUserSkillById(skillId);
+      if (!existingSkill) {
+        return res.status(404).json({ message: "Skill not found" });
+      }
+      
+      // Check if the user is authorized to update this skill
+      const userId = req.user!.id;
+      if (existingSkill.userId !== userId && !isUserAdmin(req.user)) {
+        return res.status(403).json({ message: "You do not have permission to update this skill" });
+      }
+      
+      // Create a copy of the request body without changeNote for skill update
+      const { changeNote, ...skillUpdateData } = req.body;
+      
+      // If level is changed, record history
+      if (skillUpdateData.level && skillUpdateData.level !== existingSkill.level) {
+        await storage.createSkillHistory({
+          skillId,
+          userId: req.user!.id,
+          previousLevel: existingSkill.level,
+          newLevel: skillUpdateData.level,
+          changeNote: changeNote || `Updated from ${existingSkill.level} to ${skillUpdateData.level}`
+        });
+      }
+      
+      // Update the skill
+      const updatedSkill = await storage.updateUserSkill(skillId, skillUpdateData);
+      
+      res.json(updatedSkill);
+    } catch (error) {
+      console.error("Error updating user skill:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid skill data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error updating skill", error });
+    }
+  });
+  
+  // Delete a user skill
+  app.delete("/api/user-skills/:id", ensureAuth, async (req, res) => {
+    try {
+      const skillId = parseInt(req.params.id);
+      if (isNaN(skillId)) {
+        return res.status(400).json({ message: "Invalid skill ID" });
+      }
+      
+      // Check if the skill exists
+      const existingSkill = await storage.getUserSkillById(skillId);
+      if (!existingSkill) {
+        return res.status(404).json({ message: "Skill not found" });
+      }
+      
+      // Check if the user is authorized to delete this skill
+      const userId = req.user!.id;
+      if (existingSkill.userId !== userId && !isUserAdmin(req.user)) {
+        return res.status(403).json({ message: "You do not have permission to delete this skill" });
+      }
+      
+      // Delete the skill
+      await storage.deleteUserSkill(skillId);
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting user skill:", error);
+      res.status(500).json({ message: "Error deleting skill", error });
+    }
+  });
+  
+  // Get all user skills (admin only)
+  app.get("/api/admin/user-skills", ensureAdmin, async (req, res) => {
+    try {
+      const skills = await storage.getAllUserSkills();
+      res.json(skills);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching all user skills", error });
+    }
+  });
 
   app.post("/api/skills", ensureAuth, async (req, res) => {
     try {

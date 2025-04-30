@@ -12,9 +12,18 @@
  * Run with: node scripts/migrate-to-user-skills.js
  */
 
-const { Pool } = require('pg');
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+import pg from 'pg';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import dotenv from 'dotenv';
+
+const { Pool } = pg;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load environment variables
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Connect to database using environment variables
 const pool = new Pool({
