@@ -1077,11 +1077,12 @@ export class PostgresStorage implements IStorage {
         [userId]
       );
       
-      // Then get histories linked to user_skills (new schema)
+      // Then get histories linked to user_skills via skill templates (new schema)
       const userSkillResult = await pool.query(
-        'SELECT sh.*, us.name as skill_name ' +
+        'SELECT sh.*, st.name as skill_name ' +
         'FROM skill_histories sh ' +
         'JOIN user_skills us ON sh.skill_id = us.id ' +
+        'JOIN skill_templates st ON us.skill_template_id = st.id ' +
         'WHERE sh.user_id = $1 ' +
         'AND sh.skill_id NOT IN (SELECT id FROM skills)',
         [userId]
@@ -1135,11 +1136,12 @@ export class PostgresStorage implements IStorage {
         'JOIN users u ON sh.user_id = u.id ' 
       );
       
-      // Then get histories linked to user_skills (new schema)
+      // Then get histories linked to user_skills via skill templates (new schema)
       const userSkillResult = await pool.query(
-        'SELECT sh.*, us.name as skill_name, u.email as user_email ' +
+        'SELECT sh.*, st.name as skill_name, u.email as user_email ' +
         'FROM skill_histories sh ' +
         'JOIN user_skills us ON sh.skill_id = us.id ' +
+        'JOIN skill_templates st ON us.skill_template_id = st.id ' +
         'JOIN users u ON sh.user_id = u.id ' +
         'WHERE sh.skill_id NOT IN (SELECT id FROM skills)'
       );
