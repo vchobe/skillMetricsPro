@@ -44,6 +44,54 @@ async function migrateSkillsToUserSkills() {
     
     console.log('Beginning migration from skills to user_skills...');
     
+    // Check if skill_templates table exists, create if it doesn't
+    console.log('Ensuring skill_templates table exists...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS skill_templates (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        category_id INTEGER,
+        subcategory_id INTEGER,
+        description TEXT,
+        is_recommended BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    
+    // Check if user_skills table exists, create if it doesn't
+    console.log('Ensuring user_skills table exists...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_skills (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        skill_template_id INTEGER NOT NULL,
+        level TEXT NOT NULL,
+        certification TEXT,
+        credly_link TEXT,
+        notes TEXT,
+        endorsement_count INTEGER DEFAULT 0,
+        certification_date TIMESTAMP WITH TIME ZONE,
+        expiration_date TIMESTAMP WITH TIME ZONE,
+        last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (skill_template_id) REFERENCES skill_templates(id) ON DELETE CASCADE,
+        UNIQUE (user_id, skill_template_id)
+      )
+    `);
+    
+    // Create a mapping table that records the relationship between old skill ids and new user_skill ids
+    console.log('Ensuring skill_migration_map table exists...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS skill_migration_map (
+        old_skill_id INTEGER NOT NULL,
+        new_user_skill_id INTEGER NOT NULL,
+        migrated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    
     // 1. Get all existing skills
     const { rows: skills } = await client.query(`
       SELECT * FROM skills ORDER BY user_id, category, name
@@ -120,38 +168,19 @@ async function migrateSkillsToUserSkills() {
       const userSkillId = newUserSkill[0].id;
       console.log(`Created user_skill #${userSkillId} for user ${skill.user_id} using template ${templateId}`);
       
-      // Update endorsements to reference the new user_skill instead of the old skill
-      await client.query(`
-        UPDATE endorsements
-        SET skill_id = $1
-        WHERE skill_id = $2
-      `, [userSkillId, skill.id]);
+      // Instead of updating references in other tables, let's create a mapping table that we can use later
+      // to migrate references in endorsements and skill_histories
       
-      // Update skill histories to reference the new user_skill
+      // Add entry to the mapping between old and new IDs
       await client.query(`
-        UPDATE skill_histories
-        SET skill_id = $1
-        WHERE skill_id = $2
-      `, [userSkillId, skill.id]);
+        INSERT INTO skill_migration_map (old_skill_id, new_user_skill_id)
+        VALUES ($1, $2)
+      `, [skill.id, userSkillId]);
+      
+      console.log(`Added migration mapping: skill #${skill.id} -> user_skill #${userSkillId}`);
     }
     
-    // Create a mapping table that records the relationship between old skill ids and new user_skill ids
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS skill_migration_map (
-        old_skill_id INTEGER NOT NULL,
-        new_user_skill_id INTEGER NOT NULL,
-        migrated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      )
-    `);
-    
-    // Populate the mapping table
-    await client.query(`
-      INSERT INTO skill_migration_map (old_skill_id, new_user_skill_id)
-      SELECT s.id as old_skill_id, us.id as new_user_skill_id
-      FROM skills s
-      JOIN skill_templates st ON s.name = st.name AND s.category = st.category
-      JOIN user_skills us ON s.user_id = us.user_id AND st.id = us.skill_template_id
-    `);
+    // Count how many entries were added to the mapping table during the migration
     
     // Count how many mappings were created
     const { rows: mappingCount } = await client.query(`
