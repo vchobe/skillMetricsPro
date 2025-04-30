@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Skill, insertSkillSchema, PendingSkillUpdate, SkillTemplate, SkillCategory } from "@shared/schema";
+import { Skill, insertSkillSchema, PendingSkillUpdate, SkillTemplate, SkillCategory, SkillSubcategory } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 
@@ -112,6 +112,11 @@ export default function AddSkillsPage() {
   // Get categories to dynamically generate tabs
   const { data: skillCategories = [], isLoading: isLoadingCategories } = useQuery<SkillCategory[]>({
     queryKey: ["/api/skill-categories"],
+  });
+  
+  // Get subcategories to organize skills hierarchically
+  const { data: skillSubcategories = [], isLoading: isLoadingSubcategories } = useQuery<SkillSubcategory[]>({
+    queryKey: ["/api/skill-subcategories"],
   });
 
   // Process all skills when loaded
@@ -296,6 +301,16 @@ export default function AddSkillsPage() {
       return skillsList.filter(skill => fallbackFunctionalCategories.includes(skill.category));
     }
     return [];
+  };
+  
+  // Get subcategories for a specific category
+  const getSubcategoriesForCategory = (categoryId: number) => {
+    return skillSubcategories.filter(subcategory => subcategory.categoryId === categoryId);
+  };
+  
+  // Get skills for a specific subcategory
+  const getSkillsForSubcategory = (subcategoryId: number) => {
+    return allSkills.filter(skill => skill.subcategoryId === subcategoryId);
   };
 
   // Check if all required tabs have been visited
