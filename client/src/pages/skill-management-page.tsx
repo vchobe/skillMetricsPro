@@ -267,9 +267,11 @@ export default function SkillManagementPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
+      // Also invalidate the admin skills query to refresh the skills section
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
       toast({
         title: "Success",
-        description: "Skill created successfully",
+        description: "Skill template created successfully",
       });
       setShowTemplateDialog(false);
       templateForm.reset();
@@ -296,9 +298,11 @@ export default function SkillManagementPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
+      // Also invalidate the admin skills query to refresh the skills section
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
       toast({
         title: "Success",
-        description: "Skill updated successfully",
+        description: "Skill template updated successfully",
       });
       setShowTemplateDialog(false);
       setEditingTemplate(null);
@@ -325,9 +329,11 @@ export default function SkillManagementPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
+      // Also invalidate the admin skills query to refresh the skills section
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
       toast({
         title: "Success",
-        description: "Skill deleted successfully",
+        description: "Skill template deleted successfully",
       });
     },
     onError: (error: Error) => {
