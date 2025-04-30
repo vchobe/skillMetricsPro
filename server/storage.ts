@@ -93,7 +93,9 @@ export interface IStorage {
   // Skill history operations
   getSkillHistory(skillId: number): Promise<SkillHistory[]>;
   getUserSkillHistory(userId: number): Promise<SkillHistory[]>;
+  getUserSkillHistoryFromAllSources(userId: number): Promise<SkillHistory[]>;
   getAllSkillHistories(): Promise<SkillHistory[]>;
+  getAllSkillHistoriesFromAllSources(): Promise<SkillHistory[]>;
   createSkillHistory(history: InsertSkillHistory): Promise<SkillHistory>;
   
   // Profile history operations
@@ -1060,6 +1062,49 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  
+  // New function to get user skill histories from both old and new schemas
+  async getUserSkillHistoryFromAllSources(userId: number): Promise<SkillHistory[]> {
+    try {
+      console.log(`Getting combined skill histories for user ${userId} from both schemas`);
+      
+      // First get histories linked to original skills
+      const legacyResult = await pool.query(
+        'SELECT sh.*, s.name as skill_name ' +
+        'FROM skill_histories sh ' +
+        'JOIN skills s ON sh.skill_id = s.id ' +
+        'WHERE sh.user_id = $1 ',
+        [userId]
+      );
+      
+      // Then get histories linked to user_skills (new schema)
+      const userSkillResult = await pool.query(
+        'SELECT sh.*, us.name as skill_name ' +
+        'FROM skill_histories sh ' +
+        'JOIN user_skills us ON sh.skill_id = us.id ' +
+        'WHERE sh.user_id = $1 ' +
+        'AND sh.skill_id NOT IN (SELECT id FROM skills)',
+        [userId]
+      );
+      
+      // Combine the results
+      const combinedRows = [...legacyResult.rows, ...userSkillResult.rows];
+      
+      // Sort by created_at in descending order
+      combinedRows.sort((a, b) => {
+        const dateA = new Date(a.created_at);
+        const dateB = new Date(b.created_at);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      console.log(`Retrieved ${legacyResult.rows.length} legacy histories and ${userSkillResult.rows.length} user skill histories for user ${userId} (total: ${combinedRows.length})`);
+      
+      return this.snakeToCamel(combinedRows);
+    } catch (error) {
+      console.error(`Error getting combined skill histories for user ${userId}:`, error);
+      throw error;
+    }
+  }
 
   async getAllSkillHistories(): Promise<SkillHistory[]> {
     try {
@@ -1073,6 +1118,47 @@ export class PostgresStorage implements IStorage {
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting all skill histories:", error);
+      throw error;
+    }
+  }
+  
+  // New function to get skill histories from both old and new schemas
+  async getAllSkillHistoriesFromAllSources(): Promise<SkillHistory[]> {
+    try {
+      console.log("Getting combined skill histories from both schemas");
+      
+      // First get histories linked to original skills
+      const legacyResult = await pool.query(
+        'SELECT sh.*, s.name as skill_name, u.email as user_email ' +
+        'FROM skill_histories sh ' +
+        'JOIN skills s ON sh.skill_id = s.id ' +
+        'JOIN users u ON sh.user_id = u.id ' 
+      );
+      
+      // Then get histories linked to user_skills (new schema)
+      const userSkillResult = await pool.query(
+        'SELECT sh.*, us.name as skill_name, u.email as user_email ' +
+        'FROM skill_histories sh ' +
+        'JOIN user_skills us ON sh.skill_id = us.id ' +
+        'JOIN users u ON sh.user_id = u.id ' +
+        'WHERE sh.skill_id NOT IN (SELECT id FROM skills)'
+      );
+      
+      // Combine the results
+      const combinedRows = [...legacyResult.rows, ...userSkillResult.rows];
+      
+      // Sort by created_at in descending order
+      combinedRows.sort((a, b) => {
+        const dateA = new Date(a.created_at);
+        const dateB = new Date(b.created_at);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      console.log(`Retrieved ${legacyResult.rows.length} legacy histories and ${userSkillResult.rows.length} user skill histories for a total of ${combinedRows.length} entries`);
+      
+      return this.snakeToCamel(combinedRows);
+    } catch (error) {
+      console.error("Error getting combined skill histories:", error);
       throw error;
     }
   }
