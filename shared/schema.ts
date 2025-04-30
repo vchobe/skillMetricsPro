@@ -125,7 +125,22 @@ export type InsertSkillSubcategory = z.infer<typeof insertSkillSubcategorySchema
 export type SkillApprover = typeof skillApprovers.$inferSelect;
 export type InsertSkillApprover = z.infer<typeof insertSkillApproverSchema>;
 
-// Skills schema
+// User Skills schema (maps users to skill templates)
+export const userSkills = pgTable("user_skills", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  skillTemplateId: integer("skill_template_id").notNull().references(() => skillTemplates.id),
+  level: skillLevelEnum("level").notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  certification: text("certification"),
+  credlyLink: text("credly_link"),
+  notes: text("notes"),
+  endorsementCount: integer("endorsement_count").default(0),
+  certificationDate: timestamp("certification_date"),
+  expirationDate: timestamp("expiration_date"),
+});
+
+// For backward compatibility during migration
 export const skills = pgTable("skills", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -149,6 +164,17 @@ export const insertSkillSchema = createInsertSchema(skills).pick({
   category: true,
   categoryId: true, // Field for referencing the category
   subcategoryId: true, // Field for referencing the subcategory
+  level: true,
+  certification: true,
+  credlyLink: true,
+  notes: true,
+  certificationDate: true,
+  expirationDate: true,
+});
+
+export const insertUserSkillSchema = createInsertSchema(userSkills).pick({
+  userId: true,
+  skillTemplateId: true,
   level: true,
   certification: true,
   credlyLink: true,
@@ -243,6 +269,9 @@ export type LoginUser = z.infer<typeof loginUserSchema>;
 
 export type Skill = typeof skills.$inferSelect;
 export type InsertSkill = z.infer<typeof insertSkillSchema>;
+
+export type UserSkill = typeof userSkills.$inferSelect;
+export type InsertUserSkill = z.infer<typeof insertUserSkillSchema>;
 
 export type SkillHistory = typeof skillHistories.$inferSelect;
 export type InsertSkillHistory = z.infer<typeof insertSkillHistorySchema>;
