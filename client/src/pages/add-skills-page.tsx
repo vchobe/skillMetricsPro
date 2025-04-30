@@ -118,6 +118,29 @@ export default function AddSkillsPage() {
   const { data: skillSubcategories = [], isLoading: isLoadingSubcategories } = useQuery<SkillSubcategory[]>({
     queryKey: ["/api/skill-subcategories"],
   });
+  
+  // Get skill templates to populate available skills
+  const { data: skillTemplates = [], isLoading: isLoadingTemplates } = useQuery<SkillTemplate[]>({
+    queryKey: ["/api/skill-templates"],
+  });
+  
+  // Log skill templates for debugging
+  useEffect(() => {
+    if (skillTemplates.length > 0) {
+      console.log("Skill templates loaded:", skillTemplates.length);
+      
+      // Log some sample templates
+      console.log("Sample skill template:", skillTemplates[0]);
+      
+      // Check subcategory associations
+      const templatesWithSubcategories = skillTemplates.filter(t => t.subcategoryId);
+      console.log(`Templates with subcategories: ${templatesWithSubcategories.length}/${skillTemplates.length}`);
+      
+      if (templatesWithSubcategories.length > 0) {
+        console.log("Sample template with subcategory:", templatesWithSubcategories[0]);
+      }
+    }
+  }, [skillTemplates]);
 
   // Log subcategories for debugging
   useEffect(() => {
@@ -131,9 +154,46 @@ export default function AddSkillsPage() {
     }
   }, [skillSubcategories]);
 
-  // Process all skills when loaded
+  // Process skill templates when loaded
   useEffect(() => {
-    if (allSkills.length > 0) {
+    if (skillTemplates.length > 0) {
+      console.log("Skill templates loaded:", skillTemplates.length);
+      
+      // Create a unique set of skills by name from templates
+      const uniqueSkillNames = new Set();
+      const uniqueSkills = skillTemplates.filter(template => {
+        if (!uniqueSkillNames.has(template.name)) {
+          uniqueSkillNames.add(template.name);
+          return true;
+        }
+        return false;
+      });
+      
+      // Convert to skill entries
+      const entries: SkillEntry[] = uniqueSkills.map(template => ({
+        userId: user?.id || 0,
+        name: template.name,
+        category: template.category,
+        categoryId: template.categoryId,
+        subcategoryId: template.subcategoryId,
+        level: "beginner",
+        certification: "",
+        credlyLink: "",
+        notes: "",
+        changeNote: "",
+        selected: false,
+        certificationDate: undefined,
+        expirationDate: undefined
+      }));
+      
+      console.log(`Created ${entries.length} skill entries from templates`);
+      setSkillsList(entries);
+    }
+  }, [skillTemplates, user]);
+  
+  // Fallback to all skills if templates aren't available
+  useEffect(() => {
+    if (skillTemplates.length === 0 && allSkills.length > 0) {
       // Debug: Log unique categories to help with mapping
       const categories = new Set(allSkills.map(s => s.category));
       console.log("Available categories from all skills:", Array.from(categories));
@@ -169,9 +229,10 @@ export default function AddSkillsPage() {
         expirationDate: undefined
       }));
       
+      console.log(`Created ${entries.length} skill entries from all skills (fallback)`);
       setSkillsList(entries);
     }
-  }, [allSkills, user]);
+  }, [allSkills, skillTemplates, user]);
   
   // On component mount, initialize with all tabs NOT visited
   // We're removing the auto-marking of tabs as visited to make users visit each tab
