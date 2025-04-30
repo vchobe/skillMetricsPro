@@ -543,6 +543,52 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // Convert UserSkill (new schema) to Skill (old schema) format for backward compatibility
+  userSkillToLegacySkill(userSkill: any): Skill {
+    return {
+      id: userSkill.id,
+      userId: userSkill.userId,
+      name: userSkill.skillName || 'Unknown Skill',
+      category: userSkill.skillCategory || 'Uncategorized',
+      categoryId: userSkill.categoryId || null,
+      subcategoryId: userSkill.subcategoryId || null,
+      level: userSkill.level,
+      lastUpdated: userSkill.lastUpdated,
+      certification: userSkill.certification || '',
+      credlyLink: userSkill.credlyLink || '',
+      notes: userSkill.notes || '',
+      endorsementCount: userSkill.endorsementCount || 0,
+      certificationDate: userSkill.certificationDate || null,
+      expirationDate: userSkill.expirationDate || null,
+      categoryName: userSkill.categoryName || null,
+      categoryColor: userSkill.categoryColor || null,
+      categoryIcon: userSkill.categoryIcon || null,
+      subcategoryName: userSkill.subcategoryName || null,
+      subcategoryColor: userSkill.subcategoryColor || null,
+      subcategoryIcon: userSkill.subcategoryIcon || null
+    };
+  }
+  
+  // Get user skills using new schema but return in old format for compatibility
+  async getUserSkillsV2(userId: number): Promise<Skill[]> {
+    try {
+      // Get skills from new user_skills table
+      const userSkills = await this.getUserSkillsByUser(userId);
+      
+      // Convert to legacy format
+      const legacySkills = userSkills.map(us => this.userSkillToLegacySkill(us));
+      
+      console.log(`Converted ${legacySkills.length} user skills to legacy format for user ${userId}`);
+      return legacySkills;
+    } catch (error) {
+      console.error("Error getting user skills with v2 schema:", error);
+      
+      // Fallback to legacy format if there's an error
+      console.log("Falling back to legacy skill format");
+      return this.getUserSkills(userId);
+    }
+  }
+  
   async getUserSkillById(id: number): Promise<UserSkill | undefined> {
     try {
       const result = await pool.query(`

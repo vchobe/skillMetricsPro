@@ -488,9 +488,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/skills", ensureAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const skills = await storage.getUserSkills(userId);
+      
+      // Using the new adapter function that converts user_skills to the old format
+      // This allows us to use the new database schema with the old API endpoints
+      const skills = await storage.getUserSkillsV2(userId);
+      
+      console.log(`Returning ${skills.length} skills for user ${userId} in legacy format`);
       res.json(skills);
     } catch (error) {
+      console.error("Error in /api/skills endpoint:", error);
       res.status(500).json({ message: "Error fetching skills", error });
     }
   });
