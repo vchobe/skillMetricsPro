@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { CategoryForm } from "@/components/category-form";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { CategoryForm } from "@/components/category-form";
+
 import { 
   Trash2, Edit2, Plus, Save, X, Eye, EyeOff, 
   Check, AlertTriangle, ChevronUp, ChevronDown,
@@ -447,6 +448,7 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
 }
 
 // Main Category Management Page Component
+
 export default function CategoryManagementPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
