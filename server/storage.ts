@@ -1,5 +1,6 @@
 import { 
   User, InsertUser, Skill, InsertSkill, 
+  UserSkill, InsertUserSkill,
   SkillHistory, InsertSkillHistory, 
   ProfileHistory, InsertProfileHistory,
   Endorsement, InsertEndorsement,
@@ -45,7 +46,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   deleteUser(id: number): Promise<void>;
   
-  // Skill operations
+  // Legacy Skill operations (for backward compatibility)
   getUserSkills(userId: number): Promise<Skill[]>;
   getSkill(id: number): Promise<Skill | undefined>;
   createSkill(skill: InsertSkill): Promise<Skill>;
@@ -53,6 +54,16 @@ export interface IStorage {
   deleteSkill(id: number): Promise<void>;
   getAllSkills(): Promise<Skill[]>;
   searchSkills(query: string): Promise<Skill[]>;
+  
+
+  
+  // New UserSkill operations (for updated schema)
+  getUserSkillsByUser(userId: number): Promise<UserSkill[]>;
+  getUserSkillById(id: number): Promise<UserSkill | undefined>;
+  createUserSkill(userSkill: InsertUserSkill): Promise<UserSkill>;
+  updateUserSkill(id: number, data: Partial<UserSkill>): Promise<UserSkill>;
+  deleteUserSkill(id: number): Promise<void>;
+  getAllUserSkills(): Promise<UserSkill[]>;
   
   // Skill category operations
   getAllSkillCategories(): Promise<SkillCategory[]>;
@@ -171,6 +182,14 @@ export interface IStorage {
   createProjectResourceHistory(history: InsertProjectResourceHistory): Promise<ProjectResourceHistory>;
   
 
+  
+  // UserSkill operations
+  getUserSkillsByUser(userId: number): Promise<UserSkill[]>;
+  getUserSkillById(id: number): Promise<UserSkill | undefined>;
+  createUserSkill(userSkill: InsertUserSkill): Promise<UserSkill>;
+  updateUserSkill(id: number, data: Partial<UserSkill>): Promise<UserSkill>;
+  deleteUserSkill(id: number): Promise<void>;
+  getAllUserSkills(): Promise<UserSkill[]>;
   
   // Session store
   sessionStore: Store;
@@ -490,6 +509,186 @@ export class PostgresStorage implements IStorage {
       return processed;
     } catch (error) {
       console.error("Error getting user skills:", error);
+      throw error;
+    }
+  }
+  
+  // UserSkill operations (new schema)
+  async getUserSkillsByUser(userId: number): Promise<UserSkill[]> {
+    try {
+      const result = await pool.query(`
+        SELECT us.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               st.description as skill_description,
+               sc.name as category_name, 
+               sc.color as category_color, 
+               sc.icon as category_icon,
+               ssc.name as subcategory_name,
+               ssc.color as subcategory_color,
+               ssc.icon as subcategory_icon
+        FROM user_skills us
+        JOIN skill_templates st ON us.skill_template_id = st.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON st.subcategory_id = ssc.id
+        WHERE us.user_id = $1 
+        ORDER BY us.last_updated DESC
+      `, [userId]);
+      
+      console.log(`Retrieved ${result.rows.length} user skills for user ${userId}`);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting user skills:", error);
+      throw error;
+    }
+  }
+  
+  async getUserSkillById(id: number): Promise<UserSkill | undefined> {
+    try {
+      const result = await pool.query(`
+        SELECT us.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               st.description as skill_description,
+               sc.name as category_name, 
+               sc.color as category_color, 
+               sc.icon as category_icon,
+               ssc.name as subcategory_name,
+               ssc.color as subcategory_color,
+               ssc.icon as subcategory_icon
+        FROM user_skills us
+        JOIN skill_templates st ON us.skill_template_id = st.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON st.subcategory_id = ssc.id
+        WHERE us.id = $1
+      `, [id]);
+      
+      if (!result.rows[0]) return undefined;
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting user skill:", error);
+      throw error;
+    }
+  }
+  
+  async createUserSkill(userSkill: InsertUserSkill): Promise<UserSkill> {
+    try {
+      const result = await pool.query(
+        `INSERT INTO user_skills (
+          user_id, skill_template_id, level, 
+          certification, credly_link, notes, certification_date, expiration_date
+         ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+         RETURNING *`,
+        [
+          userSkill.userId, 
+          userSkill.skillTemplateId,
+          userSkill.level, 
+          userSkill.certification || '', 
+          userSkill.credlyLink || '',
+          userSkill.notes || '',
+          userSkill.certificationDate || null,
+          userSkill.expirationDate || null
+        ]
+      );
+      
+      // Get the full user skill with template information
+      return await this.getUserSkillById(result.rows[0].id) as UserSkill;
+    } catch (error) {
+      console.error("Error creating user skill:", error);
+      throw error;
+    }
+  }
+  
+  async updateUserSkill(id: number, data: Partial<UserSkill>): Promise<UserSkill> {
+    try {
+      // Build the SET clause dynamically based on provided data
+      const allowedFields = ['level', 'certification', 'credly_link', 'notes', 'certification_date', 'expiration_date'];
+      const updates: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+      
+      for (const [key, value] of Object.entries(data)) {
+        const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        if (allowedFields.includes(snakeKey) && value !== undefined) {
+          updates.push(`${snakeKey} = $${paramIndex}`);
+          values.push(value);
+          paramIndex++;
+        }
+      }
+      
+      // Add last_updated field
+      updates.push(`last_updated = NOW()`);
+      
+      // Add the ID as the last parameter
+      values.push(id);
+      
+      if (updates.length === 0) {
+        // No valid updates, return the existing skill
+        return await this.getUserSkillById(id) as UserSkill;
+      }
+      
+      const query = `
+        UPDATE user_skills 
+        SET ${updates.join(', ')} 
+        WHERE id = $${paramIndex} 
+        RETURNING *
+      `;
+      
+      const result = await pool.query(query, values);
+      
+      if (!result.rows[0]) {
+        throw new Error(`User skill with ID ${id} not found`);
+      }
+      
+      // Get the full user skill with template information
+      return await this.getUserSkillById(id) as UserSkill;
+    } catch (error) {
+      console.error("Error updating user skill:", error);
+      throw error;
+    }
+  }
+  
+  async deleteUserSkill(id: number): Promise<void> {
+    try {
+      // First remove any endorsements for this skill
+      await pool.query('DELETE FROM endorsements WHERE skill_id = $1', [id]);
+      
+      // Then delete skill histories 
+      await pool.query('DELETE FROM skill_histories WHERE skill_id = $1', [id]);
+      
+      // Finally delete the skill
+      await pool.query('DELETE FROM user_skills WHERE id = $1', [id]);
+    } catch (error) {
+      console.error("Error deleting user skill:", error);
+      throw error;
+    }
+  }
+  
+  async getAllUserSkills(): Promise<UserSkill[]> {
+    try {
+      const result = await pool.query(`
+        SELECT us.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               st.description as skill_description,
+               sc.name as category_name, 
+               sc.color as category_color, 
+               sc.icon as category_icon,
+               ssc.name as subcategory_name,
+               ssc.color as subcategory_color,
+               ssc.icon as subcategory_icon
+        FROM user_skills us
+        JOIN skill_templates st ON us.skill_template_id = st.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON st.subcategory_id = ssc.id
+        ORDER BY us.last_updated DESC
+      `);
+      
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all user skills:", error);
       throw error;
     }
   }

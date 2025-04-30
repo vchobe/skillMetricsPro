@@ -20,7 +20,9 @@ import {
   SkillCategory,
   SkillApprover,
   insertReportSettingsSchema,
-  ReportSettings
+  ReportSettings,
+  insertUserSkillSchema,
+  UserSkill
 } from "@shared/schema";
 
 // Direct database check for admin status
