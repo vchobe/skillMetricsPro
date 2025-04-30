@@ -92,15 +92,24 @@ async function migrateSkillsToUserSkills() {
       )
     `);
     
-    // 1. Get all existing skills
+    // 1. Get all existing skills (use LIMIT for testing)
     const { rows: skills } = await client.query(`
-      SELECT * FROM skills ORDER BY user_id, category, name
+      SELECT * FROM skills ORDER BY user_id, category, name LIMIT 50
     `);
     
     console.log(`Found ${skills.length} skills to migrate`);
     
+    // Define the batch size
+    const BATCH_SIZE = 50;
+    
     // 2. Process each skill to find or create corresponding skill template
-    for (const skill of skills) {
+    for (let i = 0; i < skills.length; i++) {
+      const skill = skills[i];
+      
+      // Log batch progress
+      if (i % BATCH_SIZE === 0) {
+        console.log(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(skills.length/BATCH_SIZE)} (skills ${i+1}-${Math.min(i+BATCH_SIZE, skills.length)} of ${skills.length})`);
+      }
       // First check if a template already exists for this skill
       const { rows: templates } = await client.query(`
         SELECT * FROM skill_templates 
