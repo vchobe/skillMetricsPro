@@ -111,11 +111,34 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
   // State for subcategories by selected category
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   
+  // Add debugging to track selected category
+  useEffect(() => {
+    if (selectedCategoryId) {
+      console.log(`Selected category ID changed to: ${selectedCategoryId}`);
+      // If it's the Database category, log it specifically
+      if (selectedCategoryId === 2) {
+        console.log('Database category selected - should load subcategories for Database');
+      }
+    }
+  }, [selectedCategoryId]);
+  
   // Get subcategories for the selected category
-  const { data: subcategories = [] } = useQuery<SkillSubcategory[]>({
+  const { data: subcategories = [], isLoading: isLoadingSubcategories, error: subcategoriesError } = useQuery<SkillSubcategory[]>({
     queryKey: [selectedCategoryId ? `/api/skill-categories/${selectedCategoryId}/subcategories` : 'no-subcategories'],
     enabled: !!selectedCategoryId,
   });
+  
+  // Add debug logging for subcategories
+  useEffect(() => {
+    if (selectedCategoryId) {
+      console.log(`Loaded ${subcategories.length} subcategories for category ${selectedCategoryId}`);
+      console.log('Subcategories:', subcategories);
+      
+      if (subcategoriesError) {
+        console.error('Error loading subcategories:', subcategoriesError);
+      }
+    }
+  }, [subcategories, selectedCategoryId, subcategoriesError]);
   
   // Populate suggestions based on existing skills
   useEffect(() => {
