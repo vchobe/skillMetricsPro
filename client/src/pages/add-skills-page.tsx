@@ -561,528 +561,118 @@ export default function AddSkillsPage() {
                                       getCategoryIcon(category.name)
                                     )}
                                     {category.name}
-                                    {visitedTabs[tabId] && <Check className="h-3 w-3 ml-1 text-green-500" />}
+                                    {visitedTabs[tabId as keyof typeof visitedTabs] && <Check className="h-3 w-3 ml-1 text-green-500" />}
                                   </TabsTrigger>
                                 );
                               })
                           )}
                         </TabsList>
-                        
-                        {/* Programming Tab */}
-                        <TabsContent value="programming">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "Programming").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "Programming").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
+                        {/* Dynamically generated Technical category tabs */}
+                        {skillCategories
+                          .filter(category => category.categoryType === "technical")
+                          .map(category => (
+                            <TabsContent key={category.id} value={category.name}>
+                              <div className="rounded-md border">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="w-12">Select</TableHead>
+                                      <TableHead>Skill Name</TableHead>
+                                      <TableHead>Level</TableHead>
+                                      <TableHead>Certification</TableHead>
+                                      <TableHead>Certification Link</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {filteredSkills.filter(skill => skill.category === category.name).length === 0 ? (
+                                      <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                                          No skills found in {category.name} category
                                         </TableCell>
                                       </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
+                                    ) : (
+                                      filteredSkills.filter(skill => skill.category === category.name).map((skill, index) => {
+                                        const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
+                                        const isSelected = selectedSkills[skill.name] || false;
+                                        
+                                        return (
+                                          <TableRow key={index}>
+                                            <TableCell>
+                                              <Checkbox 
+                                                checked={isSelected}
+                                                disabled={isAlreadyAdded}
+                                                onCheckedChange={(checked) => {
+                                                  handleSkillSelection(skill.name, checked === true);
+                                                }}
+                                              />
+                                            </TableCell>
+                                            <TableCell>
+                                              {skill.name}
+                                              {isAlreadyAdded && (
+                                                <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                                  <Check className="h-3 w-3" />
+                                                  <span>Already added</span>
+                                                </div>
+                                              )}
+                                            </TableCell>
+                                            <TableCell>
+                                              <Select 
+                                                disabled={!isSelected || isAlreadyAdded}
+                                                value={skill.level}
+                                                onValueChange={(value) => handleLevelChange(skill.name, value)}
+                                              >
+                                                <SelectTrigger className="w-full">
+                                                  <SelectValue placeholder="Select level" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="beginner">Beginner</SelectItem>
+                                                  <SelectItem value="intermediate">Intermediate</SelectItem>
+                                                  <SelectItem value="expert">Expert</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                              <Input 
+                                                placeholder="Certification name"
+                                                disabled={!isSelected || isAlreadyAdded}
+                                                value={skill.certification}
+                                                onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                              />
+                                            </TableCell>
+                                            <TableCell>
+                                              <Input 
+                                                placeholder="Certification link"
+                                                disabled={!isSelected || isAlreadyAdded}
+                                                value={skill.credlyLink}
+                                                onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
+                                              />
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })
+                                    )}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </TabsContent>
+                          ))
+                        }
                         
-                        {/* Frontend Tab */}
-                        <TabsContent value="frontend">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "UI").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "UI").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
-                        
-                        {/* Database Tab */}
-                        <TabsContent value="database">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "Database").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "Database").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
-                        
-                        {/* Data Tab */}
-                        <TabsContent value="data">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "Data Science").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "Data Science").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
-                        
-                        {/* Cloud Tab */}
-                        <TabsContent value="cloud">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "Cloud").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "Cloud").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
-                        
-                        {/* DevOps Tab */}
-                        <TabsContent value="devops">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "DevOps").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "DevOps").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
+                        {/* Fallback tabs for categories not yet loaded from DB */}
+                        {skillCategories.filter(cat => cat.categoryType === "technical").length === 0 && (
+                          <>
+                            <TabsContent value="programming">
+                              <div className="p-4 text-center text-muted-foreground">
+                                Loading skills for Programming category...
+                              </div>
+                            </TabsContent>
+                            <TabsContent value="frontend">
+                              <div className="p-4 text-center text-muted-foreground">
+                                Loading skills for UI/Frontend category...
+                              </div>
+                            </TabsContent>
+                          </>
+                        )}
                       </Tabs>
                     </div>
                   </div>
@@ -1093,466 +683,161 @@ export default function AddSkillsPage() {
                   <div className="mt-4">
                     <div className="mb-6">
                       <Tabs 
-                        defaultValue="marketing"
+                        defaultValue={skillCategories.filter(cat => cat.categoryType === "functional").length > 0 
+                          ? skillCategories.filter(cat => cat.categoryType === "functional")[0]?.name?.toLowerCase() 
+                          : "marketing"}
                         onValueChange={(value) => markTabVisited(value)}
                       >
                         <TabsList className="mb-4">
-                          <TabsTrigger value="marketing">
-                            <PieChart className="h-4 w-4 mr-1" />
-                            Marketing
-                            {visitedTabs.marketing && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
-                          <TabsTrigger value="design">
-                            <Paintbrush className="h-4 w-4 mr-1" />
-                            Design
-                            {visitedTabs.design && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
-                          <TabsTrigger value="communication">
-                            <MessageSquare className="h-4 w-4 mr-1" />
-                            Communication
-                            {visitedTabs.communication && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
-                          <TabsTrigger value="project">
-                            <Server className="h-4 w-4 mr-1" />
-                            Project Management
-                            {visitedTabs.project && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
-                          <TabsTrigger value="leadership">
-                            <Users className="h-4 w-4 mr-1" />
-                            Leadership
-                            {visitedTabs.leadership && <Check className="h-3 w-3 ml-1 text-green-500" />}
-                          </TabsTrigger>
+                          {isLoadingCategories ? (
+                            <div className="flex items-center justify-center p-4">
+                              <span className="animate-spin mr-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10"></circle>
+                                  <path d="M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path>
+                                </svg>
+                              </span>
+                              Loading categories...
+                            </div>
+                          ) : (
+                            // Use categories from the database if available
+                            skillCategories
+                              .filter(category => category.categoryType === "functional")
+                              .map(category => {
+                                const tabId = category.name.toLowerCase().replace(/\s+/g, '');
+                                const getCategoryIcon = (name: string) => {
+                                  switch(name.toLowerCase()) {
+                                    case 'marketing': return <PieChart className="h-4 w-4 mr-1" />;
+                                    case 'design': return <Paintbrush className="h-4 w-4 mr-1" />;
+                                    case 'communication': return <MessageSquare className="h-4 w-4 mr-1" />;
+                                    case 'project management': 
+                                    case 'project': return <Server className="h-4 w-4 mr-1" />;
+                                    case 'leadership': return <Users className="h-4 w-4 mr-1" />;
+                                    default: return <Brain className="h-4 w-4 mr-1" />;
+                                  }
+                                };
+                                
+                                return (
+                                  <TabsTrigger key={tabId} value={category.name}>
+                                    {category.icon ? (
+                                      <span className="mr-1">{getCategoryIcon(category.name)}</span>
+                                    ) : (
+                                      getCategoryIcon(category.name)
+                                    )}
+                                    {category.name}
+                                    {visitedTabs[tabId as keyof typeof visitedTabs] && <Check className="h-3 w-3 ml-1 text-green-500" />}
+                                  </TabsTrigger>
+                                );
+                              })
+                          )}
                         </TabsList>
                         
-                        {/* Marketing Tab */}
-                        <TabsContent value="marketing">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "Marketing").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "Marketing").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
+                        {/* Dynamically generated Functional category tabs */}
+                        {skillCategories
+                          .filter(category => category.categoryType === "functional")
+                          .map(category => (
+                            <TabsContent key={category.id} value={category.name}>
+                              <div className="rounded-md border">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="w-12">Select</TableHead>
+                                      <TableHead>Skill Name</TableHead>
+                                      <TableHead>Level</TableHead>
+                                      <TableHead>Certification</TableHead>
+                                      <TableHead>Certification Link</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {filteredSkills.filter(skill => skill.category === category.name).length === 0 ? (
+                                      <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                                          No skills found in {category.name} category
                                         </TableCell>
                                       </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
+                                    ) : (
+                                      filteredSkills.filter(skill => skill.category === category.name).map((skill, index) => {
+                                        const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
+                                        const isSelected = selectedSkills[skill.name] || false;
+                                        
+                                        return (
+                                          <TableRow key={index}>
+                                            <TableCell>
+                                              <Checkbox 
+                                                checked={isSelected}
+                                                disabled={isAlreadyAdded}
+                                                onCheckedChange={(checked) => {
+                                                  handleSkillSelection(skill.name, checked === true);
+                                                }}
+                                              />
+                                            </TableCell>
+                                            <TableCell>
+                                              {skill.name}
+                                              {isAlreadyAdded && (
+                                                <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                                  <Check className="h-3 w-3" />
+                                                  <span>Already added</span>
+                                                </div>
+                                              )}
+                                            </TableCell>
+                                            <TableCell>
+                                              <Select 
+                                                disabled={!isSelected || isAlreadyAdded}
+                                                value={skill.level}
+                                                onValueChange={(value) => handleLevelChange(skill.name, value)}
+                                              >
+                                                <SelectTrigger className="w-full">
+                                                  <SelectValue placeholder="Select level" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="beginner">Beginner</SelectItem>
+                                                  <SelectItem value="intermediate">Intermediate</SelectItem>
+                                                  <SelectItem value="expert">Expert</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                              <Input 
+                                                placeholder="Certification name"
+                                                disabled={!isSelected || isAlreadyAdded}
+                                                value={skill.certification}
+                                                onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                              />
+                                            </TableCell>
+                                            <TableCell>
+                                              <Input 
+                                                placeholder="Certification link"
+                                                disabled={!isSelected || isAlreadyAdded}
+                                                value={skill.credlyLink}
+                                                onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
+                                              />
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })
+                                    )}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </TabsContent>
+                          ))
+                        }
                         
-                        {/* Design Tab */}
-                        <TabsContent value="design">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "Design").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "Design").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
-                        
-                        {/* Communication Tab */}
-                        <TabsContent value="communication">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "Communication").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "Communication").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
-                        
-                        {/* Project Management Tab */}
-                        <TabsContent value="project">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "Project Management").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "Project Management").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
-                        
-                        {/* Leadership Tab */}
-                        <TabsContent value="leadership">
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">Select</TableHead>
-                                  <TableHead>Skill Name</TableHead>
-                                  <TableHead>Level</TableHead>
-                                  <TableHead>Certification</TableHead>
-                                  <TableHead>Certification Link</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredSkills.filter(skill => skill.category === "Leadership").length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                      No skills found in this category
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  filteredSkills.filter(skill => skill.category === "Leadership").map((skill, index) => {
-                                    const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                    const isSelected = selectedSkills[skill.name] || false;
-                                    
-                                    return (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Checkbox 
-                                            checked={isSelected}
-                                            disabled={isAlreadyAdded}
-                                            onCheckedChange={(checked) => {
-                                              handleSkillSelection(skill.name, checked === true);
-                                            }}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          {skill.name}
-                                          {isAlreadyAdded && (
-                                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Check className="h-3 w-3" />
-                                              <span>Already added</span>
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Select 
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.level}
-                                            onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="Select level" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="beginner">Beginner</SelectItem>
-                                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                                              <SelectItem value="expert">Expert</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification name"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.certification}
-                                            onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input 
-                                            placeholder="Certification link"
-                                            disabled={!isSelected || isAlreadyAdded}
-                                            value={skill.credlyLink}
-                                            onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                          />
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </TabsContent>
+                        {/* Fallback tabs for categories not yet loaded from DB */}
+                        {skillCategories.filter(cat => cat.categoryType === "functional").length === 0 && (
+                          <>
+                            <TabsContent value="marketing">
+                              <div className="p-4 text-center text-muted-foreground">
+                                Loading skills for Marketing category...
+                              </div>
+                            </TabsContent>
+                            <TabsContent value="design">
+                              <div className="p-4 text-center text-muted-foreground">
+                                Loading skills for Design category...
+                              </div>
+                            </TabsContent>
+                          </>
+                        )}
                       </Tabs>
                     </div>
                   </div>
@@ -1593,18 +878,15 @@ export default function AddSkillsPage() {
                                     <SelectValue placeholder="Select category" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="Programming">Programming</SelectItem>
-                                    <SelectItem value="UI">UI/Front End</SelectItem>
-                                    <SelectItem value="Database">Database</SelectItem>
-                                    <SelectItem value="Cloud">Cloud</SelectItem>
-                                    <SelectItem value="Data Science">Data Science</SelectItem>
-                                    <SelectItem value="DevOps">DevOps</SelectItem>
-                                    <SelectItem value="Security">Security</SelectItem>
-                                    <SelectItem value="Marketing">Marketing</SelectItem>
-                                    <SelectItem value="Design">Design</SelectItem>
-                                    <SelectItem value="Communication">Communication</SelectItem>
-                                    <SelectItem value="Project Management">Project Management</SelectItem>
-                                    <SelectItem value="Leadership">Leadership</SelectItem>
+                                    {isLoadingCategories ? (
+                                      <SelectItem value="" disabled>Loading categories...</SelectItem>
+                                    ) : (
+                                      skillCategories.map(category => (
+                                        <SelectItem key={category.id} value={category.name}>
+                                          {category.name}
+                                        </SelectItem>
+                                      ))
+                                    )}
                                     <SelectItem value="Other">Other</SelectItem>
                                   </SelectContent>
                                 </Select>
