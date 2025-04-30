@@ -10,8 +10,9 @@
  * - The skill_migration_map table should be populated with mappings
  */
 
-require('dotenv').config();
-const { Pool } = require('pg');
+import 'dotenv/config';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 // PostgreSQL connection
 const pool = new Pool({
@@ -57,28 +58,20 @@ async function migrateSkillHistories() {
     for (const history of skillHistories) {
       console.log(`Processing skill history #${history.id} for skill ${history.skill_id} -> ${history.new_user_skill_id}`);
       
-      // Insert new record with updated skill_id
+      // Insert new record with updated skill_id (using actual schema)
       const { rows } = await client.query(`
         INSERT INTO skill_histories (
-          user_id, skill_id, action, previous_level, new_level, 
-          previous_certification, new_certification, date, performed_by_id, 
-          previous_endorsement_count, new_endorsement_count, notes
+          user_id, skill_id, previous_level, new_level, change_note, created_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+          $1, $2, $3, $4, $5, $6
         ) RETURNING id
       `, [
         history.user_id,
         history.new_user_skill_id, // Use the new user_skill_id
-        history.action,
         history.previous_level,
         history.new_level,
-        history.previous_certification,
-        history.new_certification,
-        history.date,
-        history.performed_by_id,
-        history.previous_endorsement_count,
-        history.new_endorsement_count,
-        'Migrated from skill #' + history.skill_id + (history.notes ? ': ' + history.notes : '')
+        'Migrated from skill #' + history.skill_id + (history.change_note ? ': ' + history.change_note : ''),
+        history.created_at || new Date()
       ]);
       
       const newHistoryId = rows[0].id;

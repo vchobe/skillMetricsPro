@@ -9,8 +9,9 @@
  * - The skill_migration_map table should be populated with mappings
  */
 
-require('dotenv').config();
-const { Pool } = require('pg');
+import 'dotenv/config';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 // PostgreSQL connection
 const pool = new Pool({
