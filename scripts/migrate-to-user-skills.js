@@ -141,15 +141,19 @@ async function migrateSkillsToUserSkills() {
     
     console.log('Beginning migration from skills to user_skills...');
     
-    // 1. Get all existing skills (use LIMIT for testing)
+    // 1. Get only unmigrated skills (more efficient than processing all)
     const { rows: skills } = await client.query(`
-      SELECT * FROM skills ORDER BY user_id, category, name LIMIT 50
+      SELECT s.* FROM skills s
+      LEFT JOIN skill_migration_map m ON s.id = m.old_skill_id
+      WHERE m.new_user_skill_id IS NULL
+      ORDER BY s.user_id, s.category, s.name
+      LIMIT 200
     `);
     
     console.log(`Found ${skills.length} skills to migrate`);
     
-    // Define the batch size
-    const BATCH_SIZE = 50;
+    // Define the batch size (increased for better throughput)
+    const BATCH_SIZE = 100;
     
     // 2. Process each skill to find or create corresponding skill template
     for (let i = 0; i < skills.length; i++) {
@@ -246,6 +250,59 @@ async function migrateSkillsToUserSkills() {
     `);
     
     console.log(`Created ${mappingCount[0].count} migration mappings between skills and user_skills`);
+
+    // Optional: Migrate endorsements using the mapping table
+    try {
+      console.log('Checking for endorsements to migrate...');
+      const { rows: endorsementCount } = await client.query(`
+        SELECT COUNT(*) FROM endorsements
+      `);
+      
+      if (parseInt(endorsementCount[0].count) > 0) {
+        console.log(`Found ${endorsementCount[0].count} endorsements to potentially migrate`);
+        
+        // We'll update the skill_id in the endorsements table to point to the new user_skill_id
+        // This approach maintains the endorsement history while connecting it to the new structure
+        const { rowCount } = await client.query(`
+          UPDATE endorsements e
+          SET skill_id = m.new_user_skill_id
+          FROM skill_migration_map m
+          WHERE e.skill_id = m.old_skill_id
+        `);
+        
+        console.log(`Updated ${rowCount} endorsements to reference new user_skill_id`);
+      } else {
+        console.log('No endorsements to migrate');
+      }
+    } catch (err) {
+      console.warn('Error migrating endorsements (non-fatal):', err.message);
+    }
+
+    // Optional: Update skill history references
+    try {
+      console.log('Checking for skill histories to update...');
+      const { rows: historyCount } = await client.query(`
+        SELECT COUNT(*) FROM skill_histories
+      `);
+      
+      if (parseInt(historyCount[0].count) > 0) {
+        console.log(`Found ${historyCount[0].count} skill history records to potentially migrate`);
+        
+        // Update skill_id in skill_histories to point to the new user_skill_id
+        const { rowCount } = await client.query(`
+          UPDATE skill_histories h
+          SET skill_id = m.new_user_skill_id
+          FROM skill_migration_map m
+          WHERE h.skill_id = m.old_skill_id
+        `);
+        
+        console.log(`Updated ${rowCount} skill history records to reference new user_skill_id`);
+      } else {
+        console.log('No skill histories to migrate');
+      }
+    } catch (err) {
+      console.warn('Error migrating skill histories (non-fatal):', err.message);
+    }
     
     // Verify table schema before committing
     console.log('Verifying tables before committing...');
