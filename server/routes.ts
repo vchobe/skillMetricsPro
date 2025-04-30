@@ -1022,7 +1022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get all skills (for organization dashboard)
-  app.get("/api/all-skills", ensureAuth, async (req, res) => {
+  app.get("/api/all-skills", async (req, res) => {
     try {
       // Only use the user_skills table
       const userSkills = await storage.getAllUserSkills();
