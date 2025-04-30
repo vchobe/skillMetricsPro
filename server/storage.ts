@@ -3807,28 +3807,40 @@ export class PostgresStorage implements IStorage {
   // Skill Category methods
   async getAllSkillCategories(): Promise<SkillCategory[]> {
     try {
-      // Get all the categories without the problematic column
-      const result = await pool.query(
-        'SELECT * FROM skill_categories ORDER BY tab_order, name'
-      );
+      // Use a query that avoids mentioning category_type in the SQL query text
+      // and select exact columns to avoid any issues
+      const result = await pool.query(`
+        SELECT 
+          id, 
+          name, 
+          description, 
+          tab_order, 
+          visibility, 
+          color, 
+          icon, 
+          created_at, 
+          updated_at
+        FROM skill_categories 
+        ORDER BY tab_order, name
+      `);
 
-      // We'll use the names to determine category type based on what we know
+      // Hardcode category type based on name for now (fallback)
       const technicalCategories = [
         'Programming', 'Database', 'Cloud', 'DevOps', 'API', 
         'Mobile Development', 'Security', 'Data Science', 'AI', 'UI'
       ];
       
       // Map the categories and add the categoryType field based on name
-      const categories = result.rows.map(row => {
-        const type = technicalCategories.includes(row.name) ? 'technical' : 'functional';
+      const categoriesWithType = result.rows.map(row => {
+        const isTechnical = technicalCategories.includes(row.name);
         return {
           ...row,
-          categoryType: type
+          category_type: isTechnical ? 'technical' : 'functional'
         };
       });
       
-      console.log("Category types:", categories.map(row => `${row.name}: ${row.categoryType}`));
-      return this.snakeToCamel(categories);
+      console.log("Category types:", categoriesWithType.map(row => `${row.name}: ${row.category_type}`));
+      return this.snakeToCamel(categoriesWithType);
     } catch (error) {
       console.error("Error getting all skill categories:", error);
       throw error;
