@@ -222,6 +222,8 @@ export class PostgresStorage implements IStorage {
         camelKey = 'userId'; 
       } else if (key === 'is_update') {
         camelKey = 'isUpdate';
+      } else if (key === 'category_type') {
+        camelKey = 'categoryType';
       } 
       // General snake_case to camelCase conversion
       else if (key.includes('_')) {
@@ -3806,8 +3808,9 @@ export class PostgresStorage implements IStorage {
   async getAllSkillCategories(): Promise<SkillCategory[]> {
     try {
       const result = await pool.query(
-        'SELECT * FROM skill_categories ORDER BY tab_order, name'
+        'SELECT id, name, description, tab_order, visibility, color, icon, category_type, created_at, updated_at FROM skill_categories ORDER BY tab_order, name'
       );
+      console.log("Category types:", result.rows.map(row => `${row.name}: ${row.category_type}`));
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting all skill categories:", error);
