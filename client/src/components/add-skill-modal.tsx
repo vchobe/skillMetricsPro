@@ -186,15 +186,23 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
   
   // Handle category selection
   const handleCategoryChange = (categoryId: number) => {
+    console.log(`handleCategoryChange called with categoryId: ${categoryId}`);
+    
     // Find the category name to keep backward compatibility with category text field
     const category = categories.find(c => c.id === categoryId);
     if (category) {
+      console.log(`Found category: ${category.name} (ID: ${category.id})`);
       form.setValue('category', category.name);
       form.setValue('categoryId', categoryId);
       setSelectedCategoryId(categoryId);
       
       // Reset subcategory when category changes
       form.setValue('subcategoryId', undefined);
+      
+      // Log the URL that will be used for fetching subcategories
+      console.log(`Will fetch subcategories from: /api/skill-categories/${categoryId}/subcategories`);
+    } else {
+      console.error(`Category with ID ${categoryId} not found in categories:`, categories);
     }
   };
   
