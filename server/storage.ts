@@ -483,32 +483,46 @@ export class PostgresStorage implements IStorage {
   }
 
   // Skill operations
+  // Now uses the new schema by calling getUserSkillsByUser
   async getUserSkills(userId: number): Promise<Skill[]> {
     try {
-      const result = await pool.query(`
-        SELECT s.*, 
-               sc.name as category_name, 
-               sc.color as category_color, 
-               sc.icon as category_icon,
-               ssc.name as subcategory_name,
-               ssc.color as subcategory_color,
-               ssc.icon as subcategory_icon
-        FROM skills s
-        LEFT JOIN skill_categories sc ON s.category_id = sc.id
-        LEFT JOIN skill_subcategories ssc ON s.subcategory_id = ssc.id
-        WHERE s.user_id = $1 
-        ORDER BY s.last_updated DESC
-      `, [userId]);
+      // Get user skills from the new schema and convert them to legacy Skill format for compatibility
+      const userSkills = await this.getUserSkillsByUser(userId);
       
-      console.log(`Retrieved ${result.rows.length} skills for user ${userId} including subcategory details`);
-      const processed = this.snakeToCamel(result.rows);
+      // Transform UserSkill to Skill format 
+      const skillsInOldFormat = userSkills.map(userSkill => {
+        return {
+          id: userSkill.id,
+          userId: userSkill.userId,
+          name: userSkill.skillName || '', // From the joined skill_templates.name
+          category: userSkill.skillCategory || '', // From the joined skill_templates.category
+          level: userSkill.level,
+          lastUpdated: userSkill.lastUpdated,
+          certification: userSkill.certification,
+          credlyLink: userSkill.credlyLink,
+          notes: userSkill.notes,
+          endorsementCount: userSkill.endorsementCount,
+          certificationDate: userSkill.certificationDate,
+          expirationDate: userSkill.expirationDate,
+          categoryId: null, // These fields won't be used in new schema
+          subcategoryId: null,
+          categoryName: userSkill.categoryName,
+          categoryColor: userSkill.categoryColor,
+          categoryIcon: userSkill.categoryIcon,
+          subcategoryName: userSkill.subcategoryName,
+          subcategoryColor: userSkill.subcategoryColor,
+          subcategoryIcon: userSkill.subcategoryIcon,
+        };
+      });
+      
+      console.log(`Transformed ${skillsInOldFormat.length} user_skills to legacy format for user ${userId}`);
       
       // Log a few samples for debugging
-      if (result.rows.length > 0) {
-        console.log("Sample skill with subcategory info:", JSON.stringify(processed[0]));
+      if (skillsInOldFormat.length > 0) {
+        console.log("Sample transformed skill:", JSON.stringify(skillsInOldFormat[0]));
       }
       
-      return processed;
+      return skillsInOldFormat;
     } catch (error) {
       console.error("Error getting user skills:", error);
       throw error;
@@ -972,33 +986,48 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // Get all skills using the new schema (user_skills + skill_templates)
   async getAllSkills(): Promise<Skill[]> {
     try {
-      const result = await pool.query(`
-        SELECT s.*, 
-               sc.name as category_name, 
-               sc.color as category_color, 
-               sc.icon as category_icon,
-               ssc.name as subcategory_name,
-               ssc.color as subcategory_color,
-               ssc.icon as subcategory_icon,
-               ssc.id as subcategory_id
-        FROM skills s
-        LEFT JOIN skill_categories sc ON s.category_id = sc.id
-        LEFT JOIN skill_subcategories ssc ON s.subcategory_id = ssc.id
-        ORDER BY s.last_updated DESC
-      `);
+      // Get all skills from the new user_skills table
+      const userSkills = await this.getAllUserSkills();
       
-      console.log(`Retrieved ${result.rows.length} total skills including subcategory details`);
+      // Transform to old Skill format for API compatibility
+      const allSkillsInOldFormat = userSkills.map(userSkill => {
+        return {
+          id: userSkill.id,
+          userId: userSkill.userId,
+          name: userSkill.skillName || '', // From the joined skill_templates.name
+          category: userSkill.skillCategory || '', // From the joined skill_templates.category
+          level: userSkill.level,
+          lastUpdated: userSkill.lastUpdated,
+          certification: userSkill.certification,
+          credlyLink: userSkill.credlyLink,
+          notes: userSkill.notes,
+          endorsementCount: userSkill.endorsementCount,
+          certificationDate: userSkill.certificationDate,
+          expirationDate: userSkill.expirationDate,
+          categoryId: null, // These will be derived from the skill template
+          subcategoryId: null,
+          categoryName: userSkill.categoryName,
+          categoryColor: userSkill.categoryColor,
+          categoryIcon: userSkill.categoryIcon,
+          subcategoryName: userSkill.subcategoryName,
+          subcategoryColor: userSkill.subcategoryColor,
+          subcategoryIcon: userSkill.subcategoryIcon,
+        };
+      });
       
-      // Log a few samples for debugging
-      if (result.rows.length > 0) {
-        console.log("Sample skill with subcategory info:", JSON.stringify(result.rows[0]));
+      console.log(`Returned ${allSkillsInOldFormat.length} skills from user_skills table for dashboard`);
+      
+      // Log a sample for debugging
+      if (allSkillsInOldFormat.length > 0) {
+        console.log("Sample skill from user_skills table:", JSON.stringify(allSkillsInOldFormat[0]));
       }
       
-      return this.snakeToCamel(result.rows);
+      return allSkillsInOldFormat;
     } catch (error) {
-      console.error("Error getting all skills:", error);
+      console.error("Error getting all skills from new schema:", error);
       throw error;
     }
   }
