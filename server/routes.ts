@@ -3798,7 +3798,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all categories, subcategories, skills, and users
       const categories = await storage.getAllSkillCategories();
       const subcategories = await storage.getAllSkillSubcategories();
-      const skills = await storage.getAllSkills();
+      
+      // Use getAllUserSkills (new schema) instead of getAllSkills (legacy)
+      const userSkills = await storage.getAllUserSkills();
+      const skills = userSkills.map(us => storage.userSkillToLegacySkill(us));
+      console.log(`Fetched ${skills.length} user skills (converted from user_skills table for hierarchy)`);
+      
       const users = await storage.getAllUsers();
 
       // Build the hierarchy: categories -> subcategories -> skills -> users
