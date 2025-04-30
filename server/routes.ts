@@ -3713,15 +3713,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // The route is now defined as public above
   
   // Get all skills for Skill Overview
-  app.get("/api/all-skills", ensureAuth, async (req, res) => {
-    try {
-      const skills = await storage.getAllSkillTemplates();
-      res.json(skills);
-    } catch (error) {
-      console.error("Error fetching skills:", error);
-      res.status(500).json({ message: "Error fetching skills", error: String(error) });
-    }
-  });
+  // Removed duplicate endpoint for /api/all-skills
+  // The primary endpoint is defined earlier in this file, 
+  // returning user_skills converted to legacy format
 
   // Admin API endpoints for hierarchical data (project and skill overviews)
   app.get("/api/admin/project-hierarchy", ensureAdmin, async (req, res) => {
@@ -3741,8 +3735,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const users = await storage.getAllUsers();
       console.log(`Fetched ${users.length} users`);
       
-      const skills = await storage.getAllSkills();
-      console.log(`Fetched ${skills.length} user skills`);
+      // Use getAllUserSkills (new schema) instead of getAllSkills (legacy)
+      const userSkills = await storage.getAllUserSkills();
+      const skills = userSkills.map(us => storage.userSkillToLegacySkill(us));
+      console.log(`Fetched ${skills.length} user skills (converted from user_skills table)`);
       
       // Get project required skills
       console.log("Fetching project skills...");
