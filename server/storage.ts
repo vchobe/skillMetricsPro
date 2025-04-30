@@ -1032,33 +1032,67 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // Search skills using new schema
   async searchSkills(query: string): Promise<Skill[]> {
     try {
       // Search for skills by name, category, level, certification
       const searchQuery = `%${query.toLowerCase()}%`;
       const result = await pool.query(`
-        SELECT s.*, 
+        SELECT us.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               st.description as skill_description,
                sc.name as category_name, 
                sc.color as category_color, 
                sc.icon as category_icon,
                ssc.name as subcategory_name,
                ssc.color as subcategory_color,
                ssc.icon as subcategory_icon
-        FROM skills s
-        LEFT JOIN skill_categories sc ON s.category_id = sc.id
-        LEFT JOIN skill_subcategories ssc ON s.subcategory_id = ssc.id
-        WHERE LOWER(s.name) LIKE $1 
-          OR LOWER(s.category) LIKE $1 
-          OR LOWER(s.level) LIKE $1 
-          OR LOWER(s.certification) LIKE $1
-          OR LOWER(s.notes) LIKE $1
+        FROM user_skills us
+        JOIN skill_templates st ON us.skill_template_id = st.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON st.subcategory_id = ssc.id
+        WHERE LOWER(st.name) LIKE $1 
+          OR LOWER(st.category) LIKE $1 
+          OR LOWER(us.level) LIKE $1 
+          OR LOWER(us.certification) LIKE $1
+          OR LOWER(us.notes) LIKE $1
           OR LOWER(sc.name) LIKE $1
           OR LOWER(ssc.name) LIKE $1
-        ORDER BY s.last_updated DESC
+        ORDER BY us.last_updated DESC
       `, [searchQuery]);
       
-      console.log(`Search found ${result.rows.length} skills matching "${query}"`);
-      return this.snakeToCamel(result.rows);
+      // Convert to legacy Skill format for API compatibility
+      const userSkills = this.snakeToCamel(result.rows);
+      
+      // Transform to old Skill format for API compatibility
+      const skillsInOldFormat = userSkills.map(userSkill => {
+        return {
+          id: userSkill.id,
+          userId: userSkill.userId,
+          name: userSkill.skillName || '', // From the joined skill_templates.name
+          category: userSkill.skillCategory || '', // From the joined skill_templates.category
+          level: userSkill.level,
+          lastUpdated: userSkill.lastUpdated,
+          certification: userSkill.certification,
+          credlyLink: userSkill.credlyLink,
+          notes: userSkill.notes,
+          endorsementCount: userSkill.endorsementCount,
+          certificationDate: userSkill.certificationDate,
+          expirationDate: userSkill.expirationDate,
+          categoryId: null, // These will be derived from the skill template
+          subcategoryId: null,
+          categoryName: userSkill.categoryName,
+          categoryColor: userSkill.categoryColor,
+          categoryIcon: userSkill.categoryIcon,
+          subcategoryName: userSkill.subcategoryName,
+          subcategoryColor: userSkill.subcategoryColor,
+          subcategoryIcon: userSkill.subcategoryIcon,
+        };
+      });
+      
+      console.log(`Search found ${skillsInOldFormat.length} skills matching "${query}"`);
+      return skillsInOldFormat;
     } catch (error) {
       console.error("Error searching skills:", error);
       throw error;
@@ -1263,12 +1297,19 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // Updated to use the new schema with user_skills and skill_templates
   async getUserEndorsements(userId: number): Promise<Endorsement[]> {
     try {
-      const result = await pool.query(
-        'SELECT e.*, s.name as skill_name, u.email as endorser_email FROM endorsements e JOIN skills s ON e.skill_id = s.id JOIN users u ON e.endorser_id = u.id WHERE e.endorsee_id = $1 ORDER BY e.created_at DESC',
-        [userId]
-      );
+      const result = await pool.query(`
+        SELECT e.*, st.name as skill_name, u.email as endorser_email 
+        FROM endorsements e 
+        JOIN user_skills us ON e.skill_id = us.id 
+        JOIN skill_templates st ON us.skill_template_id = st.id 
+        JOIN users u ON e.endorser_id = u.id 
+        WHERE e.endorsee_id = $1 
+        ORDER BY e.created_at DESC
+      `, [userId]);
+      
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting user endorsements:", error);
@@ -1276,6 +1317,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // Updated to increment endorsement count in user_skills table instead of skills table
   async createEndorsement(endorsement: InsertEndorsement): Promise<Endorsement> {
     try {
       // First check if the endorsement already exists
@@ -1293,9 +1335,9 @@ export class PostgresStorage implements IStorage {
           [endorsement.comment || '', endorsement.skillId, endorsement.endorserId]
         );
         
-        // Also increment the endorsement count if we're updating
+        // Also increment the endorsement count on the user_skills table (was previously skills table)
         await pool.query(
-          'UPDATE skills SET endorsement_count = endorsement_count + 1 WHERE id = $1',
+          'UPDATE user_skills SET endorsement_count = COALESCE(endorsement_count, 0) + 1 WHERE id = $1',
           [endorsement.skillId]
         );
         
@@ -1315,9 +1357,9 @@ export class PostgresStorage implements IStorage {
         ]
       );
       
-      // Increment the endorsement count
+      // Increment the endorsement count on the user_skills table
       await pool.query(
-        'UPDATE skills SET endorsement_count = endorsement_count + 1 WHERE id = $1',
+        'UPDATE user_skills SET endorsement_count = COALESCE(endorsement_count, 0) + 1 WHERE id = $1',
         [endorsement.skillId]
       );
       
@@ -1328,6 +1370,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // Updated to decrement endorsement count in user_skills table instead of skills table
   async deleteEndorsement(endorsementId: number): Promise<void> {
     try {
       // First get the endorsement to know which skill to update
@@ -1345,9 +1388,9 @@ export class PostgresStorage implements IStorage {
       // Delete the endorsement
       await pool.query('DELETE FROM endorsements WHERE id = $1', [endorsementId]);
       
-      // Decrement the endorsement count
+      // Decrement the endorsement count on the user_skills table (was previously skills table)
       await pool.query(
-        'UPDATE skills SET endorsement_count = GREATEST(endorsement_count - 1, 0) WHERE id = $1',
+        'UPDATE user_skills SET endorsement_count = GREATEST(COALESCE(endorsement_count, 1) - 1, 0) WHERE id = $1',
         [skillId]
       );
     } catch (error) {
