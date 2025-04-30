@@ -50,6 +50,9 @@ export const skillLevelEnum = pgEnum("skill_level", ["beginner", "intermediate",
 // Tab visibility enum
 export const tabVisibilityEnum = pgEnum("tab_visibility", ["visible", "hidden"]);
 
+// Category type enum (technical or functional)
+export const categoryTypeEnum = pgEnum("category_type", ["technical", "functional"]);
+
 // Skill Categories schema (for organizing skills into categories with tabs)
 export const skillCategories = pgTable("skill_categories", {
   id: serial("id").primaryKey(),
@@ -59,6 +62,7 @@ export const skillCategories = pgTable("skill_categories", {
   visibility: tabVisibilityEnum("visibility").default("visible"),
   color: text("color").default("#3B82F6"), // Default blue color
   icon: text("icon").default("code"),
+  categoryType: categoryTypeEnum("category_type").default("technical"), // Technical or Functional
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -82,6 +86,7 @@ export const insertSkillCategorySchema = createInsertSchema(skillCategories).pic
   visibility: true,
   color: true,
   icon: true,
+  categoryType: true,
 });
 
 export const insertSkillSubcategorySchema = createInsertSchema(skillSubcategories).pick({
