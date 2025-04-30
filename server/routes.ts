@@ -415,22 +415,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Try to get skill histories from both schemas for completeness
-      try {
-        // Get all skill histories for this user from both old and new schema
-        const combinedHistory = await storage.getUserSkillHistoryFromAllSources(userId);
-        
-        console.log(`Returning ${combinedHistory.length} skill history entries for user ${userId} from all sources`);
-        return res.json(combinedHistory);
-      } catch (err) {
-        console.error(`Error getting combined skill history for user ${userId}:`, err);
-        // Fall back to legacy history if there's an error
-      }
+      // Only use the new function for combined schema queries
+      const combinedHistory = await storage.getUserSkillHistoryFromAllSources(userId);
+      console.log(`Returning ${combinedHistory.length} skill history entries for user ${userId} from all sources`);
+      return res.json(combinedHistory);
       
-      // Fall back to original implementation
+      /* Legacy code commented out - no longer needed as we now use combined query
       const skillHistory = await storage.getUserSkillHistory(userId);
-      console.log(`Falling back: Returning ${skillHistory.length} skill history entries for user ${userId} from legacy source`);
+      console.log(`Returning ${skillHistory.length} skill history entries for user ${userId}`);
       res.json(skillHistory);
+      */
     } catch (error) {
       console.error(`Error in /api/users/${req.params.userId}/skills/history endpoint:`, error);
       res.status(500).json({ message: "Error fetching user skill history", error });
@@ -977,22 +971,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/user/skills/history", ensureAuth, async (req, res) => {
     try {
-      // Try to get skill histories from both schemas for completeness
-      try {
-        // Get all skill histories for this user from both old and new schema
-        const combinedHistory = await storage.getUserSkillHistoryFromAllSources(req.user!.id);
-        
-        console.log(`Returning ${combinedHistory.length} skill history entries for user ${req.user!.id} from all sources`);
-        return res.json(combinedHistory);
-      } catch (err) {
-        console.error(`Error getting combined skill history for user ${req.user!.id}:`, err);
-        // Fall back to legacy history if there's an error
-      }
+      // Only use the new function for combined schema queries
+      const combinedHistory = await storage.getUserSkillHistoryFromAllSources(req.user!.id);
+      console.log(`Returning ${combinedHistory.length} skill history entries for user ${req.user!.id} from all sources`);
+      return res.json(combinedHistory);
       
-      // Fall back to original implementation
+      /* Legacy code commented out - no longer needed as we now use combined query
       const history = await storage.getUserSkillHistory(req.user!.id);
-      console.log(`Falling back: Returning ${history.length} skill history entries for user ${req.user!.id} from legacy source`);
+      console.log(`Returning ${history.length} skill history entries for user ${req.user!.id}`);
       res.json(history);
+      */
     } catch (error) {
       console.error("Error in /api/user/skills/history endpoint:", error);
       res.status(500).json({ message: "Error fetching skill history", error });
@@ -1002,22 +990,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Global organization-wide skill history (for all users to view global activity)
   app.get("/api/org/skills/history", ensureAuth, async (req, res) => {
     try {
-      // Try to get combined skill histories from both schemas
-      try {
-        // Get all skill histories from both old and new schema
-        const combinedHistory = await storage.getAllSkillHistoriesFromAllSources();
-        
-        console.log(`Returning ${combinedHistory.length} global skill history entries from all sources`);
-        return res.json(combinedHistory);
-      } catch (err) {
-        console.error("Error getting combined global skill history:", err);
-        // Fall back to legacy history if there's an error
-      }
+      // Only use the new function for combined schema queries
+      const combinedHistory = await storage.getAllSkillHistoriesFromAllSources();
+      console.log(`Returning ${combinedHistory.length} global skill history entries from all sources`);
+      return res.json(combinedHistory);
       
-      // Fall back to original implementation
+      /* Legacy code commented out - no longer needed as we now use combined query
       const history = await storage.getAllSkillHistories();
-      console.log(`Falling back: Returning ${history.length} global skill history entries from legacy source`);
+      console.log(`Returning ${history.length} global skill history entries from legacy source`);
       res.json(history);
+      */
     } catch (error) {
       console.error("Error in /api/org/skills/history endpoint:", error);
       res.status(500).json({ message: "Error fetching global skill history", error });
@@ -1042,24 +1024,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all skills (for organization dashboard)
   app.get("/api/all-skills", ensureAuth, async (req, res) => {
     try {
-      // First try to get skills from new schema (user_skills table)
-      try {
-        const userSkills = await storage.getAllUserSkills();
-        
-        // Convert to legacy format for backward compatibility
-        const legacySkills = userSkills.map(us => storage.userSkillToLegacySkill(us));
-        
-        console.log(`Returning ${legacySkills.length} skills from user_skills table for dashboard`);
-        return res.json(legacySkills);
-      } catch (err) {
-        console.error("Error getting all user skills for dashboard:", err);
-        // Fall back to legacy skills if there's an error
-      }
+      // Only use the user_skills table
+      const userSkills = await storage.getAllUserSkills();
       
-      // Fall back to the old table
+      // Convert to legacy format for backward compatibility
+      const legacySkills = userSkills.map(us => storage.userSkillToLegacySkill(us));
+      
+      console.log(`Returning ${legacySkills.length} skills from user_skills table for dashboard`);
+      return res.json(legacySkills);
+      
+      /* Legacy code commented out - no longer needed as we now use new schema only
       const skills = await storage.getAllSkills();
-      console.log(`Falling back: Returning ${skills.length} skills from legacy skills table for dashboard`);
+      console.log(`Returning ${skills.length} skills from legacy skills table for dashboard`);
       res.json(skills);
+      */
     } catch (error) {
       console.error("Error in /api/all-skills endpoint:", error);
       res.status(500).json({ message: "Error fetching all skills", error });
@@ -1069,24 +1047,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all skills (for activity feed)
   app.get("/api/skills/all", ensureAuth, async (req, res) => {
     try {
-      // First try to get skills from new schema (user_skills table)
-      try {
-        const userSkills = await storage.getAllUserSkills();
-        
-        // Convert to legacy format for backward compatibility
-        const legacySkills = userSkills.map(us => storage.userSkillToLegacySkill(us));
-        
-        console.log(`Returning ${legacySkills.length} skills from user_skills table for activity feed`);
-        return res.json(legacySkills);
-      } catch (err) {
-        console.error("Error getting all user skills for activity feed:", err);
-        // Fall back to legacy skills if there's an error
-      }
+      // Only use the user_skills table
+      const userSkills = await storage.getAllUserSkills();
       
-      // Fall back to the old table
+      // Convert to legacy format for backward compatibility
+      const legacySkills = userSkills.map(us => storage.userSkillToLegacySkill(us));
+      
+      console.log(`Returning ${legacySkills.length} skills from user_skills table for activity feed`);
+      return res.json(legacySkills);
+      
+      /* Legacy code commented out - no longer needed as we now use new schema only
       const skills = await storage.getAllSkills();
-      console.log(`Falling back: Returning ${skills.length} skills from legacy skills table for activity feed`);
+      console.log(`Returning ${skills.length} skills from legacy skills table for activity feed`);
       res.json(skills);
+      */
     } catch (error) {
       console.error("Error in /api/skills/all endpoint:", error);
       res.status(500).json({ message: "Error fetching all skills", error });
