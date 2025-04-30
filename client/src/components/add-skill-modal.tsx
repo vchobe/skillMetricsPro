@@ -126,6 +126,9 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
   const { data: subcategories = [], isLoading: isLoadingSubcategories, error: subcategoriesError } = useQuery<SkillSubcategory[]>({
     queryKey: [selectedCategoryId ? `/api/skill-categories/${selectedCategoryId}/subcategories` : 'no-subcategories'],
     enabled: !!selectedCategoryId,
+    // Add explicit staleTime and refetchOnMount to ensure fresh data
+    staleTime: 0,
+    refetchOnMount: "always"
   });
   
   // Add debug logging for subcategories
@@ -607,13 +610,27 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                       render={({ field }) => (
                         <FormItem className="col-span-1 md:col-span-2">
                           <FormLabel>Subcategory</FormLabel>
+                          <div className="mb-1 text-xs text-gray-500">
+                            {isLoadingSubcategories ? (
+                              <span className="flex items-center">
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                Loading subcategories...
+                              </span>
+                            ) : subcategories.length === 0 ? (
+                              <span>No subcategories found for this category</span>
+                            ) : (
+                              <span>Found {subcategories.length} subcategories</span>
+                            )}
+                          </div>
                           <FormControl>
                             <Select
                               value={field.value?.toString() || ""}
                               onValueChange={(value) => {
+                                console.log(`Selected subcategory ID: ${value}`);
                                 const subcategoryId = parseInt(value, 10);
                                 field.onChange(subcategoryId);
                               }}
+                              disabled={isLoadingSubcategories || subcategories.length === 0}
                             >
                               <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select a subcategory" />
@@ -627,6 +644,11 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
                               </SelectContent>
                             </Select>
                           </FormControl>
+                          {subcategoriesError && (
+                            <p className="text-xs text-red-500 mt-1">
+                              Error loading subcategories: {String(subcategoriesError)}
+                            </p>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
