@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -119,12 +119,28 @@ export default function AddSkillsPage() {
     queryKey: ["/api/skill-subcategories"],
   });
 
+  // Log subcategories for debugging
+  useEffect(() => {
+    if (skillSubcategories.length > 0) {
+      console.log("Subcategories loaded:", skillSubcategories.length);
+      console.log("Sample subcategory:", skillSubcategories[0]);
+      
+      // Check if we have SQL Database subcategory
+      const sqlSubcategory = skillSubcategories.find(sc => sc.name === "SQL Databases");
+      console.log("SQL Database subcategory:", sqlSubcategory);
+    }
+  }, [skillSubcategories]);
+
   // Process all skills when loaded
   useEffect(() => {
     if (allSkills.length > 0) {
       // Debug: Log unique categories to help with mapping
       const categories = new Set(allSkills.map(s => s.category));
       console.log("Available categories from all skills:", Array.from(categories));
+      
+      // Debug: Check for database skills with subcategories
+      const dbSkills = allSkills.filter(s => s.category === "Database" && s.subcategoryId);
+      console.log("Database skills with subcategories:", dbSkills);
       
       // Create a unique set of skills by name
       const uniqueSkillNames = new Set();
@@ -141,6 +157,8 @@ export default function AddSkillsPage() {
         userId: user?.id || 0,
         name: skill.name,
         category: skill.category,
+        categoryId: skill.categoryId,
+        subcategoryId: skill.subcategoryId,
         level: "beginner",
         certification: "",
         credlyLink: "",
@@ -606,63 +624,121 @@ export default function AddSkillsPage() {
                                         </TableCell>
                                       </TableRow>
                                     ) : (
-                                      filteredSkills.filter(skill => skill.category === category.name).map((skill, index) => {
-                                        const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                        const isSelected = selectedSkills[skill.name] || false;
+                                      /* Group skills by subcategory */
+                                      getSubcategoriesForCategory(category.id).map(subcategory => {
+                                        // Get the skills from allSkills that belong to this subcategory
+                                        const subcategorySkills = allSkills.filter(skill => 
+                                          skill.categoryId === category.id && 
+                                          skill.subcategoryId === subcategory.id
+                                        );
+                                        
+                                        // Skip empty subcategories
+                                        if (subcategorySkills.length === 0) {
+                                          return null;
+                                        }
+                                        
+                                        // Get unique skill names from this subcategory
+                                        const skillNames = new Set(subcategorySkills.map(s => s.name));
+                                        
+                                        // Find matching skills in our filtered skills list
+                                        const matchingSkills = filteredSkills.filter(skill => 
+                                          skill.category === category.name && 
+                                          skillNames.has(skill.name)
+                                        );
+                                        
+                                        // Skip if no skills in this subcategory match our filtered list
+                                        if (matchingSkills.length === 0) {
+                                          return null;
+                                        }
                                         
                                         return (
-                                          <TableRow key={index}>
-                                            <TableCell>
-                                              <Checkbox 
-                                                checked={isSelected}
-                                                disabled={isAlreadyAdded}
-                                                onCheckedChange={(checked) => {
-                                                  handleSkillSelection(skill.name, checked === true);
-                                                }}
-                                              />
-                                            </TableCell>
-                                            <TableCell>
-                                              {skill.name}
-                                              {isAlreadyAdded && (
-                                                <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                                  <Check className="h-3 w-3" />
-                                                  <span>Already added</span>
+                                          <React.Fragment key={subcategory.id}>
+                                            {/* Subcategory header */}
+                                            <TableRow className="bg-muted/50">
+                                              <TableCell colSpan={5} className="py-2">
+                                                <div className="flex items-center gap-2 font-medium">
+                                                  {subcategory.icon && (
+                                                    <span className="text-muted-foreground">
+                                                      {/* Use Lucide icon if possible */}
+                                                      {subcategory.icon === 'database' ? <Database className="h-4 w-4" /> :
+                                                       subcategory.icon === 'server' ? <Server className="h-4 w-4" /> :
+                                                       subcategory.icon === 'code' ? <Code className="h-4 w-4" /> :
+                                                       <span className="w-4 h-4 inline-block"></span>}
+                                                    </span>
+                                                  )}
+                                                  <span 
+                                                    className="text-sm"
+                                                    style={{ color: subcategory.color || undefined }}
+                                                  >
+                                                    {subcategory.name}
+                                                  </span>
                                                 </div>
-                                              )}
-                                            </TableCell>
-                                            <TableCell>
-                                              <Select 
-                                                disabled={!isSelected || isAlreadyAdded}
-                                                value={skill.level}
-                                                onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                              >
-                                                <SelectTrigger className="w-full">
-                                                  <SelectValue placeholder="Select level" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  <SelectItem value="beginner">Beginner</SelectItem>
-                                                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                                                  <SelectItem value="expert">Expert</SelectItem>
-                                                </SelectContent>
-                                              </Select>
-                                            </TableCell>
-                                            <TableCell>
-                                              <Input 
-                                                placeholder="Certification name"
-                                                disabled={!isSelected || isAlreadyAdded}
-                                                value={skill.certification}
-                                                onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                              />
-                                            </TableCell>
-                                            <TableCell>
-                                              <Input 
-                                                placeholder="Certification link"
-                                                disabled={!isSelected || isAlreadyAdded}
-                                                value={skill.credlyLink}
-                                                onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                              />
-                                            </TableCell>
-                                          </TableRow>
+                                              </TableCell>
+                                            </TableRow>
+                                            
+                                            {/* Skills in this subcategory */}
+                                            {matchingSkills.map((skill, index) => {
+                                              const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
+                                              const isSelected = selectedSkills[skill.name] || false;
+                                              
+                                              return (
+                                                <TableRow key={`${subcategory.id}-${index}`}>
+                                                  <TableCell>
+                                                    <Checkbox 
+                                                      checked={isSelected}
+                                                      disabled={isAlreadyAdded}
+                                                      onCheckedChange={(checked) => {
+                                                        handleSkillSelection(skill.name, checked === true);
+                                                      }}
+                                                    />
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {skill.name}
+                                                    {isAlreadyAdded && (
+                                                      <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                                        <Check className="h-3 w-3" />
+                                                        <span>Already added</span>
+                                                      </div>
+                                                    )}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Select
+                                                      value={skillsList.find(s => s.name === skill.name)?.level || "beginner"}
+                                                      onValueChange={(value) => handleLevelChange(skill.name, value)}
+                                                      disabled={!isSelected || isAlreadyAdded}
+                                                    >
+                                                      <SelectTrigger className="w-32">
+                                                        <SelectValue placeholder="Select level" />
+                                                      </SelectTrigger>
+                                                      <SelectContent>
+                                                        <SelectItem value="beginner">Beginner</SelectItem>
+                                                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                                                        <SelectItem value="expert">Expert</SelectItem>
+                                                      </SelectContent>
+                                                    </Select>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Input
+                                                      placeholder="Certification name (if any)"
+                                                      value={skillsList.find(s => s.name === skill.name)?.certification || ""}
+                                                      onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                                      disabled={!isSelected || isAlreadyAdded}
+                                                      className="w-full"
+                                                    />
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Input
+                                                      placeholder="Certification link (if any)"
+                                                      value={skillsList.find(s => s.name === skill.name)?.credlyLink || ""}
+                                                      onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
+                                                      disabled={!isSelected || isAlreadyAdded}
+                                                      className="w-full"
+                                                    />
+                                                  </TableCell>
+                                                </TableRow>
+                                              );
+                                            })}
+                                          </React.Fragment>
                                         );
                                       })
                                     )}
@@ -670,24 +746,7 @@ export default function AddSkillsPage() {
                                 </Table>
                               </div>
                             </TabsContent>
-                          ))
-                        }
-                        
-                        {/* Fallback tabs for categories not yet loaded from DB */}
-                        {skillCategories.filter(cat => cat.categoryType === "technical").length === 0 && (
-                          <>
-                            <TabsContent value="programming">
-                              <div className="p-4 text-center text-muted-foreground">
-                                Loading skills for Programming category...
-                              </div>
-                            </TabsContent>
-                            <TabsContent value="frontend">
-                              <div className="p-4 text-center text-muted-foreground">
-                                Loading skills for UI/Frontend category...
-                              </div>
-                            </TabsContent>
-                          </>
-                        )}
+                          ))}
                       </Tabs>
                     </div>
                   </div>
@@ -700,7 +759,7 @@ export default function AddSkillsPage() {
                       <Tabs 
                         defaultValue={skillCategories.filter(cat => cat.categoryType === "functional").length > 0 
                           ? skillCategories.filter(cat => cat.categoryType === "functional")[0]?.name?.toLowerCase() 
-                          : "marketing"}
+                          : "design"}
                         onValueChange={(value) => markTabVisited(value)}
                       >
                         <TabsList className="mb-4">
@@ -722,12 +781,12 @@ export default function AddSkillsPage() {
                                 const tabId = category.name.toLowerCase().replace(/\s+/g, '');
                                 const getCategoryIcon = (name: string) => {
                                   switch(name.toLowerCase()) {
-                                    case 'marketing': return <PieChart className="h-4 w-4 mr-1" />;
                                     case 'design': return <Paintbrush className="h-4 w-4 mr-1" />;
-                                    case 'communication': return <MessageSquare className="h-4 w-4 mr-1" />;
+                                    case 'marketing': return <PieChart className="h-4 w-4 mr-1" />;
                                     case 'project management': 
-                                    case 'project': return <Server className="h-4 w-4 mr-1" />;
+                                    case 'project': return <LayoutDashboard className="h-4 w-4 mr-1" />;
                                     case 'leadership': return <Users className="h-4 w-4 mr-1" />;
+                                    case 'communication': return <MessageSquare className="h-4 w-4 mr-1" />;
                                     default: return <Brain className="h-4 w-4 mr-1" />;
                                   }
                                 };
@@ -746,7 +805,6 @@ export default function AddSkillsPage() {
                               })
                           )}
                         </TabsList>
-                        
                         {/* Dynamically generated Functional category tabs */}
                         {skillCategories
                           .filter(category => category.categoryType === "functional")
@@ -771,63 +829,121 @@ export default function AddSkillsPage() {
                                         </TableCell>
                                       </TableRow>
                                     ) : (
-                                      filteredSkills.filter(skill => skill.category === category.name).map((skill, index) => {
-                                        const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
-                                        const isSelected = selectedSkills[skill.name] || false;
+                                      /* Group skills by subcategory */
+                                      getSubcategoriesForCategory(category.id).map(subcategory => {
+                                        // Get the skills from allSkills that belong to this subcategory
+                                        const subcategorySkills = allSkills.filter(skill => 
+                                          skill.categoryId === category.id && 
+                                          skill.subcategoryId === subcategory.id
+                                        );
+                                        
+                                        // Skip empty subcategories
+                                        if (subcategorySkills.length === 0) {
+                                          return null;
+                                        }
+                                        
+                                        // Get unique skill names from this subcategory
+                                        const skillNames = new Set(subcategorySkills.map(s => s.name));
+                                        
+                                        // Find matching skills in our filtered skills list
+                                        const matchingSkills = filteredSkills.filter(skill => 
+                                          skill.category === category.name && 
+                                          skillNames.has(skill.name)
+                                        );
+                                        
+                                        // Skip if no skills in this subcategory match our filtered list
+                                        if (matchingSkills.length === 0) {
+                                          return null;
+                                        }
                                         
                                         return (
-                                          <TableRow key={index}>
-                                            <TableCell>
-                                              <Checkbox 
-                                                checked={isSelected}
-                                                disabled={isAlreadyAdded}
-                                                onCheckedChange={(checked) => {
-                                                  handleSkillSelection(skill.name, checked === true);
-                                                }}
-                                              />
-                                            </TableCell>
-                                            <TableCell>
-                                              {skill.name}
-                                              {isAlreadyAdded && (
-                                                <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                                  <Check className="h-3 w-3" />
-                                                  <span>Already added</span>
+                                          <React.Fragment key={subcategory.id}>
+                                            {/* Subcategory header */}
+                                            <TableRow className="bg-muted/50">
+                                              <TableCell colSpan={5} className="py-2">
+                                                <div className="flex items-center gap-2 font-medium">
+                                                  {subcategory.icon && (
+                                                    <span className="text-muted-foreground">
+                                                      {/* Use Lucide icon if possible */}
+                                                      {subcategory.icon === 'users' ? <Users className="h-4 w-4" /> :
+                                                       subcategory.icon === 'message-square' ? <MessageSquare className="h-4 w-4" /> :
+                                                       subcategory.icon === 'paintbrush' ? <Paintbrush className="h-4 w-4" /> :
+                                                       <span className="w-4 h-4 inline-block"></span>}
+                                                    </span>
+                                                  )}
+                                                  <span 
+                                                    className="text-sm"
+                                                    style={{ color: subcategory.color || undefined }}
+                                                  >
+                                                    {subcategory.name}
+                                                  </span>
                                                 </div>
-                                              )}
-                                            </TableCell>
-                                            <TableCell>
-                                              <Select 
-                                                disabled={!isSelected || isAlreadyAdded}
-                                                value={skill.level}
-                                                onValueChange={(value) => handleLevelChange(skill.name, value)}
-                                              >
-                                                <SelectTrigger className="w-full">
-                                                  <SelectValue placeholder="Select level" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  <SelectItem value="beginner">Beginner</SelectItem>
-                                                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                                                  <SelectItem value="expert">Expert</SelectItem>
-                                                </SelectContent>
-                                              </Select>
-                                            </TableCell>
-                                            <TableCell>
-                                              <Input 
-                                                placeholder="Certification name"
-                                                disabled={!isSelected || isAlreadyAdded}
-                                                value={skill.certification}
-                                                onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                              />
-                                            </TableCell>
-                                            <TableCell>
-                                              <Input 
-                                                placeholder="Certification link"
-                                                disabled={!isSelected || isAlreadyAdded}
-                                                value={skill.credlyLink}
-                                                onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                              />
-                                            </TableCell>
-                                          </TableRow>
+                                              </TableCell>
+                                            </TableRow>
+                                            
+                                            {/* Skills in this subcategory */}
+                                            {matchingSkills.map((skill, index) => {
+                                              const isAlreadyAdded = isSkillAlreadyAdded(skill.name);
+                                              const isSelected = selectedSkills[skill.name] || false;
+                                              
+                                              return (
+                                                <TableRow key={`${subcategory.id}-${index}`}>
+                                                  <TableCell>
+                                                    <Checkbox 
+                                                      checked={isSelected}
+                                                      disabled={isAlreadyAdded}
+                                                      onCheckedChange={(checked) => {
+                                                        handleSkillSelection(skill.name, checked === true);
+                                                      }}
+                                                    />
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {skill.name}
+                                                    {isAlreadyAdded && (
+                                                      <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                                        <Check className="h-3 w-3" />
+                                                        <span>Already added</span>
+                                                      </div>
+                                                    )}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Select
+                                                      value={skillsList.find(s => s.name === skill.name)?.level || "beginner"}
+                                                      onValueChange={(value) => handleLevelChange(skill.name, value)}
+                                                      disabled={!isSelected || isAlreadyAdded}
+                                                    >
+                                                      <SelectTrigger className="w-32">
+                                                        <SelectValue placeholder="Select level" />
+                                                      </SelectTrigger>
+                                                      <SelectContent>
+                                                        <SelectItem value="beginner">Beginner</SelectItem>
+                                                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                                                        <SelectItem value="expert">Expert</SelectItem>
+                                                      </SelectContent>
+                                                    </Select>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Input
+                                                      placeholder="Certification name (if any)"
+                                                      value={skillsList.find(s => s.name === skill.name)?.certification || ""}
+                                                      onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                                      disabled={!isSelected || isAlreadyAdded}
+                                                      className="w-full"
+                                                    />
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Input
+                                                      placeholder="Certification link (if any)"
+                                                      value={skillsList.find(s => s.name === skill.name)?.credlyLink || ""}
+                                                      onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
+                                                      disabled={!isSelected || isAlreadyAdded}
+                                                      className="w-full"
+                                                    />
+                                                  </TableCell>
+                                                </TableRow>
+                                              );
+                                            })}
+                                          </React.Fragment>
                                         );
                                       })
                                     )}
@@ -835,160 +951,117 @@ export default function AddSkillsPage() {
                                 </Table>
                               </div>
                             </TabsContent>
-                          ))
-                        }
-                        
-                        {/* Fallback tabs for categories not yet loaded from DB */}
-                        {skillCategories.filter(cat => cat.categoryType === "functional").length === 0 && (
-                          <>
-                            <TabsContent value="marketing">
-                              <div className="p-4 text-center text-muted-foreground">
-                                Loading skills for Marketing category...
-                              </div>
-                            </TabsContent>
-                            <TabsContent value="design">
-                              <div className="p-4 text-center text-muted-foreground">
-                                Loading skills for Design category...
-                              </div>
-                            </TabsContent>
-                          </>
-                        )}
+                          ))}
                       </Tabs>
                     </div>
                   </div>
                 </TabsContent>
                 
-                {/* Other Tab Content */}
+                {/* Other (Custom) Tab Content */}
                 <TabsContent value="other">
-                  <div className="mt-4">
-                    <Card className="mb-4">
-                      <CardHeader>
-                        <CardTitle>Custom Skills</CardTitle>
-                        <CardDescription>
-                          Add skills that are not available in the predefined categories
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="max-h-[500px] overflow-y-auto p-4 border rounded-md">
-                          <div className="flex flex-col gap-4">
-                            {/* Custom skill form fields */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label htmlFor="customSkillName" className="text-sm font-medium">Skill Name</label>
-                                <Input
-                                  id="customSkillName"
-                                  placeholder="Enter skill name"
-                                  className="mt-1"
-                                  value={customSkill?.name || ""}
-                                  onChange={(e) => setCustomSkill(prev => ({ ...prev, name: e.target.value }))}
-                                />
-                              </div>
-                              <div>
-                                <label htmlFor="customSkillCategory" className="text-sm font-medium">Category</label>
-                                <Select 
-                                  value={customSkill?.category || ""} 
-                                  onValueChange={(value) => setCustomSkill(prev => ({ ...prev, category: value }))}
-                                >
-                                  <SelectTrigger id="customSkillCategory" className="mt-1">
-                                    <SelectValue placeholder="Select category" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {isLoadingCategories ? (
-                                      <SelectItem value="" disabled>Loading categories...</SelectItem>
-                                    ) : (
-                                      skillCategories.map(category => (
-                                        <SelectItem key={category.id} value={category.name}>
-                                          {category.name}
-                                        </SelectItem>
-                                      ))
-                                    )}
-                                    <SelectItem value="Other">Other</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                            <div>
-                              <label htmlFor="customSkillLevel" className="text-sm font-medium">Skill Level</label>
-                              <Select 
-                                value={customSkill?.level || "beginner"}
-                                onValueChange={(value) => setCustomSkill(prev => ({ ...prev, level: value as "beginner" | "intermediate" | "expert" }))}
-                              >
-                                <SelectTrigger id="customSkillLevel" className="mt-1">
-                                  <SelectValue placeholder="Select level" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="beginner">Beginner</SelectItem>
-                                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                                  <SelectItem value="expert">Expert</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <label htmlFor="customCertification" className="text-sm font-medium">Certification (Optional)</label>
-                              <Input
-                                id="customCertification"
-                                placeholder="Certification name"
-                                className="mt-1"
-                                value={customSkill?.certification || ""}
-                                onChange={(e) => setCustomSkill(prev => ({ ...prev, certification: e.target.value }))}
-                              />
-                            </div>
-                            <div>
-                              <label htmlFor="customCertLink" className="text-sm font-medium">Certification Link (Optional)</label>
-                              <Input
-                                id="customCertLink"
-                                placeholder="https://www.example.com/certification"
-                                className="mt-1"
-                                value={customSkill?.credlyLink || ""}
-                                onChange={(e) => setCustomSkill(prev => ({ ...prev, credlyLink: e.target.value }))}
-                              />
-                            </div>
-                            <div>
-                              <label htmlFor="customNotes" className="text-sm font-medium">Notes (Optional)</label>
-                              <Textarea
-                                id="customNotes"
-                                placeholder="Additional notes about this skill"
-                                className="mt-1"
-                                value={customSkill?.notes || ""}
-                                onChange={(e) => setCustomSkill(prev => ({ ...prev, notes: e.target.value }))}
-                              />
-                            </div>
-                            
-                            <Button 
-                              className="w-full mt-4" 
-                              onClick={handleSubmitCustomSkill}
-                              disabled={!customSkill?.name || !customSkill?.category || customSubmitMutation.isPending}
-                            >
-                              {customSubmitMutation.isPending ? (
-                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-opacity-20 border-t-white"></div>
-                              ) : (
-                                <Plus className="h-4 w-4 mr-2" />
-                              )}
-                              Submit Custom Skill for Approval
-                            </Button>
-                          </div>
+                  <Card className="mt-4">
+                    <CardHeader>
+                      <CardTitle>Add Custom Skill</CardTitle>
+                      <CardDescription>Don't see a skill you need? Create a custom one here.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4">
+                        <div>
+                          <FormLabel>Skill Name</FormLabel>
+                          <Input 
+                            placeholder="Enter skill name" 
+                            value={customSkill.name || ""}
+                            onChange={(e) => setCustomSkill(prev => ({ ...prev, name: e.target.value }))}
+                          />
                         </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                        <div>
+                          <FormLabel>Category</FormLabel>
+                          <Select
+                            value={customSkill.category}
+                            onValueChange={(value) => setCustomSkill(prev => ({ ...prev, category: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Programming">Programming</SelectItem>
+                              <SelectItem value="Database">Database</SelectItem>
+                              <SelectItem value="Cloud">Cloud</SelectItem>
+                              <SelectItem value="DevOps">DevOps</SelectItem>
+                              <SelectItem value="UI">UI</SelectItem>
+                              <SelectItem value="Data Science">Data Science</SelectItem>
+                              <SelectItem value="Design">Design</SelectItem>
+                              <SelectItem value="Marketing">Marketing</SelectItem>
+                              <SelectItem value="Communication">Communication</SelectItem>
+                              <SelectItem value="Project Management">Project Management</SelectItem>
+                              <SelectItem value="Leadership">Leadership</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <FormLabel>Skill Level</FormLabel>
+                          <Select
+                            value={customSkill.level}
+                            onValueChange={(value) => setCustomSkill(prev => ({ ...prev, level: value as "beginner" | "intermediate" | "expert" }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="beginner">Beginner</SelectItem>
+                              <SelectItem value="intermediate">Intermediate</SelectItem>
+                              <SelectItem value="expert">Expert</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <FormLabel>Certification (if any)</FormLabel>
+                          <Input 
+                            placeholder="e.g. AWS Certified Solution Architect" 
+                            value={customSkill.certification || ""}
+                            onChange={(e) => setCustomSkill(prev => ({ ...prev, certification: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <FormLabel>Certification Link (if any)</FormLabel>
+                          <Input 
+                            placeholder="e.g. https://www.credly.com/..." 
+                            value={customSkill.credlyLink || ""}
+                            onChange={(e) => setCustomSkill(prev => ({ ...prev, credlyLink: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <FormLabel>Additional Notes</FormLabel>
+                          <Textarea 
+                            placeholder="Any additional details about your skill" 
+                            value={customSkill.notes || ""}
+                            onChange={(e) => setCustomSkill(prev => ({ ...prev, notes: e.target.value }))}
+                          />
+                        </div>
+                        <Button 
+                          onClick={handleSubmitCustomSkill}
+                          disabled={customSubmitMutation.isPending}
+                          className="w-full mt-2"
+                        >
+                          {customSubmitMutation.isPending ? "Submitting..." : "Submit Custom Skill"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               </Tabs>
 
-              {/* Submit Button - Only show when Technical or Functional tab is active */}
-              {(activeTab === "technical" || activeTab === "functional") && (
-                <div className="mt-6 flex justify-end">
-                  <Button 
-                    onClick={handleSubmitSkills}
-                    disabled={submitSkillsMutation.isPending || Object.keys(selectedSkills).filter(key => selectedSkills[key]).length === 0}
-                    className="ml-auto"
-                  >
-                    {submitSkillsMutation.isPending && (
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-opacity-20 border-t-white"></div>
-                    )}
-                    Submit Skills for Approval
-                  </Button>
-                </div>
-              )}
+              <div className="mt-8 flex justify-between">
+                <Button variant="outline" onClick={() => setLocation("/skills")}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSubmitSkills}
+                  disabled={submitSkillsMutation.isPending}
+                >
+                  {submitSkillsMutation.isPending ? "Submitting..." : "Submit Selected Skills"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
