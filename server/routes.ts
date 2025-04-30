@@ -1505,8 +1505,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Public endpoint for skill templates - available to all authenticated users
-  app.get("/api/skill-templates", ensureAuth, async (req, res) => {
+  // Public endpoint for skill templates - available to everyone
+  app.get("/api/skill-templates", async (req, res) => {
     try {
       const templates = await storage.getAllSkillTemplates();
       res.json(templates);
