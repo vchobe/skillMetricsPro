@@ -387,9 +387,23 @@ export default function AddSkillsPage() {
     return skillSubcategories.filter(subcategory => subcategory.categoryId === categoryId);
   };
   
-  // Get skills for a specific subcategory
+  // Get skills for a specific subcategory from templates or allSkills
   const getSkillsForSubcategory = (subcategoryId: number) => {
-    return allSkills.filter(skill => skill.subcategoryId === subcategoryId);
+    // First check in templates (preferred source)
+    const templatesWithSubcategory = skillTemplates.filter(
+      template => template.subcategoryId === subcategoryId
+    );
+    
+    // If we found templates with this subcategory, use those
+    if (templatesWithSubcategory.length > 0) {
+      console.log(`Found ${templatesWithSubcategory.length} templates for subcategory ${subcategoryId}`);
+      return templatesWithSubcategory;
+    }
+    
+    // Fallback to allSkills if no templates found
+    const skillsWithSubcategory = allSkills.filter(skill => skill.subcategoryId === subcategoryId);
+    console.log(`Found ${skillsWithSubcategory.length} skills for subcategory ${subcategoryId} (fallback)`);
+    return skillsWithSubcategory;
   };
 
   // Check if all required tabs have been visited
