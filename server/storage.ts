@@ -545,7 +545,8 @@ export class PostgresStorage implements IStorage {
   
   // Convert UserSkill (new schema) to Skill (old schema) format for backward compatibility
   userSkillToLegacySkill(userSkill: any): Skill {
-    return {
+    // Extract all the direct properties that match the Skill type
+    const legacySkill: Partial<Skill> = {
       id: userSkill.id,
       userId: userSkill.userId,
       name: userSkill.skillName || 'Unknown Skill',
@@ -559,14 +560,22 @@ export class PostgresStorage implements IStorage {
       notes: userSkill.notes || '',
       endorsementCount: userSkill.endorsementCount || 0,
       certificationDate: userSkill.certificationDate || null,
-      expirationDate: userSkill.expirationDate || null,
-      categoryName: userSkill.categoryName || null,
-      categoryColor: userSkill.categoryColor || null,
-      categoryIcon: userSkill.categoryIcon || null,
-      subcategoryName: userSkill.subcategoryName || null,
-      subcategoryColor: userSkill.subcategoryColor || null,
-      subcategoryIcon: userSkill.subcategoryIcon || null
+      expirationDate: userSkill.expirationDate || null
     };
+    
+    // Add the extended properties as a separate step
+    // This avoids TypeScript errors about unknown properties
+    const result = legacySkill as any;
+    
+    // Add extended properties used by the UI
+    result.categoryName = userSkill.categoryName || null;
+    result.categoryColor = userSkill.categoryColor || null;
+    result.categoryIcon = userSkill.categoryIcon || null;
+    result.subcategoryName = userSkill.subcategoryName || null;
+    result.subcategoryColor = userSkill.subcategoryColor || null;
+    result.subcategoryIcon = userSkill.subcategoryIcon || null;
+    
+    return result as Skill;
   }
   
   // Get user skills using new schema but return in old format for compatibility
