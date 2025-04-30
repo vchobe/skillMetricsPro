@@ -60,6 +60,23 @@ async function migrateSkillsToUserSkills() {
       )
     `);
     
+    // First, check if the skill_level enum type exists
+    console.log('Ensuring skill_level enum type exists...');
+    try {
+      await client.query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'skill_level') THEN
+            CREATE TYPE skill_level AS ENUM ('beginner', 'intermediate', 'expert');
+          END IF;
+        END$$;
+      `);
+      console.log('skill_level enum type created or already exists');
+    } catch (err) {
+      console.error('Error creating skill_level enum:', err.message);
+      // Continue anyway, the table creation will fail if the enum doesn't exist
+    }
+    
     // Check if user_skills table exists, create if it doesn't
     console.log('Ensuring user_skills table exists...');
     await client.query(`
@@ -67,7 +84,7 @@ async function migrateSkillsToUserSkills() {
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL,
         skill_template_id INTEGER NOT NULL,
-        level TEXT NOT NULL,
+        level skill_level NOT NULL,
         certification TEXT,
         credly_link TEXT,
         notes TEXT,
@@ -198,13 +215,54 @@ async function migrateSkillsToUserSkills() {
     
     console.log(`Created ${mappingCount[0].count} migration mappings between skills and user_skills`);
     
+    // Verify table schema before committing
+    console.log('Verifying tables before committing...');
+    
+    // List all tables
+    const { rows: tables } = await client.query(`
+      SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public'
+    `);
+    console.log('Available tables:', tables.map(t => t.tablename).join(', '));
+    
+    // Verify skill_templates content
+    const { rows: templateCount } = await client.query(`
+      SELECT COUNT(*) FROM skill_templates
+    `);
+    console.log(`skill_templates table has ${templateCount[0].count} rows`);
+    
+    try {
+      // Verify user_skills content
+      const { rows: userSkillsCount } = await client.query(`
+        SELECT COUNT(*) FROM user_skills
+      `);
+      console.log(`user_skills table has ${userSkillsCount[0].count} rows`);
+    } catch (e) {
+      console.error('Could not query user_skills table:', e.message);
+    }
+    
+    try {
+      // Verify migration map content
+      const { rows: mapCount } = await client.query(`
+        SELECT COUNT(*) FROM skill_migration_map
+      `);
+      console.log(`skill_migration_map table has ${mapCount[0].count} rows`);
+    } catch (e) {
+      console.error('Could not query skill_migration_map table:', e.message);
+    }
+    
     // Commit the transaction
     await client.query('COMMIT');
-    console.log('Migration completed successfully!');
+    console.log('Migration committed successfully!');
     
   } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error during migration:', error);
+    console.error('Error during migration, rolling back transaction');
+    try {
+      await client.query('ROLLBACK');
+      console.error('Transaction rolled back successfully');
+    } catch (rollbackError) {
+      console.error('Error rolling back transaction:', rollbackError);
+    }
+    console.error('Original error details:', error);
     throw error;
   } finally {
     client.release();
