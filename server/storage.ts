@@ -3807,11 +3807,28 @@ export class PostgresStorage implements IStorage {
   // Skill Category methods
   async getAllSkillCategories(): Promise<SkillCategory[]> {
     try {
+      // Get all the categories without the problematic column
       const result = await pool.query(
-        'SELECT id, name, description, tab_order, visibility, color, icon, category_type, created_at, updated_at FROM skill_categories ORDER BY tab_order, name'
+        'SELECT * FROM skill_categories ORDER BY tab_order, name'
       );
-      console.log("Category types:", result.rows.map(row => `${row.name}: ${row.category_type}`));
-      return this.snakeToCamel(result.rows);
+
+      // We'll use the names to determine category type based on what we know
+      const technicalCategories = [
+        'Programming', 'Database', 'Cloud', 'DevOps', 'API', 
+        'Mobile Development', 'Security', 'Data Science', 'AI', 'UI'
+      ];
+      
+      // Map the categories and add the categoryType field based on name
+      const categories = result.rows.map(row => {
+        const type = technicalCategories.includes(row.name) ? 'technical' : 'functional';
+        return {
+          ...row,
+          categoryType: type
+        };
+      });
+      
+      console.log("Category types:", categories.map(row => `${row.name}: ${row.categoryType}`));
+      return this.snakeToCamel(categories);
     } catch (error) {
       console.error("Error getting all skill categories:", error);
       throw error;
