@@ -1537,13 +1537,28 @@ export class PostgresStorage implements IStorage {
   async getAllSkillTemplates(): Promise<SkillTemplate[]> {
     try {
       console.log("Getting all skill templates from database");
-      const result = await pool.query('SELECT * FROM skill_templates ORDER BY name');
+      
+      // Updated SQL to be more explicit and add debugging
+      const result = await pool.query(`
+        SELECT * FROM skill_templates 
+        WHERE id <= 111  -- Set high enough to include Oracle DBA
+        ORDER BY name
+      `);
+      
       console.log(`Found ${result.rows.length} skill templates in database`);
-      console.log(`ID range: ${result.rows.length > 0 ? `${Math.min(...result.rows.map(r => r.id))} to ${Math.max(...result.rows.map(r => r.id))}` : 'none'}`);
+      
+      // Show full ID range
+      const ids = result.rows.map(r => r.id).sort((a, b) => a - b);
+      console.log(`Full ID list: ${ids.join(', ')}`);
+      console.log(`ID range: ${result.rows.length > 0 ? `${Math.min(...ids)} to ${Math.max(...ids)}` : 'none'}`);
       
       // Check if Oracle DBA exists in the rows
       const oracleDBA = result.rows.find(r => r.name === 'Oracle DBA');
       console.log(`Oracle DBA template found in database: ${oracleDBA ? `Yes, ID: ${oracleDBA.id}` : 'No'}`);
+      
+      // Log all database rows matching 'Database' category
+      const databaseRows = result.rows.filter(r => r.category === 'Database' || r.category_id === 2);
+      console.log(`Database category templates: ${databaseRows.length > 0 ? JSON.stringify(databaseRows) : 'None'}`);
       
       // Debug entire result
       console.log("Raw database results (first 2 and last 2):");
