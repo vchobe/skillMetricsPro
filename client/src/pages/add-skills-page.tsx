@@ -561,6 +561,9 @@ export default function AddSkillsPage() {
       console.log("Updated visitedTabs state:", newState);
       return newState;
     });
+    
+    // Make this function available globally for components to use
+    window.getTabKey = getTabKey;
   };
 
   // Handle submission of custom skill
