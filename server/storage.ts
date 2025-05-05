@@ -221,7 +221,7 @@ export class PostgresStorage implements IStorage {
       return obj.map(v => this.snakeToCamel(v));
     }
     
-    return Object.keys(obj).reduce((result, key) => {
+    const result = Object.keys(obj).reduce((result, key) => {
       // Handle specific cases first
       let camelKey = key;
       
@@ -245,7 +245,7 @@ export class PostgresStorage implements IStorage {
         camelKey = 'isUpdate';
       } else if (key === 'category_type') {
         camelKey = 'categoryType';
-      } 
+      }
       // General snake_case to camelCase conversion
       else if (key.includes('_')) {
         // Handle compound snake_case (e.g., foo_bar_baz → fooBarBaz)
@@ -4412,8 +4412,15 @@ export class PostgresStorage implements IStorage {
       const params: any[] = [];
       let paramIndex = 1;
       
+      // Create a modified copy of the data without categoryType field
+      const validData = { ...data };
+      if ('categoryType' in validData) {
+        console.log("Warning: categoryType field was provided but is not supported in the database schema");
+        delete validData.categoryType;
+      }
+      
       // Build SET clause and parameters
-      for (const [key, value] of Object.entries(data)) {
+      for (const [key, value] of Object.entries(validData)) {
         // Convert camelCase to snake_case for database column names
         const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
         sets.push(`${columnName} = $${paramIndex}`);
