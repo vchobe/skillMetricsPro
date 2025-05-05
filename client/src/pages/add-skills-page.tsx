@@ -443,39 +443,35 @@ export default function AddSkillsPage() {
       other: visitedTabs.other // "other" tab not required
     });
     
-    // All technical sub-tabs must be visited
-    const techSubTabsVisited = 
-      visitedTabs.programming && 
-      visitedTabs.frontend && 
-      visitedTabs.database && 
-      visitedTabs.data && 
-      visitedTabs.cloud && 
-      visitedTabs.devops;
+    // Get all technical category names from the database to be comprehensive
+    const techTabs = skillCategories
+      .filter(category => category.categoryType === "technical")
+      .map(category => getTabKey(category.name));
     
-    console.log("Tech sub-tabs visited:", techSubTabsVisited, {
-      programming: visitedTabs.programming,
-      frontend: visitedTabs.frontend,
-      database: visitedTabs.database,
-      data: visitedTabs.data,
-      cloud: visitedTabs.cloud,
-      devops: visitedTabs.devops
-    });
+    // Verify all the technical tabs have been visited
+    // Extract the visited technical tabs from the visitedTabs object
+    const techTabsVisitedArray = techTabs.map(tab => visitedTabs[tab as keyof typeof visitedTabs]);
+    // Check if all tech tabs have been visited (no false/undefined values)
+    const techSubTabsVisited = techTabsVisitedArray.every(Boolean);
     
-    // All functional sub-tabs must be visited
-    const functionalSubTabsVisited = 
-      visitedTabs.marketing && 
-      visitedTabs.design && 
-      visitedTabs.communication && 
-      visitedTabs.project && 
-      visitedTabs.leadership;
+    console.log("Tech sub-tabs visited:", techSubTabsVisited, 
+      Object.fromEntries(techTabs.map(tab => [tab, visitedTabs[tab as keyof typeof visitedTabs]]))
+    );
     
-    console.log("Functional sub-tabs visited:", functionalSubTabsVisited, {
-      marketing: visitedTabs.marketing,
-      design: visitedTabs.design,
-      communication: visitedTabs.communication,
-      project: visitedTabs.project,
-      leadership: visitedTabs.leadership
-    });
+    // Get all functional category names from the database to be comprehensive
+    const functionalTabs = skillCategories
+      .filter(category => category.categoryType === "functional")
+      .map(category => getTabKey(category.name));
+    
+    // Verify all the functional tabs have been visited
+    // Extract the visited functional tabs from the visitedTabs object
+    const functionalTabsVisitedArray = functionalTabs.map(tab => visitedTabs[tab as keyof typeof visitedTabs]);
+    // Check if all functional tabs have been visited (no false/undefined values)
+    const functionalSubTabsVisited = functionalTabsVisitedArray.every(Boolean);
+    
+    console.log("Functional sub-tabs visited:", functionalSubTabsVisited, 
+      Object.fromEntries(functionalTabs.map(tab => [tab, visitedTabs[tab as keyof typeof visitedTabs]]))
+    );
     
     const result = mainTabsVisited && techSubTabsVisited && functionalSubTabsVisited;
     console.log("All tabs visited check result:", result);
@@ -486,9 +482,35 @@ export default function AddSkillsPage() {
   const handleSubmitSkills = () => {
     // Check if user has visited all required tabs
     if (!allTabsVisited()) {
+      // Get a list of missing tabs for better user guidance
+      const techTabs = skillCategories
+        .filter(category => category.categoryType === "technical")
+        .map(category => ({ 
+          name: category.name, 
+          key: getTabKey(category.name),
+          visited: !!visitedTabs[getTabKey(category.name) as keyof typeof visitedTabs]
+        }))
+        .filter(tab => !tab.visited);
+      
+      const functionalTabs = skillCategories
+        .filter(category => category.categoryType === "functional")
+        .map(category => ({ 
+          name: category.name, 
+          key: getTabKey(category.name),
+          visited: !!visitedTabs[getTabKey(category.name) as keyof typeof visitedTabs]
+        }))
+        .filter(tab => !tab.visited);
+      
+      const missingTechTabs = techTabs.map(t => t.name).join(', ');
+      const missingFunctionalTabs = functionalTabs.map(t => t.name).join(', ');
+      
+      let description = "Please visit all required tabs before submitting:";
+      if (missingTechTabs) description += `\n• Missing technical: ${missingTechTabs}`;
+      if (missingFunctionalTabs) description += `\n• Missing functional: ${missingFunctionalTabs}`;
+      
       toast({
         title: "Please review all required categories",
-        description: "Please visit the technical and functional tabs, and ALL their sub-tabs before submitting.",
+        description,
         variant: "destructive",
       });
       return;
@@ -565,9 +587,35 @@ export default function AddSkillsPage() {
   const handleSubmitCustomSkill = () => {
     // Check if user has visited all required tabs
     if (!allTabsVisited()) {
+      // Get a list of missing tabs for better user guidance
+      const techTabs = skillCategories
+        .filter(category => category.categoryType === "technical")
+        .map(category => ({ 
+          name: category.name, 
+          key: getTabKey(category.name),
+          visited: !!visitedTabs[getTabKey(category.name) as keyof typeof visitedTabs]
+        }))
+        .filter(tab => !tab.visited);
+      
+      const functionalTabs = skillCategories
+        .filter(category => category.categoryType === "functional")
+        .map(category => ({ 
+          name: category.name, 
+          key: getTabKey(category.name),
+          visited: !!visitedTabs[getTabKey(category.name) as keyof typeof visitedTabs]
+        }))
+        .filter(tab => !tab.visited);
+      
+      const missingTechTabs = techTabs.map(t => t.name).join(', ');
+      const missingFunctionalTabs = functionalTabs.map(t => t.name).join(', ');
+      
+      let description = "Please visit all required tabs before submitting:";
+      if (missingTechTabs) description += `\n• Missing technical: ${missingTechTabs}`;
+      if (missingFunctionalTabs) description += `\n• Missing functional: ${missingFunctionalTabs}`;
+      
       toast({
         title: "Please review all required categories",
-        description: "Please visit the technical and functional tabs, and ALL their sub-tabs before submitting.",
+        description,
         variant: "destructive",
       });
       return;
