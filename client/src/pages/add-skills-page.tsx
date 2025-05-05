@@ -21,7 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FormLabel } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
@@ -1059,106 +1060,173 @@ export default function AddSkillsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <form 
-                          className="space-y-4"
-                          onSubmit={(e) => {
-                            e.preventDefault();
+                        {/* Using react-hook-form with shadcn Form components */}
+                        {(() => {
+                          // Create form inside a closure to avoid React hooks rules violation
+                          const form = useForm({
+                            defaultValues: {
+                              name: "",
+                              category: "",
+                              level: "beginner" as "beginner" | "intermediate" | "expert",
+                              certification: "",
+                              credlyLink: "",
+                              notes: ""
+                            }
+                          });
+                          
+                          const onSubmit = (data: any) => {
+                            // Copy form data to customSkill before submitting
+                            setCustomSkill(data);
                             handleSubmitCustomSkill();
-                          }}
-                        >
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div className="space-y-2">
-                              <FormLabel>Skill Name *</FormLabel>
-                              <Input 
-                                placeholder="Enter skill name"
-                                value={customSkill.name || ''}
-                                onChange={(e) => setCustomSkill(prev => ({ ...prev, name: e.target.value }))}
-                                required
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <FormLabel>Category *</FormLabel>
-                              <Select 
-                                value={customSkill.category || ''}
-                                onValueChange={(value) => setCustomSkill(prev => ({ ...prev, category: value }))}
-                                required
+                          };
+                          
+                          return (
+                            <Form {...form}>
+                              <form 
+                                className="space-y-4" 
+                                onSubmit={form.handleSubmit(onSubmit)}
                               >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {skillCategories.map(category => (
-                                    <SelectItem key={category.id} value={category.name}>
-                                      {category.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <FormLabel>Skill Level *</FormLabel>
-                              <Select 
-                                value={customSkill.level || 'beginner'}
-                                onValueChange={(value) => 
-                                  setCustomSkill(prev => ({ 
-                                    ...prev, 
-                                    level: value as "beginner" | "intermediate" | "expert" 
-                                  }))
-                                }
-                                required
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select level" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="beginner">Beginner</SelectItem>
-                                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                                  <SelectItem value="expert">Expert</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <FormLabel>Certification (Optional)</FormLabel>
-                              <Input 
-                                placeholder="Certification name"
-                                value={customSkill.certification || ''}
-                                onChange={(e) => setCustomSkill(prev => ({ ...prev, certification: e.target.value }))}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <FormLabel>Certification Link (Optional)</FormLabel>
-                              <Input 
-                                placeholder="https://..."
-                                value={customSkill.credlyLink || ''}
-                                onChange={(e) => setCustomSkill(prev => ({ ...prev, credlyLink: e.target.value }))}
-                              />
-                            </div>
-                            <div className="space-y-2 sm:col-span-2">
-                              <FormLabel>Notes (Optional)</FormLabel>
-                              <Textarea 
-                                placeholder="Add any additional notes about this skill..."
-                                value={customSkill.notes || ''}
-                                onChange={(e) => setCustomSkill(prev => ({ ...prev, notes: e.target.value }))}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex justify-end pt-4">
-                            <Button 
-                              type="submit" 
-                              disabled={customSubmitMutation.isPending}
-                            >
-                              {customSubmitMutation.isPending && (
-                                <span className="animate-spin mr-2">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <path d="M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path>
-                                  </svg>
-                                </span>
-                              )}
-                              Submit Custom Skill
-                            </Button>
-                          </div>
-                        </form>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                  <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-2">
+                                        <FormLabel>Skill Name *</FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            placeholder="Enter skill name"
+                                            {...field}
+                                            required
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="category"
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-2">
+                                        <FormLabel>Category *</FormLabel>
+                                        <Select 
+                                          onValueChange={field.onChange} 
+                                          defaultValue={field.value}
+                                          required
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select category" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {skillCategories.map(category => (
+                                              <SelectItem key={category.id} value={category.name}>
+                                                {category.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="level"
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-2">
+                                        <FormLabel>Skill Level *</FormLabel>
+                                        <Select 
+                                          onValueChange={field.onChange} 
+                                          defaultValue={field.value}
+                                          required
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select level" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            <SelectItem value="beginner">Beginner</SelectItem>
+                                            <SelectItem value="intermediate">Intermediate</SelectItem>
+                                            <SelectItem value="expert">Expert</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="certification"
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-2">
+                                        <FormLabel>Certification (Optional)</FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            placeholder="Certification name"
+                                            {...field}
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="credlyLink"
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-2">
+                                        <FormLabel>Certification Link (Optional)</FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            placeholder="https://..."
+                                            {...field}
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="notes"
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-2 sm:col-span-2">
+                                        <FormLabel>Notes (Optional)</FormLabel>
+                                        <FormControl>
+                                          <Textarea 
+                                            placeholder="Add any additional notes about this skill..."
+                                            {...field}
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                                
+                                <div className="flex justify-end pt-4">
+                                  <Button 
+                                    type="submit" 
+                                    disabled={customSubmitMutation.isPending}
+                                  >
+                                    {customSubmitMutation.isPending && (
+                                      <span className="animate-spin mr-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                          <circle cx="12" cy="12" r="10"></circle>
+                                          <path d="M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path>
+                                        </svg>
+                                      </span>
+                                    )}
+                                    Submit Custom Skill
+                                  </Button>
+                                </div>
+                              </form>
+                            </Form>
+                          );
+                        })()}
                       </CardContent>
                     </Card>
                   </div>
