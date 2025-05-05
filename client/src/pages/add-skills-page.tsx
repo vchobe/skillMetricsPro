@@ -423,12 +423,12 @@ export default function AddSkillsPage() {
 
   // Check if all required tabs have been visited
   const allTabsVisited = () => {
-    // Main tabs
-    const mainTabsVisited = visitedTabs.technical && visitedTabs.functional && visitedTabs.other;
+    // Main tabs - only technical and functional are required
+    const mainTabsVisited = visitedTabs.technical && visitedTabs.functional;
     console.log("Main tabs visited:", mainTabsVisited, {
       technical: visitedTabs.technical,
       functional: visitedTabs.functional,
-      other: visitedTabs.other
+      other: visitedTabs.other // "other" tab not required
     });
     
     // All technical sub-tabs must be visited
@@ -475,8 +475,8 @@ export default function AddSkillsPage() {
     // Check if user has visited all required tabs
     if (!allTabsVisited()) {
       toast({
-        title: "Please review all categories",
-        description: "Please visit ALL main tabs, ALL technical sub-tabs, and ALL functional sub-tabs before submitting.",
+        title: "Please review all required categories",
+        description: "Please visit the technical and functional tabs, and ALL their sub-tabs before submitting.",
         variant: "destructive",
       });
       return;
@@ -575,8 +575,8 @@ export default function AddSkillsPage() {
     // Check if user has visited all required tabs
     if (!allTabsVisited()) {
       toast({
-        title: "Please review all categories",
-        description: "Please visit ALL main tabs, ALL technical sub-tabs, and ALL functional sub-tabs before submitting.",
+        title: "Please review all required categories",
+        description: "Please visit the technical and functional tabs, and ALL their sub-tabs before submitting.",
         variant: "destructive",
       });
       return;
@@ -690,7 +690,23 @@ export default function AddSkillsPage() {
                             skillCategories
                               .filter(category => category.categoryType === "technical")
                               .map(category => {
-                                const tabId = category.name.toLowerCase().replace(/\s+/g, '');
+                                // Use the same mapping logic as in the markTabVisited function
+                                const tabMappingsLocal: Record<string, string> = {
+                                  "Programming": "programming",
+                                  "Database": "database",
+                                  "Cloud": "cloud",
+                                  "DevOps": "devops",
+                                  "Mobile Development": "frontend",
+                                  "Data Science": "data",
+                                  "Marketing": "marketing",
+                                  "Design": "design",
+                                  "Communication": "communication",
+                                  "Project Management": "project",
+                                  "Leadership": "leadership"
+                                };
+                                
+                                const tabId = tabMappingsLocal[category.name] || category.name.toLowerCase().replace(/\s+/g, '');
+                                
                                 const getCategoryIcon = (name: string) => {
                                   switch(name.toLowerCase()) {
                                     case 'programming': return <Code className="h-4 w-4 mr-1" />;
@@ -714,6 +730,7 @@ export default function AddSkillsPage() {
                                       getCategoryIcon(category.name)
                                     )}
                                     {category.name}
+                                    {/* Use the same tabId for consistency */}
                                     {visitedTabs[tabId as keyof typeof visitedTabs] && <Check className="h-3 w-3 ml-1 text-green-500" />}
                                   </TabsTrigger>
                                 );
@@ -892,7 +909,17 @@ export default function AddSkillsPage() {
                             skillCategories
                               .filter(category => category.categoryType === "functional")
                               .map(category => {
-                                const tabId = category.name.toLowerCase().replace(/\s+/g, '');
+                                // Use the same mapping logic as in the markTabVisited function
+                                const tabMappingsLocal: Record<string, string> = {
+                                  "Marketing": "marketing",
+                                  "Design": "design",
+                                  "Communication": "communication",
+                                  "Project Management": "project",
+                                  "Leadership": "leadership"
+                                };
+                                
+                                const tabId = tabMappingsLocal[category.name] || category.name.toLowerCase().replace(/\s+/g, '');
+                                
                                 const getCategoryIcon = (name: string) => {
                                   switch(name.toLowerCase()) {
                                     case 'design': return <Paintbrush className="h-4 w-4 mr-1" />;
@@ -913,6 +940,7 @@ export default function AddSkillsPage() {
                                       getCategoryIcon(category.name)
                                     )}
                                     {category.name}
+                                    {/* Use the same tabId for consistency */}
                                     {visitedTabs[tabId as keyof typeof visitedTabs] && <Check className="h-3 w-3 ml-1 text-green-500" />}
                                   </TabsTrigger>
                                 );
