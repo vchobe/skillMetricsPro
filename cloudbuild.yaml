@@ -7,10 +7,30 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', '${_IMAGE_NAME}']
     
+  # Deploy container image to Cloud Run with environment variables
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - '${_IMAGE_NAME}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,DATABASE_URL=${_DATABASE_URL}'
+    
 # Substitution variables with default values
 substitutions:
   _IMAGE_NAME: 'gcr.io/${PROJECT_ID}/skillmetricspro-fixed:latest'
   _DOCKERFILE: 'Dockerfile.cloud-run-fixed'
+  _SERVICE_NAME: 'skillmetrics'
+  _REGION: 'us-central1'
+  _DATABASE_URL: 'postgresql://neondb_owner:npg_6SNPYmkEt5pa@ep-flat-shape-a51t7ga4.us-east-2.aws.neon.tech/neondb?sslmode=require'
 
 # Store images in Google Container Registry
 images:
