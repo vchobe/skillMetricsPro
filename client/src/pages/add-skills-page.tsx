@@ -533,31 +533,24 @@ export default function AddSkillsPage() {
   const markTabVisited = (tab: string) => {
     console.log(`Marking tab visited: ${tab}`);
     
-    // Map category names to their lowercase equivalent used in visitedTabs state
-    const tabMappings: Record<string, string> = {
-      // Main tabs
-      "technical": "technical",
-      "functional": "functional",
-      "other": "other",
+    // For fixed tabs (main tabs)
+    const mainTabs = ["technical", "functional", "other"];
+    
+    // Dynamic tab handling - create standard key format for any tab
+    const getTabKey = (tabName: string) => {
+      // For main tabs, use the exact name
+      if (mainTabs.includes(tabName.toLowerCase())) {
+        return tabName.toLowerCase();
+      }
       
-      // Technical categories mapped to technical sub-tabs
-      "Programming": "programming",
-      "Database": "database",
-      "Cloud": "cloud",
-      "DevOps": "devops",
-      "Mobile Development": "frontend",
-      "Data Science": "data",
-      
-      // Functional categories mapped to functional sub-tabs
-      "Marketing": "marketing",
-      "Design": "design",
-      "Communication": "communication",
-      "Project Management": "project",
-      "Leadership": "leadership"
+      // For category tabs, standardize the key format
+      return tabName.toLowerCase().replace(/\s+/g, '');
     };
     
-    // Get the correct tab key to update (default to the original tab value)
-    const tabKey = tabMappings[tab] || tab;
+    // Get the consistent tab key for state storage
+    const tabKey = getTabKey(tab);
+    
+    console.log(`Tab mapping: "${tab}" -> "${tabKey}"`);
     
     setVisitedTabs(prev => {
       const newState = {
@@ -698,6 +691,10 @@ export default function AddSkillsPage() {
                                   "DevOps": "devops",
                                   "Mobile Development": "frontend",
                                   "Data Science": "data",
+                                  "API": "api",
+                                  "Security": "security",
+                                  "AI": "ai",
+                                  "UI": "ui",
                                   "Marketing": "marketing",
                                   "Design": "design",
                                   "Communication": "communication",
@@ -911,6 +908,16 @@ export default function AddSkillsPage() {
                               .map(category => {
                                 // Use the same mapping logic as in the markTabVisited function
                                 const tabMappingsLocal: Record<string, string> = {
+                                  "Programming": "programming",
+                                  "Database": "database",
+                                  "Cloud": "cloud",
+                                  "DevOps": "devops",
+                                  "Mobile Development": "frontend",
+                                  "Data Science": "data",
+                                  "API": "api",
+                                  "Security": "security",
+                                  "AI": "ai",
+                                  "UI": "ui",
                                   "Marketing": "marketing",
                                   "Design": "design",
                                   "Communication": "communication",
