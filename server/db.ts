@@ -6,14 +6,28 @@ import * as schema from "@shared/schema";
 /**
  * Database Configuration
  * 
- * This module handles connecting to Google Cloud SQL as the permanent database
- * for the application. It supports both direct TCP connections and Unix socket
- * connections for Cloud Run deployments.
+ * This module handles connecting to the database for the application.
+ * It now supports multiple connection methods with priority given to
+ * the standardized DATABASE_URL connection string.
  */
 function getDatabaseConfig() {
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
   
+  // Check if we have DATABASE_URL - which should be used with priority
+  if (process.env.DATABASE_URL) {
+    console.log('PREFERRED DATABASE CONFIGURATION: Using DATABASE_URL connection string');
+    console.log(`Database URL exists, pointing to: ${process.env.DATABASE_URL.split('@')[1].split('/')[0]}`);
+    
+    return {
+      connectionString: process.env.DATABASE_URL,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    };
+  }
+  
+  // If DATABASE_URL is not available, fall back to Cloud SQL configuration
   // Check for Google Cloud SQL configuration
   const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
   const cloudSqlUser = process.env.CLOUD_SQL_USER;
@@ -25,11 +39,11 @@ function getDatabaseConfig() {
   
   // Verify required credentials
   if (!hasCloudSqlConfig) {
-    throw new Error('Google Cloud SQL configuration is missing. Please set CLOUD_SQL_CONNECTION_NAME, CLOUD_SQL_USER, CLOUD_SQL_PASSWORD, and CLOUD_SQL_DATABASE environment variables.');
+    throw new Error('Database configuration is missing. Please set either DATABASE_URL or CLOUD_SQL_CONNECTION_NAME, CLOUD_SQL_USER, CLOUD_SQL_PASSWORD, and CLOUD_SQL_DATABASE environment variables.');
   }
   
-  // PERMANENT CONFIGURATION: Using Google Cloud SQL exclusively
-  console.log('PERMANENT DATABASE CONFIGURATION: Using Google Cloud SQL');
+  // FALLBACK CONFIGURATION: Using Google Cloud SQL
+  console.log('FALLBACK DATABASE CONFIGURATION: Using Google Cloud SQL');
   
   // For GCP Cloud Run, use Unix socket connection
   const isCloudRun = process.env.K_SERVICE || process.env.USE_CLOUD_SQL === 'true';
