@@ -1545,8 +1545,31 @@ export class PostgresStorage implements IStorage {
       const oracleDBA = result.rows.find(r => r.name === 'Oracle DBA');
       console.log(`Oracle DBA template found in database: ${oracleDBA ? `Yes, ID: ${oracleDBA.id}` : 'No'}`);
       
+      // Debug entire result
+      console.log("Raw database results (first 2 and last 2):");
+      if (result.rows.length > 0) {
+        console.log("First:", JSON.stringify(result.rows.slice(0, 2)));
+        console.log("Last:", JSON.stringify(result.rows.slice(-2)));
+      }
+
+      // Check for specific items by ID
+      const idCheck = [1, 59, 111];
+      for (const id of idCheck) {
+        const item = result.rows.find(r => r.id === id);
+        console.log(`Template with ID ${id} exists: ${item ? 'Yes' : 'No'}`);
+      }
+      
+      // Check for cached query results
       const transformed = this.snakeToCamel(result.rows);
-      console.log(`Returning ${transformed.length} transformed skill templates`);
+      console.log(`Transformed ${transformed.length} skill templates`);
+      
+      // Debug the transformed data
+      if (transformed.length > 0) {
+        console.log("First transformed:", JSON.stringify(transformed.slice(0, 1)));
+        const transformedOracleDBA = transformed.find(t => t.name === 'Oracle DBA');
+        console.log(`Oracle DBA in transformed data: ${transformedOracleDBA ? `Yes, ID: ${transformedOracleDBA.id}` : 'No'}`);
+      }
+      
       return transformed;
     } catch (error) {
       console.error("Error getting all skill templates:", error);
