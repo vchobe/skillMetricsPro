@@ -1538,14 +1538,27 @@ export class PostgresStorage implements IStorage {
     try {
       console.log("Getting all skill templates from database");
       
+      // Separate query to check database directly for Oracle DBA
+      const directCheck = await pool.query(`
+        SELECT * FROM skill_templates 
+        WHERE name = 'Oracle DBA'
+      `);
+      console.log(`Direct Oracle DBA check: ${directCheck.rows.length > 0 ? `Found with ID ${directCheck.rows[0].id}` : 'Not found'}`);
+      
       // Updated SQL to be more explicit and add debugging
       const result = await pool.query(`
         SELECT * FROM skill_templates 
-        WHERE id <= 111  -- Set high enough to include Oracle DBA
         ORDER BY name
       `);
       
       console.log(`Found ${result.rows.length} skill templates in database`);
+      
+      // Count templates with ID > 76 (higher IDs)
+      const highIdTemplates = result.rows.filter(r => r.id > 76);
+      console.log(`Templates with ID > 76: ${highIdTemplates.length}`);
+      if (highIdTemplates.length > 0) {
+        console.log(`Sample high ID template: ${JSON.stringify(highIdTemplates[0])}`);
+      }
       
       // Show full ID range
       const ids = result.rows.map(r => r.id).sort((a, b) => a - b);
