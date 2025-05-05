@@ -6,6 +6,18 @@ import { Skill, insertSkillSchema, PendingSkillUpdate, SkillTemplate, SkillCateg
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 
+// Utility function to generate consistent tab IDs
+const getTabKey = (tabName: string): string => {
+  // For fixed main tabs, use exact lowercase name
+  const mainTabs = ["technical", "functional", "other"];
+  if (mainTabs.includes(tabName.toLowerCase())) {
+    return tabName.toLowerCase();
+  }
+  
+  // For all other tabs, standardize format (lowercase, no spaces)
+  return tabName.toLowerCase().replace(/\s+/g, '');
+};
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useLocation } from "wouter";
 import {
@@ -533,21 +545,7 @@ export default function AddSkillsPage() {
   const markTabVisited = (tab: string) => {
     console.log(`Marking tab visited: ${tab}`);
     
-    // For fixed tabs (main tabs)
-    const mainTabs = ["technical", "functional", "other"];
-    
-    // Dynamic tab handling - create standard key format for any tab
-    const getTabKey = (tabName: string) => {
-      // For main tabs, use the exact name
-      if (mainTabs.includes(tabName.toLowerCase())) {
-        return tabName.toLowerCase();
-      }
-      
-      // For category tabs, standardize the key format
-      return tabName.toLowerCase().replace(/\s+/g, '');
-    };
-    
-    // Get the consistent tab key for state storage
+    // Use our utility function defined at module level for consistent tab IDs
     const tabKey = getTabKey(tab);
     
     console.log(`Tab mapping: "${tab}" -> "${tabKey}"`);
@@ -561,9 +559,6 @@ export default function AddSkillsPage() {
       console.log("Updated visitedTabs state:", newState);
       return newState;
     });
-    
-    // Make this function available globally for components to use
-    window.getTabKey = getTabKey;
   };
 
   // Handle submission of custom skill
