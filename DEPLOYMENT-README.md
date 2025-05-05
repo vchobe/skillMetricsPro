@@ -36,7 +36,7 @@ This document explains the improved deployment process we've developed to ensure
 1. Make sure you have the necessary environment variables set:
    - `GCP_PROJECT_ID` - Google Cloud project ID
    - `GCP_SERVICE_ACCOUNT` - Service account key (JSON content)
-   - `DATABASE_URL` - PostgreSQL connection string
+   - `DATABASE_URL` - PostgreSQL connection string to Neon database (preferred database with all templates)
 
 2. Run the deployment script:
    ```bash
@@ -48,6 +48,15 @@ This document explains the improved deployment process we've developed to ensure
    ./check-deployment-status.sh
    ```
 
+## Database Configuration
+
+The application now prioritizes using the `DATABASE_URL` environment variable to connect to the database. This ensures consistent access to all skill templates, including the Oracle DBA template.
+
+The preferred database configuration uses Neon PostgreSQL:
+```
+DATABASE_URL=postgresql://neondb_owner:npg_6SNPYmkEt5pa@ep-flat-shape-a51t7ga4.us-east-2.aws.neon.tech/neondb?sslmode=require
+```
+
 ## Troubleshooting
 
 If deployment fails, use `check-deployment-status.sh` to diagnose the issue. The most common problems are:
@@ -55,6 +64,7 @@ If deployment fails, use `check-deployment-status.sh` to diagnose the issue. The
 1. **Port configuration issues**: Ensure the application listens on port 8080
 2. **Database connection errors**: Verify the DATABASE_URL is correctly set
 3. **Container startup failures**: Check the container logs using the script
+4. **Database schema issues**: Check the logs for database connection or schema errors
 
 ## Implementation Details
 

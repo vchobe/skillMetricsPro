@@ -38,12 +38,13 @@ cd <repository-directory>
 
 ## Step 2: Setting up the Database
 
-We recommend using Neon.tech for a serverless PostgreSQL database:
+We are using Neon.tech for our PostgreSQL database:
 
-1. Sign up at [Neon.tech](https://neon.tech)
-2. Create a new project
-3. Create a database called `skills_management`
-4. Get the connection string in the format: `postgres://user:password@hostname:port/database`
+1. The database is already set up at Neon.tech
+2. The connection string is: `postgresql://neondb_owner:npg_6SNPYmkEt5pa@ep-flat-shape-a51t7ga4.us-east-2.aws.neon.tech/neondb?sslmode=require`
+3. This database contains all skill templates, including the Oracle DBA template (ID: 111)
+
+> **IMPORTANT**: The application now prioritizes the DATABASE_URL connection over any other database configuration.
 
 ## Step 3: Configure Environment Variables
 
@@ -53,20 +54,23 @@ Create a `.env.cloud` file with your production environment variables:
 NODE_ENV=production
 PORT=8080
 HOST=0.0.0.0
-DATABASE_URL=<your-postgresql-connection-string>
+DATABASE_URL=postgresql://neondb_owner:npg_6SNPYmkEt5pa@ep-flat-shape-a51t7ga4.us-east-2.aws.neon.tech/neondb?sslmode=require
 SESSION_SECRET=<generated-secret>
 ```
 
 ## Step 4: Deployment Options
 
-### Option 1: Using Cloud Build (Recommended)
+### Important: DATABASE_URL Configuration
 
-This option uses Google Cloud Build to build and deploy your application:
+The application now prioritizes using `DATABASE_URL` for database connection to ensure consistent access to all skill templates, including the Oracle DBA template (ID: 111).
+
+### Option 1: Using Cloud Build with Updated Configuration (Recommended)
+
+This option uses Google Cloud Build to build and deploy your application with the Neon database connection:
 
 ```bash
-# Update cloudbuild.yaml with your database connection string
-# Then submit the build
-gcloud builds submit
+# Use the updated cloudbuild.yaml with the DATABASE_URL configuration
+gcloud builds submit --substitutions=_DATABASE_URL="postgresql://neondb_owner:npg_6SNPYmkEt5pa@ep-flat-shape-a51t7ga4.us-east-2.aws.neon.tech/neondb?sslmode=require"
 ```
 
 ### Option 2: Build locally and deploy manually
@@ -83,29 +87,28 @@ gcloud auth configure-docker
 # Push to Google Container Registry
 docker push gcr.io/$PROJECT_ID/skillmetricspro:latest
 
-# Deploy to Cloud Run
+# Deploy to Cloud Run with the correct DATABASE_URL
 gcloud run deploy skills-management-app \
   --image gcr.io/$PROJECT_ID/skillmetricspro:latest \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars NODE_ENV=production,PORT=8080,HOST=0.0.0.0,DATABASE_URL=<your-db-url>,SESSION_SECRET=<your-secret> \
+  --set-env-vars NODE_ENV=production,PORT=8080,HOST=0.0.0.0,DATABASE_URL="postgresql://neondb_owner:npg_6SNPYmkEt5pa@ep-flat-shape-a51t7ga4.us-east-2.aws.neon.tech/neondb?sslmode=require",SESSION_SECRET=<your-secret> \
   --memory 1Gi \
   --min-instances 0 \
   --max-instances 10
 ```
 
-### Option 3: Using the provided deployment script
+### Option 3: Using the deploy-fixed-v2.sh script (Recommended)
 
-We've included a deployment script that handles the process for you:
+We've included an optimized deployment script that correctly configures the database connection:
 
 ```bash
-# Edit the script first to configure your database connection
-nano deploy-to-cloud-run.sh
+# Set the DATABASE_URL environment variable
+export DATABASE_URL="postgresql://neondb_owner:npg_6SNPYmkEt5pa@ep-flat-shape-a51t7ga4.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
-# Make it executable and run it
-chmod +x deploy-to-cloud-run.sh
-./deploy-to-cloud-run.sh
+# Run the deployment script
+./deploy-fixed-v2.sh
 ```
 
 ## Step 5: Verify Deployment
