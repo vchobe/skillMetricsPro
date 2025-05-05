@@ -1498,9 +1498,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Skill template management (for admin)
   app.get("/api/admin/skill-templates", ensureAdmin, async (req, res) => {
     try {
+      console.log("Admin user requesting skill templates:", req.user?.email);
+
+      // Direct SQL query to check template data before going through the storage layer
+      const directResult = await pool.query(`
+        SELECT id, name, category, category_id, subcategory_id 
+        FROM skill_templates 
+        WHERE id > 76
+        ORDER BY id
+        LIMIT 10
+      `);
+      console.log(`Direct SQL query found ${directResult.rows.length} templates with ID > 76`);
+      console.log(`First few high ID templates: ${JSON.stringify(directResult.rows.slice(0, 3))}`);
+      
+      // Oracle DBA specific check
+      const oracleResult = await pool.query(`
+        SELECT * FROM skill_templates WHERE name = 'Oracle DBA'
+      `);
+      console.log(`Oracle DBA direct check: ${oracleResult.rows.length > 0 ? 
+        `Found with ID ${oracleResult.rows[0].id}` : 'Not found'}`);
+      
+      // Standard method
       const templates = await storage.getAllSkillTemplates();
+      console.log(`Storage layer returned ${templates.length} templates`);
+      console.log(`Highest template ID from storage: ${Math.max(...templates.map(t => t.id))}`);
+      
+      // Check for Oracle DBA in templates
+      const oracleTemplate = templates.find(t => t.name === 'Oracle DBA');
+      console.log(`Oracle DBA in API response: ${oracleTemplate ? `Yes, ID: ${oracleTemplate.id}` : 'No'}`);
+      
       res.json(templates);
     } catch (error) {
+      console.error("Error fetching skill templates:", error);
       res.status(500).json({ message: "Error fetching skill templates", error });
     }
   });
