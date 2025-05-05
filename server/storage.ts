@@ -2135,8 +2135,10 @@ export class PostgresStorage implements IStorage {
               certification = $4, 
               credly_link = $5, 
               notes = $6,
+              category_id = $7,
+              subcategory_id = $8,
               last_updated = CURRENT_TIMESTAMP
-             WHERE id = $7 
+             WHERE id = $9 
              RETURNING *`,
             [
               pendingUpdate.name,
@@ -2145,6 +2147,8 @@ export class PostgresStorage implements IStorage {
               pendingUpdate.certification || '',
               pendingUpdate.credlyLink || '',
               pendingUpdate.notes || '',
+              (pendingUpdate.categoryId === '' || pendingUpdate.categoryId === undefined) ? null : pendingUpdate.categoryId,
+              (pendingUpdate.subcategoryId === '' || pendingUpdate.subcategoryId === undefined) ? null : pendingUpdate.subcategoryId,
               pendingUpdate.skillId
             ]
           );
