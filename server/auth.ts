@@ -115,32 +115,36 @@ export function setupAuth(app: Express) {
     try {
       const user = await storage.getUser(id);
       
-      // Directly check database for admin status
-      if (user) {
-        // Handle the user object with dynamically added properties safely
-        const userObj = user as any;
-        
-        // DIRECT DB QUERY for admin status - most reliable method
-        const result = await pool.query('SELECT is_admin FROM users WHERE id = $1', [id]);
-        const dbValue = result.rows[0]?.is_admin;
-        
-        // Convert PostgreSQL boolean representations to true JS boolean
-        const isAdminBoolean = dbValue === true || dbValue === 't' || dbValue === 'true';
-        
-        console.log(`Direct DB admin check for ${userObj.email}: raw value = ${dbValue} (${typeof dbValue})`);
-        
-        // Make sure it's consistently available in both formats as a true boolean
-        userObj.isAdmin = isAdminBoolean;
-        userObj.is_admin = isAdminBoolean;
-        
-        // Log the conversion for debugging
-        console.log(`Passport deserialize: Ensured admin status (${isAdminBoolean}) is available under both properties for user ${userObj.email}`);
+      // If user not found, return error to clear the session
+      if (!user) {
+        console.log(`Passport deserialize: User with ID ${id} not found`);
+        return done(null, false);
       }
       
-      done(null, user);
+      // Directly check database for admin status
+      // Handle the user object with dynamically added properties safely
+      const userObj = user as any;
+      
+      // DIRECT DB QUERY for admin status - most reliable method
+      const result = await pool.query('SELECT is_admin FROM users WHERE id = $1', [id]);
+      const dbValue = result.rows[0]?.is_admin;
+      
+      // Convert PostgreSQL boolean representations to true JS boolean
+      const isAdminBoolean = dbValue === true || dbValue === 't' || dbValue === 'true';
+      
+      console.log(`Direct DB admin check for ${userObj.email}: raw value = ${dbValue} (${typeof dbValue})`);
+      
+      // Make sure it's consistently available in both formats as a true boolean
+      userObj.isAdmin = isAdminBoolean;
+      userObj.is_admin = isAdminBoolean;
+      
+      // Log the conversion for debugging
+      console.log(`Passport deserialize: Ensured admin status (${isAdminBoolean}) is available under both properties for user ${userObj.email}`);
+      
+      return done(null, user);
     } catch (error) {
       console.error("Error in passport deserialize:", error);
-      done(error);
+      return done(error);
     }
   });
 
