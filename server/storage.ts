@@ -221,7 +221,7 @@ export class PostgresStorage implements IStorage {
       return obj.map(v => this.snakeToCamel(v));
     }
     
-    const result = Object.keys(obj).reduce((result, key) => {
+    return Object.keys(obj).reduce((accumulator, key) => {
       // Handle specific cases first
       let camelKey = key;
       
@@ -295,8 +295,8 @@ export class PostgresStorage implements IStorage {
         }
       }
       
-      result[camelKey] = this.snakeToCamel(value);
-      return result;
+      accumulator[camelKey] = this.snakeToCamel(value);
+      return accumulator;
     }, {} as any);
   }
 
