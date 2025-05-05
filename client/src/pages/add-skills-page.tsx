@@ -68,6 +68,7 @@ export default function AddSkillsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("technical");
   const [activeTechnicalCategory, setActiveTechnicalCategory] = useState<string>("Programming");
+  const [activeFunctionalCategory, setActiveFunctionalCategory] = useState<string>("Design");
   const [skillsList, setSkillsList] = useState<SkillEntry[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<Record<string, boolean>>({});
   
@@ -238,12 +239,20 @@ export default function AddSkillsPage() {
     }
   }, [allSkills, skillTemplates, user]);
   
-  // On component mount, initialize with all tabs NOT visited
-  // We're removing the auto-marking of tabs as visited to make users visit each tab
+  // On component mount, initialize the first subtab as visited
   useEffect(() => {
-    console.log("Initializing tab visit state to empty (no tabs visited)");
-    // Tabs will start with no visits and users will need to click on each tab
-    // The visitedTabs state is already initialized with all values as false
+    console.log("Initializing with first technical subtab as visited");
+    
+    // Mark the technical tab and programming subtab as visited by default
+    setVisitedTabs(prev => ({
+      ...prev,
+      technical: true,
+      programming: true
+    }));
+    
+    // Update these state variables to ensure the relevant tab is selected in the UI
+    setActiveTab("technical");
+    setActiveTechnicalCategory("Programming");
   }, []);
 
   // For navigation
@@ -656,10 +665,12 @@ export default function AddSkillsPage() {
                   <div className="mt-4">
                     <div className="mb-6">
                       <Tabs 
-                        defaultValue={skillCategories.filter(cat => cat.categoryType === "technical").length > 0 
-                          ? skillCategories.filter(cat => cat.categoryType === "technical")[0]?.name?.toLowerCase() 
-                          : "programming"}
-                        onValueChange={(value) => markTabVisited(value)}
+                        value={activeTechnicalCategory}
+                        defaultValue="Programming"
+                        onValueChange={(value) => {
+                          markTabVisited(value);
+                          setActiveTechnicalCategory(value);
+                        }}
                       >
                         <TabsList className="mb-4">
                           {isLoadingCategories ? (
@@ -856,10 +867,12 @@ export default function AddSkillsPage() {
                   <div className="mt-4">
                     <div className="mb-6">
                       <Tabs 
-                        defaultValue={skillCategories.filter(cat => cat.categoryType === "functional").length > 0 
-                          ? skillCategories.filter(cat => cat.categoryType === "functional")[0]?.name?.toLowerCase() 
-                          : "design"}
-                        onValueChange={(value) => markTabVisited(value)}
+                        value={activeFunctionalCategory}
+                        defaultValue="Design"
+                        onValueChange={(value) => {
+                          markTabVisited(value);
+                          setActiveFunctionalCategory(value);
+                        }}
                       >
                         <TabsList className="mb-4">
                           {isLoadingCategories ? (
