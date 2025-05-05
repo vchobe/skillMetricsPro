@@ -325,7 +325,19 @@ export class PostgresStorage implements IStorage {
   
   async getUserByEmail(email: string): Promise<User | undefined> {
     try {
+      console.log(`getUserByEmail: Looking for email: "${email}"`);
+      // Check if there are any users in the database (for debugging)
+      const countResult = await pool.query('SELECT COUNT(*) FROM users');
+      console.log(`Total users in database: ${countResult.rows[0].count}`);
+      
+      // Log a few emails for comparison
+      const sampleEmails = await pool.query('SELECT id, email FROM users LIMIT 5');
+      console.log('Sample emails in database:', sampleEmails.rows);
+      
+      // Execute the actual query
       const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+      console.log(`Query results for email "${email}":`, result.rows.length > 0 ? `Found user id: ${result.rows[0].id}` : 'No user found');
+      
       if (!result.rows[0]) return undefined;
       return this.snakeToCamel(result.rows[0]);
     } catch (error) {
