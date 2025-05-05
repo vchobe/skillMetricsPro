@@ -681,26 +681,8 @@ export default function AddSkillsPage() {
                             skillCategories
                               .filter(category => category.categoryType === "technical")
                               .map(category => {
-                                // Use the same mapping logic as in the markTabVisited function
-                                const tabMappingsLocal: Record<string, string> = {
-                                  "Programming": "programming",
-                                  "Database": "database",
-                                  "Cloud": "cloud",
-                                  "DevOps": "devops",
-                                  "Mobile Development": "frontend",
-                                  "Data Science": "data",
-                                  "API": "api",
-                                  "Security": "security",
-                                  "AI": "ai",
-                                  "UI": "ui",
-                                  "Marketing": "marketing",
-                                  "Design": "design",
-                                  "Communication": "communication",
-                                  "Project Management": "project",
-                                  "Leadership": "leadership"
-                                };
-                                
-                                const tabId = tabMappingsLocal[category.name] || category.name.toLowerCase().replace(/\s+/g, '');
+                                // Use the global getTabKey function for consistent tab IDs
+                                const tabId = getTabKey(category.name);
                                 
                                 const getCategoryIcon = (name: string) => {
                                   switch(name.toLowerCase()) {
@@ -904,26 +886,8 @@ export default function AddSkillsPage() {
                             skillCategories
                               .filter(category => category.categoryType === "functional")
                               .map(category => {
-                                // Use the same mapping logic as in the markTabVisited function
-                                const tabMappingsLocal: Record<string, string> = {
-                                  "Programming": "programming",
-                                  "Database": "database",
-                                  "Cloud": "cloud",
-                                  "DevOps": "devops",
-                                  "Mobile Development": "frontend",
-                                  "Data Science": "data",
-                                  "API": "api",
-                                  "Security": "security",
-                                  "AI": "ai",
-                                  "UI": "ui",
-                                  "Marketing": "marketing",
-                                  "Design": "design",
-                                  "Communication": "communication",
-                                  "Project Management": "project",
-                                  "Leadership": "leadership"
-                                };
-                                
-                                const tabId = tabMappingsLocal[category.name] || category.name.toLowerCase().replace(/\s+/g, '');
+                                // Use the global getTabKey function for consistent tab IDs
+                                const tabId = getTabKey(category.name);
                                 
                                 const getCategoryIcon = (name: string) => {
                                   switch(name.toLowerCase()) {
