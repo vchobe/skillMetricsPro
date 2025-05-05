@@ -1536,8 +1536,18 @@ export class PostgresStorage implements IStorage {
   // Skill Template operations
   async getAllSkillTemplates(): Promise<SkillTemplate[]> {
     try {
+      console.log("Getting all skill templates from database");
       const result = await pool.query('SELECT * FROM skill_templates ORDER BY name');
-      return this.snakeToCamel(result.rows);
+      console.log(`Found ${result.rows.length} skill templates in database`);
+      console.log(`ID range: ${result.rows.length > 0 ? `${Math.min(...result.rows.map(r => r.id))} to ${Math.max(...result.rows.map(r => r.id))}` : 'none'}`);
+      
+      // Check if Oracle DBA exists in the rows
+      const oracleDBA = result.rows.find(r => r.name === 'Oracle DBA');
+      console.log(`Oracle DBA template found in database: ${oracleDBA ? `Yes, ID: ${oracleDBA.id}` : 'No'}`);
+      
+      const transformed = this.snakeToCamel(result.rows);
+      console.log(`Returning ${transformed.length} transformed skill templates`);
+      return transformed;
     } catch (error) {
       console.error("Error getting all skill templates:", error);
       throw error;
