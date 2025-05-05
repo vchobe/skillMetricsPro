@@ -239,32 +239,18 @@ export default function AddSkillsPage() {
     }
   }, [allSkills, skillTemplates, user]);
   
-  // On component mount, mark all tabs as visited to remove the navigation requirement
+  // On component mount, initialize with only the first subtab marked as visited
   useEffect(() => {
-    console.log("Marking all tabs as visited to simplify workflow");
+    console.log("Initializing with first subtabs as visited");
     
-    // Mark all main tabs and all subtabs as visited by default
-    setVisitedTabs({
-      // Main tabs
+    // Only mark the technical tab and programming subtab as visited by default
+    setVisitedTabs(prev => ({
+      ...prev,
       technical: true,
-      functional: true,
-      other: true,
-      
-      // All technical sub-tabs
       programming: true,
-      frontend: true,
-      database: true,
-      data: true,
-      cloud: true,
-      devops: true,
-      
-      // All functional sub-tabs
-      marketing: true,
-      design: true,
-      communication: true,
-      project: true,
-      leadership: true
-    });
+      functional: true,
+      design: true
+    }));
     
     // Update these state variables to ensure the relevant tab is selected in the UI
     setActiveTab("technical");
