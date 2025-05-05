@@ -2374,13 +2374,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Extract the relevant skill data from pendingSkillData
             const { 
-              userId, skillId, name, category, level, certification, 
+              userId, skillId, name, category, categoryId, subcategoryId, level, certification, 
               credlyLink, notes, certificationDate, expirationDate 
             } = pendingSkillData;
             
             approvedSkill = await storage.updateSkill(skillId, {
               name,
-              category, 
+              category,
+              categoryId,
+              subcategoryId,
               level,
               certification,
               credlyLink,
@@ -2419,6 +2421,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userId,
               name: pendingSkillData.name,
               category: pendingSkillData.category,
+              categoryId: pendingSkillData.categoryId,
+              subcategoryId: pendingSkillData.subcategoryId,
               level: pendingSkillData.level,
               certification: pendingSkillData.certification,
               credlyLink: pendingSkillData.credlyLink,
