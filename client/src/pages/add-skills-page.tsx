@@ -239,15 +239,19 @@ export default function AddSkillsPage() {
     }
   }, [allSkills, skillTemplates, user]);
   
-  // On component mount, initialize the first subtab as visited
+  // On component mount, initialize the first technical and functional subtabs as visited
   useEffect(() => {
-    console.log("Initializing with first technical subtab as visited");
+    console.log("Initializing with first technical and functional subtabs as visited");
     
-    // Mark the technical tab and programming subtab as visited by default
+    // Mark the technical tab, programming subtab, functional tab, and design subtab as visited by default
     setVisitedTabs(prev => ({
       ...prev,
       technical: true,
-      programming: true
+      programming: true,
+      functional: true,
+      design: true,
+      // Mark the other tab as visited to remove that requirement
+      other: true
     }));
     
     // Update these state variables to ensure the relevant tab is selected in the UI
