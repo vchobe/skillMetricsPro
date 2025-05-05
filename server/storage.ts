@@ -1273,21 +1273,46 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Updated to handle history for user_skills
+  // Updated to handle history for both skills and user_skills tables
   async createSkillHistory(history: InsertSkillHistory): Promise<SkillHistory> {
     try {
-      // Check if the skill exists in the user_skills table
+      let skillName = 'Unknown skill';
+      
+      // First, check if the skill exists in the user_skills table
       const userSkill = await this.getUserSkillById(history.skillId);
       
-      if (!userSkill) {
-        throw new Error(`User skill with ID ${history.skillId} not found for history creation`);
+      if (userSkill) {
+        // Get the skill name from the user skill's template for better logging
+        if (userSkill.skillTemplateId) {
+          const skillTemplate = await this.getSkillTemplate(userSkill.skillTemplateId);
+          if (skillTemplate) {
+            skillName = skillTemplate.name;
+          } else if (userSkill.name) {
+            skillName = userSkill.name;
+          }
+        } else if (userSkill.name) {
+          skillName = userSkill.name;
+        }
+        console.log(`Creating history for ${skillName} (user skill ID: ${history.skillId}, user ID: ${history.userId})`);
+      } else {
+        // If not found in user_skills, check in the legacy skills table
+        const skillResult = await pool.query(
+          'SELECT * FROM skills WHERE id = $1',
+          [history.skillId]
+        );
+        
+        if (skillResult.rows[0]) {
+          // We found it in the legacy table
+          const legacySkill = this.snakeToCamel(skillResult.rows[0]);
+          skillName = legacySkill.name;
+          console.log(`Found skill in legacy table: ${skillName} (ID: ${history.skillId})`);
+          console.log(`Creating history for ${skillName} (legacy skill ID: ${history.skillId}, user ID: ${history.userId})`);
+        } else {
+          // Not found in either table
+          console.warn(`Skill with ID ${history.skillId} not found in either skills or user_skills tables, using fallback name`);
+        }
       }
       
-      // Get the skill name from the user skill's template for better logging
-      const skillTemplate = await this.getSkillTemplate(userSkill.skillTemplateId);
-      const skillName = skillTemplate ? skillTemplate.name : 'Unknown skill';
-      
-      console.log(`Creating history for ${skillName} (user skill ID: ${history.skillId}, user ID: ${history.userId})`);
       console.log(`Level change: ${history.previousLevel || 'none'} -> ${history.newLevel}`);
       
       const result = await pool.query(
