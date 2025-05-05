@@ -67,12 +67,17 @@ export function setupAuth(app: Express) {
           }
           
           // Find the user by email
+          console.log(`About to call storage.getUserByEmail with: ${email}`);
           const user = await storage.getUserByEmail(email);
-          if (!user) {
+          console.log('getUserByEmail result:', user ? 'User found' : 'User not found');
+          
+          if (user) {
+            console.log(`User found: ${user.email}, userId: ${user.id}, isAdmin: ${user.is_admin}`);
+            console.log('Complete user object:', JSON.stringify(user, null, 2));
+          } else {
             console.log(`No user found with email: ${email}`);
             return done(null, false, { message: 'Invalid credentials' });
           }
-          console.log(`User found: ${user.email}`);
           
           // Check if the password is valid
           if (!user.password) {
