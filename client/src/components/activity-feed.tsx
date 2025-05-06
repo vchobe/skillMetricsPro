@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Exported for use in other components
 export interface Activity {
   id: number;
   type: "update" | "add";
