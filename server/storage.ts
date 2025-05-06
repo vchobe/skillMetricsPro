@@ -5009,25 +5009,25 @@ export class PostgresStorage implements IStorage {
       await pool.query('BEGIN');
       
       try {
-        // Define a "dummy" user skill ID (0) since we're working with skill templates directly
-        // We're moving towards a direct relationship between projects and skill templates
-        const userSkillId = 0; // This is a placeholder, as we're transitioning away from user_skills
-        
+        // Insert with skill_template_id directly - no longer need user_skill_id
         const result = await pool.query(
-          `INSERT INTO project_skills_v2 (project_id, skill_template_id, user_skill_id, required_level) 
-           VALUES ($1, $2, $3, $4) 
+          `INSERT INTO project_skills_v2 (project_id, skill_template_id, required_level) 
+           VALUES ($1, $2, $3) 
            RETURNING *`,
           [
             projectSkill.projectId,
             projectSkill.skillTemplateId,
-            userSkillId, // Placeholder for backward compatibility - we'll eventually remove this column
             projectSkill.requiredLevel || 'beginner'
           ]
         );
         
         // Return the result with skill details directly from skill_templates
         const fullResult = await pool.query(`
-          SELECT ps.*, st.name as skill_name, st.category, st.description
+          SELECT 
+            ps.*, 
+            st.name as skill_name, 
+            st.category as skill_category, 
+            st.description
           FROM project_skills_v2 ps
           JOIN skill_templates st ON ps.skill_template_id = st.id
           WHERE ps.id = $1
@@ -5039,7 +5039,7 @@ export class PostgresStorage implements IStorage {
         
         await pool.query('COMMIT');
         
-        console.log(`Successfully associated user_skill ${projectSkill.userSkillId} with project ${projectSkill.projectId}`);
+        console.log(`Successfully associated skill template ${projectSkill.skillTemplateId} with project ${projectSkill.projectId}`);
         return this.snakeToCamel(fullResult.rows[0]);
       } catch (error) {
         await pool.query('ROLLBACK');
