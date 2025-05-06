@@ -20,7 +20,7 @@ import {
   Shield, Globe, Zap, Cloud, Box, Terminal,
   Layers, ChevronRight
 } from "lucide-react";
-import { SkillCategory, SkillApprover, User, SkillSubcategory, Skill } from "@shared/schema";
+import { SkillCategory, SkillApprover, User, SkillSubcategory, Skill, SkillTemplate } from "@shared/schema";
 
 // Available icons for category selection
 const availableIcons = [
@@ -213,7 +213,7 @@ function SubcategoryForm({ subcategory, onSave, onCancel, categories, parentCate
 
 // Approver Form Component
 interface ApproverFormProps {
-  onSave: (approver: { userId: number, categoryId?: number, subcategoryId?: number, skillId?: number, canApproveAll: boolean }) => void;
+  onSave: (approver: { userId: number, categoryId?: number, subcategoryId?: number, skillTemplateId?: number, canApproveAll: boolean }) => void;
   onCancel: () => void;
   categories: SkillCategory[];
 }
@@ -222,7 +222,7 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
   const [userId, setUserId] = useState<number | ''>('');
   const [categoryId, setCategoryId] = useState<number | 'all'>('all');
   const [subcategoryId, setSubcategoryId] = useState<number | 'all'>('all');
-  const [skillId, setSkillId] = useState<number | 'all'>('all');
+  const [skillTemplateId, setSkillTemplateId] = useState<number | 'all'>('all');
   const [canApproveAll, setCanApproveAll] = useState(false);
   const [approvalType, setApprovalType] = useState<'global' | 'category' | 'subcategory' | 'skill'>('global');
   
@@ -246,12 +246,12 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
     }
   });
   
-  // Fetch all skills for skill selection
+  // Fetch all skill templates for skill selection
   const { 
-    data: skills = [], 
-    isLoading: isLoadingSkills 
-  } = useQuery<Skill[]>({
-    queryKey: ['/api/all-skills'],
+    data: skillTemplates = [], 
+    isLoading: isLoadingSkillTemplates 
+  } = useQuery<SkillTemplate[]>({
+    queryKey: ['/api/skill-templates'],
     enabled: approvalType === 'skill'
   });
   
@@ -265,13 +265,13 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
     if (approvalType === 'global') {
       setCategoryId('all');
       setSubcategoryId('all');
-      setSkillId('all');
+      setSkillTemplateId('all');
       setCanApproveAll(true);
     } else if (approvalType === 'category') {
       setSubcategoryId('all');
-      setSkillId('all');
+      setSkillTemplateId('all');
     } else if (approvalType === 'subcategory') {
-      setSkillId('all');
+      setSkillTemplateId('all');
     } else if (approvalType === 'skill') {
       setCategoryId('all');
       setSubcategoryId('all');
@@ -283,13 +283,13 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
     if (userId === '') return;
     
     // For skill-specific approvers, we should never set canApproveAll to true
-    const isSkillSpecific = approvalType === 'skill' && skillId !== 'all';
+    const isSkillSpecific = approvalType === 'skill' && skillTemplateId !== 'all';
     
     onSave({
       userId: Number(userId),
       categoryId: (approvalType === 'category' || approvalType === 'subcategory') && categoryId !== 'all' ? Number(categoryId) : undefined,
       subcategoryId: approvalType === 'subcategory' && subcategoryId !== 'all' ? Number(subcategoryId) : undefined,
-      skillId: isSkillSpecific ? Number(skillId) : undefined,
+      skillTemplateId: isSkillSpecific ? Number(skillTemplateId) : undefined,
       canApproveAll: isSkillSpecific ? false : (approvalType === 'global' || canApproveAll)
     });
   };
@@ -390,27 +390,27 @@ function ApproverForm({ onSave, onCancel, categories }: ApproverFormProps) {
           </div>
         )}
         
-        {/* Show skill dropdown for skill approval */}
+        {/* Show skill template dropdown for skill approval */}
         {approvalType === 'skill' && (
           <div className="space-y-2">
-            <Label htmlFor="skillId">Skill</Label>
+            <Label htmlFor="skillTemplateId">Skill Template</Label>
             <Select 
-              value={skillId?.toString() || 'all'} 
-              onValueChange={(value) => setSkillId(value === 'all' ? 'all' : Number(value))}
+              value={skillTemplateId?.toString() || 'all'} 
+              onValueChange={(value) => setSkillTemplateId(value === 'all' ? 'all' : Number(value))}
             >
-              <SelectTrigger id="skillId">
-                <SelectValue placeholder="Select skill" />
+              <SelectTrigger id="skillTemplateId">
+                <SelectValue placeholder="Select skill template" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Skills</SelectItem>
-                {isLoadingSkills ? (
-                  <SelectItem value="loading" disabled>Loading skills...</SelectItem>
-                ) : skills.length === 0 ? (
-                  <SelectItem value="no_skills" disabled>No skills found</SelectItem>
+                <SelectItem value="all">All Skill Templates</SelectItem>
+                {isLoadingSkillTemplates ? (
+                  <SelectItem value="loading" disabled>Loading skill templates...</SelectItem>
+                ) : skillTemplates.length === 0 ? (
+                  <SelectItem value="no_templates" disabled>No skill templates found</SelectItem>
                 ) : (
-                  skills.map((skill) => (
-                    <SelectItem key={skill.id} value={skill.id.toString()}>
-                      {skill.name} - {skill.category} ({skill.level})
+                  skillTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id.toString()}>
+                      {template.name}
                     </SelectItem>
                   ))
                 )}
@@ -568,7 +568,7 @@ export default function CategoryManagementPage() {
   
   // Approver mutations
   const createApprover = useMutation({
-    mutationFn: (approver: { userId: number, categoryId?: number, subcategoryId?: number, skillId?: number, canApproveAll: boolean }) => 
+    mutationFn: (approver: { userId: number, categoryId?: number, subcategoryId?: number, skillTemplateId?: number, canApproveAll: boolean }) => 
       apiRequest('POST', '/api/skill-approvers', approver)
         .then(r => r.json()),
     onSuccess: () => {
@@ -621,7 +621,7 @@ export default function CategoryManagementPage() {
     }
   };
   
-  const handleSaveApprover = (approverData: { userId: number, categoryId?: number, subcategoryId?: number, skillId?: number, canApproveAll: boolean }) => {
+  const handleSaveApprover = (approverData: { userId: number, categoryId?: number, subcategoryId?: number, skillTemplateId?: number, canApproveAll: boolean }) => {
     createApprover.mutate(approverData);
   };
   

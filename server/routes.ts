@@ -1064,6 +1064,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get skill template by ID
+  app.get("/api/skill-templates/:id", ensureAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid skill template ID" });
+      }
+      
+      const template = await storage.getSkillTemplate(id);
+      if (!template) {
+        return res.status(404).json({ message: "Skill template not found" });
+      }
+      
+      res.json(template);
+    } catch (error) {
+      console.error(`Error fetching skill template with ID ${req.params.id}:`, error);
+      res.status(500).json({ message: "Error fetching skill template", error });
+    }
+  });
+  
   // Get all skills (for activity feed)
   app.get("/api/skills/all", ensureAuth, async (req, res) => {
     try {
