@@ -830,114 +830,144 @@ export class PostgresStorage implements IStorage {
   
   async createSkill(skill: InsertSkill): Promise<Skill> {
     try {
-      // If categoryId is provided, use it directly
-      if (skill.categoryId) {
-        const result = await pool.query(
-          `INSERT INTO skills (
-            user_id, name, category, category_id, subcategory_id, level, 
-            certification, credly_link, notes, certification_date, expiration_date
-           ) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-           RETURNING *`,
-          [
-            skill.userId, 
-            skill.name, 
-            skill.category, 
-            skill.categoryId,
-            skill.subcategoryId, // Pass subcategory_id as is (null is fine)
-            skill.level, 
-            skill.certification || '', 
-            skill.credlyLink || '',
-            skill.notes || '',
-            skill.certificationDate || null,
-            skill.expirationDate || null
-          ]
-        );
+      console.log('Creating skill using new v2 structure:', skill.name);
+      
+      // Start a transaction
+      await pool.query('BEGIN');
+      
+      try {
+        // Step 1: Find or create a skill template
+        let skillTemplateId;
+        let categoryId = skill.categoryId;
+        let categoryInfo = null;
         
-        // Get the category information
-        const categoryResult = await pool.query(
-          `SELECT name as category_name, color as category_color, icon as category_icon 
-           FROM skill_categories 
-           WHERE id = $1`, 
-          [skill.categoryId]
-        );
-        
-        // Combine skill and category data
-        const skillData = result.rows[0];
-        if (categoryResult.rows.length > 0) {
-          Object.assign(skillData, categoryResult.rows[0]);
+        // If there's a category name but no ID, look up the category
+        if (!categoryId && skill.category) {
+          const categoryResult = await pool.query(
+            `SELECT id, name as category_name, color as category_color, icon as category_icon 
+             FROM skill_categories 
+             WHERE LOWER(name) = LOWER($1)`, 
+            [skill.category]
+          );
+          
+          if (categoryResult.rows.length > 0) {
+            categoryId = categoryResult.rows[0].id;
+            categoryInfo = categoryResult.rows[0];
+          }
         }
         
-        return this.snakeToCamel(skillData);
-      } 
-      // If only category name is provided, look up the category id
-      else if (skill.category) {
-        // Try to find the category ID from the name
-        const categoryResult = await pool.query(
-          `SELECT id, name as category_name, color as category_color, icon as category_icon 
-           FROM skill_categories 
-           WHERE LOWER(name) = LOWER($1)`, 
-          [skill.category]
-        );
-        
-        const categoryId = categoryResult.rows.length > 0 ? categoryResult.rows[0].id : null;
-        
-        const result = await pool.query(
-          `INSERT INTO skills (
-            user_id, name, category, category_id, subcategory_id, level, 
-            certification, credly_link, notes, certification_date, expiration_date
-           ) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-           RETURNING *`,
-          [
-            skill.userId, 
-            skill.name, 
-            skill.category, 
-            categoryId,
-            skill.subcategoryId, // Pass subcategory_id as is (null is fine)
-            skill.level, 
-            skill.certification || '', 
-            skill.credlyLink || '',
-            skill.notes || '',
-            skill.certificationDate || null,
-            skill.expirationDate || null
-          ]
-        );
-        
-        // Combine skill and category data
-        const skillData = result.rows[0];
-        if (categoryResult.rows.length > 0) {
-          Object.assign(skillData, {
-            category_name: categoryResult.rows[0].category_name,
-            category_color: categoryResult.rows[0].category_color,
-            category_icon: categoryResult.rows[0].category_icon
-          });
+        // If we have a category ID, get its details
+        if (categoryId && !categoryInfo) {
+          const categoryResult = await pool.query(
+            `SELECT name as category_name, color as category_color, icon as category_icon 
+             FROM skill_categories 
+             WHERE id = $1`, 
+            [categoryId]
+          );
+          
+          if (categoryResult.rows.length > 0) {
+            categoryInfo = categoryResult.rows[0];
+          }
         }
         
-        return this.snakeToCamel(skillData);
-      }
-      // Fallback to just category text (legacy support)
-      else {
-        const result = await pool.query(
-          `INSERT INTO skills (
-            user_id, name, category, level, certification, credly_link, notes,
+        // Check if a skill template with this name already exists
+        const existingTemplate = await pool.query(
+          'SELECT id FROM skill_templates WHERE name = $1 LIMIT 1',
+          [skill.name]
+        );
+        
+        if (existingTemplate.rows.length > 0) {
+          skillTemplateId = existingTemplate.rows[0].id;
+          console.log(`Using existing skill template: ${skill.name} (ID: ${skillTemplateId})`);
+        } else {
+          // Create a new skill template
+          const templateResult = await pool.query(
+            `INSERT INTO skill_templates (
+              name, category, category_id, subcategory_id, description, is_recommended
+            ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [
+              skill.name,
+              skill.category || 'Uncategorized',
+              categoryId || null,
+              skill.subcategoryId || null,
+              '', // Default empty description
+              false // Not automatically recommended
+            ]
+          );
+          
+          skillTemplateId = templateResult.rows[0].id;
+          console.log(`Created new skill template: ${skill.name} (ID: ${skillTemplateId})`);
+        }
+        
+        // Step 2: Create the user_skill record
+        const userSkillResult = await pool.query(
+          `INSERT INTO user_skills (
+            user_id, skill_template_id, level, certification, credly_link, notes,
             certification_date, expiration_date
-           ) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
-           RETURNING *`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
           [
-            skill.userId, 
-            skill.name, 
-            skill.category || 'Uncategorized', 
-            skill.level, 
-            skill.certification || '', 
+            skill.userId,
+            skillTemplateId,
+            skill.level,
+            skill.certification || '',
             skill.credlyLink || '',
             skill.notes || '',
             skill.certificationDate || null,
             skill.expirationDate || null
           ]
         );
-        return this.snakeToCamel(result.rows[0]);
+        
+        const userSkillId = userSkillResult.rows[0].id;
+        
+        // Step 3: Construct the skill response with all necessary fields
+        const skillResult = await pool.query(`
+          SELECT 
+            us.id, us.user_id, us.level, us.certification, us.credly_link, us.notes, 
+            us.certification_date, us.expiration_date, us.last_updated,
+            st.name, st.category,
+            sc.name as category_name, sc.color as category_color, sc.icon as category_icon,
+            ss.name as subcategory_name, ss.color as subcategory_color, ss.icon as subcategory_icon
+          FROM user_skills us
+          JOIN skill_templates st ON us.skill_template_id = st.id
+          LEFT JOIN skill_categories sc ON st.category_id = sc.id
+          LEFT JOIN skill_subcategories ss ON st.subcategory_id = ss.id
+          WHERE us.id = $1
+        `, [userSkillId]);
+        
+        await pool.query('COMMIT');
+        
+        if (skillResult.rows.length === 0) {
+          throw new Error(`Failed to retrieve created user skill with ID ${userSkillId}`);
+        }
+        
+        // Transform to the legacy skill format
+        const skillData = this.snakeToCamel(skillResult.rows[0]);
+        
+        // Convert property names to match legacy format
+        return {
+          id: skillData.id,
+          userId: skillData.userId,
+          name: skillData.name,
+          category: skillData.category,
+          level: skillData.level,
+          certification: skillData.certification,
+          credlyLink: skillData.credlyLink,
+          notes: skillData.notes,
+          certificationDate: skillData.certificationDate,
+          expirationDate: skillData.expirationDate,
+          lastUpdated: skillData.lastUpdated,
+          categoryId: categoryId || null,
+          subcategoryId: skill.subcategoryId || null,
+          categoryName: skillData.categoryName || null,
+          categoryColor: skillData.categoryColor || null,
+          categoryIcon: skillData.categoryIcon || null,
+          subcategoryName: skillData.subcategoryName || null,
+          subcategoryColor: skillData.subcategoryColor || null,
+          subcategoryIcon: skillData.subcategoryIcon || null
+        };
+      } catch (error) {
+        await pool.query('ROLLBACK');
+        throw error;
       }
     } catch (error) {
       console.error("Error creating skill:", error);
