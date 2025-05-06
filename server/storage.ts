@@ -4906,22 +4906,29 @@ export class PostgresStorage implements IStorage {
   // V2 implementation using project_skills_v2 table
   async getAllProjectSkillsV2(): Promise<ProjectSkillV2[]> {
     try {
+      // Updated query to join directly to skill_templates using skill_template_id
+      // This handles both new entries with skillTemplateId directly and legacy entries with userSkillId
       const result = await pool.query(`
         SELECT ps.*,
                st.name as skill_name,
+               st.category as skill_category,
                p.name as project_name,
                c.name as client_name,
                sc.name as category,
                sc.color as category_color
         FROM project_skills_v2 ps
-        LEFT JOIN user_skills us ON ps.user_skill_id = us.id
-        LEFT JOIN skill_templates st ON us.skill_template_id = st.id
+        -- Direct join to skill_templates via skill_template_id
+        LEFT JOIN skill_templates st ON ps.skill_template_id = st.id
         LEFT JOIN projects p ON ps.project_id = p.id
         LEFT JOIN clients c ON p.client_id = c.id
         LEFT JOIN skill_categories sc ON st.category_id = sc.id
         ORDER BY ps.id
       `);
-      return this.snakeToCamel(result.rows);
+      
+      console.log(`Retrieved ${result.rows.length} project skills directly from skill_templates`);
+      const projectSkills = this.snakeToCamel(result.rows);
+      
+      return projectSkills;
     } catch (error) {
       console.error("Error getting all project skills V2:", error);
       throw error;
