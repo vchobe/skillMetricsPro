@@ -741,11 +741,11 @@ export class PostgresStorage implements IStorage {
   
   async deleteUserSkill(id: number): Promise<void> {
     try {
-      // First remove any endorsements for this skill
-      await pool.query('DELETE FROM endorsements WHERE skill_id = $1', [id]);
+      // First remove any endorsements from the v2 table
+      await pool.query('DELETE FROM endorsements_v2 WHERE user_skill_id = $1', [id]);
       
-      // Then delete skill histories 
-      await pool.query('DELETE FROM skill_histories WHERE skill_id = $1', [id]);
+      // Then delete skill histories from the v2 table
+      await pool.query('DELETE FROM skill_histories_v2 WHERE user_skill_id = $1', [id]);
       
       // Finally delete the skill
       await pool.query('DELETE FROM user_skills WHERE id = $1', [id]);
@@ -1005,7 +1005,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Updated to delete from user_skills instead of skills table
+  // Updated to delete from user_skills only
   async deleteSkill(id: number): Promise<void> {
     try {
       // First check if the skill exists in user_skills
@@ -1017,18 +1017,8 @@ export class PostgresStorage implements IStorage {
       
       console.log(`Deleting user skill ${id} from user_skills table`);
       
-      // Delete any endorsements for this skill
-      await pool.query('DELETE FROM endorsements WHERE skill_id = $1', [id]);
-      
-      // Delete any skill histories for this skill
-      await pool.query('DELETE FROM skill_histories WHERE skill_id = $1', [id]);
-      
-      // Delete the user skill itself
-      const result = await pool.query('DELETE FROM user_skills WHERE id = $1', [id]);
-      
-      if (result.rowCount === 0) {
-        throw new Error("User skill not found or already deleted");
-      }
+      // Use deleteUserSkill which handles deleting from v2 tables
+      await this.deleteUserSkill(id);
       
       console.log(`Successfully deleted user skill ${id}`);
     } catch (error) {
@@ -1150,13 +1140,18 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  // Skill history operations
+  // Skill history operations using V2 tables
   async getSkillHistory(skillId: number): Promise<SkillHistory[]> {
     try {
-      const result = await pool.query(
-        'SELECT * FROM skill_histories WHERE skill_id = $1 ORDER BY created_at DESC',
-        [skillId]
-      );
+      const result = await pool.query(`
+        SELECT sh.*, st.name as skill_name 
+        FROM skill_histories_v2 sh
+        JOIN user_skills us ON sh.user_skill_id = us.id 
+        JOIN skill_templates st ON us.skill_template_id = st.id 
+        WHERE sh.user_skill_id = $1 
+        ORDER BY sh.created_at DESC
+      `, [skillId]);
+      
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting skill history:", error);
@@ -1166,10 +1161,15 @@ export class PostgresStorage implements IStorage {
   
   async getUserSkillHistory(userId: number): Promise<SkillHistory[]> {
     try {
-      const result = await pool.query(
-        'SELECT * FROM skill_histories WHERE user_id = $1 ORDER BY created_at DESC',
-        [userId]
-      );
+      const result = await pool.query(`
+        SELECT sh.*, st.name as skill_name 
+        FROM skill_histories_v2 sh
+        JOIN user_skills us ON sh.user_skill_id = us.id 
+        JOIN skill_templates st ON us.skill_template_id = st.id 
+        WHERE sh.user_id = $1 
+        ORDER BY sh.created_at DESC
+      `, [userId]);
+      
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting user skill history:", error);
@@ -1223,13 +1223,15 @@ export class PostgresStorage implements IStorage {
 
   async getAllSkillHistories(): Promise<SkillHistory[]> {
     try {
-      const result = await pool.query(
-        'SELECT sh.*, s.name as skill_name, u.email as user_email ' +
-        'FROM skill_histories sh ' +
-        'JOIN skills s ON sh.skill_id = s.id ' +
-        'JOIN users u ON sh.user_id = u.id ' +
-        'ORDER BY sh.created_at DESC'
-      );
+      const result = await pool.query(`
+        SELECT sh.*, st.name as skill_name, u.email as user_email 
+        FROM skill_histories_v2 sh
+        JOIN user_skills us ON sh.user_skill_id = us.id 
+        JOIN skill_templates st ON us.skill_template_id = st.id 
+        JOIN users u ON sh.user_id = u.id 
+        ORDER BY sh.created_at DESC
+      `);
+      
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting all skill histories:", error);
@@ -1279,51 +1281,36 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Updated to handle history for both skills and user_skills tables
+  // Updated to use only skill_histories_v2 table with user_skills
   async createSkillHistory(history: InsertSkillHistory): Promise<SkillHistory> {
     try {
-      let skillName = 'Unknown skill';
-      
-      // First, check if the skill exists in the user_skills table
+      // Validate the user skill exists
       const userSkill = await this.getUserSkillById(history.skillId);
       
-      if (userSkill) {
-        // Get the skill name from the user skill's template for better logging
-        if (userSkill.skillTemplateId) {
-          const skillTemplate = await this.getSkillTemplate(userSkill.skillTemplateId);
-          if (skillTemplate) {
-            skillName = skillTemplate.name;
-          } else if (userSkill.name) {
-            skillName = userSkill.name;
-          }
-        } else if (userSkill.name) {
-          skillName = userSkill.name;
-        }
-        console.log(`Creating history for ${skillName} (user skill ID: ${history.skillId}, user ID: ${history.userId})`);
-      } else {
-        // If not found in user_skills, check in the legacy skills table
-        const skillResult = await pool.query(
-          'SELECT * FROM skills WHERE id = $1',
-          [history.skillId]
+      if (!userSkill) {
+        throw new Error(`User skill with ID ${history.skillId} not found`);
+      }
+      
+      // Get the skill name for logging
+      let skillName = 'Unknown skill';
+      if (userSkill.skillTemplateId) {
+        const template = await pool.query(
+          'SELECT name FROM skill_templates WHERE id = $1',
+          [userSkill.skillTemplateId]
         );
-        
-        if (skillResult.rows[0]) {
-          // We found it in the legacy table
-          const legacySkill = this.snakeToCamel(skillResult.rows[0]);
-          skillName = legacySkill.name;
-          console.log(`Found skill in legacy table: ${skillName} (ID: ${history.skillId})`);
-          console.log(`Creating history for ${skillName} (legacy skill ID: ${history.skillId}, user ID: ${history.userId})`);
-        } else {
-          // Not found in either table
-          console.warn(`Skill with ID ${history.skillId} not found in either skills or user_skills tables, using fallback name`);
+        if (template.rows.length > 0) {
+          skillName = template.rows[0].name;
         }
       }
       
+      console.log(`Creating history for ${skillName} (user skill ID: ${history.skillId}, user ID: ${history.userId})`);
       console.log(`Level change: ${history.previousLevel || 'none'} -> ${history.newLevel}`);
       
+      // Insert into the v2 table
       const result = await pool.query(
-        `INSERT INTO skill_histories (skill_id, user_id, previous_level, new_level, change_note) 
-         VALUES ($1, $2, $3, $4, $5) 
+        `INSERT INTO skill_histories_v2 (
+          user_skill_id, user_id, previous_level, new_level, change_note
+        ) VALUES ($1, $2, $3, $4, $5) 
          RETURNING *`,
         [
           history.skillId, 
@@ -1379,13 +1366,17 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Endorsement operations
+  // Endorsement operations - updated to use endorsements_v2 table
   async getSkillEndorsements(skillId: number): Promise<Endorsement[]> {
     try {
-      const result = await pool.query(
-        'SELECT e.*, u.email as endorser_email FROM endorsements e JOIN users u ON e.endorser_id = u.id WHERE skill_id = $1 ORDER BY created_at DESC',
-        [skillId]
-      );
+      const result = await pool.query(`
+        SELECT e.*, u.email as endorser_email 
+        FROM endorsements_v2 e 
+        JOIN users u ON e.endorser_id = u.id 
+        WHERE user_skill_id = $1 
+        ORDER BY created_at DESC
+      `, [skillId]);
+      
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting skill endorsements:", error);
@@ -1393,13 +1384,13 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Updated to use the new schema with user_skills and skill_templates
+  // Updated to use the endorsements_v2 table with user_skills
   async getUserEndorsements(userId: number): Promise<Endorsement[]> {
     try {
       const result = await pool.query(`
         SELECT e.*, st.name as skill_name, u.email as endorser_email 
-        FROM endorsements e 
-        JOIN user_skills us ON e.skill_id = us.id 
+        FROM endorsements_v2 e 
+        JOIN user_skills us ON e.user_skill_id = us.id 
         JOIN skill_templates st ON us.skill_template_id = st.id 
         JOIN users u ON e.endorser_id = u.id 
         WHERE e.endorsee_id = $1 
