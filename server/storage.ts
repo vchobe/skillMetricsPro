@@ -3389,6 +3389,16 @@ export class PostgresStorage implements IStorage {
     try {
       const { projectId, skillId, importance } = projectSkill;
       
+      // Verify this is a valid user_skill from the user_skills table
+      const skillCheck = await pool.query(
+        'SELECT id FROM user_skills WHERE id = $1',
+        [skillId]
+      );
+      
+      if (skillCheck.rows.length === 0) {
+        throw new Error(`Cannot associate skill with project: user_skill with ID ${skillId} does not exist`);
+      }
+      
       // Check if this skill is already linked to the project
       const existing = await pool.query(
         'SELECT * FROM project_skills WHERE project_id = $1 AND skill_id = $2',
@@ -3399,22 +3409,38 @@ export class PostgresStorage implements IStorage {
         throw new Error('This skill is already associated with the project');
       }
       
-      const result = await pool.query(
-        'INSERT INTO project_skills (project_id, skill_id, importance) VALUES ($1, $2, $3) RETURNING *',
-        [projectId, skillId, importance]
-      );
+      // Start a transaction
+      await pool.query('BEGIN');
       
-      // Get the full project skill info using user_skills and skill_templates
-      const fullResult = await pool.query(`
-        SELECT ps.*, st.name as skill_name, st.category as skill_category, us.level as skill_level, p.name as project_name
-        FROM project_skills ps
-        JOIN user_skills us ON ps.skill_id = us.id
-        JOIN skill_templates st ON us.skill_template_id = st.id
-        JOIN projects p ON ps.project_id = p.id
-        WHERE ps.id = $1
-      `, [result.rows[0].id]);
-      
-      return this.snakeToCamel(fullResult.rows[0]) as ProjectSkill;
+      try {
+        // Insert the project_skill record
+        const result = await pool.query(
+          'INSERT INTO project_skills (project_id, skill_id, importance) VALUES ($1, $2, $3) RETURNING *',
+          [projectId, skillId, importance]
+        );
+        
+        // Get the full project skill info using user_skills and skill_templates
+        const fullResult = await pool.query(`
+          SELECT ps.*, st.name as skill_name, st.category as skill_category, us.level as skill_level, p.name as project_name
+          FROM project_skills ps
+          JOIN user_skills us ON ps.skill_id = us.id
+          JOIN skill_templates st ON us.skill_template_id = st.id
+          JOIN projects p ON ps.project_id = p.id
+          WHERE ps.id = $1
+        `, [result.rows[0].id]);
+        
+        if (fullResult.rows.length === 0) {
+          throw new Error('Failed to retrieve created project skill');
+        }
+        
+        await pool.query('COMMIT');
+        
+        console.log(`Successfully associated user_skill ${skillId} with project ${projectId}`);
+        return this.snakeToCamel(fullResult.rows[0]) as ProjectSkill;
+      } catch (error) {
+        await pool.query('ROLLBACK');
+        throw error;
+      }
     } catch (error) {
       console.error("Error creating project skill:", error);
       throw error;
