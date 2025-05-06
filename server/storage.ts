@@ -1795,15 +1795,43 @@ export class PostgresStorage implements IStorage {
   
   async deleteSkillTarget(id: number): Promise<void> {
     try {
-      // First delete all associated skill-target and user-target mappings
-      await pool.query('DELETE FROM skill_target_skills WHERE target_id = $1', [id]);
-      await pool.query('DELETE FROM skill_target_users WHERE target_id = $1', [id]);
+      // Start a transaction
+      await pool.query('BEGIN');
       
-      // Then delete the target
-      const result = await pool.query('DELETE FROM skill_targets WHERE id = $1', [id]);
-      
-      if (result.rowCount === 0) {
-        throw new Error("Skill target not found");
+      try {
+        // Log the skills associated with this target before deletion (for tracking migrations)
+        const skillsToDelete = await this.getSkillTargetSkills(id);
+        console.log(`Deleting skill target ${id} with ${skillsToDelete.length} associated skill references`);
+        
+        // If there are skills, log details about each one
+        if (skillsToDelete.length > 0) {
+          console.log(`Skills being removed from target ${id}: ${skillsToDelete.join(', ')}`);
+          
+          // Check which of these are user_skills
+          const userSkillsCheck = await pool.query(
+            `SELECT id FROM user_skills WHERE id = ANY($1)`,
+            [skillsToDelete]
+          );
+          
+          console.log(`Among ${skillsToDelete.length} skills, ${userSkillsCheck.rows.length} are user_skills`);
+        }
+        
+        // Delete all associated skill-target and user-target mappings
+        await pool.query('DELETE FROM skill_target_skills WHERE target_id = $1', [id]);
+        await pool.query('DELETE FROM skill_target_users WHERE target_id = $1', [id]);
+        
+        // Then delete the target
+        const result = await pool.query('DELETE FROM skill_targets WHERE id = $1', [id]);
+        
+        if (result.rowCount === 0) {
+          throw new Error("Skill target not found");
+        }
+        
+        await pool.query('COMMIT');
+        console.log(`Successfully deleted skill target ${id}`);
+      } catch (error) {
+        await pool.query('ROLLBACK');
+        throw error;
       }
     } catch (error) {
       console.error("Error deleting skill target:", error);
@@ -1813,11 +1841,32 @@ export class PostgresStorage implements IStorage {
   
   async getSkillTargetSkills(targetId: number): Promise<number[]> {
     try {
+      // Maintain compatibility - continue querying the same table
+      // When skills are fully migrated, this table would reference user_skills IDs
       const result = await pool.query(
         'SELECT skill_id FROM skill_target_skills WHERE target_id = $1',
         [targetId]
       );
-      return result.rows.map(row => row.skill_id);
+      
+      // Verify each skill ID exists in user_skills table and log warning for any that don't
+      const skillIds = result.rows.map(row => row.skill_id);
+      
+      if (skillIds.length > 0) {
+        // Log info for migration troubleshooting
+        console.log(`Found ${skillIds.length} skills for target ${targetId}`);
+        
+        // Verify which of these IDs exist in user_skills
+        const userSkillsCheck = await pool.query(
+          `SELECT id FROM user_skills WHERE id = ANY($1)`,
+          [skillIds]
+        );
+        
+        if (userSkillsCheck.rows.length < skillIds.length) {
+          console.warn(`Warning: Only ${userSkillsCheck.rows.length} out of ${skillIds.length} skill IDs exist in user_skills table`);
+        }
+      }
+      
+      return skillIds;
     } catch (error) {
       console.error("Error getting skill target skills:", error);
       throw error;
@@ -1826,6 +1875,16 @@ export class PostgresStorage implements IStorage {
   
   async addSkillToTarget(targetId: number, skillId: number): Promise<void> {
     try {
+      // First verify this is a valid user_skill ID
+      const skillCheck = await pool.query(
+        'SELECT id FROM user_skills WHERE id = $1',
+        [skillId]
+      );
+      
+      if (skillCheck.rows.length === 0) {
+        throw new Error(`Cannot add skill to target: user_skill with ID ${skillId} does not exist`);
+      }
+      
       // Check if mapping already exists
       const existsCheck = await pool.query(
         'SELECT 1 FROM skill_target_skills WHERE target_id = $1 AND skill_id = $2',
@@ -1837,6 +1896,7 @@ export class PostgresStorage implements IStorage {
           'INSERT INTO skill_target_skills (target_id, skill_id) VALUES ($1, $2)',
           [targetId, skillId]
         );
+        console.log(`Added user_skill ${skillId} to target ${targetId}`);
       }
     } catch (error) {
       console.error("Error adding skill to target:", error);
@@ -1850,6 +1910,7 @@ export class PostgresStorage implements IStorage {
         'DELETE FROM skill_target_skills WHERE target_id = $1 AND skill_id = $2',
         [targetId, skillId]
       );
+      console.log(`Removed skill ${skillId} from target ${targetId}`);
     } catch (error) {
       console.error("Error removing skill from target:", error);
       throw error;
