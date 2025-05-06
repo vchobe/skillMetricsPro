@@ -107,8 +107,11 @@ export interface IStorage {
   // Endorsement operations
   getSkillEndorsements(skillId: number): Promise<Endorsement[]>;
   getUserEndorsements(userId: number): Promise<Endorsement[]>;
+  getUserEndorsementsV2(userId: number): Promise<EndorsementV2[]>;
   createEndorsement(endorsement: InsertEndorsement): Promise<Endorsement>;
+  createEndorsementV2(endorsement: InsertEndorsementV2): Promise<EndorsementV2>;
   deleteEndorsement(endorsementId: number): Promise<void>;
+  deleteEndorsementV2(endorsementId: number): Promise<void>;
   
   // Notification operations
   getUserNotifications(userId: number, unreadOnly?: boolean): Promise<Notification[]>;
@@ -1400,6 +1403,26 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // V2 alias for getUserEndorsements - same implementation but returns EndorsementV2 type
+  async getUserEndorsementsV2(userId: number): Promise<EndorsementV2[]> {
+    try {
+      const result = await pool.query(`
+        SELECT e.*, st.name as skill_name, u.email as endorser_email 
+        FROM endorsements_v2 e 
+        JOIN user_skills us ON e.user_skill_id = us.id 
+        JOIN skill_templates st ON us.skill_template_id = st.id 
+        JOIN users u ON e.endorser_id = u.id 
+        WHERE e.endorsee_id = $1 
+        ORDER BY e.created_at DESC
+      `, [userId]);
+      
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting user endorsements V2:", error);
+      throw error;
+    }
+  }
+  
   // Updated to use endorsements_v2 table with user_skills
   async createEndorsement(endorsement: InsertEndorsement): Promise<Endorsement> {
     try {
@@ -1453,6 +1476,59 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // V2 alias for createEndorsement - same implementation but returns EndorsementV2 type
+  async createEndorsementV2(endorsement: InsertEndorsementV2): Promise<EndorsementV2> {
+    try {
+      // First check if the endorsement already exists in v2 table
+      const existingEndorsement = await pool.query(
+        'SELECT * FROM endorsements_v2 WHERE user_skill_id = $1 AND endorser_id = $2',
+        [endorsement.userSkillId, endorsement.endorserId]
+      );
+      
+      if (existingEndorsement.rows.length > 0) {
+        // Update existing endorsement with new comment
+        const result = await pool.query(
+          `UPDATE endorsements_v2 SET comment = $1, created_at = CURRENT_TIMESTAMP 
+           WHERE user_skill_id = $2 AND endorser_id = $3 
+           RETURNING *`,
+          [endorsement.comment || '', endorsement.userSkillId, endorsement.endorserId]
+        );
+        
+        // Also increment the endorsement count on the user_skills table
+        await pool.query(
+          'UPDATE user_skills SET endorsement_count = COALESCE(endorsement_count, 0) + 1 WHERE id = $1',
+          [endorsement.userSkillId]
+        );
+        
+        return this.snakeToCamel(result.rows[0]);
+      }
+      
+      // Create new endorsement in v2 table
+      const result = await pool.query(
+        `INSERT INTO endorsements_v2 (user_skill_id, endorser_id, endorsee_id, comment) 
+         VALUES ($1, $2, $3, $4) 
+         RETURNING *`,
+        [
+          endorsement.userSkillId, 
+          endorsement.endorserId, 
+          endorsement.endorseeId,
+          endorsement.comment || ''
+        ]
+      );
+      
+      // Increment the endorsement count on the user_skills table
+      await pool.query(
+        'UPDATE user_skills SET endorsement_count = COALESCE(endorsement_count, 0) + 1 WHERE id = $1',
+        [endorsement.userSkillId]
+      );
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error creating endorsement V2:", error);
+      throw error;
+    }
+  }
+  
   // Updated to use endorsements_v2 table with user_skills
   async deleteEndorsement(endorsementId: number): Promise<void> {
     try {
@@ -1478,6 +1554,35 @@ export class PostgresStorage implements IStorage {
       );
     } catch (error) {
       console.error("Error deleting endorsement:", error);
+      throw error;
+    }
+  }
+  
+  // V2 alias for deleteEndorsement - same implementation for deleting from endorsements_v2
+  async deleteEndorsementV2(endorsementId: number): Promise<void> {
+    try {
+      // First get the endorsement to know which skill to update
+      const endorsement = await pool.query(
+        'SELECT user_skill_id FROM endorsements_v2 WHERE id = $1',
+        [endorsementId]
+      );
+      
+      if (endorsement.rows.length === 0) {
+        throw new Error("Endorsement not found");
+      }
+      
+      const userSkillId = endorsement.rows[0].user_skill_id;
+      
+      // Delete the endorsement from v2 table
+      await pool.query('DELETE FROM endorsements_v2 WHERE id = $1', [endorsementId]);
+      
+      // Decrement the endorsement count on the user_skills table
+      await pool.query(
+        'UPDATE user_skills SET endorsement_count = GREATEST(COALESCE(endorsement_count, 1) - 1, 0) WHERE id = $1',
+        [userSkillId]
+      );
+    } catch (error) {
+      console.error("Error deleting endorsement V2:", error);
       throw error;
     }
   }

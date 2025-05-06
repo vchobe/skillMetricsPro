@@ -742,8 +742,17 @@ export const insertProjectSkillSchema = createInsertSchema(projectSkills).pick({
   requiredLevel: true
 });
 
+export const insertProjectSkillV2Schema = createInsertSchema(projectSkillsV2).pick({
+  projectId: true,
+  userSkillId: true,
+  requiredLevel: true
+});
+
 export type ProjectSkill = typeof projectSkills.$inferSelect;
 export type InsertProjectSkill = z.infer<typeof insertProjectSkillSchema>;
+
+export type ProjectSkillV2 = typeof projectSkillsV2.$inferSelect;
+export type InsertProjectSkillV2 = z.infer<typeof insertProjectSkillV2Schema>;
 
 // Project Resource History (tracking changes in project assignments)
 export const projectResourceHistories = pgTable("project_resource_histories", {
