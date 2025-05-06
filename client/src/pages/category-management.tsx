@@ -69,17 +69,17 @@ interface SkillDisplayNameProps {
 }
 
 function SkillDisplayName({ skillId }: SkillDisplayNameProps) {
-  const { data: skill, isLoading } = useQuery<Skill>({
-    queryKey: ['/api/skills/get', skillId],
+  const { data: skillTemplate, isLoading } = useQuery<SkillTemplate>({
+    queryKey: ['/api/skill-templates/get', skillId],
     queryFn: async () => {
-      const response = await fetch(`/api/skills/${skillId}`);
-      if (!response.ok) return { id: skillId, name: `ID: ${skillId}` } as Skill;
+      const response = await fetch(`/api/skill-templates/${skillId}`);
+      if (!response.ok) return { id: skillId, name: `ID: ${skillId}` } as SkillTemplate;
       return response.json();
     }
   });
   
   if (isLoading) return <>Loading...</>;
-  return <>{skill?.name || `ID: ${skillId}`}</>;
+  return <>{skillTemplate?.name || `ID: ${skillId}`}</>;
 }
 
 // Subcategory Edit Form Component
