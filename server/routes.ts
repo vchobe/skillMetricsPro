@@ -2270,7 +2270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userSkill.userId,
         type: "endorsement",
         content: `Your ${skillTemplate.name} skill was endorsed by a colleague`,
-        relatedSkillId: skillId,
+        relatedUserSkillId: skillId, // Use userSkillId (skillId) instead of relatedSkillId
         relatedUserId: req.user!.id
       });
       
