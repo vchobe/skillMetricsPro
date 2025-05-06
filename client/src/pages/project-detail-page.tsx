@@ -1551,7 +1551,7 @@ export default function ProjectDetailPage() {
             <form onSubmit={addSkillForm.handleSubmit(onAddSkillSubmit)} className="space-y-4">
               <FormField
                 control={addSkillForm.control}
-                name="skillId"
+                name="skillTemplateId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Skill</FormLabel>
