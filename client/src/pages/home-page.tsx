@@ -227,12 +227,16 @@ export default function HomePage() {
     // Take the 3 most recent entries and map them to the activity format
     return sortedHistory.slice(0, 3).map(entry => ({
       id: entry.id,
-      type: entry.previousLevel ? "update" as const : "add" as const,
-      skillId: entry.skillId,
-      previousLevel: entry.previousLevel,
-      newLevel: entry.newLevel,
-      date: entry.createdAt,
-      userId: entry.userId
+      type: entry.previousLevel || entry.previous_level ? "update" as const : "add" as const,
+      skillId: entry.skillId || entry.skill_id,
+      userSkillId: entry.userSkillId || entry.user_skill_id,
+      skillTemplateId: entry.skillTemplateId || entry.skill_template_id,
+      skillName: entry.skillName || entry.skill_name,
+      previousLevel: entry.previousLevel || entry.previous_level,
+      newLevel: entry.newLevel || entry.new_level,
+      date: entry.createdAt || entry.created_at,
+      userId: entry.userId || entry.user_id,
+      note: entry.changeNote || entry.change_note
     }));
   }, [userHistory, orgHistory, user?.id]);
   
