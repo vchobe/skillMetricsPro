@@ -103,7 +103,7 @@ export const skillApprovers = pgTable("skill_approvers", {
   userId: integer("user_id").notNull().references(() => users.id),
   categoryId: integer("category_id").references(() => skillCategories.id),
   subcategoryId: integer("subcategory_id").references(() => skillSubcategories.id),
-  skillTemplateId: integer("skill_id").references(() => skillTemplates.id), // Column name kept as skill_id in DB for backward compatibility
+  skillTemplateId: integer("skill_template_id").references(() => skillTemplates.id),
   canApproveAll: boolean("can_approve_all").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
