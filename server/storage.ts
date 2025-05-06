@@ -3934,20 +3934,9 @@ export class PostgresStorage implements IStorage {
   }
   
   // V2 implementation using project_skills_v2 table that references skill templates
-  async getUserSkillProjects(userSkillId: number): Promise<ProjectSkillV2[]> {
+  // Get projects requiring a specific skill template
+  async getProjectsBySkillTemplate(skillTemplateId: number): Promise<ProjectSkillV2[]> {
     try {
-      // Get the skill template ID for this user skill
-      const userSkillResult = await pool.query(
-        'SELECT skill_template_id FROM user_skills WHERE id = $1',
-        [userSkillId]
-      );
-      
-      if (userSkillResult.rows.length === 0) {
-        console.warn(`No user skill found with ID ${userSkillId}`);
-        return [];
-      }
-      
-      const skillTemplateId = userSkillResult.rows[0].skill_template_id;
       console.log(`Looking for projects using skill template ID ${skillTemplateId}`);
       
       // Get all projects that require this skill template
@@ -3963,6 +3952,30 @@ export class PostgresStorage implements IStorage {
       
       console.log(`Found ${result.rows.length} projects requiring skill template ${skillTemplateId}`);
       return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkillV2[];
+    } catch (error) {
+      console.error(`Error retrieving projects for skill template ${skillTemplateId}:`, error);
+      throw error;
+    }
+  }
+  
+  // Legacy method - maintained for backward compatibility
+  async getUserSkillProjects(userSkillId: number): Promise<ProjectSkillV2[]> {
+    try {
+      // Get the skill template ID for this user skill
+      const userSkillResult = await pool.query(
+        'SELECT skill_template_id FROM user_skills WHERE id = $1',
+        [userSkillId]
+      );
+      
+      if (userSkillResult.rows.length === 0) {
+        console.warn(`No user skill found with ID ${userSkillId}`);
+        return [];
+      }
+      
+      const skillTemplateId = userSkillResult.rows[0].skill_template_id;
+      
+      // Use the new method that works directly with skillTemplateId
+      return this.getProjectsBySkillTemplate(skillTemplateId);
     } catch (error) {
       console.error(`Error retrieving projects for user skill ${userSkillId}:`, error);
       throw error;

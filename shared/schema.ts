@@ -729,12 +729,12 @@ export const projectSkills = pgTable("project_skills", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
-// Project Skills V2 (using user_skills instead of skills)
+// Project Skills V2 (using skill_templates directly)
 export const projectSkillsV2 = pgTable("project_skills_v2", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
-  userSkillId: integer("user_skill_id").notNull().references(() => userSkills.id),
-  skillTemplateId: integer("skill_template_id"), // Reference to skill template
+  skillTemplateId: integer("skill_template_id").notNull().references(() => skillTemplates.id),
+  userSkillId: integer("user_skill_id"), // Legacy reference - maintained for backwards compatibility
   requiredLevel: skillLevelEnum("required_level").default("beginner"), // beginner, intermediate, expert
   createdAt: timestamp("created_at").defaultNow()
 });
