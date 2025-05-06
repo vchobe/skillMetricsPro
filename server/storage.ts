@@ -5662,7 +5662,7 @@ export class PostgresStorage implements IStorage {
   
   async createSkillApprover(approver: InsertSkillApprover): Promise<SkillApprover> {
     try {
-      const { userId, categoryId, subcategoryId, skillId, canApproveAll } = approver;
+      const { userId, categoryId, subcategoryId, skillTemplateId, canApproveAll } = approver;
       
       // Check for existing approvers based on what we're trying to create
       let existingResult;
@@ -5676,11 +5676,11 @@ export class PostgresStorage implements IStorage {
         if (existingResult.rows.length > 0) {
           return this.snakeToCamel(existingResult.rows[0]);
         }
-      } else if (skillId) {
-        // Check if the user is already an approver for this specific skill
+      } else if (skillTemplateId) {
+        // Check if the user is already an approver for this specific skill template
         existingResult = await pool.query(
-          'SELECT * FROM skill_approvers WHERE user_id = $1 AND skill_id = $2',
-          [userId, skillId]
+          'SELECT * FROM skill_approvers WHERE user_id = $1 AND skill_template_id = $2',
+          [userId, skillTemplateId]
         );
         if (existingResult.rows.length > 0) {
           return this.snakeToCamel(existingResult.rows[0]);
@@ -5708,13 +5708,13 @@ export class PostgresStorage implements IStorage {
       // Create the new approver
       const result = await pool.query(
         `INSERT INTO skill_approvers (
-          user_id, category_id, subcategory_id, skill_id, can_approve_all, created_at
+          user_id, category_id, subcategory_id, skill_template_id, can_approve_all, created_at
         ) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
         [
           userId,
           categoryId || null,
           subcategoryId || null,
-          skillId || null,
+          skillTemplateId || null,
           canApproveAll || false
         ]
       );
@@ -5785,7 +5785,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  async canUserApproveSkill(userId: number, categoryId: number, subcategoryId?: number, skillId?: number): Promise<boolean> {
+  async canUserApproveSkill(userId: number, categoryId: number, subcategoryId?: number, skillTemplateId?: number): Promise<boolean> {
     try {
       // Check if user is super admin
       const userResult = await pool.query(
@@ -5806,7 +5806,7 @@ export class PostgresStorage implements IStorage {
       }
       
       // Enhancing the debug logs
-      console.log(`Checking if user ${userId} can approve - Category: ${categoryId}, Subcategory: ${subcategoryId || 'none'}, Skill: ${skillId || 'none'}`);
+      console.log(`Checking if user ${userId} can approve - Category: ${categoryId}, Subcategory: ${subcategoryId || 'none'}, Skill Template: ${skillTemplateId || 'none'}`);
       
       // For testing - Check all the approver assignments
       const allAssignmentsQuery = `SELECT * FROM skill_approvers WHERE user_id = $1`;
@@ -5817,15 +5817,15 @@ export class PostgresStorage implements IStorage {
       // We'll check each level with precise matching
       
       // 1. Check if they have skill-specific permission
-      if (skillId) {
+      if (skillTemplateId) {
         const skillSpecificQuery = `
           SELECT * FROM skill_approvers 
-          WHERE user_id = $1 AND skill_id = $2
+          WHERE user_id = $1 AND skill_template_id = $2
         `;
-        const skillSpecificResult = await pool.query(skillSpecificQuery, [userId, skillId]);
+        const skillSpecificResult = await pool.query(skillSpecificQuery, [userId, skillTemplateId]);
         
         if (skillSpecificResult.rows.length > 0) {
-          console.log(`User ${userId} has skill-specific permission for skill ${skillId}`);
+          console.log(`User ${userId} has skill-specific permission for skill template ${skillTemplateId}`);
           return true;
         }
       }
@@ -5848,7 +5848,7 @@ export class PostgresStorage implements IStorage {
       if (categoryId) {
         const categoryQuery = `
           SELECT * FROM skill_approvers 
-          WHERE user_id = $1 AND category_id = $2 AND subcategory_id IS NULL AND skill_id IS NULL
+          WHERE user_id = $1 AND category_id = $2 AND subcategory_id IS NULL AND skill_template_id IS NULL
         `;
         const categoryResult = await pool.query(categoryQuery, [userId, categoryId]);
         
