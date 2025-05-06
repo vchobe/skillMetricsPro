@@ -10,7 +10,7 @@ import { Loader2, Brain, Award, Medal, Plus, ChevronRight } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import SkillChart from "@/components/skill-chart";
-import ActivityFeed from "@/components/activity-feed";
+import ActivityFeed, { Activity } from "@/components/activity-feed";
 import SkillLevelBadge from "@/components/skill-level-badge";
 import { formatRelativeTime, parseDate } from "@/lib/date-utils";
 
