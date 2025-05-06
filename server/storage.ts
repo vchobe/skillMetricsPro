@@ -2056,10 +2056,9 @@ export class PostgresStorage implements IStorage {
     try {
       // Start a transaction
       await pool.query('BEGIN');
-
       console.log(`Starting approval for pending skill update ID ${id} by reviewer ${reviewerId}`);
 
-      // First, get the pending update
+      // Get the pending update data
       const pendingResult = await pool.query(
         'SELECT * FROM pending_skill_updates WHERE id = $1',
         [id]
@@ -2070,197 +2069,222 @@ export class PostgresStorage implements IStorage {
         throw new Error('Pending skill update not found');
       }
       
-      // Get the pending update data
       const rawPendingUpdate = pendingResult.rows[0];
       console.log(`Raw pending update data:`, JSON.stringify(rawPendingUpdate));
       
-      // Create a sanitized version of the raw data that handles empty strings properly
+      // Sanitize data
       const sanitizedData = {...rawPendingUpdate};
-      
-      // Handle numeric fields specifically
       if (sanitizedData.subcategory_id === '' || sanitizedData.subcategory_id === undefined) {
         sanitizedData.subcategory_id = null;
-        console.log('Fixed empty subcategory_id to null');
       }
-      
       if (sanitizedData.category_id === '' || sanitizedData.category_id === undefined) {
         sanitizedData.category_id = null;
-        console.log('Fixed empty category_id to null');
       }
       
-      console.log(`Sanitized pending update data:`, JSON.stringify(sanitizedData));
-      
-      // Now convert to camelCase
+      // Convert to camelCase
       const pendingUpdate = this.snakeToCamel(sanitizedData) as PendingSkillUpdate;
-      console.log(`CamelCase pending update data:`, JSON.stringify(pendingUpdate));
       
       let skill: Skill;
       let previousLevel: string | null = null;
       
-      // Handle skill creation or update based on isUpdate flag
       if (pendingUpdate.isUpdate && pendingUpdate.skillId) {
-        console.log(`Updating existing skill ID ${pendingUpdate.skillId}`);
+        // This is an update to an existing skill
+        console.log(`Processing update for existing skill ID ${pendingUpdate.skillId}`);
         
-        // Get the existing skill to capture its current level
+        // Get current skill details for history tracking
         const existingSkill = await this.getSkill(pendingUpdate.skillId);
-        
         if (!existingSkill) {
           await pool.query('ROLLBACK');
           throw new Error('Skill to update not found');
         }
         
         previousLevel = existingSkill.level;
-        console.log(`Previous skill level: ${previousLevel}`);
         
-        // IMPORTANT: Use direct SQL to avoid type conversion issues
-        try {
+        // Check if this is a user_skill or legacy skill
+        const userSkillCheck = await pool.query(
+          'SELECT * FROM user_skills WHERE id = $1',
+          [pendingUpdate.skillId]
+        );
+        
+        if (userSkillCheck.rows.length > 0) {
+          // Update existing user_skill
+          console.log(`Updating existing user_skill record`);
+          
           const updateResult = await pool.query(
-            `UPDATE skills SET 
-              name = $1, 
-              category = $2, 
-              level = $3, 
-              certification = $4, 
-              credly_link = $5, 
-              notes = $6,
-              certification_date = $7,
-              expiration_date = $8,
-              category_id = $9,
-              subcategory_id = $10,
+            `UPDATE user_skills SET 
+              level = $1, 
+              certification = $2, 
+              credly_link = $3, 
+              notes = $4,
+              certification_date = $5,
+              expiration_date = $6,
               last_updated = CURRENT_TIMESTAMP
-             WHERE id = $11 
-             RETURNING *`,
+            WHERE id = $7 
+            RETURNING *`,
             [
-              pendingUpdate.name,
-              pendingUpdate.category,
               pendingUpdate.level,
               pendingUpdate.certification || '',
               pendingUpdate.credlyLink || '',
               pendingUpdate.notes || '',
               pendingUpdate.certificationDate,
               pendingUpdate.expirationDate,
-              // Use nulls for empty or invalid ID fields
-              (pendingUpdate.categoryId === '' || pendingUpdate.categoryId === undefined) ? null : pendingUpdate.categoryId,
-              (pendingUpdate.subcategoryId === '' || pendingUpdate.subcategoryId === undefined) ? null : pendingUpdate.subcategoryId,
               pendingUpdate.skillId
             ]
           );
           
           if (updateResult.rows.length === 0) {
             await pool.query('ROLLBACK');
-            throw new Error('Failed to update skill');
+            throw new Error('Failed to update user skill');
           }
           
-          skill = this.snakeToCamel(updateResult.rows[0]);
-          console.log(`Skill updated successfully:`, JSON.stringify(skill));
-        } catch (updateError) {
-          console.error("Error updating skill with direct SQL:", updateError);
+          const updatedUserSkill = await this.getUserSkillById(pendingUpdate.skillId);
+          if (!updatedUserSkill) {
+            await pool.query('ROLLBACK');
+            throw new Error('Could not retrieve updated user skill');
+          }
           
-          // Try another approach with simpler SQL if the first attempt fails
-          console.log("Trying alternative update approach...");
+          skill = this.userSkillToLegacySkill(updatedUserSkill);
+        } else {
+          // Migrate legacy skill to user_skills
+          console.log(`Migrating legacy skill to user_skills table`);
           
-          const updateResult = await pool.query(
-            `UPDATE skills SET 
-              name = $1, 
-              category = $2, 
-              level = $3, 
-              certification = $4, 
-              credly_link = $5, 
-              notes = $6,
-              category_id = $7,
-              subcategory_id = $8,
-              last_updated = CURRENT_TIMESTAMP
-             WHERE id = $9 
-             RETURNING *`,
+          // Find or create matching skill template
+          let skillTemplateId: number;
+          const templateResult = await pool.query(
+            'SELECT * FROM skill_templates WHERE name = $1 OR LOWER(name) = LOWER($1)',
+            [pendingUpdate.name]
+          );
+          
+          if (templateResult.rows.length > 0) {
+            skillTemplateId = templateResult.rows[0].id;
+          } else {
+            const newTemplateResult = await pool.query(
+              `INSERT INTO skill_templates (name, category, description, category_id, subcategory_id) 
+               VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+              [
+                pendingUpdate.name,
+                pendingUpdate.category,
+                '',
+                pendingUpdate.categoryId,
+                pendingUpdate.subcategoryId
+              ]
+            );
+            skillTemplateId = newTemplateResult.rows[0].id;
+          }
+          
+          // Create new user_skill record
+          const userSkillResult = await pool.query(
+            `INSERT INTO user_skills (
+              user_id, skill_template_id, level, certification, credly_link, notes, 
+              certification_date, expiration_date
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
             [
-              pendingUpdate.name,
-              pendingUpdate.category,
+              pendingUpdate.userId,
+              skillTemplateId,
               pendingUpdate.level,
               pendingUpdate.certification || '',
               pendingUpdate.credlyLink || '',
               pendingUpdate.notes || '',
-              (pendingUpdate.categoryId === '' || pendingUpdate.categoryId === undefined) ? null : pendingUpdate.categoryId,
-              (pendingUpdate.subcategoryId === '' || pendingUpdate.subcategoryId === undefined) ? null : pendingUpdate.subcategoryId,
-              pendingUpdate.skillId
+              pendingUpdate.certificationDate,
+              pendingUpdate.expirationDate
             ]
           );
           
-          // Special handling for subcategory_id - update it separately
+          // Mark legacy skill as migrated
           await pool.query(
-            `UPDATE skills SET subcategory_id = NULL WHERE id = $1`,
-            [pendingUpdate.skillId]
+            `UPDATE skills SET notes = CONCAT(COALESCE(notes, ''), ' [MIGRATED TO USER_SKILLS: ', $1, ']') 
+             WHERE id = $2`,
+            [userSkillResult.rows[0].id, pendingUpdate.skillId]
           );
           
-          // Fix the category_id field separately if needed
-          if (pendingUpdate.categoryId) {
-            await pool.query(
-              `UPDATE skills SET category_id = $1 WHERE id = $2`,
-              [pendingUpdate.categoryId, pendingUpdate.skillId]
-            );
-          } else {
-            await pool.query(
-              `UPDATE skills SET category_id = NULL WHERE id = $1`,
-              [pendingUpdate.skillId]
-            );
-          }
+          // Update pending update to reference new skill
+          await pool.query(
+            `UPDATE pending_skill_updates SET skill_id = $1 WHERE id = $2`,
+            [userSkillResult.rows[0].id, id]
+          );
           
-          if (updateResult.rows.length === 0) {
+          const fullUserSkill = await this.getUserSkillById(userSkillResult.rows[0].id);
+          if (!fullUserSkill) {
             await pool.query('ROLLBACK');
-            throw new Error('Failed to update skill with fallback method');
+            throw new Error('Could not retrieve migrated user skill');
           }
           
-          // Get the updated skill after our separate updates
-          const refreshedSkillResult = await pool.query(
-            `SELECT * FROM skills WHERE id = $1`,
-            [pendingUpdate.skillId]
-          );
-          
-          skill = this.snakeToCamel(refreshedSkillResult.rows[0]);
-          console.log(`Skill updated with fallback method:`, JSON.stringify(skill));
+          skill = this.userSkillToLegacySkill(fullUserSkill);
+          pendingUpdate.skillId = userSkillResult.rows[0].id;
         }
       } else {
-        // Create a new skill - make sure integer fields are handled correctly
+        // This is a new skill
         console.log(`Creating new skill for user ${pendingUpdate.userId}`);
         
-        // Sanitize fields for new skill creation
-        const createSkillData: InsertSkill = {
-          userId: pendingUpdate.userId,
-          name: pendingUpdate.name,
-          category: pendingUpdate.category,
-          level: pendingUpdate.level,
-          certification: pendingUpdate.certification,
-          credlyLink: pendingUpdate.credlyLink,
-          notes: pendingUpdate.notes
-        };
+        // Find or create matching skill template
+        let skillTemplateId: number;
+        const templateResult = await pool.query(
+          'SELECT * FROM skill_templates WHERE name = $1 OR LOWER(name) = LOWER($1)',
+          [pendingUpdate.name]
+        );
         
-        // Only add these fields if they have valid values
-        if (pendingUpdate.certificationDate) {
-          createSkillData.certificationDate = pendingUpdate.certificationDate;
+        if (templateResult.rows.length > 0) {
+          skillTemplateId = templateResult.rows[0].id;
+        } else {
+          const newTemplateResult = await pool.query(
+            `INSERT INTO skill_templates (name, category, description, category_id, subcategory_id) 
+             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+            [
+              pendingUpdate.name,
+              pendingUpdate.category,
+              '',
+              pendingUpdate.categoryId,
+              pendingUpdate.subcategoryId
+            ]
+          );
+          skillTemplateId = newTemplateResult.rows[0].id;
         }
         
-        if (pendingUpdate.expirationDate) {
-          createSkillData.expirationDate = pendingUpdate.expirationDate;
+        // Create new user_skill record
+        const userSkillResult = await pool.query(
+          `INSERT INTO user_skills (
+            user_id, skill_template_id, level, certification, credly_link, notes, 
+            certification_date, expiration_date
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+          [
+            pendingUpdate.userId,
+            skillTemplateId,
+            pendingUpdate.level,
+            pendingUpdate.certification || '',
+            pendingUpdate.credlyLink || '',
+            pendingUpdate.notes || '',
+            pendingUpdate.certificationDate,
+            pendingUpdate.expirationDate
+          ]
+        );
+        
+        // Update pending update reference
+        await pool.query(
+          `UPDATE pending_skill_updates SET skill_id = $1 WHERE id = $2`,
+          [userSkillResult.rows[0].id, id]
+        );
+        
+        const fullUserSkill = await this.getUserSkillById(userSkillResult.rows[0].id);
+        if (!fullUserSkill) {
+          await pool.query('ROLLBACK');
+          throw new Error('Could not retrieve newly created user skill');
         }
         
-        // These are the integer fields that need special handling
-        if (pendingUpdate.categoryId !== null && pendingUpdate.categoryId !== undefined && pendingUpdate.categoryId !== '') {
-          createSkillData.categoryId = typeof pendingUpdate.categoryId === 'string' 
-            ? parseInt(pendingUpdate.categoryId) 
-            : pendingUpdate.categoryId;
-        }
-        
-        if (pendingUpdate.subcategoryId !== null && pendingUpdate.subcategoryId !== undefined && pendingUpdate.subcategoryId !== '') {
-          createSkillData.subcategoryId = typeof pendingUpdate.subcategoryId === 'string' 
-            ? parseInt(pendingUpdate.subcategoryId) 
-            : pendingUpdate.subcategoryId;
-        }
-        
-        console.log(`Creating skill with data:`, JSON.stringify(createSkillData));
-        skill = await this.createSkill(createSkillData);
-        console.log(`New skill created:`, JSON.stringify(skill));
+        skill = this.userSkillToLegacySkill(fullUserSkill);
       }
       
-      // Create a skill history entry for tracking
-      console.log(`Creating skill history entry`);
+      // Update pending update status
+      await pool.query(
+        `UPDATE pending_skill_updates SET 
+          status = 'approved', 
+          reviewer_id = $1,
+          review_notes = $2,
+          reviewed_at = CURRENT_TIMESTAMP
+        WHERE id = $3`,
+        [reviewerId, notes || '', id]
+      );
+      
+      // Add history entry
       await this.createSkillHistory({
         skillId: skill.id,
         userId: pendingUpdate.userId,
@@ -2269,8 +2293,7 @@ export class PostgresStorage implements IStorage {
         changeNote: `Approved by admin (ID: ${reviewerId})${notes ? ': ' + notes : ''}`
       });
       
-      // Create a notification for the user
-      console.log(`Creating notification for user ${pendingUpdate.userId}`);
+      // Create notification
       await this.createNotification({
         userId: pendingUpdate.userId,
         type: 'achievement',
@@ -2279,27 +2302,13 @@ export class PostgresStorage implements IStorage {
         relatedUserId: reviewerId
       });
       
-      // Update the pending update status
-      console.log(`Updating pending skill update status to approved`);
-      await pool.query(
-        `UPDATE pending_skill_updates SET 
-         status = 'approved', 
-         reviewed_at = CURRENT_TIMESTAMP, 
-         reviewed_by = $1,
-         review_notes = $2
-         WHERE id = $3`,
-        [reviewerId, notes || null, id]
-      );
-      
-      // Commit the transaction
+      // Commit transaction
       await pool.query('COMMIT');
-      console.log(`Transaction committed successfully`);
       
       return skill;
     } catch (error) {
-      // Roll back the transaction on error
       await pool.query('ROLLBACK');
-      console.error("Error approving pending skill update:", error);
+      console.error('Error approving skill update:', error);
       throw error;
     }
   }
