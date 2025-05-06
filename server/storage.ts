@@ -3260,15 +3260,16 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  // Project Skills operations
+  // Project Skills operations - updated to use user_skills and templates instead of legacy skills table
   async getProjectSkills(projectId: number): Promise<ProjectSkill[]> {
     try {
       const result = await pool.query(`
-        SELECT ps.*, s.name as skill_name, s.category as skill_category, s.level as skill_level
+        SELECT ps.*, st.name as skill_name, st.category as skill_category, us.level as skill_level
         FROM project_skills ps
-        JOIN skills s ON ps.skill_id = s.id
+        JOIN user_skills us ON ps.skill_id = us.id
+        JOIN skill_templates st ON us.skill_template_id = st.id
         WHERE ps.project_id = $1
-        ORDER BY s.category, s.name
+        ORDER BY st.category, st.name
       `, [projectId]);
       return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkill[];
     } catch (error) {
@@ -3312,11 +3313,12 @@ export class PostgresStorage implements IStorage {
         [projectId, skillId, importance]
       );
       
-      // Get the full project skill info
+      // Get the full project skill info using user_skills and skill_templates
       const fullResult = await pool.query(`
-        SELECT ps.*, s.name as skill_name, s.category as skill_category, s.level as skill_level, p.name as project_name
+        SELECT ps.*, st.name as skill_name, st.category as skill_category, us.level as skill_level, p.name as project_name
         FROM project_skills ps
-        JOIN skills s ON ps.skill_id = s.id
+        JOIN user_skills us ON ps.skill_id = us.id
+        JOIN skill_templates st ON us.skill_template_id = st.id
         JOIN projects p ON ps.project_id = p.id
         WHERE ps.id = $1
       `, [result.rows[0].id]);
@@ -4239,21 +4241,22 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  // Implementation for Project Overview feature
+  // Implementation for Project Overview feature - updated to use user_skills and templates
   async getAllProjectSkills(): Promise<ProjectSkill[]> {
     try {
       const result = await pool.query(`
         SELECT ps.*,
-               s.name as skill_name,
+               st.name as skill_name,
                p.name as project_name,
                c.name as client_name,
                sc.name as category,
                sc.color as category_color
         FROM project_skills ps
-        LEFT JOIN skills s ON ps.skill_id = s.id
+        LEFT JOIN user_skills us ON ps.skill_id = us.id
+        LEFT JOIN skill_templates st ON us.skill_template_id = st.id
         LEFT JOIN projects p ON ps.project_id = p.id
         LEFT JOIN clients c ON p.client_id = c.id
-        LEFT JOIN skill_categories sc ON s.category_id = sc.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
         ORDER BY ps.id
       `);
       return this.snakeToCamel(result.rows);
@@ -4287,11 +4290,12 @@ export class PostgresStorage implements IStorage {
         ]
       );
       
-      // Return the result with skill details
+      // Return the result with skill details using user_skills and templates
       const fullResult = await pool.query(`
-        SELECT ps.*, s.name as skill_name, s.category, s.level
+        SELECT ps.*, st.name as skill_name, st.category, us.level
         FROM project_skills ps
-        JOIN skills s ON ps.skill_id = s.id
+        JOIN user_skills us ON ps.skill_id = us.id
+        JOIN skill_templates st ON us.skill_template_id = st.id
         WHERE ps.id = $1
       `, [result.rows[0].id]);
       
@@ -4529,9 +4533,9 @@ export class PostgresStorage implements IStorage {
   
   async deleteSkillCategory(id: number): Promise<void> {
     try {
-      // First update any skills using this category to set categoryId to null
+      // First update any skill_templates using this category to set categoryId to null
       await pool.query(
-        'UPDATE skills SET category_id = NULL WHERE category_id = $1',
+        'UPDATE skill_templates SET category_id = NULL WHERE category_id = $1',
         [id]
       );
       
