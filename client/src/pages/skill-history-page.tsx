@@ -1,10 +1,17 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Skill, SkillHistory, User } from "@shared/schema";
+import { Skill, SkillHistory as BaseSkillHistory, User } from "@shared/schema";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import ActivityFeed, { Activity } from "@/components/activity-feed";
+
+// Extended interface for SkillHistory that includes the fields from API response
+interface SkillHistory extends BaseSkillHistory {
+  userSkillId?: number;
+  skillTemplateId?: number;
+  skillName?: string;
+}
 import SkillLevelBadge from "@/components/skill-level-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -170,6 +177,9 @@ export default function SkillHistoryPage() {
                         id: entry.id,
                         type: entry.previousLevel ? "update" : "add",
                         skillId: entry.skillId,
+                        userSkillId: entry.userSkillId,
+                        skillTemplateId: entry.skillTemplateId,
+                        skillName: entry.skillName,
                         userId: entry.userId,
                         previousLevel: entry.previousLevel,
                         newLevel: entry.newLevel,
@@ -220,6 +230,9 @@ export default function SkillHistoryPage() {
                         id: entry.id,
                         type: "update",
                         skillId: entry.skillId,
+                        userSkillId: entry.userSkillId,
+                        skillTemplateId: entry.skillTemplateId,
+                        skillName: entry.skillName,
                         userId: entry.userId,
                         previousLevel: entry.previousLevel,
                         newLevel: entry.newLevel,
@@ -265,6 +278,9 @@ export default function SkillHistoryPage() {
                         id: entry.id,
                         type: "add",
                         skillId: entry.skillId,
+                        userSkillId: entry.userSkillId,
+                        skillTemplateId: entry.skillTemplateId,
+                        skillName: entry.skillName,
                         userId: entry.userId,
                         previousLevel: null,
                         newLevel: entry.newLevel,
