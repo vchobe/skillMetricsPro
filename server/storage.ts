@@ -4206,15 +4206,16 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  // Project Skills operations
+  // Project Skills operations - updated to use user_skills and templates
   async getProjectSkills(projectId: number): Promise<ProjectSkill[]> {
     try {
       const result = await pool.query(`
-        SELECT ps.*, s.name as skill_name, s.category, s.level
+        SELECT ps.*, st.name as skill_name, st.category, us.level
         FROM project_skills ps
-        JOIN skills s ON ps.skill_id = s.id
+        JOIN user_skills us ON ps.skill_id = us.id
+        JOIN skill_templates st ON us.skill_template_id = st.id
         WHERE ps.project_id = $1
-        ORDER BY s.category, s.name
+        ORDER BY st.category, st.name
       `, [projectId]);
       
       return this.snakeToCamel(result.rows);
