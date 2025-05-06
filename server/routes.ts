@@ -1052,6 +1052,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all skill templates for project skill assignment
+  app.get("/api/skill-templates", ensureAuth, async (req, res) => {
+    try {
+      const templates = await storage.getAllSkillTemplates();
+      console.log(`Returning ${templates.length} skill templates for project skill assignment`);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching skill templates:", error);
+      res.status(500).json({ message: "Error fetching skill templates", error });
+    }
+  });
+  
   // Get all skills (for activity feed)
   app.get("/api/skills/all", ensureAuth, async (req, res) => {
     try {
