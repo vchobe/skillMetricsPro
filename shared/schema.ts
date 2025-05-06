@@ -255,6 +255,7 @@ export const notifications = pgTable("notifications", {
   content: text("content").notNull(),
   isRead: boolean("is_read").default(false),
   relatedSkillId: integer("related_skill_id"),
+  relatedUserSkillId: integer("related_user_skill_id"),
   relatedUserId: integer("related_user_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -264,6 +265,7 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
   type: true,
   content: true,
   relatedSkillId: true,
+  relatedUserSkillId: true,
   relatedUserId: true,
 });
 

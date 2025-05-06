@@ -1347,6 +1347,63 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  
+  // Separate method for creating skill history with v2 schema explicitly
+  async createSkillHistoryV2(history: {
+    userSkillId: number;
+    userId: number;
+    previousLevel: string | null;
+    newLevel: string;
+    changeNote?: string;
+  }): Promise<any> {
+    try {
+      // Get the user skill information for context
+      const userSkill = await this.getUserSkillById(history.userSkillId);
+      
+      if (!userSkill) {
+        throw new Error(`User skill with ID ${history.userSkillId} not found`);
+      }
+      
+      // Get the skill name for logging
+      let skillName = 'Unknown skill';
+      if (userSkill.skillTemplateId) {
+        const template = await pool.query(
+          'SELECT name FROM skill_templates WHERE id = $1',
+          [userSkill.skillTemplateId]
+        );
+        if (template.rows.length > 0) {
+          skillName = template.rows[0].name;
+        }
+      }
+      
+      console.log(`Creating history V2 for ${skillName} (user skill ID: ${history.userSkillId}, user ID: ${history.userId})`);
+      console.log(`Level change: ${history.previousLevel || 'none'} -> ${history.newLevel}`);
+      
+      // Insert directly into the skill_histories_v2 table
+      const result = await pool.query(
+        `INSERT INTO skill_histories_v2 (
+          user_skill_id, user_id, previous_level, new_level, change_note
+        ) VALUES ($1, $2, $3, $4, $5) 
+         RETURNING *`,
+        [
+          history.userSkillId, 
+          history.userId, 
+          history.previousLevel, 
+          history.newLevel,
+          history.changeNote || ''
+        ]
+      );
+      
+      // Add skill_name for downstream processing
+      const historyRecord = result.rows[0];
+      historyRecord.skill_name = skillName;
+      
+      return this.snakeToCamel(historyRecord);
+    } catch (error) {
+      console.error("Error creating skill history V2:", error);
+      throw error;
+    }
+  }
 
   // Profile history operations
   async getUserProfileHistory(userId: number): Promise<ProfileHistory[]> {
@@ -1627,18 +1684,21 @@ export class PostgresStorage implements IStorage {
   async createNotification(notification: InsertNotification): Promise<Notification> {
     try {
       const result = await pool.query(
-        `INSERT INTO notifications (user_id, type, content, related_skill_id, related_user_id) 
-         VALUES ($1, $2, $3, $4, $5) 
+        `INSERT INTO notifications (
+          user_id, type, content, related_skill_id, 
+          related_user_skill_id, related_user_id
+        ) VALUES ($1, $2, $3, $4, $5, $6) 
          RETURNING *`,
         [
           notification.userId, 
           notification.type, 
           notification.content,
           notification.relatedSkillId || null,
+          notification.relatedUserSkillId || null,
           notification.relatedUserId || null
         ]
       );
-      return result.rows[0];
+      return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating notification:", error);
       throw error;
