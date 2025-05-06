@@ -183,10 +183,21 @@ export const insertUserSkillSchema = createInsertSchema(userSkills).pick({
   expirationDate: true,
 });
 
-// Skill history schema
+// Skill history schema (legacy)
 export const skillHistories = pgTable("skill_histories", {
   id: serial("id").primaryKey(),
   skillId: integer("skill_id").notNull(),
+  userId: integer("user_id").notNull(),
+  previousLevel: skillLevelEnum("previous_level"),
+  newLevel: skillLevelEnum("new_level").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  changeNote: text("change_note"),
+});
+
+// Skill history schema V2 (for user_skills)
+export const skillHistoriesV2 = pgTable("skill_histories_v2", {
+  id: serial("id").primaryKey(),
+  userSkillId: integer("user_skill_id").notNull().references(() => userSkills.id, { onDelete: 'cascade' }),
   userId: integer("user_id").notNull(),
   previousLevel: skillLevelEnum("previous_level"),
   newLevel: skillLevelEnum("new_level").notNull(),
@@ -201,6 +212,20 @@ export const insertSkillHistorySchema = createInsertSchema(skillHistories).pick(
   newLevel: true,
   changeNote: true,
 });
+
+export const insertSkillHistoryV2Schema = createInsertSchema(skillHistoriesV2)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    skillId: z.number().optional(), // For backward compatibility, maps to userSkillId
+  })
+  .transform(data => {
+    // Handle compatibility with the legacy schema by mapping skillId to userSkillId
+    const result: any = { ...data };
+    if (data.skillId !== undefined && data.userSkillId === undefined) {
+      result.userSkillId = data.skillId;
+    }
+    return result;
+  });
 
 // Profile history schema
 export const profileHistories = pgTable("profile_histories", {
@@ -242,10 +267,20 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
   relatedUserId: true,
 });
 
-// Endorsements schema
+// Endorsements schema (legacy)
 export const endorsements = pgTable("endorsements", {
   id: serial("id").primaryKey(),
   skillId: integer("skill_id").notNull(),
+  endorserId: integer("endorser_id").notNull(),
+  endorseeId: integer("endorsee_id").notNull(), 
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Endorsements schema V2 (for user_skills)
+export const endorsementsV2 = pgTable("endorsements_v2", {
+  id: serial("id").primaryKey(),
+  userSkillId: integer("user_skill_id").notNull().references(() => userSkills.id, { onDelete: 'cascade' }),
   endorserId: integer("endorser_id").notNull(),
   endorseeId: integer("endorsee_id").notNull(), 
   comment: text("comment"),
@@ -258,6 +293,20 @@ export const insertEndorsementSchema = createInsertSchema(endorsements).pick({
   endorseeId: true,
   comment: true,
 });
+
+export const insertEndorsementV2Schema = createInsertSchema(endorsementsV2)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    skillId: z.number().optional(), // For backward compatibility, maps to userSkillId
+  })
+  .transform(data => {
+    // Handle compatibility with the legacy schema by mapping skillId to userSkillId
+    const result: any = { ...data };
+    if (data.skillId !== undefined && data.userSkillId === undefined) {
+      result.userSkillId = data.skillId;
+    }
+    return result;
+  });
 
 // Export types
 export type User = typeof users.$inferSelect & {
@@ -276,6 +325,9 @@ export type InsertUserSkill = z.infer<typeof insertUserSkillSchema>;
 export type SkillHistory = typeof skillHistories.$inferSelect;
 export type InsertSkillHistory = z.infer<typeof insertSkillHistorySchema>;
 
+export type SkillHistoryV2 = typeof skillHistoriesV2.$inferSelect;
+export type InsertSkillHistoryV2 = z.infer<typeof insertSkillHistoryV2Schema>;
+
 export type ProfileHistory = typeof profileHistories.$inferSelect;
 export type InsertProfileHistory = z.infer<typeof insertProfileHistorySchema>;
 
@@ -284,6 +336,9 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export type Endorsement = typeof endorsements.$inferSelect;
 export type InsertEndorsement = z.infer<typeof insertEndorsementSchema>;
+
+export type EndorsementV2 = typeof endorsementsV2.$inferSelect;
+export type InsertEndorsementV2 = z.infer<typeof insertEndorsementV2Schema>;
 
 // Skill Templates schema
 export const skillTemplates = pgTable("skill_templates", {
