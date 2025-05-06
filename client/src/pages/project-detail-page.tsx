@@ -153,6 +153,18 @@ interface Skill {
   updatedAt?: string;
 }
 
+interface SkillTemplate {
+  id: number;
+  name: string;
+  category?: string;
+  categoryId?: number | null;
+  subcategoryId?: number | null;
+  description?: string;
+  isRecommended?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 interface ProjectResource {
   id: number;
   projectId: number;
@@ -1553,9 +1565,9 @@ export default function ProjectDetailPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {availableSkills.map((skill: Skill) => (
-                          <SelectItem key={skill.id} value={skill.id.toString()}>
-                            {skill.name} ({skill.category})
+                        {availableSkillTemplates.map((template: SkillTemplate) => (
+                          <SelectItem key={template.id} value={template.id.toString()}>
+                            {template.name} ({template.category}
                           </SelectItem>
                         ))}
                       </SelectContent>
