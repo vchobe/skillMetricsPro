@@ -183,6 +183,13 @@ export interface IStorage {
   // For Project Overview feature
   getAllProjectSkills(): Promise<ProjectSkill[]>;
   
+  // Project Skills V2 operations (working with user_skills instead of skills)
+  getProjectSkillsV2(projectId: number): Promise<ProjectSkillV2[]>;
+  getUserSkillProjects(userSkillId: number): Promise<ProjectSkillV2[]>;
+  createProjectSkillV2(projectSkill: InsertProjectSkillV2): Promise<ProjectSkillV2>;
+  deleteProjectSkillV2(id: number): Promise<void>;
+  getAllProjectSkillsV2(): Promise<ProjectSkillV2[]>;
+  
   // Project Resource History operations
   getProjectResourceHistory(projectId: number): Promise<ProjectResourceHistory[]>;
   getUserProjectHistory(userId: number): Promise<ProjectResourceHistory[]>;
@@ -3473,6 +3480,24 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  
+  // V2 implementation using the project_skills_v2 table that references user_skills
+  async getProjectSkillsV2(projectId: number): Promise<ProjectSkillV2[]> {
+    try {
+      const result = await pool.query(`
+        SELECT ps.*, st.name as skill_name, st.category as skill_category, us.level as skill_level
+        FROM project_skills_v2 ps
+        JOIN user_skills us ON ps.user_skill_id = us.id
+        JOIN skill_templates st ON us.skill_template_id = st.id
+        WHERE ps.project_id = $1
+        ORDER BY st.category, st.name
+      `, [projectId]);
+      return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkillV2[];
+    } catch (error) {
+      console.error(`Error retrieving skills V2 for project ${projectId}:`, error);
+      throw error;
+    }
+  }
 
   async getSkillProjects(skillId: number): Promise<ProjectSkill[]> {
     try {
@@ -3486,6 +3511,23 @@ export class PostgresStorage implements IStorage {
       return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkill[];
     } catch (error) {
       console.error(`Error retrieving projects for skill ${skillId}:`, error);
+      throw error;
+    }
+  }
+  
+  // V2 implementation using project_skills_v2 table that references user_skills
+  async getUserSkillProjects(userSkillId: number): Promise<ProjectSkillV2[]> {
+    try {
+      const result = await pool.query(`
+        SELECT ps.*, p.name as project_name, p.status as project_status
+        FROM project_skills_v2 ps
+        JOIN projects p ON ps.project_id = p.id
+        WHERE ps.user_skill_id = $1
+        ORDER BY p.name
+      `, [userSkillId]);
+      return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkillV2[];
+    } catch (error) {
+      console.error(`Error retrieving projects for user skill ${userSkillId}:`, error);
       throw error;
     }
   }
