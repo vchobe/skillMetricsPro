@@ -181,13 +181,15 @@ interface ProjectResource {
 interface ProjectSkill {
   id: number;
   projectId: number;
-  skillId: number;
+  skillTemplateId: number; // Changed from skillId to skillTemplateId
   requiredLevel: string; // beginner, intermediate, expert
+  userSkillId?: number; // Optional legacy reference
   createdAt: string;
   updatedAt?: string;
   skillName?: string; // From the join query
-  category?: string; // From the join query
-  level?: string; // From the join query
+  skillCategory?: string; // From the join query
+  description?: string; // From the join query
+  skillLevel?: string; // From the join query
 }
 
 interface ResourceHistory {
@@ -231,7 +233,7 @@ const resourceSchema = z.object({
 
 // Project skill schema
 const projectSkillSchema = z.object({
-  skillId: z.coerce.number(),
+  skillTemplateId: z.coerce.number(),
   requiredLevel: z.enum(["beginner", "intermediate", "expert"]).default("intermediate")
 });
 
@@ -380,7 +382,7 @@ export default function ProjectDetailPage() {
   const addSkillForm = useForm<ProjectSkillFormValues>({
     resolver: zodResolver(projectSkillSchema),
     defaultValues: {
-      skillId: 0,
+      skillTemplateId: 0,
       requiredLevel: "intermediate"
     },
   });
@@ -507,11 +509,8 @@ export default function ProjectDetailPage() {
   // Add project skill mutation
   const addProjectSkill = useMutation({
     mutationFn: async (data: ProjectSkillFormValues) => {
-      // Rename skillId to skillTemplateId for backend compatibility
-      const { skillId, ...rest } = data;
       return apiRequest("POST", `/api/projects/${id}/skills`, {
-        ...rest,
-        skillTemplateId: skillId,
+        ...data,
         projectId: parseInt(id)
       });
     },
@@ -603,24 +602,24 @@ export default function ProjectDetailPage() {
     return user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username : "—";
   };
   
-  // Get skill name by ID
-  const getSkillName = (skillId: number) => {
+  // Get skill name by template ID
+  const getSkillName = (templateId: number) => {
     if (!skillTemplates) return "Loading...";
-    const template = skillTemplates.find((t: SkillTemplate) => t.id === skillId);
+    const template = skillTemplates.find((t: SkillTemplate) => t.id === templateId);
     return template ? template.name : "—";
   };
   
-  // Get skill template by ID
-  const getSkillTemplate = (skillId: number) => {
+  // Get skill template by template ID
+  const getSkillTemplate = (templateId: number) => {
     if (!skillTemplates) return null;
-    return skillTemplates.find((t: SkillTemplate) => t.id === skillId);
+    return skillTemplates.find((t: SkillTemplate) => t.id === templateId);
   };
   
   // Create an array of available skill templates to choose from
   // Filter out templates that are already assigned to the project
   const availableSkillTemplates = skillTemplates
     ? skillTemplates.filter((template: SkillTemplate) => 
-        !projectSkills || !projectSkills.some((ps: ProjectSkill) => ps.skillId === template.id)
+        !projectSkills || !projectSkills.some((ps: ProjectSkill) => ps.skillTemplateId === template.id)
       )
     : [];
     
@@ -975,17 +974,17 @@ export default function ProjectDetailPage() {
                         </TableHeader>
                         <TableBody>
                           {projectSkills.map((projectSkill: ProjectSkill) => {
-                            const template = getSkillTemplate(projectSkill.skillId);
+                            const template = getSkillTemplate(projectSkill.skillTemplateId);
                             return (
                               <TableRow key={projectSkill.id}>
                                 <TableCell className="font-medium">
-                                  {template ? template.name : getSkillName(projectSkill.skillId)}
+                                  {projectSkill.skillName || (template ? template.name : "—")}
                                 </TableCell>
                                 <TableCell>
                                   {/* Display the required level for the project */}
                                   <SkillLevelBadge level={projectSkill.requiredLevel} />
                                 </TableCell>
-                                <TableCell>{template?.category || "—"}</TableCell>
+                                <TableCell>{projectSkill.skillCategory || template?.category || "—"}</TableCell>
                                 <TableCell>
                                   {isAdmin && (
                                     <AlertDialog open={openRemoveSkill === projectSkill.id} onOpenChange={(isOpen) => {
