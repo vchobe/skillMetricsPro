@@ -602,11 +602,22 @@ export default function ProjectDetailPage() {
   };
   
   // Create an array of available skills (all skills except those already assigned)
-  const availableSkills = allSkills
-    ? allSkills.filter((skill: Skill) => 
-        !projectSkills || !projectSkills.some((ps: ProjectSkill) => ps.skillId === skill.id)
-      )
+  // First deduplicate skills by name to avoid showing duplicates in the dropdown
+  const deduplicatedSkills = allSkills
+    ? allSkills.reduce((unique: Skill[], skill: Skill) => {
+        // Check if we already have a skill with this name
+        const existingSkill = unique.find((s) => s.name === skill.name);
+        if (!existingSkill) {
+          unique.push(skill);
+        }
+        return unique;
+      }, [])
     : [];
+    
+  // Then filter out skills that are already assigned to the project
+  const availableSkills = deduplicatedSkills.filter((skill: Skill) => 
+    !projectSkills || !projectSkills.some((ps: ProjectSkill) => ps.skillId === skill.id)
+  );
     
   // Create an array of available users (all users except those already assigned)
   const availableUsers = users
