@@ -3689,6 +3689,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Check if the skill template exists (if specified)
+      if (approverData.skillTemplateId) {
+        const skillTemplate = await storage.getSkillTemplate(approverData.skillTemplateId);
+        if (!skillTemplate) {
+          return res.status(404).json({ message: "Skill template not found" });
+        }
+      }
+
       // Create the approver
       const newApprover = await storage.createSkillApprover(approverData);
       
@@ -3780,6 +3788,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking subcategory approval permission:", error);
       res.status(500).json({ message: "Error checking subcategory approval permission", error });
+    }
+  });
+  
+  // Check if current user can approve a specific skill template
+  app.get("/api/can-approve-skill/:skillTemplateId", ensureAuth, async (req, res) => {
+    try {
+      const skillTemplateId = parseInt(req.params.skillTemplateId);
+      const userId = req.user!.id;
+      
+      if (isNaN(skillTemplateId)) {
+        return res.status(400).json({ message: "Invalid skill template ID" });
+      }
+      
+      // Get the skill template to determine its category
+      const skillTemplate = await storage.getSkillTemplate(skillTemplateId);
+      if (!skillTemplate) {
+        return res.status(404).json({ message: "Skill template not found" });
+      }
+      
+      // Use the category and subcategory from the skill template
+      const categoryId = skillTemplate.categoryId || 0;
+      const subcategoryId = skillTemplate.subcategoryId;
+      
+      // Check approval permission, passing the skillTemplateId directly
+      const canApprove = await storage.canUserApproveSkill(userId, categoryId, subcategoryId, skillTemplateId);
+      
+      res.json({ canApprove });
+    } catch (error) {
+      console.error("Error checking skill template approval permission:", error);
+      res.status(500).json({ message: "Error checking skill template approval permission", error });
     }
   });
 
