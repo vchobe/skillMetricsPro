@@ -372,14 +372,14 @@ async function createEndorsements(skills, users) {
       // Create a notification for each endorsement
       await pool.query(
         `INSERT INTO notifications (
-          user_id, type, content, is_read, related_skill_id, related_user_id, created_at
+          user_id, type, content, is_read, related_user_skill_id, related_user_id, created_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           skill.userId,
           'endorsement',
           `Your ${skill.name} skill was endorsed by ${endorser.username}`,
           Math.random() > 0.7, // 30% chance of being unread
-          skill.id,
+          skill.id, // This is now treated as user_skill_id
           endorser.id,
           createdAt
         ]
@@ -411,14 +411,14 @@ async function createLevelUpNotifications(skills, skillHistories) {
     
     await pool.query(
       `INSERT INTO notifications (
-        user_id, type, content, is_read, related_skill_id, created_at
+        user_id, type, content, is_read, related_user_skill_id, created_at
       ) VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         history.userId,
         'level_up',
         content,
         Math.random() > 0.5, // 50% chance of being unread
-        history.skillId,
+        history.skillId, // This is now treated as user_skill_id
         createdAt
       ]
     );
@@ -427,7 +427,7 @@ async function createLevelUpNotifications(skills, skillHistories) {
       userId: history.userId,
       type: 'level_up',
       content,
-      relatedSkillId: history.skillId,
+      relatedUserSkillId: history.skillId, // Update to use relatedUserSkillId
       createdAt
     });
   }
@@ -452,14 +452,14 @@ async function createAchievementNotifications(skills) {
     
     await pool.query(
       `INSERT INTO notifications (
-        user_id, type, content, is_read, related_skill_id, created_at
+        user_id, type, content, is_read, related_user_skill_id, created_at
       ) VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         skill.userId,
         'achievement',
         content,
         Math.random() > 0.3, // 70% chance of being read
-        skill.id,
+        skill.id, // This is now treated as user_skill_id
         createdAt
       ]
     );
@@ -468,7 +468,7 @@ async function createAchievementNotifications(skills) {
       userId: skill.userId,
       type: 'achievement',
       content,
-      relatedSkillId: skill.id,
+      relatedUserSkillId: skill.id, // Update to use relatedUserSkillId
       createdAt
     });
   }
