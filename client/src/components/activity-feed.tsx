@@ -39,10 +39,6 @@ interface ActivityFeedProps {
 }
 
 export default function ActivityFeed({ activities, skills, showAll, isPersonal = true, users = [] }: ActivityFeedProps) {
-  // Fetch skill details by ID if needed
-  // Fetch skills by their IDs directly
-  const activitySkillIds = activities.map(activity => activity.skillId);
-  
   // Use the regular /api/skills endpoint since it should contain all needed user skills
   const { data: allSkills, isLoading: isLoadingSkills } = useQuery<Skill[]>({
     queryKey: ["/api/all-skills"],
