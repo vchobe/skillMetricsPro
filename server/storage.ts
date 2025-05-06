@@ -2631,6 +2631,7 @@ export class PostgresStorage implements IStorage {
         JOIN skill_templates st ON p.skill_template_id = st.id
         JOIN users u ON p.user_id = u.id
         LEFT JOIN users r ON p.reviewed_by = r.id
+        WHERE p.status = 'pending'
         ORDER BY p.submitted_at DESC
       `);
       
@@ -2654,7 +2655,7 @@ export class PostgresStorage implements IStorage {
         JOIN skill_templates st ON p.skill_template_id = st.id
         JOIN users u ON p.user_id = u.id
         LEFT JOIN users r ON p.reviewed_by = r.id
-        WHERE p.user_id = $1
+        WHERE p.user_id = $1 AND p.status = 'pending'
         ORDER BY p.submitted_at DESC
       `, [userId]);
       
