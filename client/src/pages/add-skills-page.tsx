@@ -114,6 +114,7 @@ export default function AddSkillsPage() {
     certification?: string;
     credlyLink?: string;
     notes?: string;
+    skillTemplateId?: number; // Add skill template ID for direct reference
   }>({ level: "beginner" });
 
   // Get all skills (including those from other users)
@@ -277,11 +278,17 @@ export default function AddSkillsPage() {
     mutationFn: async (skills: SkillEntry[]) => {
       const result = await Promise.all(
         skills.map(async (skill) => {
+          // Get the matching skill template for this skill
+          const matchingTemplate = skillTemplates.find(t => t.name === skill.name);
+          
           const res = await apiRequest("POST", "/api/skills/pending", {
             ...skill,
             status: "pending",
             isUpdate: false,
-            submittedAt: new Date().toISOString()
+            submittedAt: new Date().toISOString(),
+            // Include skill template ID if available
+            skillTemplateId: matchingTemplate?.id,
+            skill_template_id: matchingTemplate?.id // Also include snake_case version for compatibility
           });
           return await res.json();
         })
@@ -332,7 +339,10 @@ export default function AddSkillsPage() {
         changeNote: "Custom skill addition",
         status: "pending",
         isUpdate: false,
-        submittedAt: new Date().toISOString()
+        submittedAt: new Date().toISOString(),
+        // Include skill template ID if available
+        skillTemplateId: skill.skillTemplateId, 
+        skill_template_id: skill.skillTemplateId // Also include snake_case version for compatibility
       };
       
       const res = await apiRequest("POST", "/api/skills/pending", skillData);
