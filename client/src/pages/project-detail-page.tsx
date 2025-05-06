@@ -507,8 +507,11 @@ export default function ProjectDetailPage() {
   // Add project skill mutation
   const addProjectSkill = useMutation({
     mutationFn: async (data: ProjectSkillFormValues) => {
+      // Rename skillId to skillTemplateId for backend compatibility
+      const { skillId, ...rest } = data;
       return apiRequest("POST", `/api/projects/${id}/skills`, {
-        ...data,
+        ...rest,
+        skillTemplateId: skillId,
         projectId: parseInt(id)
       });
     },
