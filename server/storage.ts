@@ -2715,6 +2715,9 @@ export class PostgresStorage implements IStorage {
         else if (key === 'certificationDate') dbField = 'certification_date';
         else if (key === 'expirationDate') dbField = 'expiration_date';
         else if (key === 'isUpdate') dbField = 'is_update';
+        else if (key === 'reviewedAt') dbField = 'reviewed_at';
+        else if (key === 'reviewedBy') dbField = 'reviewed_by';
+        else if (key === 'reviewNotes') dbField = 'review_notes';
         
         // Skip null/undefined values except for explicit nulls
         if (value === undefined) continue;
