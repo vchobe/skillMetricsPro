@@ -207,7 +207,7 @@ export default function HomePage() {
   ];
   
   // Recent activity from skill history (combine user-specific and org-wide activity)
-  const recentActivity = useMemo(() => {
+  const recentActivity = useMemo<Activity[]>(() => {
     // If no history data is available yet
     if (!userHistory && !orgHistory) return [];
     
@@ -226,24 +226,36 @@ export default function HomePage() {
     
     // Take the 3 most recent entries and map them to the activity format
     return sortedHistory.slice(0, 3).map(entry => {
-      // Type assertion to handle both API response formats for more explicit typing
-      const typedEntry = entry as unknown as Record<string, any>;
-      
-      // Return an explicitly cast activity object
-      return {
+      // Create a properly typed Activity object
+      const activity: Activity = {
         id: entry.id,
-        type: entry.previousLevel ? "update" as const : "add" as const,
-        skillId: entry.skillId,
+        type: entry.previousLevel ? "update" : "add",
         userId: entry.userId,
         previousLevel: entry.previousLevel || null,
         newLevel: entry.newLevel,
         date: entry.createdAt,
-        // Cast these values to the correct types
-        skillName: typedEntry.skillName as string | undefined,
-        userSkillId: typedEntry.userSkillId as number | undefined,
-        skillTemplateId: typedEntry.skillTemplateId as number | undefined,
         note: entry.changeNote || undefined
       };
+      
+      // Add the skill ID (could be from different sources)
+      if (entry.skillId) {
+        activity.skillId = entry.skillId;
+      }
+      
+      // Add optional properties if they exist in the API response
+      if ('skillName' in entry && entry.skillName) {
+        activity.skillName = entry.skillName;
+      }
+      
+      if ('userSkillId' in entry && entry.userSkillId) {
+        activity.userSkillId = entry.userSkillId;
+      }
+      
+      if ('skillTemplateId' in entry && entry.skillTemplateId) {
+        activity.skillTemplateId = entry.skillTemplateId;
+      }
+      
+      return activity;
     });
   }, [userHistory, orgHistory, user?.id]);
   
