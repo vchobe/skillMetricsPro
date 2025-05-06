@@ -19,7 +19,10 @@ import { Button } from "@/components/ui/button";
 interface Activity {
   id: number;
   type: "update" | "add";
-  skillId: number;
+  skillId?: number;
+  userSkillId?: number;
+  skillTemplateId?: number;
+  skillName?: string;
   userId: number;
   previousLevel: string | null;
   newLevel: string;
@@ -47,7 +50,22 @@ export default function ActivityFeed({ activities, skills, showAll, isPersonal =
   });
   
   // Get skill details by ID - look in our passed skills array first, then try allSkills if available
-  const getSkill = (skillId: number) => {
+  const getSkill = (activity: Activity) => {
+    // If we have the skillName directly from the API, use it
+    if (activity && activity.skillName) {
+      return {
+        name: activity.skillName,
+        id: activity.skillTemplateId || activity.skillId || activity.userSkillId || 0,
+        category: "unknown" // Default category when using direct name
+      };
+    }
+
+    // Otherwise look for the skill by ID
+    if (!activity) return undefined;
+    
+    const skillId = activity.skillId || activity.skillTemplateId;
+    if (!skillId) return undefined;
+    
     const localSkill = skills.find(skill => skill.id === skillId);
     if (localSkill) return localSkill;
     
@@ -81,7 +99,7 @@ export default function ActivityFeed({ activities, skills, showAll, isPersonal =
   
   // Get background color based on activity type and skill category
   const getActivityColor = (activity: Activity) => {
-    const skill = getSkill(activity.skillId);
+    const skill = getSkill(activity);
     
     if (activity.type === "add") {
       return "bg-purple-500"; // New skill color
@@ -126,7 +144,7 @@ export default function ActivityFeed({ activities, skills, showAll, isPersonal =
     <div className="flow-root">
       <ul className="-mb-8">
         {displayedActivities.map((activity, activityIdx) => {
-          const skill = getSkill(activity.skillId);
+          const skill = getSkill(activity);
           const iconBgColor = getActivityColor(activity);
           
           return (
@@ -167,12 +185,15 @@ export default function ActivityFeed({ activities, skills, showAll, isPersonal =
                         
                         const isYou = isPersonal || !user;
                         
+                        // Determine the correct skill ID to link to
+                        const skillLinkId = activity.skillId || activity.userSkillId;
+                        
                         if (activity.type === "update") {
                           return (
                             <>
                               {userName} updated {" "}
-                              <Link href={`/skills?edit=${activity.skillId}`} className="font-medium text-gray-900">
-                                {skill ? skill.name : `Skill #${activity.skillId}`}
+                              <Link href={`/skills?edit=${skillLinkId}`} className="font-medium text-gray-900">
+                                {skill ? skill.name : (activity.skillName || `Skill #${skillLinkId}`)}
                               </Link> from{" "}
                               <SkillLevelBadge 
                                 level={activity.previousLevel || "unknown"} 
@@ -188,8 +209,8 @@ export default function ActivityFeed({ activities, skills, showAll, isPersonal =
                           return (
                             <>
                               {userName} added a new skill{" "}
-                              <Link href={`/skills?edit=${activity.skillId}`} className="font-medium text-gray-900">
-                                {skill ? skill.name : `Skill #${activity.skillId}`}
+                              <Link href={`/skills?edit=${skillLinkId}`} className="font-medium text-gray-900">
+                                {skill ? skill.name : (activity.skillName || `Skill #${skillLinkId}`)}
                               </Link>{" "}
                               with level{" "}
                               <SkillLevelBadge level={activity.newLevel} className="ml-1" />

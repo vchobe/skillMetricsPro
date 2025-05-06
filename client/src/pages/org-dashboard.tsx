@@ -57,7 +57,10 @@ import {
 interface ActivityItem {
   id: number;
   type: "update" | "add";
-  skillId: number;
+  skillId?: number;
+  userSkillId?: number;
+  skillTemplateId?: number;
+  skillName?: string;
   userId: number;
   previousLevel: string | null;
   newLevel: string;
@@ -1104,6 +1107,9 @@ export default function OrgDashboard() {
                               id: history.id,
                               type: history.previousLevel || history.previous_level ? "update" : "add",
                               skillId: history.skillId || history.skill_id,
+                              userSkillId: history.userSkillId || history.user_skill_id,
+                              skillTemplateId: history.skillTemplateId || history.skill_template_id,
+                              skillName: history.skillName || history.skill_name,
                               userId: history.userId || history.user_id,
                               previousLevel: history.previousLevel || history.previous_level,
                               newLevel: history.newLevel || history.new_level,
