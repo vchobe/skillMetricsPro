@@ -3385,67 +3385,8 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async createProjectSkill(projectSkill: InsertProjectSkill): Promise<ProjectSkill> {
-    try {
-      const { projectId, skillId, importance } = projectSkill;
-      
-      // Verify this is a valid user_skill from the user_skills table
-      const skillCheck = await pool.query(
-        'SELECT id FROM user_skills WHERE id = $1',
-        [skillId]
-      );
-      
-      if (skillCheck.rows.length === 0) {
-        throw new Error(`Cannot associate skill with project: user_skill with ID ${skillId} does not exist`);
-      }
-      
-      // Check if this skill is already linked to the project
-      const existing = await pool.query(
-        'SELECT * FROM project_skills WHERE project_id = $1 AND skill_id = $2',
-        [projectId, skillId]
-      );
-      
-      if (existing.rows.length > 0) {
-        throw new Error('This skill is already associated with the project');
-      }
-      
-      // Start a transaction
-      await pool.query('BEGIN');
-      
-      try {
-        // Insert the project_skill record
-        const result = await pool.query(
-          'INSERT INTO project_skills (project_id, skill_id, importance) VALUES ($1, $2, $3) RETURNING *',
-          [projectId, skillId, importance]
-        );
-        
-        // Get the full project skill info using user_skills and skill_templates
-        const fullResult = await pool.query(`
-          SELECT ps.*, st.name as skill_name, st.category as skill_category, us.level as skill_level, p.name as project_name
-          FROM project_skills ps
-          JOIN user_skills us ON ps.skill_id = us.id
-          JOIN skill_templates st ON us.skill_template_id = st.id
-          JOIN projects p ON ps.project_id = p.id
-          WHERE ps.id = $1
-        `, [result.rows[0].id]);
-        
-        if (fullResult.rows.length === 0) {
-          throw new Error('Failed to retrieve created project skill');
-        }
-        
-        await pool.query('COMMIT');
-        
-        console.log(`Successfully associated user_skill ${skillId} with project ${projectId}`);
-        return this.snakeToCamel(fullResult.rows[0]) as ProjectSkill;
-      } catch (error) {
-        await pool.query('ROLLBACK');
-        throw error;
-      }
-    } catch (error) {
-      console.error("Error creating project skill:", error);
-      throw error;
-    }
-  }
+  // This implementation is now merged with the more comprehensive version at line ~4387
+  // which includes required_level and a transaction for data consistency
 
   async deleteProjectSkill(id: number): Promise<void> {
     try {
@@ -4323,24 +4264,8 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  // Project Skills operations - updated to use user_skills and templates
-  async getProjectSkills(projectId: number): Promise<ProjectSkill[]> {
-    try {
-      const result = await pool.query(`
-        SELECT ps.*, st.name as skill_name, st.category, us.level
-        FROM project_skills ps
-        JOIN user_skills us ON ps.skill_id = us.id
-        JOIN skill_templates st ON us.skill_template_id = st.id
-        WHERE ps.project_id = $1
-        ORDER BY st.category, st.name
-      `, [projectId]);
-      
-      return this.snakeToCamel(result.rows);
-    } catch (error) {
-      console.error("Error getting project skills:", error);
-      throw error;
-    }
-  }
+  // This commented section was removed - duplicate getProjectSkills implementation
+  // Implementation now consolidated to use the version with more detailed SQL joins at line ~3355
 
   async getSkillProjects(skillId: number): Promise<ProjectSkill[]> {
     try {
