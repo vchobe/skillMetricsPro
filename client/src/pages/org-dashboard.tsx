@@ -68,6 +68,19 @@ interface ActivityItem {
   note?: string;
 }
 
+// Client type definition
+interface Client {
+  id: number;
+  name: string;
+}
+
+// Project type definition
+interface Project {
+  id: number;
+  name: string;
+  clientId: number;
+}
+
 // Type definitions
 type SortField = "username" | "email" | "totalSkills" | "expertSkills" | "certifications" | "createdAt";
 type SortDirection = "asc" | "desc";
@@ -78,6 +91,8 @@ type Filters = {
   hasCertification?: boolean;
   dateJoined?: string;
   skillCount?: string;
+  clientId?: string;
+  projectId?: string;
 };
 
 // Type for user stats
@@ -105,10 +120,31 @@ export default function OrgDashboard() {
   const [filters, setFilters] = useState<Filters>({});
   const [skillCategories, setSkillCategories] = useState<string[]>([]);
   const [skillNames, setSkillNames] = useState<string[]>([]);
+  const [skillSearchQuery, setSkillSearchQuery] = useState<string>("");
   
-  // Fetch all users and their skills
+  // Fetch all users and their skills with optional filtering
   const { data: users, isLoading: isLoadingUsers } = useQuery<Omit<User, 'password'>[]>({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/users", filters.clientId, filters.projectId],
+    queryFn: async () => {
+      let url = "/api/users";
+      const queryParams = [];
+      
+      if (filters.clientId) {
+        queryParams.push(`clientId=${filters.clientId}`);
+      } else if (filters.projectId) {
+        queryParams.push(`projectId=${filters.projectId}`);
+      }
+      
+      if (queryParams.length > 0) {
+        url += `?${queryParams.join('&')}`;
+      }
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+      return response.json();
+    }
   });
   
   // Get all skills across organization
@@ -119,6 +155,35 @@ export default function OrgDashboard() {
   // Get all skill history across organization
   const { data: skillHistoryData, isLoading: isLoadingHistory } = useQuery<any[]>({
     queryKey: ["/api/admin/skill-history"],
+  });
+  
+  // Fetch all clients for dropdown
+  const { data: clients = [], isLoading: isLoadingClients } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+    queryFn: async () => {
+      const response = await fetch("/api/clients");
+      if (!response.ok) {
+        throw new Error("Failed to fetch clients");
+      }
+      return response.json();
+    }
+  });
+  
+  // Fetch projects, filtered by client if one is selected
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery<Project[]>({
+    queryKey: ["/api/projects", filters.clientId],
+    queryFn: async () => {
+      let url = "/api/projects";
+      if (filters.clientId) {
+        url += `?clientId=${filters.clientId}`;
+      }
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch projects");
+      }
+      return response.json();
+    },
+    enabled: clients.length > 0 // Only run this query if clients loaded
   });
   
   // Extract all unique skill categories and names
@@ -331,7 +396,7 @@ export default function OrgDashboard() {
     }));
   };
   
-  const isLoading = isLoadingUsers || isLoadingSkills || isLoadingHistory;
+  const isLoading = isLoadingUsers || isLoadingSkills || isLoadingHistory || isLoadingClients || isLoadingProjects;
 
   return (
     <div className="min-h-screen flex">
