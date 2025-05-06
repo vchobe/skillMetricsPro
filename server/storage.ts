@@ -2847,30 +2847,81 @@ export class PostgresStorage implements IStorage {
         // It's a new skill
         console.log(`Creating new user skill from template ID ${pendingUpdate.skillTemplateId}`);
         
-        // Create a new user skill
-        userSkill = await this.createUserSkill({
-          userId: pendingUpdate.userId,
-          skillTemplateId: pendingUpdate.skillTemplateId,
-          level: pendingUpdate.level,
-          certification: pendingUpdate.certification || '',
-          credlyLink: pendingUpdate.credlyLink || '',
-          notes: pendingUpdate.notes || '',
-          certificationDate: pendingUpdate.certificationDate || null,
-          expirationDate: pendingUpdate.expirationDate || null
-        });
+        // First, check if this user already has a skill with this template
+        const existingSkillResult = await pool.query(
+          'SELECT * FROM user_skills WHERE user_id = $1 AND skill_template_id = $2',
+          [pendingUpdate.userId, pendingUpdate.skillTemplateId]
+        );
         
-        // Create a skill history entry for the new skill
-        await pool.query(`
-          INSERT INTO skill_histories_v2 (
-            user_skill_id, user_id, previous_level, new_level, change_note
-          ) VALUES ($1, $2, $3, $4, $5)
-        `, [
-          userSkill.id,
-          pendingUpdate.userId,
-          null,
-          pendingUpdate.level,
-          `Skill created via approval process.${notes ? ` Note: ${notes}` : ''}`
-        ]);
+        if (existingSkillResult.rows.length > 0) {
+          // Skill already exists, so treat it as an update instead
+          console.log(`Skill with template ID ${pendingUpdate.skillTemplateId} already exists for user ${pendingUpdate.userId}, updating instead`);
+          
+          const existingSkill = this.snakeToCamel(existingSkillResult.rows[0]);
+          
+          // Create skill history entry
+          await pool.query(`
+            INSERT INTO skill_histories_v2 (
+              user_skill_id, user_id, previous_level, new_level, change_note
+            ) VALUES ($1, $2, $3, $4, $5)
+          `, [
+            existingSkill.id,
+            pendingUpdate.userId,
+            existingSkill.level,
+            pendingUpdate.level,
+            `Skill updated via approval process.${notes ? ` Note: ${notes}` : ''}`
+          ]);
+          
+          // Update the existing skill
+          await pool.query(`
+            UPDATE user_skills SET 
+              level = $1, 
+              certification = $2, 
+              credly_link = $3, 
+              notes = $4,
+              certification_date = $5,
+              expiration_date = $6,
+              last_updated = CURRENT_TIMESTAMP
+            WHERE id = $7
+          `, [
+            pendingUpdate.level,
+            pendingUpdate.certification || '',
+            pendingUpdate.credlyLink || '',
+            pendingUpdate.notes || '',
+            pendingUpdate.certificationDate || null,
+            pendingUpdate.expirationDate || null,
+            existingSkill.id
+          ]);
+          
+          // Get the updated skill
+          userSkill = await this.getUserSkillById(existingSkill.id) as UserSkill;
+          
+        } else {
+          // Create a new user skill - it doesn't exist yet
+          userSkill = await this.createUserSkill({
+            userId: pendingUpdate.userId,
+            skillTemplateId: pendingUpdate.skillTemplateId,
+            level: pendingUpdate.level,
+            certification: pendingUpdate.certification || '',
+            credlyLink: pendingUpdate.credlyLink || '',
+            notes: pendingUpdate.notes || '',
+            certificationDate: pendingUpdate.certificationDate || null,
+            expirationDate: pendingUpdate.expirationDate || null
+          });
+          
+          // Create a skill history entry for the new skill
+          await pool.query(`
+            INSERT INTO skill_histories_v2 (
+              user_skill_id, user_id, previous_level, new_level, change_note
+            ) VALUES ($1, $2, $3, $4, $5)
+          `, [
+            userSkill.id,
+            pendingUpdate.userId,
+            null,
+            pendingUpdate.level,
+            `Skill created via approval process.${notes ? ` Note: ${notes}` : ''}`
+          ]);
+        }
       }
       
       // Update the pending update status
