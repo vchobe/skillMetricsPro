@@ -3388,14 +3388,8 @@ export class PostgresStorage implements IStorage {
   // This implementation is now merged with the more comprehensive version at line ~4387
   // which includes required_level and a transaction for data consistency
 
-  async deleteProjectSkill(id: number): Promise<void> {
-    try {
-      await pool.query('DELETE FROM project_skills WHERE id = $1', [id]);
-    } catch (error) {
-      console.error(`Error deleting project skill ${id}:`, error);
-      throw error;
-    }
-  }
+  // This implementation has been merged with the more comprehensive version at line ~4377
+  // which includes row count checking to verify deletion
 
   // Project Resource History operations
   async getProjectResourceHistory(projectId: number): Promise<ProjectResourceHistory[]> {

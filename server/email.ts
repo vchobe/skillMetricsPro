@@ -152,16 +152,19 @@ export async function generateAndSendWeeklyReport(reportSettingId?: number): Pro
       try {
         // Query to get the top skills (limited to 5) for each user
         const skillsQuery = `
-          SELECT s.*, 
+          SELECT us.*, 
+                st.name, 
+                st.category, 
                 sc.name as category_name, 
                 sc.color as category_color, 
                 sc.icon as category_icon,
                 sub.name as subcategory_name
-          FROM skills s
-          LEFT JOIN skill_categories sc ON s.category_id = sc.id
-          LEFT JOIN skill_subcategories sub ON s.subcategory_id = sub.id
-          WHERE s.user_id = $1 
-          ORDER BY s.level DESC, s.last_updated DESC
+          FROM user_skills us
+          JOIN skill_templates st ON us.skill_template_id = st.id
+          LEFT JOIN skill_categories sc ON st.category_id = sc.id
+          LEFT JOIN skill_subcategories sub ON st.subcategory_id = sub.id
+          WHERE us.user_id = $1 
+          ORDER BY us.level DESC, us.last_updated DESC
           LIMIT 5
         `;
         const skillsResult = await pool.query(skillsQuery, [resource.userId]);
