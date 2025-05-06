@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SkillLevelBadge from "@/components/skill-level-badge";
@@ -39,6 +40,8 @@ import {
   Layers,
   Code2,
   Check,
+  Building,
+  Briefcase,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -685,7 +688,83 @@ export default function OrgDashboard() {
                           <CardTitle>Employee Directory</CardTitle>
                           <CardDescription>Browse and connect with colleagues across the organization</CardDescription>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          {/* Client Dropdown */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                <Building className="h-4 w-4" />
+                                <span>Client</span>
+                                {filters.clientId && (
+                                  <Badge variant="secondary" className="ml-1 rounded-sm">
+                                    1
+                                  </Badge>
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[200px] max-h-[300px] overflow-y-auto">
+                              <DropdownMenuLabel>Filter by Client</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {clients.map((client) => (
+                                <DropdownMenuItem 
+                                  key={client.id}
+                                  onClick={() => {
+                                    // When selecting a client, clear any project filter
+                                    if (filters.projectId && filters.clientId !== client.id.toString()) {
+                                      setFilters(prev => ({
+                                        ...prev,
+                                        projectId: undefined,
+                                        clientId: client.id.toString()
+                                      }));
+                                    } else {
+                                      applyFilter('clientId', client.id.toString());
+                                    }
+                                  }}
+                                  className="flex items-center justify-between"
+                                >
+                                  <span>{client.name}</span>
+                                  {filters.clientId === client.id.toString() && <Check className="h-4 w-4" />}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          
+                          {/* Project Dropdown */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                <Briefcase className="h-4 w-4" />
+                                <span>Project</span>
+                                {filters.projectId && (
+                                  <Badge variant="secondary" className="ml-1 rounded-sm">
+                                    1
+                                  </Badge>
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[200px] max-h-[300px] overflow-y-auto">
+                              <DropdownMenuLabel>Filter by Project</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {projects
+                                .filter(project => !filters.clientId || project.clientId.toString() === filters.clientId)
+                                .map((project) => (
+                                  <DropdownMenuItem 
+                                    key={project.id}
+                                    onClick={() => applyFilter('projectId', project.id.toString())}
+                                    className="flex items-center justify-between"
+                                  >
+                                    <span>{project.name}</span>
+                                    {filters.projectId === project.id.toString() && <Check className="h-4 w-4" />}
+                                  </DropdownMenuItem>
+                                ))}
+                              {projects.filter(project => !filters.clientId || project.clientId.toString() === filters.clientId).length === 0 && (
+                                <div className="px-2 py-1.5 text-sm text-muted-foreground text-center">
+                                  {filters.clientId ? "No projects for selected client" : "No projects available"}
+                                </div>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          
                           {/* Skill Category Dropdown */}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -769,7 +848,7 @@ export default function OrgDashboard() {
                               <Button variant="outline" className="flex items-center gap-1 whitespace-nowrap">
                                 <Filter className="h-4 w-4" />
                                 <span>Filters</span>
-                                {(filters.skillLevel || filters.hasCertification || filters.dateJoined || filters.skillCount || filters.category) && (
+                                {(filters.skillLevel || filters.hasCertification || filters.dateJoined || filters.skillCount || filters.category || filters.clientId || filters.projectId) && (
                                   <span className="ml-1 bg-primary text-primary-foreground rounded-full w-5 h-5 text-xs flex items-center justify-center">
                                     {Object.values(filters).filter(Boolean).length}
                                   </span>
