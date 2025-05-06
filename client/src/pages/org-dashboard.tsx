@@ -1026,6 +1026,80 @@ export default function OrgDashboard() {
                                 <span>Has Certifications</span>
                               </DropdownMenuCheckboxItem>
                               
+                              {/* Client Filter */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <span className="flex items-center">
+                                    <Building className="mr-2 h-4 w-4" />
+                                    <span>Client</span>
+                                  </span>
+                                  {filters.clientId && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="w-48 max-h-[300px] overflow-y-auto">
+                                  {clients.map(client => (
+                                    <DropdownMenuCheckboxItem
+                                      key={client.id}
+                                      checked={filters.clientId === client.id.toString()}
+                                      onCheckedChange={() => {
+                                        if (filters.clientId === client.id.toString()) {
+                                          applyFilter('clientId', undefined);
+                                        } else {
+                                          // When selecting a client, clear any project filter
+                                          if (filters.projectId) {
+                                            setFilters(prev => ({
+                                              ...prev,
+                                              projectId: undefined,
+                                              clientId: client.id.toString()
+                                            }));
+                                          } else {
+                                            applyFilter('clientId', client.id.toString());
+                                          }
+                                        }
+                                      }}
+                                    >
+                                      {client.name}
+                                    </DropdownMenuCheckboxItem>
+                                  ))}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => applyFilter('clientId', undefined)}>
+                                    Clear Filter
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              
+                              {/* Project Filter */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <span className="flex items-center">
+                                    <Briefcase className="mr-2 h-4 w-4" />
+                                    <span>Project</span>
+                                  </span>
+                                  {filters.projectId && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="w-48 max-h-[300px] overflow-y-auto">
+                                  {projects
+                                    .filter(project => !filters.clientId || project.clientId.toString() === filters.clientId)
+                                    .map(project => (
+                                      <DropdownMenuCheckboxItem
+                                        key={project.id}
+                                        checked={filters.projectId === project.id.toString()}
+                                        onCheckedChange={() => applyFilter('projectId', filters.projectId === project.id.toString() ? undefined : project.id.toString())}
+                                      >
+                                        {project.name}
+                                      </DropdownMenuCheckboxItem>
+                                    ))}
+                                  {projects.filter(project => !filters.clientId || project.clientId.toString() === filters.clientId).length === 0 && (
+                                    <div className="px-2 py-1.5 text-xs text-muted-foreground text-center">
+                                      {filters.clientId ? "No projects for selected client" : "No projects available"}
+                                    </div>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => applyFilter('projectId', undefined)}>
+                                    Clear Filter
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => {
                                 setFilters({});
@@ -1037,8 +1111,34 @@ export default function OrgDashboard() {
                         </div>
                         
                         {/* Active filters display */}
-                        {(filters.skillLevel || filters.hasCertification || filters.dateJoined || filters.skillCount || filters.category || filters.skillName) && (
+                        {(filters.skillLevel || filters.hasCertification || filters.dateJoined || filters.skillCount || filters.category || filters.skillName || filters.clientId || filters.projectId) && (
                           <div className="flex flex-wrap gap-2 mt-2">
+                            {filters.clientId && (
+                              <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                                <Building className="h-3 w-3 mr-1" />
+                                <span>Client: {clients.find(c => c.id.toString() === filters.clientId)?.name || 'Unknown'}</span>
+                                <button 
+                                  onClick={() => applyFilter('clientId', undefined)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                            
+                            {filters.projectId && (
+                              <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
+                                <Briefcase className="h-3 w-3 mr-1" />
+                                <span>Project: {projects.find(p => p.id.toString() === filters.projectId)?.name || 'Unknown'}</span>
+                                <button 
+                                  onClick={() => applyFilter('projectId', undefined)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                            
                             {filters.category && (
                               <div className="bg-muted rounded-md px-2 py-1 text-sm flex items-center gap-1">
                                 <Layers className="h-3 w-3 mr-1" />
