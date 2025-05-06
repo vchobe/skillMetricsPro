@@ -48,6 +48,8 @@ export interface IStorage {
   updateUser(id: number, data: Partial<User>): Promise<User>;
   updateUserPassword(id: number, hashedPassword: string): Promise<void>;
   getAllUsers(): Promise<User[]>;
+  getUsersByClientId(clientId: number): Promise<User[]>;
+  getUsersByProjectId(projectId: number): Promise<User[]>;
   deleteUser(id: number): Promise<void>;
   
   // Legacy Skill operations (for backward compatibility)
