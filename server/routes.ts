@@ -2226,7 +2226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/skills/:id/endorse", ensureAuth, async (req, res) => {
     try {
       const skillId = parseInt(req.params.id);
-      const userSkill = await storage.getUserSkill(skillId);
+      const userSkill = await storage.getUserSkillV2(skillId);
       
       if (!userSkill) {
         return res.status(404).json({ message: "Skill not found" });
@@ -2283,13 +2283,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/skills/:id/endorsements", ensureAuth, async (req, res) => {
     try {
       const skillId = parseInt(req.params.id);
-      const userSkill = await storage.getUserSkill(skillId);
+      const userSkill = await storage.getUserSkillV2(skillId);
       
       if (!userSkill) {
         return res.status(404).json({ message: "Skill not found" });
       }
       
-      const endorsements = await storage.getUserSkillEndorsements(skillId);
+      const endorsements = await storage.getUserSkillEndorsementsV2(skillId);
       res.json(endorsements);
     } catch (error) {
       res.status(500).json({ message: "Error fetching endorsements", error });
