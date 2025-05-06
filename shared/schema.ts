@@ -748,6 +748,8 @@ export const insertProjectSkillV2Schema = createInsertSchema(projectSkillsV2).pi
   projectId: true,
   userSkillId: true,
   requiredLevel: true
+}).extend({
+  skillTemplateId: z.number().optional(),
 });
 
 export type ProjectSkill = typeof projectSkills.$inferSelect;
