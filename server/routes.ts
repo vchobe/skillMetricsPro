@@ -3839,6 +3839,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const users = await storage.getAllUsers();
 
+      // Log some debugging information
+      console.log(`Building skill hierarchy with ${skills.length} skills, ${categories.length} categories, and ${subcategories.length} subcategories`);
+      
+      // Sample checking of skills data
+      if (skills.length > 0) {
+        const sampleSkill = skills[0];
+        console.log(`Sample skill data: ${JSON.stringify({
+          id: sampleSkill.id,
+          name: sampleSkill.name,
+          categoryId: sampleSkill.categoryId,
+          subcategoryId: sampleSkill.subcategoryId,
+          category: sampleSkill.category,
+          categoryName: sampleSkill.categoryName
+        })}`);
+      }
+      
       // Build the hierarchy: categories -> subcategories -> skills -> users
       const hierarchy = categories.map(category => ({
         ...category,
@@ -3846,9 +3862,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .filter(sub => sub.categoryId === category.id)
           .map(subcategory => {
             // Get skills for this category and subcategory
-            const subSkills = skills.filter(skill => 
-              skill.categoryId === category.id && skill.subcategoryId === subcategory.id
-            );
+            // Improved filtering to handle both direct and name-based matching
+            const subSkills = skills.filter(skill => {
+              // Match by ID first (preferred)
+              if (skill.categoryId === category.id && skill.subcategoryId === subcategory.id) {
+                return true;
+              }
+              
+              // Fallback to matching by name if IDs aren't set
+              if (!skill.categoryId && !skill.subcategoryId) {
+                return (
+                  (skill.categoryName === category.name || skill.category === category.name) && 
+                  skill.subcategoryName === subcategory.name
+                );
+              }
+              
+              return false;
+            });
             
             // Group skills by name to avoid duplicates
             const skillsMap = new Map();
