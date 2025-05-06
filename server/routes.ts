@@ -1968,14 +1968,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Running certification report for user:", req.user);
       
-      // Direct database query to get all certified skills with their related data
+      // Direct database query to get all certified skills with their related data (using user_skills)
       const queryText = `
-        SELECT s.*, u.email, u.username
-        FROM skills s
-        JOIN users u ON s.user_id = u.id
-        WHERE s.certification IS NOT NULL 
-          AND s.certification != 'true' 
-          AND s.certification != 'false'
+        SELECT us.*, st.name, u.email, u.username
+        FROM user_skills us
+        JOIN skill_templates st ON us.skill_template_id = st.id
+        JOIN users u ON us.user_id = u.id
+        WHERE us.certification IS NOT NULL 
+          AND us.certification != 'true' 
+          AND us.certification != 'false'
       `;
       console.log("Running SQL query:", queryText);
       
@@ -2213,25 +2214,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Endorsement routes
+  // Endorsement routes (updated to use user_skills)
   app.post("/api/skills/:id/endorse", ensureAuth, async (req, res) => {
     try {
       const skillId = parseInt(req.params.id);
-      const skill = await storage.getSkill(skillId);
+      const userSkill = await storage.getUserSkill(skillId);
       
-      if (!skill) {
+      if (!userSkill) {
         return res.status(404).json({ message: "Skill not found" });
       }
       
+      // Get the skill template to access the name
+      const skillTemplate = await storage.getSkillTemplate(userSkill.skillTemplateId);
+      
+      if (!skillTemplate) {
+        return res.status(404).json({ message: "Skill template not found" });
+      }
+      
       // Users can't endorse their own skills
-      if (skill.userId === req.user!.id) {
+      if (userSkill.userId === req.user!.id) {
         return res.status(400).json({ message: "You cannot endorse your own skills" });
       }
       
-      const parsedData = insertEndorsementSchema.safeParse({
-        skillId,
+      const parsedData = insertEndorsementV2Schema.safeParse({
+        userSkillId: skillId,
         endorserId: req.user!.id,
-        endorseeId: skill.userId,
+        endorseeId: userSkill.userId,
         comment: req.body.comment
       });
       
@@ -2242,18 +2250,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const endorsement = await storage.createEndorsement(parsedData.data);
+      const endorsement = await storage.createEndorsementV2(parsedData.data);
       
       // Update the skill's endorsement count
-      await storage.updateSkill(skillId, { 
-        endorsementCount: (skill.endorsementCount || 0) + 1 
+      await storage.updateUserSkill(skillId, { 
+        endorsementCount: (userSkill.endorsementCount || 0) + 1 
       });
       
       // Create a notification for the skill owner
       await storage.createNotification({
-        userId: skill.userId,
+        userId: userSkill.userId,
         type: "endorsement",
-        content: `Your ${skill.name} skill was endorsed by a colleague`,
+        content: `Your ${skillTemplate.name} skill was endorsed by a colleague`,
         relatedSkillId: skillId,
         relatedUserId: req.user!.id
       });
@@ -2267,13 +2275,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/skills/:id/endorsements", ensureAuth, async (req, res) => {
     try {
       const skillId = parseInt(req.params.id);
-      const skill = await storage.getSkill(skillId);
+      const userSkill = await storage.getUserSkill(skillId);
       
-      if (!skill) {
+      if (!userSkill) {
         return res.status(404).json({ message: "Skill not found" });
       }
       
-      const endorsements = await storage.getSkillEndorsements(skillId);
+      const endorsements = await storage.getUserSkillEndorsements(skillId);
       res.json(endorsements);
     } catch (error) {
       res.status(500).json({ message: "Error fetching endorsements", error });
@@ -2282,7 +2290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/user/endorsements", ensureAuth, async (req, res) => {
     try {
-      const endorsements = await storage.getUserEndorsements(req.user!.id);
+      const endorsements = await storage.getUserEndorsementsV2(req.user!.id);
       res.json(endorsements);
     } catch (error) {
       res.status(500).json({ message: "Error fetching endorsements", error });
@@ -2301,7 +2309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      await storage.deleteEndorsement(endorsementId);
+      await storage.deleteEndorsementV2(endorsementId);
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting endorsement", error });
