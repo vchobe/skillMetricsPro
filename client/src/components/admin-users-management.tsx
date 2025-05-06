@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { 
-  AlertCircle, Search, Shield, ShieldOff, Check, X, Trash2, User
+  AlertCircle, Search, Shield, ShieldOff, Check, X, Trash2, User, Building, Briefcase
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,13 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // User type definition
 interface User {
@@ -36,18 +43,78 @@ interface User {
   createdAt?: string;
 }
 
+// Client type definition
+interface Client {
+  id: number;
+  name: string;
+}
+
+// Project type definition
+interface Project {
+  id: number;
+  name: string;
+  clientId: number;
+}
+
 const AdminUsersManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteUserEmail, setDeleteUserEmail] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const currentUser = queryClient.getQueryData<User>(["/api/user"]);
   const isSuperAdmin = currentUser?.email === "admin@atyeti.com";
 
-  // Fetch all users
+  // Fetch all users with optional filters
   const { data: users = [], isLoading } = useQuery<User[]>({
-    queryKey: ["/api/admin/users"]
+    queryKey: ["/api/admin/users", selectedClientId, selectedProjectId],
+    queryFn: async () => {
+      let url = "/api/users";
+      
+      // Add client or project filter if selected
+      if (selectedClientId) {
+        url += `?clientId=${selectedClientId}`;
+      } else if (selectedProjectId) {
+        url += `?projectId=${selectedProjectId}`;
+      }
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+      return response.json();
+    }
+  });
+  
+  // Fetch all clients for dropdown
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+    queryFn: async () => {
+      const response = await fetch("/api/clients");
+      if (!response.ok) {
+        throw new Error("Failed to fetch clients");
+      }
+      return response.json();
+    }
+  });
+  
+  // Fetch projects, filtered by client if one is selected
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ["/api/projects", selectedClientId],
+    queryFn: async () => {
+      let url = "/api/projects";
+      if (selectedClientId) {
+        url += `?clientId=${selectedClientId}`;
+      }
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch projects");
+      }
+      return response.json();
+    },
+    enabled: clients.length > 0 // Only run this query if clients loaded
   });
 
   // Toggle admin status mutation
@@ -135,6 +202,24 @@ const AdminUsersManagement = () => {
     (user.role?.toLowerCase() || "").includes(searchTerm.toLowerCase())
   );
 
+  // Handle client filter change
+  const handleClientChange = (value: string) => {
+    setSelectedClientId(value);
+    // Reset project selection when client changes
+    setSelectedProjectId("");
+  };
+  
+  // Handle project filter change
+  const handleProjectChange = (value: string) => {
+    setSelectedProjectId(value);
+  };
+  
+  // Handle clearing filters
+  const handleClearFilters = () => {
+    setSelectedClientId("");
+    setSelectedProjectId("");
+  };
+
   // Get full name helper function
   const getFullName = (user: User) => {
     if (user.firstName && user.lastName) {
@@ -173,8 +258,9 @@ const AdminUsersManagement = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center mb-4">
-          <div className="relative flex-1">
+        <div className="flex flex-wrap items-center gap-4 mb-4">
+          {/* Search input */}
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search users..."
@@ -183,6 +269,61 @@ const AdminUsersManagement = () => {
               className="pl-8"
             />
           </div>
+          
+          {/* Client filter */}
+          <div className="w-[200px]">
+            <Select value={selectedClientId} onValueChange={handleClientChange}>
+              <SelectTrigger>
+                <Building className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Filter by client" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Clients</SelectItem>
+                {clients.map(client => (
+                  <SelectItem key={client.id} value={client.id.toString()}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Project filter - disabled if no client is selected */}
+          <div className="w-[200px]">
+            <Select 
+              value={selectedProjectId} 
+              onValueChange={handleProjectChange} 
+              disabled={selectedClientId === "" && projects.length === 0}
+            >
+              <SelectTrigger>
+                <Briefcase className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Filter by project" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Projects</SelectItem>
+                {projects
+                  .filter(project => !selectedClientId || project.clientId.toString() === selectedClientId)
+                  .map(project => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.name}
+                    </SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Clear filters button - only show if filters are applied */}
+          {(selectedClientId || selectedProjectId) && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleClearFilters}
+              className="h-10"
+            >
+              Clear Filters
+            </Button>
+          )}
         </div>
 
         <div className="rounded-md border">
