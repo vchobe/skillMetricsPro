@@ -10,10 +10,12 @@ import {
   SkillTemplate, InsertSkillTemplate,
   SkillTarget, InsertSkillTarget,
   PendingSkillUpdate, InsertPendingSkillUpdate,
+  PendingSkillUpdateV2, InsertPendingSkillUpdateV2,
   Client, InsertClient,
   Project, InsertProject,
   ProjectResource, InsertProjectResource,
   ProjectSkill, InsertProjectSkill,
+  ProjectSkillV2, InsertProjectSkillV2,
   ProjectResourceHistory, InsertProjectResourceHistory,
   SkillCategory, InsertSkillCategory,
   SkillSubcategory, InsertSkillSubcategory,
@@ -146,6 +148,14 @@ export interface IStorage {
   createPendingSkillUpdate(update: InsertPendingSkillUpdate): Promise<PendingSkillUpdate>;
   approvePendingSkillUpdate(id: number, reviewerId: number, notes?: string): Promise<Skill>;
   rejectPendingSkillUpdate(id: number, reviewerId: number, notes?: string): Promise<void>;
+  
+  // Pending Skill Updates V2 operations (working with user_skills)
+  getPendingSkillUpdatesV2(): Promise<PendingSkillUpdateV2[]>;
+  getPendingSkillUpdatesByUserV2(userId: number): Promise<PendingSkillUpdateV2[]>;
+  getPendingSkillUpdateV2(id: number): Promise<PendingSkillUpdateV2 | undefined>;
+  createPendingSkillUpdateV2(update: InsertPendingSkillUpdateV2): Promise<PendingSkillUpdateV2>;
+  approvePendingSkillUpdateV2(id: number, reviewerId: number, notes?: string): Promise<UserSkill>;
+  rejectPendingSkillUpdateV2(id: number, reviewerId: number, notes?: string): Promise<void>;
   
   // Client operations
   getAllClients(): Promise<Client[]>;
