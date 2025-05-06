@@ -4,12 +4,12 @@ import { Link, useLocation } from "wouter";
 import { Skill, SkillHistory, User } from "@shared/schema";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
-import ActivityFeed from "@/components/activity-feed";
+import ActivityFeed, { Activity } from "@/components/activity-feed";
 import SkillLevelBadge from "@/components/skill-level-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Activity, Calendar, Clock, Filter, Search } from "lucide-react";
+import { Loader2, Activity as ActivityIcon, Calendar, Clock, Filter, Search } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 
@@ -65,8 +65,8 @@ export default function SkillHistoryPage() {
     
     // Sort by date (most recent first)
     return combined.sort((a, b) => {
-      const dateA = new Date(a.createdAt || a.updatedAt || 0);
-      const dateB = new Date(b.createdAt || b.updatedAt || 0);
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
       return dateB.getTime() - dateA.getTime();
     });
   }, [skillId, userHistory, orgHistory, allUsers]);
@@ -146,7 +146,7 @@ export default function SkillHistoryPage() {
               <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="mb-4">
                   <TabsTrigger value="all" className="flex items-center">
-                    <Activity className="h-4 w-4 mr-2" />
+                    <ActivityIcon className="h-4 w-4 mr-2" />
                     All Activity
                   </TabsTrigger>
                   <TabsTrigger value="updates" className="flex items-center">
@@ -173,8 +173,8 @@ export default function SkillHistoryPage() {
                         userId: entry.userId,
                         previousLevel: entry.previousLevel,
                         newLevel: entry.newLevel,
-                        date: entry.createdAt || entry.updatedAt,
-                        note: entry.changeNote
+                        date: entry.createdAt,
+                        note: entry.changeNote || undefined
                       }))} 
                       skills={skills || []}
                       showAll={true}
@@ -183,7 +183,7 @@ export default function SkillHistoryPage() {
                     />
                   ) : (
                     <div className="text-center p-12 bg-gray-50 rounded-md">
-                      <Activity className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <ActivityIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-1">No activity found</h3>
                       <p className="text-sm text-gray-500 mb-4">
                         {searchTerm 
@@ -223,8 +223,8 @@ export default function SkillHistoryPage() {
                         userId: entry.userId,
                         previousLevel: entry.previousLevel,
                         newLevel: entry.newLevel,
-                        date: entry.createdAt || entry.updatedAt,
-                        note: entry.changeNote
+                        date: entry.createdAt,
+                        note: entry.changeNote || undefined
                       }))} 
                       skills={skills || []}
                       showAll={true}
@@ -268,8 +268,8 @@ export default function SkillHistoryPage() {
                         userId: entry.userId,
                         previousLevel: null,
                         newLevel: entry.newLevel,
-                        date: entry.createdAt || entry.updatedAt,
-                        note: entry.changeNote
+                        date: entry.createdAt,
+                        note: entry.changeNote || undefined
                       }))} 
                       skills={skills || []}
                       showAll={true}
@@ -367,7 +367,7 @@ export default function SkillHistoryPage() {
                             {filteredHistory.slice(0, 3).map((entry) => (
                               <li key={entry.id} className="text-sm">
                                 <span className="text-gray-700">
-                                  {format(new Date(entry.createdAt || entry.updatedAt), "MMM dd, yyyy")}:
+                                  {format(new Date(entry.createdAt), "MMM dd, yyyy")}:
                                 </span> {" "}
                                 {entry.previousLevel ? (
                                   <span>
