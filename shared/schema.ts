@@ -734,6 +734,7 @@ export const projectSkillsV2 = pgTable("project_skills_v2", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   userSkillId: integer("user_skill_id").notNull().references(() => userSkills.id),
+  skillTemplateId: integer("skill_template_id"), // Reference to skill template
   requiredLevel: skillLevelEnum("required_level").default("beginner"), // beginner, intermediate, expert
   createdAt: timestamp("created_at").defaultNow()
 });
@@ -746,10 +747,10 @@ export const insertProjectSkillSchema = createInsertSchema(projectSkills).pick({
 
 export const insertProjectSkillV2Schema = createInsertSchema(projectSkillsV2).pick({
   projectId: true,
-  userSkillId: true,
+  skillTemplateId: true,
   requiredLevel: true
-}).extend({
-  skillTemplateId: z.number().optional(),
+}).omit({
+  userSkillId: true
 });
 
 export type ProjectSkill = typeof projectSkills.$inferSelect;

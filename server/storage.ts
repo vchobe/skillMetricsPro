@@ -3897,13 +3897,19 @@ export class PostgresStorage implements IStorage {
   async getProjectSkillsV2(projectId: number): Promise<ProjectSkillV2[]> {
     try {
       const result = await pool.query(`
-        SELECT ps.*, st.name as skill_name, st.category as skill_category, us.level as skill_level
+        SELECT 
+          ps.*, 
+          st.name as skill_name, 
+          st.category as skill_category, 
+          st.description,
+          ps.required_level as skill_level
         FROM project_skills_v2 ps
-        JOIN user_skills us ON ps.user_skill_id = us.id
-        JOIN skill_templates st ON us.skill_template_id = st.id
+        JOIN skill_templates st ON ps.skill_template_id = st.id
         WHERE ps.project_id = $1
         ORDER BY st.category, st.name
       `, [projectId]);
+      
+      console.log(`Found ${result.rows.length} project skills V2 for project ${projectId}`);
       return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkillV2[];
     } catch (error) {
       console.error(`Error retrieving skills V2 for project ${projectId}:`, error);
@@ -3927,16 +3933,35 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // V2 implementation using project_skills_v2 table that references user_skills
+  // V2 implementation using project_skills_v2 table that references skill templates
   async getUserSkillProjects(userSkillId: number): Promise<ProjectSkillV2[]> {
     try {
+      // Get the skill template ID for this user skill
+      const userSkillResult = await pool.query(
+        'SELECT skill_template_id FROM user_skills WHERE id = $1',
+        [userSkillId]
+      );
+      
+      if (userSkillResult.rows.length === 0) {
+        console.warn(`No user skill found with ID ${userSkillId}`);
+        return [];
+      }
+      
+      const skillTemplateId = userSkillResult.rows[0].skill_template_id;
+      console.log(`Looking for projects using skill template ID ${skillTemplateId}`);
+      
+      // Get all projects that require this skill template
       const result = await pool.query(`
-        SELECT ps.*, p.name as project_name, p.status as project_status
+        SELECT ps.*, p.name as project_name, p.status as project_status, 
+               st.name as skill_name, st.category as skill_category
         FROM project_skills_v2 ps
         JOIN projects p ON ps.project_id = p.id
-        WHERE ps.user_skill_id = $1
+        JOIN skill_templates st ON ps.skill_template_id = st.id
+        WHERE ps.skill_template_id = $1
         ORDER BY p.name
-      `, [userSkillId]);
+      `, [skillTemplateId]);
+      
+      console.log(`Found ${result.rows.length} projects requiring skill template ${skillTemplateId}`);
       return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkillV2[];
     } catch (error) {
       console.error(`Error retrieving projects for user skill ${userSkillId}:`, error);
@@ -4952,23 +4977,28 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // V2 implementation for creating project skill using the project_skills_v2 table
+  // V2 implementation for creating project skill using the project_skills_v2 table and skill_templates
   async createProjectSkillV2(projectSkill: InsertProjectSkillV2): Promise<ProjectSkillV2> {
     try {
-      // Verify this is a valid user_skill from the user_skills table
-      const skillCheck = await pool.query(
-        'SELECT id FROM user_skills WHERE id = $1',
-        [projectSkill.userSkillId]
+      console.log(`Creating project skill V2 with skillTemplateId=${projectSkill.skillTemplateId}, projectId=${projectSkill.projectId}`);
+      
+      // Verify this is a valid skill template
+      const templateCheck = await pool.query(
+        'SELECT id, name, category FROM skill_templates WHERE id = $1',
+        [projectSkill.skillTemplateId]
       );
       
-      if (skillCheck.rows.length === 0) {
-        throw new Error(`Cannot associate skill with project: user_skill with ID ${projectSkill.userSkillId} does not exist`);
+      if (templateCheck.rows.length === 0) {
+        throw new Error(`Cannot associate skill with project: skill template with ID ${projectSkill.skillTemplateId} does not exist`);
       }
       
-      // Check if this skill is already associated with the project
+      const template = templateCheck.rows[0];
+      console.log(`Found template: ${template.name} (${template.category})`);
+      
+      // Check if this template is already associated with the project
       const existingResult = await pool.query(
-        'SELECT id FROM project_skills_v2 WHERE project_id = $1 AND user_skill_id = $2',
-        [projectSkill.projectId, projectSkill.userSkillId]
+        'SELECT id FROM project_skills_v2 WHERE project_id = $1 AND skill_template_id = $2',
+        [projectSkill.projectId, projectSkill.skillTemplateId]
       );
       
       if (existingResult.rows.length > 0) {
@@ -4979,24 +5009,27 @@ export class PostgresStorage implements IStorage {
       await pool.query('BEGIN');
       
       try {
+        // Define a "dummy" user skill ID (0) since we're working with skill templates directly
+        // We're moving towards a direct relationship between projects and skill templates
+        const userSkillId = 0; // This is a placeholder, as we're transitioning away from user_skills
+        
         const result = await pool.query(
-          `INSERT INTO project_skills_v2 (project_id, user_skill_id, required_level, importance) 
+          `INSERT INTO project_skills_v2 (project_id, skill_template_id, user_skill_id, required_level) 
            VALUES ($1, $2, $3, $4) 
            RETURNING *`,
           [
             projectSkill.projectId,
-            projectSkill.userSkillId,
-            projectSkill.requiredLevel || 'beginner',
-            projectSkill.importance || 'medium'
+            projectSkill.skillTemplateId,
+            userSkillId, // Placeholder for backward compatibility - we'll eventually remove this column
+            projectSkill.requiredLevel || 'beginner'
           ]
         );
         
-        // Return the result with skill details using user_skills and templates
+        // Return the result with skill details directly from skill_templates
         const fullResult = await pool.query(`
-          SELECT ps.*, st.name as skill_name, st.category, us.level
+          SELECT ps.*, st.name as skill_name, st.category, st.description
           FROM project_skills_v2 ps
-          JOIN user_skills us ON ps.user_skill_id = us.id
-          JOIN skill_templates st ON us.skill_template_id = st.id
+          JOIN skill_templates st ON ps.skill_template_id = st.id
           WHERE ps.id = $1
         `, [result.rows[0].id]);
         
