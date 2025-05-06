@@ -972,19 +972,17 @@ export default function ProjectDetailPage() {
                         </TableHeader>
                         <TableBody>
                           {projectSkills.map((projectSkill: ProjectSkill) => {
-                            const skill = getSkill(projectSkill.skillId);
+                            const template = getSkillTemplate(projectSkill.skillId);
                             return (
                               <TableRow key={projectSkill.id}>
                                 <TableCell className="font-medium">
-                                  {skill ? skill.name : getSkillName(projectSkill.skillId)}
+                                  {template ? template.name : getSkillName(projectSkill.skillId)}
                                 </TableCell>
                                 <TableCell>
-                                  {skill && <SkillLevelBadge level={skill.level} />}
-                                </TableCell>
-                                <TableCell>{skill?.category || "—"}</TableCell>
-                                <TableCell>
+                                  {/* Display the required level for the project */}
                                   <SkillLevelBadge level={projectSkill.requiredLevel} />
                                 </TableCell>
+                                <TableCell>{template?.category || "—"}</TableCell>
                                 <TableCell>
                                   {isAdmin && (
                                     <AlertDialog open={openRemoveSkill === projectSkill.id} onOpenChange={(isOpen) => {
@@ -1567,7 +1565,7 @@ export default function ProjectDetailPage() {
                       <SelectContent>
                         {availableSkillTemplates.map((template: SkillTemplate) => (
                           <SelectItem key={template.id} value={template.id.toString()}>
-                            {template.name} ({template.category}
+                            {template.name} ({template.category})
                           </SelectItem>
                         ))}
                       </SelectContent>
