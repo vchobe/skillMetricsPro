@@ -316,6 +316,9 @@ export default function AddSkillModal({ isOpen, onClose, skillId }: AddSkillModa
         user_id: userId || user?.id, // Also include snake_case version
         skillId: skillId, // Reference to existing skill
         skill_id: skillId, // Also include snake_case version
+        // Add the skill template ID - this is required in the new version
+        skillTemplateId: data.skillTemplateId,
+        skill_template_id: data.skillTemplateId,
         // Add snake_case versions of categoryId and subcategoryId
         category_id: updateData.categoryId, 
         // Convert null subcategoryId to undefined to prevent validation error
