@@ -404,7 +404,7 @@ export type InsertSkillTemplate = z.infer<typeof insertSkillTemplateSchema>;
 export type SkillTarget = typeof skillTargets.$inferSelect;
 export type InsertSkillTarget = z.infer<typeof insertSkillTargetSchema>;
 
-// Pending Skill Updates schema
+// Pending Skill Updates schema (legacy - keeps for compatibility)
 export const pendingSkillUpdates = pgTable("pending_skill_updates", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -413,6 +413,26 @@ export const pendingSkillUpdates = pgTable("pending_skill_updates", {
   category: text("category").notNull(), // Keep for backward compatibility
   categoryId: integer("category_id").references(() => skillCategories.id), // Reference to categories table
   subcategoryId: integer("subcategory_id").references(() => skillSubcategories.id), // Reference to subcategories table
+  level: skillLevelEnum("level").notNull(),
+  certification: text("certification"),
+  credlyLink: text("credly_link"),
+  notes: text("notes"),
+  certificationDate: timestamp("certification_date"),
+  expirationDate: timestamp("expiration_date"),
+  status: approvalStatusEnum("status").default("pending").notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: integer("reviewed_by"),
+  reviewNotes: text("review_notes"),
+  isUpdate: boolean("is_update").default(false).notNull(), // true for updates, false for new skills
+});
+
+// Pending Skill Updates V2 schema (works with user_skills)
+export const pendingSkillUpdatesV2 = pgTable("pending_skill_updates_v2", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  userSkillId: integer("user_skill_id").references(() => userSkills.id), // Null for new skills
+  skillTemplateId: integer("skill_template_id").notNull().references(() => skillTemplates.id),
   level: skillLevelEnum("level").notNull(),
   certification: text("certification"),
   credlyLink: text("credly_link"),
@@ -511,8 +531,82 @@ export const insertPendingSkillUpdateSchema = baseInsertPendingSkillUpdateSchema
     return result;
 });
 
+// Create the V2 base schema for pendingSkillUpdatesV2
+const baseInsertPendingSkillUpdateV2Schema = createInsertSchema(pendingSkillUpdatesV2).pick({
+  userId: true,
+  userSkillId: true,
+  skillTemplateId: true,
+  level: true,
+  certification: true,
+  credlyLink: true,
+  notes: true,
+  certificationDate: true,
+  expirationDate: true,
+  isUpdate: true,
+});
+
+// Create an extended schema that accepts both camelCase and snake_case versions
+export const insertPendingSkillUpdateV2Schema = baseInsertPendingSkillUpdateV2Schema
+  .extend({
+    // Add snake_case aliases for compatibility
+    user_id: z.number().optional(),
+    user_skill_id: z.number().optional(),
+    skill_template_id: z.number().optional(),
+    is_update: z.boolean().optional(),
+    credly_link: z.string().optional(),
+    certification_date: z.date().optional(),
+    expiration_date: z.date().optional(),
+  })
+  .transform((data) => {
+    // Make sure camelCase values are prioritized, but fall back to snake_case
+    const result = { ...data };
+    
+    // Handle converting snake_case to camelCase for special fields
+    if (data.user_id !== undefined && data.userId === undefined) {
+      result.userId = data.user_id;
+    }
+    
+    if (data.user_skill_id !== undefined && data.userSkillId === undefined) {
+      result.userSkillId = data.user_skill_id;
+    }
+    
+    if (data.skill_template_id !== undefined && data.skillTemplateId === undefined) {
+      result.skillTemplateId = data.skill_template_id;
+    }
+    
+    if (data.is_update !== undefined && data.isUpdate === undefined) {
+      result.isUpdate = data.is_update;
+    }
+    
+    if (data.credly_link !== undefined && data.credlyLink === undefined) {
+      result.credlyLink = data.credly_link;
+    }
+    
+    if (data.certification_date !== undefined && data.certificationDate === undefined) {
+      result.certificationDate = data.certification_date;
+    }
+    
+    if (data.expiration_date !== undefined && data.expirationDate === undefined) {
+      result.expirationDate = data.expiration_date;
+    }
+    
+    // Remove snake_case duplicates that we've copied to camelCase
+    delete result.user_id;
+    delete result.user_skill_id;
+    delete result.skill_template_id;
+    delete result.is_update;
+    delete result.credly_link;
+    delete result.certification_date;
+    delete result.expiration_date;
+    
+    return result;
+  });
+
 export type PendingSkillUpdate = typeof pendingSkillUpdates.$inferSelect;
 export type InsertPendingSkillUpdate = z.infer<typeof insertPendingSkillUpdateSchema>;
+
+export type PendingSkillUpdateV2 = typeof pendingSkillUpdatesV2.$inferSelect;
+export type InsertPendingSkillUpdateV2 = z.infer<typeof insertPendingSkillUpdateV2Schema>;
 
 // Client schema
 export const clients = pgTable("clients", {
@@ -624,11 +718,20 @@ export const insertProjectResourceSchema = createInsertSchema(projectResources)
 export type ProjectResource = typeof projectResources.$inferSelect;
 export type InsertProjectResource = z.infer<typeof insertProjectResourceSchema>;
 
-// Project Skills (Skills required/used in Projects)
+// Project Skills (Skills required/used in Projects) - Legacy version
 export const projectSkills = pgTable("project_skills", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   skillId: integer("skill_id").notNull().references(() => skills.id),
+  requiredLevel: skillLevelEnum("required_level").default("beginner"), // beginner, intermediate, expert
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Project Skills V2 (using user_skills instead of skills)
+export const projectSkillsV2 = pgTable("project_skills_v2", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  userSkillId: integer("user_skill_id").notNull().references(() => userSkills.id),
   requiredLevel: skillLevelEnum("required_level").default("beginner"), // beginner, intermediate, expert
   createdAt: timestamp("created_at").defaultNow()
 });
