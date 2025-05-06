@@ -2892,7 +2892,7 @@ export class PostgresStorage implements IStorage {
         userId: pendingUpdate.userId,
         type: 'level_up',
         content: `Your ${pendingUpdate.isUpdate ? 'skill update' : 'new skill'} request for "${pendingUpdate.skillName}" was approved.${notes ? ` Note: ${notes}` : ''}`,
-        relatedSkillId: userSkill.id
+        relatedUserSkillId: userSkill.id // Using userSkillId instead of relatedSkillId
       });
       
       await pool.query('COMMIT');
