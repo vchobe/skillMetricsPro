@@ -475,12 +475,12 @@ export class PostgresStorage implements IStorage {
       // 5. Delete notifications
       await pool.query('DELETE FROM notifications WHERE user_id = $1', [id]);
       
-      // 6. Delete endorsements given by this user
-      await pool.query('DELETE FROM endorsements WHERE endorser_id = $1', [id]);
+      // 6. Delete endorsements given by this user (both legacy and v2)
+      await pool.query('DELETE FROM endorsements_v2 WHERE endorser_id = $1', [id]);
       
-      // 7. Delete endorsements received by this user's skills
+      // 7. Delete endorsements received by this user's skills (using user_skills)
       await pool.query(
-        'DELETE FROM endorsements WHERE skill_id IN (SELECT id FROM skills WHERE user_id = $1)',
+        'DELETE FROM endorsements_v2 WHERE user_skill_id IN (SELECT id FROM user_skills WHERE user_id = $1)',
         [id]
       );
       
@@ -1182,43 +1182,24 @@ export class PostgresStorage implements IStorage {
   // New function to get user skill histories from both old and new schemas
   async getUserSkillHistoryFromAllSources(userId: number): Promise<SkillHistory[]> {
     try {
-      console.log(`Getting combined skill histories for user ${userId} from both schemas`);
+      console.log(`Getting skill histories for user ${userId} from v2 table`);
       
-      // First get histories linked to original skills
-      const legacyResult = await pool.query(
-        'SELECT sh.*, s.name as skill_name ' +
-        'FROM skill_histories sh ' +
-        'JOIN skills s ON sh.skill_id = s.id ' +
-        'WHERE sh.user_id = $1 ',
-        [userId]
-      );
+      // Get histories from the v2 table linked to user_skills via skill templates
+      const result = await pool.query(`
+        SELECT shv2.*, st.name as skill_name 
+        FROM skill_histories_v2 shv2
+        JOIN user_skills us ON shv2.user_skill_id = us.id 
+        JOIN skill_templates st ON us.skill_template_id = st.id 
+        WHERE shv2.user_id = $1 
+        ORDER BY shv2.created_at DESC
+      `, [userId]);
       
-      // Then get histories linked to user_skills via skill templates (new schema)
-      const userSkillResult = await pool.query(
-        'SELECT sh.*, st.name as skill_name ' +
-        'FROM skill_histories sh ' +
-        'JOIN user_skills us ON sh.skill_id = us.id ' +
-        'JOIN skill_templates st ON us.skill_template_id = st.id ' +
-        'WHERE sh.user_id = $1 ' +
-        'AND sh.skill_id NOT IN (SELECT id FROM skills)',
-        [userId]
-      );
+      const count = result.rows.length;
+      console.log(`Retrieved ${count} skill histories from v2 table for user ${userId}`);
       
-      // Combine the results
-      const combinedRows = [...legacyResult.rows, ...userSkillResult.rows];
-      
-      // Sort by created_at in descending order
-      combinedRows.sort((a, b) => {
-        const dateA = new Date(a.created_at);
-        const dateB = new Date(b.created_at);
-        return dateB.getTime() - dateA.getTime();
-      });
-      
-      console.log(`Retrieved ${legacyResult.rows.length} legacy histories and ${userSkillResult.rows.length} user skill histories for user ${userId} (total: ${combinedRows.length})`);
-      
-      return this.snakeToCamel(combinedRows);
+      return this.snakeToCamel(result.rows);
     } catch (error) {
-      console.error(`Error getting combined skill histories for user ${userId}:`, error);
+      console.error(`Error getting skill histories for user ${userId}:`, error);
       throw error;
     }
   }
@@ -1241,44 +1222,27 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // New function to get skill histories from both old and new schemas
+  // Updated to use only v2 tables
   async getAllSkillHistoriesFromAllSources(): Promise<SkillHistory[]> {
     try {
-      console.log("Getting combined skill histories from both schemas");
+      console.log("Getting all skill histories from v2 table");
       
-      // First get histories linked to original skills
-      const legacyResult = await pool.query(
-        'SELECT sh.*, s.name as skill_name, u.email as user_email ' +
-        'FROM skill_histories sh ' +
-        'JOIN skills s ON sh.skill_id = s.id ' +
-        'JOIN users u ON sh.user_id = u.id ' 
-      );
+      // Get histories from the v2 table linked to user_skills via skill templates
+      const result = await pool.query(`
+        SELECT shv2.*, st.name as skill_name, u.email as user_email 
+        FROM skill_histories_v2 shv2
+        JOIN user_skills us ON shv2.user_skill_id = us.id 
+        JOIN skill_templates st ON us.skill_template_id = st.id 
+        JOIN users u ON shv2.user_id = u.id 
+        ORDER BY shv2.created_at DESC
+      `);
       
-      // Then get histories linked to user_skills via skill templates (new schema)
-      const userSkillResult = await pool.query(
-        'SELECT sh.*, st.name as skill_name, u.email as user_email ' +
-        'FROM skill_histories sh ' +
-        'JOIN user_skills us ON sh.skill_id = us.id ' +
-        'JOIN skill_templates st ON us.skill_template_id = st.id ' +
-        'JOIN users u ON sh.user_id = u.id ' +
-        'WHERE sh.skill_id NOT IN (SELECT id FROM skills)'
-      );
+      const count = result.rows.length;
+      console.log(`Retrieved ${count} skill histories from v2 table`);
       
-      // Combine the results
-      const combinedRows = [...legacyResult.rows, ...userSkillResult.rows];
-      
-      // Sort by created_at in descending order
-      combinedRows.sort((a, b) => {
-        const dateA = new Date(a.created_at);
-        const dateB = new Date(b.created_at);
-        return dateB.getTime() - dateA.getTime();
-      });
-      
-      console.log(`Retrieved ${legacyResult.rows.length} legacy histories and ${userSkillResult.rows.length} user skill histories for a total of ${combinedRows.length} entries`);
-      
-      return this.snakeToCamel(combinedRows);
+      return this.snakeToCamel(result.rows);
     } catch (error) {
-      console.error("Error getting combined skill histories:", error);
+      console.error("Error getting all skill histories:", error);
       throw error;
     }
   }
