@@ -386,22 +386,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Try to get skills from new schema first (user_skills table)
-      try {
-        // Use the new getUserSkillsV2 that automatically converts to legacy format
-        const userSkills = await storage.getUserSkillsV2(userId);
-        
-        // This already returns skills in legacy format for API compatibility
-        console.log(`Returning ${userSkills.length} skills for user ${userId} from user_skills table`);
-        return res.json(userSkills);
-      } catch (err) {
-        console.error(`Error fetching from user_skills for user ${userId}, falling back to legacy:`, err);
-      }
+      // Get skills from user_skills table (no more fallback to legacy table)
+      const userSkills = await storage.getUserSkillsV2(userId);
       
-      // Fall back to legacy skills table if there was an error
-      const skills = await storage.getUserSkills(userId);
-      console.log(`Falling back: Returning ${skills.length} skills for user ${userId} from legacy skills table`);
-      res.json(skills);
+      // This returns skills in a compatible format for API consistency
+      console.log(`Returning ${userSkills.length} skills for user ${userId} from user_skills table`);
+      res.json(userSkills);
     } catch (error) {
       console.error("Error in /api/users/:userId/skills endpoint:", error);
       res.status(500).json({ message: "Error fetching user skills", error });
@@ -720,40 +710,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const skillId = parseInt(req.params.id);
       
-      // First try to get the skill from the user_skills table
-      try {
-        const userSkill = await storage.getUserSkillById(skillId);
-        
-        if (userSkill) {
-          // If found in the new schema, convert to legacy format
-          const legacySkill = storage.userSkillToLegacySkill(userSkill);
-          
-          // Ensure user owns the skill or is admin
-          if (legacySkill.userId !== req.user!.id && !isUserAdmin(req.user)) {
-            return res.status(403).json({ 
-              message: "Access denied", 
-              details: "You can only access skills that you own or as an administrator", 
-              errorCode: "NOT_SKILL_OWNER" 
-            });
-          }
-          
-          console.log(`Returning user skill ${skillId} in legacy format`);
-          return res.json(legacySkill);
-        }
-      } catch (err) {
-        // Silently continue to try legacy format if error occurs
-        console.log(`Error getting user skill, falling back to legacy: ${err}`);
-      }
+      // Get the skill from the user_skills table only (no more fallback)
+      const userSkill = await storage.getUserSkillById(skillId);
       
-      // Fall back to legacy skills table if not found
-      const skill = await storage.getSkill(skillId);
-      
-      if (!skill) {
+      if (!userSkill) {
         return res.status(404).json({ message: "Skill not found" });
       }
       
+      // Convert to legacy format for API consistency
+      const legacySkill = storage.userSkillToLegacySkill(userSkill);
+      
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
+      if (legacySkill.userId !== req.user!.id && !isUserAdmin(req.user)) {
         return res.status(403).json({ 
           message: "Access denied", 
           details: "You can only access skills that you own or as an administrator", 
@@ -761,8 +729,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      console.log(`Returning legacy skill ${skillId}`);
-      res.json(skill);
+      console.log(`Returning user skill ${skillId} in legacy format`);
+      res.json(legacySkill);
     } catch (error) {
       console.error("Error in /api/skills/:id endpoint:", error);
       res.status(500).json({ message: "Error fetching skill", error });
@@ -773,63 +741,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const skillId = parseInt(req.params.id);
       
-      // First check if this is a user_skill in the new schema
-      let isUserSkill = false;
-      let userSkill = null;
+      // Get user skill by ID (no more fallback to legacy)
+      const userSkill = await storage.getUserSkillById(skillId);
       
-      try {
-        userSkill = await storage.getUserSkillById(skillId);
-        if (userSkill) {
-          isUserSkill = true;
-        }
-      } catch (err) {
-        console.log(`Error checking for user skill ${skillId}, will try legacy skill: ${err}`);
-      }
-      
-      // If we found a user skill, update it using the new schema
-      if (isUserSkill && userSkill) {
-        // Ensure user owns the skill or is admin
-        if (userSkill.userId !== req.user!.id && !isUserAdmin(req.user)) {
-          return res.status(403).json({ 
-            message: "Access denied", 
-            details: "You can only update skills that you own or as an administrator", 
-            errorCode: "NOT_SKILL_OWNER" 
-          });
-        }
-        
-        // Create a copy of the request body without changeNote for skill update
-        const { changeNote, ...skillUpdateData } = req.body;
-        
-        // If level is changed, record history
-        if (skillUpdateData.level && skillUpdateData.level !== userSkill.level) {
-          await storage.createSkillHistory({
-            skillId,
-            userId: req.user!.id,
-            previousLevel: userSkill.level,
-            newLevel: skillUpdateData.level,
-            changeNote: changeNote || `Updated from ${userSkill.level} to ${skillUpdateData.level}`
-          });
-        }
-        
-        // Update the user skill
-        const updatedUserSkill = await storage.updateUserSkill(skillId, skillUpdateData);
-        
-        // Convert to legacy format for API consistency
-        const legacySkill = storage.userSkillToLegacySkill(updatedUserSkill);
-        
-        console.log(`Updated user skill ${skillId} and returning in legacy format`);
-        return res.json(legacySkill);
-      }
-      
-      // Fall back to legacy skills table if not found or error occurred
-      const skill = await storage.getSkill(skillId);
-      
-      if (!skill) {
+      if (!userSkill) {
         return res.status(404).json({ message: "Skill not found" });
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
+      if (userSkill.userId !== req.user!.id && !isUserAdmin(req.user)) {
         return res.status(403).json({ 
           message: "Access denied", 
           details: "You can only update skills that you own or as an administrator", 
@@ -841,19 +761,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { changeNote, ...skillUpdateData } = req.body;
       
       // If level is changed, record history
-      if (skillUpdateData.level && skillUpdateData.level !== skill.level) {
-        await storage.createSkillHistory({
-          skillId,
+      if (skillUpdateData.level && skillUpdateData.level !== userSkill.level) {
+        await storage.createSkillHistoryV2({
+          userSkillId: skillId,
           userId: req.user!.id,
-          previousLevel: skill.level,
+          previousLevel: userSkill.level,
           newLevel: skillUpdateData.level,
-          changeNote: changeNote || `Updated from ${skill.level} to ${skillUpdateData.level}`
+          changeNote: changeNote || `Updated from ${userSkill.level} to ${skillUpdateData.level}`
         });
       }
       
-      console.log(`Updating legacy skill ${skillId}`);
-      const updatedSkill = await storage.updateSkill(skillId, skillUpdateData);
-      res.json(updatedSkill);
+      // Update the user skill
+      const updatedUserSkill = await storage.updateUserSkill(skillId, skillUpdateData);
+      
+      // Convert to legacy format for API consistency
+      const legacySkill = storage.userSkillToLegacySkill(updatedUserSkill);
+      
+      console.log(`Updated user skill ${skillId} and returning in legacy format`);
+      res.json(legacySkill);
     } catch (error) {
       console.error("Error in /api/skills/:id PATCH endpoint:", error);
       res.status(500).json({ message: "Error updating skill", error });
@@ -864,44 +789,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const skillId = parseInt(req.params.id);
       
-      // First check if this is a user_skill in the new schema
-      let isUserSkill = false;
-      let userSkill = null;
+      // Get user skill by ID (no more fallback to legacy)
+      const userSkill = await storage.getUserSkillById(skillId);
       
-      try {
-        userSkill = await storage.getUserSkillById(skillId);
-        if (userSkill) {
-          isUserSkill = true;
-        }
-      } catch (err) {
-        console.log(`Error checking for user skill ${skillId}, will try legacy skill: ${err}`);
-      }
-      
-      // If we found a user skill, delete it using the new schema
-      if (isUserSkill && userSkill) {
-        // Ensure user owns the skill or is admin
-        if (userSkill.userId !== req.user!.id && !isUserAdmin(req.user)) {
-          return res.status(403).json({ 
-            message: "Access denied", 
-            details: "You can only delete skills that you own or as an administrator", 
-            errorCode: "NOT_SKILL_OWNER" 
-          });
-        }
-        
-        console.log(`Deleting user skill ${skillId}`);
-        await storage.deleteUserSkill(skillId);
-        return res.status(204).send();
-      }
-      
-      // Fall back to legacy skills table if not found or error occurred
-      const skill = await storage.getSkill(skillId);
-      
-      if (!skill) {
+      if (!userSkill) {
         return res.status(404).json({ message: "Skill not found" });
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
+      if (userSkill.userId !== req.user!.id && !isUserAdmin(req.user)) {
         return res.status(403).json({ 
           message: "Access denied", 
           details: "You can only delete skills that you own or as an administrator", 
@@ -909,8 +805,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      console.log(`Deleting legacy skill ${skillId}`);
-      await storage.deleteSkill(skillId);
+      console.log(`Deleting user skill ${skillId}`);
+      await storage.deleteUserSkill(skillId);
       res.status(204).send();
     } catch (error) {
       console.error("Error in /api/skills/:id DELETE endpoint:", error);
@@ -922,45 +818,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const skillId = parseInt(req.params.id);
       
-      // First check if this is a user_skill in the new schema
-      let isUserSkill = false;
-      let userSkill = null;
+      // Get user skill by ID (no more fallback to legacy)
+      const userSkill = await storage.getUserSkillById(skillId);
       
-      try {
-        userSkill = await storage.getUserSkillById(skillId);
-        if (userSkill) {
-          isUserSkill = true;
-        }
-      } catch (err) {
-        console.log(`Error checking for user skill ${skillId} history, will try legacy skill: ${err}`);
-      }
-      
-      // If we found a user skill, check history using the new schema
-      if (isUserSkill && userSkill) {
-        // Ensure user owns the skill or is admin
-        if (userSkill.userId !== req.user!.id && !isUserAdmin(req.user)) {
-          return res.status(403).json({ 
-            message: "Access denied", 
-            details: "You can only view skill history for skills that you own or as an administrator", 
-            errorCode: "NOT_SKILL_OWNER" 
-          });
-        }
-        
-        // Get history from the skill_histories table (same for both schemas)
-        const history = await storage.getSkillHistory(skillId);
-        console.log(`Found ${history.length} history entries for user skill ${skillId}`);
-        return res.json(history);
-      }
-      
-      // Fall back to legacy skills table if not found or error occurred
-      const skill = await storage.getSkill(skillId);
-      
-      if (!skill) {
+      if (!userSkill) {
         return res.status(404).json({ message: "Skill not found" });
       }
       
       // Ensure user owns the skill or is admin
-      if (skill.userId !== req.user!.id && !isUserAdmin(req.user)) {
+      if (userSkill.userId !== req.user!.id && !isUserAdmin(req.user)) {
         return res.status(403).json({ 
           message: "Access denied", 
           details: "You can only view skill history for skills that you own or as an administrator", 
@@ -968,8 +834,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const history = await storage.getSkillHistory(skillId);
-      console.log(`Found ${history.length} history entries for legacy skill ${skillId}`);
+      // Get history from the skill_histories_v2 table
+      const history = await storage.getSkillHistoryV2(skillId);
+      console.log(`Found ${history.length} history entries for user skill ${skillId}`);
       res.json(history);
     } catch (error) {
       console.error("Error in /api/skills/:id/history endpoint:", error);
