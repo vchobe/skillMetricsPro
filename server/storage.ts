@@ -479,8 +479,8 @@ export class PostgresStorage implements IStorage {
       // 3. Delete profile histories
       await pool.query('DELETE FROM profile_histories WHERE user_id = $1', [id]);
       
-      // 4. Delete skill histories
-      await pool.query('DELETE FROM skill_histories WHERE user_id = $1', [id]);
+      // 4. Delete skill histories (V2 table)
+      await pool.query('DELETE FROM skill_histories_v2 WHERE user_id = $1', [id]);
       
       // 5. Delete notifications
       await pool.query('DELETE FROM notifications WHERE user_id = $1', [id]);
