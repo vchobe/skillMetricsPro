@@ -8,10 +8,13 @@ import { scheduleWeeklyReport, sendImmediateWeeklyReport } from "./email";
 import {
   insertSkillSchema,
   insertSkillHistorySchema,
+  insertSkillHistoryV2Schema,
   insertProfileHistorySchema,
   insertEndorsementSchema,
+  insertEndorsementV2Schema,
   insertNotificationSchema,
   insertPendingSkillUpdateSchema,
+  insertPendingSkillUpdateV2Schema,
   Skill,
   insertSkillTargetSchema,
   insertSkillTemplateSchema,
@@ -22,7 +25,11 @@ import {
   insertReportSettingsSchema,
   ReportSettings,
   insertUserSkillSchema,
-  UserSkill
+  UserSkill,
+  insertProjectSkillSchema,
+  insertProjectSkillV2Schema,
+  ProjectSkill,
+  ProjectSkillV2
 } from "@shared/schema";
 
 // Direct database check for admin status
@@ -74,6 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     insertProjectSchema, 
     insertProjectResourceSchema,
     insertProjectSkillSchema,
+    insertProjectSkillV2Schema,
     insertProjectResourceHistorySchema
   } = schema;
   // Set up authentication routes
