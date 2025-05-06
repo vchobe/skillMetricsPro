@@ -2530,19 +2530,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               
               // IMPORTANT: Also check for skill by name approval permissions
-              // Find any skill with the same name as this pending update
+              // Find any skill template with the same name as this pending update
               let existingSkillWithSameName = null;
               try {
                 const skillByNameQuery = await pool.query(
-                  'SELECT id FROM skills WHERE name = $1 LIMIT 1',
+                  'SELECT id FROM skill_templates WHERE name = $1 LIMIT 1',
                   [update.name]
                 );
                 if (skillByNameQuery.rows.length > 0) {
                   existingSkillWithSameName = skillByNameQuery.rows[0].id;
-                  console.log(`Found existing skill with same name: ${update.name}, ID: ${existingSkillWithSameName}`);
+                  console.log(`Found existing skill template with same name: ${update.name}, ID: ${existingSkillWithSameName}`);
                 }
               } catch (err) {
-                console.error(`Error finding skill by name ${update.name}:`, err);
+                console.error(`Error finding skill template by name ${update.name}:`, err);
               }
               
               // Check if user can approve this skill - either by category or by related skill ID
