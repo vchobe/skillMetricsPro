@@ -3134,11 +3134,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      // If we have a skillTemplateId but no userSkillId, we need to create or find a user skill
-      if (req.body.skillTemplateId && !req.body.userSkillId) {
-        // For now, we'll use a simple approach: pass the skillTemplateId as userSkillId
-        // In a real-world scenario, we would need to create or find a user skill record
-        req.body.userSkillId = req.body.skillTemplateId;
+      // Make sure we have a skillTemplateId
+      if (!req.body.skillTemplateId) {
+        return res.status(400).json({ 
+          message: "Missing required field: skillTemplateId is required" 
+        });
       }
       
       const parsedData = insertProjectSkillV2Schema.safeParse({
@@ -3156,18 +3156,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectSkill = await storage.createProjectSkillV2(parsedData.data);
       res.status(201).json(projectSkill);
     } catch (error) {
-      res.status(500).json({ message: "Error adding skill to project", error });
+      console.error("Error adding skill to project:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Error adding skill to project" 
+      });
     }
   });
 
   app.delete("/api/projects/skills/:id", ensureAdmin, async (req, res) => {
     try {
       const projectSkillId = parseInt(req.params.id);
+      if (isNaN(projectSkillId)) {
+        return res.status(400).json({ message: "Invalid project skill ID" });
+      }
       
       await storage.deleteProjectSkillV2(projectSkillId);
       res.status(204).send();
     } catch (error) {
-      res.status(500).json({ message: "Error removing skill from project", error });
+      console.error("Error removing skill from project:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Error removing skill from project" 
+      });
     }
   });
 
