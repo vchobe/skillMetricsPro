@@ -2357,7 +2357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Pending Skill Updates routes (Approval system)
   app.post("/api/skills/pending", ensureAuth, async (req, res) => {
     try {
-      console.log("Received pending skill update request with body:", req.body);
+      console.log("Received pending skill update V2 request with body:", req.body);
       const userId = req.user!.id;
       const isAdmin = req.user!.isAdmin || req.user!.is_admin;
       
@@ -2366,14 +2366,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.body.is_update = req.body.isUpdate;
       }
       
-      // Handle both skillId and skill_id for backward compatibility
-      if (req.body.skillId !== undefined && req.body.skill_id === undefined) {
-        req.body.skill_id = req.body.skillId;
+      // Handle both userSkillId and user_skill_id for backward compatibility
+      if (req.body.userSkillId !== undefined && req.body.user_skill_id === undefined) {
+        req.body.user_skill_id = req.body.userSkillId;
+      }
+      
+      // Handle both skillTemplateId and skill_template_id for backward compatibility
+      if (req.body.skillTemplateId !== undefined && req.body.skill_template_id === undefined) {
+        req.body.skill_template_id = req.body.skillTemplateId;
       }
       
       try {
-        const pendingSkillData = insertPendingSkillUpdateSchema.parse(req.body);
-        console.log("Parsed pending skill data:", pendingSkillData);
+        // Use V2 schema for pending updates
+        const pendingSkillData = insertPendingSkillUpdateV2Schema.parse(req.body);
+        console.log("Parsed pending skill data V2:", pendingSkillData);
         
         // Set the user ID from the authenticated user
         pendingSkillData.userId = userId;
@@ -2384,21 +2390,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           let approvedSkill;
           
-          if (pendingSkillData.isUpdate && pendingSkillData.skillId) {
-            // For updates to existing skills, directly update the skill
-            console.log("Direct update of existing skill for admin:", pendingSkillData.skillId);
+          if (pendingSkillData.isUpdate && pendingSkillData.userSkillId) {
+            // For updates to existing user skills, directly update the skill
+            console.log("Direct update of existing user skill for admin:", pendingSkillData.userSkillId);
             
             // Extract the relevant skill data from pendingSkillData
             const { 
-              userId, skillId, name, category, categoryId, subcategoryId, level, certification, 
+              userId, userSkillId, level, certification, 
               credlyLink, notes, certificationDate, expirationDate 
             } = pendingSkillData;
             
-            approvedSkill = await storage.updateSkill(skillId, {
-              name,
-              category,
-              categoryId,
-              subcategoryId,
+            // Get current skill state for history entry
+            const currentSkill = await storage.getUserSkillById(userSkillId);
+            if (!currentSkill) {
+              return res.status(404).json({ 
+                message: "User skill not found", 
+                details: `No user skill found with ID ${userSkillId}`
+              });
+            }
+            
+            // Update the user skill
+            approvedSkill = await storage.updateUserSkill(userSkillId, {
               level,
               certification,
               credlyLink,
@@ -2408,23 +2420,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             
             // Create a skill history entry
-            await storage.createSkillHistory({
-              skillId: skillId,
+            await storage.createSkillHistoryV2({
+              userSkillId: userSkillId,
               userId: userId,
-              previousLevel: level, // Same level as we're just updating other details
+              previousLevel: currentSkill.level,
               newLevel: level,
               changeNote: `Auto-approved admin update`
             });
             
-            console.log("Admin skill directly updated:", approvedSkill);
+            console.log("Admin user skill directly updated:", approvedSkill);
             return res.status(200).json({
-              message: "Skill updated successfully (admin auto-approval)",
+              message: "User skill updated successfully (admin auto-approval)",
               skill: approvedSkill
             });
           } else {
-            // For new skills from admin users, create a new skill
+            // For new skills from admin users, create a new user skill
             // Create the pending skill update first for record-keeping
-            const pendingUpdate = await storage.createPendingSkillUpdate({
+            const pendingUpdate = await storage.createPendingSkillUpdateV2({
               ...pendingSkillData,
               status: 'approved',
               reviewedAt: new Date(),
@@ -2432,32 +2444,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
               reviewNotes: 'Auto-approved (admin user)'
             });
             
-            // Create the actual skill
-            approvedSkill = await storage.createSkill({
+            // Create the actual user skill
+            approvedSkill = await storage.createUserSkill({
               userId,
-              name: pendingSkillData.name,
-              category: pendingSkillData.category,
-              categoryId: pendingSkillData.categoryId,
-              subcategoryId: pendingSkillData.subcategoryId,
+              skillTemplateId: pendingSkillData.skillTemplateId,
               level: pendingSkillData.level,
-              certification: pendingSkillData.certification,
-              credlyLink: pendingSkillData.credlyLink,
-              notes: pendingSkillData.notes,
+              certification: pendingSkillData.certification || '',
+              credlyLink: pendingSkillData.credlyLink || '',
+              notes: pendingSkillData.notes || '',
               certificationDate: pendingSkillData.certificationDate,
               expirationDate: pendingSkillData.expirationDate
             });
             
-            console.log("New admin skill directly created:", approvedSkill);
+            // Create a skill history entry for the new skill
+            await storage.createSkillHistoryV2({
+              userSkillId: approvedSkill.id,
+              userId: userId,
+              previousLevel: null,
+              newLevel: pendingSkillData.level,
+              changeNote: `Auto-approved admin creation`
+            });
+            
+            console.log("New admin user skill directly created:", approvedSkill);
             return res.status(201).json({
-              message: "New skill created successfully (admin auto-approval)",
+              message: "New user skill created successfully (admin auto-approval)",
               skill: approvedSkill
             });
           }
         }
         
         // For non-admin users, create a pending update that requires approval
-        const pendingUpdate = await storage.createPendingSkillUpdate(pendingSkillData);
-        console.log("Created pending skill update for non-admin:", pendingUpdate);
+        const pendingUpdate = await storage.createPendingSkillUpdateV2(pendingSkillData);
+        console.log("Created pending skill update V2 for non-admin:", pendingUpdate);
         res.status(201).json({
           message: "Update submitted for approval",
           pendingUpdate
@@ -2467,7 +2485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ message: "Validation error", error });
       }
     } catch (error) {
-      console.error("Server error in pending skill update:", error);
+      console.error("Server error in pending skill update V2:", error);
       res.status(500).json({ message: "Error creating pending skill update", error });
     }
   });
@@ -2475,19 +2493,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user/pending-skills", ensureAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const pendingUpdates = await storage.getPendingSkillUpdatesByUser(userId);
+      const pendingUpdates = await storage.getPendingSkillUpdatesByUserV2(userId);
       res.json(pendingUpdates);
     } catch (error) {
-      res.status(500).json({ message: "Error fetching pending skill updates", error });
+      res.status(500).json({ message: "Error fetching pending skill updates V2", error });
     }
   });
 
   // Admin approval routes (accessible by both admins and approvers)
   app.get("/api/admin/pending-skills", ensureApprover, async (req, res) => {
     try {
-      // Get all pending skill updates
-      const pendingUpdates = await storage.getPendingSkillUpdates();
-      console.log(`Got ${pendingUpdates.length} total pending updates`);
+      // Get all pending skill updates using V2 method
+      const pendingUpdates = await storage.getPendingSkillUpdatesV2();
+      console.log(`Got ${pendingUpdates.length} total pending updates V2`);
       
       // Check if user is super admin
       const userId = req.user!.id;
@@ -2520,67 +2538,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Filter pending skills based on the user's approval permissions
           const approvalChecks = await Promise.all(
             pendingUpdates.map(async (update) => {
-              // Get the skill category information for this update
+              // Get the skill template information for this update
               let categoryId = null;
               let subcategoryId = null;
               
-              // For existing skills being updated
-              if (update.skillId) {
-                // Get the skill to find its category
-                const skill = await storage.getSkill(update.skillId);
-                if (skill) {
-                  // Get the subcategory for this skill's category if available
-                  const skillCategories = await storage.getSkillCategoriesByName(update.category);
-                  if (skillCategories && skillCategories.length > 0) {
-                    categoryId = skillCategories[0].id;
+              // For existing user skills being updated
+              if (update.userSkillId) {
+                // Get the user skill to find its template
+                const userSkill = await storage.getUserSkillById(update.userSkillId);
+                if (userSkill) {
+                  // Get the skill template to find its category
+                  const skillTemplate = await storage.getSkillTemplate(userSkill.skillTemplateId);
+                  if (skillTemplate) {
+                    categoryId = skillTemplate.categoryId;
+                    subcategoryId = skillTemplate.subcategoryId;
                   }
                 }
-                console.log(`Update for existing skill ${update.name} (ID: ${update.skillId}), categoryId: ${categoryId}`);
-              } else {
-                // For new skills, get the category by name
-                const skillCategories = await storage.getSkillCategoriesByName(update.category);
-                if (skillCategories && skillCategories.length > 0) {
-                  categoryId = skillCategories[0].id;
+                console.log(`Update for existing user skill with template ID: ${userSkill?.skillTemplateId}, categoryId: ${categoryId}`);
+              } else if (update.skillTemplateId) {
+                // For new skills, get the template directly
+                const skillTemplate = await storage.getSkillTemplate(update.skillTemplateId);
+                if (skillTemplate) {
+                  categoryId = skillTemplate.categoryId;
+                  subcategoryId = skillTemplate.subcategoryId;
                 }
-                console.log(`Update for new skill ${update.name}, categoryId: ${categoryId}`);
+                console.log(`Update for new skill with template ID: ${update.skillTemplateId}, categoryId: ${categoryId}`);
               }
               
-              // IMPORTANT: Also check for skill by name approval permissions
-              // Find any skill template with the same name as this pending update
-              let existingSkillWithSameName = null;
-              try {
-                const skillByNameQuery = await pool.query(
-                  'SELECT id FROM skill_templates WHERE name = $1 LIMIT 1',
-                  [update.name]
-                );
-                if (skillByNameQuery.rows.length > 0) {
-                  existingSkillWithSameName = skillByNameQuery.rows[0].id;
-                  console.log(`Found existing skill template with same name: ${update.name}, ID: ${existingSkillWithSameName}`);
-                }
-              } catch (err) {
-                console.error(`Error finding skill template by name ${update.name}:`, err);
-              }
-              
-              // Check if user can approve this skill - either by category or by related skill ID
+              // Check if user can approve this skill based on category or template ID
               const canApprove = await Promise.all([
                 // Check by category
                 categoryId ? storage.canUserApproveSkill(
                   userId, 
                   categoryId,
                   subcategoryId || undefined,
-                  update.skillId || undefined
+                  update.skillTemplateId || undefined
                 ) : false,
                 
-                // Check by name-matching skill
-                existingSkillWithSameName ? storage.canUserApproveSkill(
+                // Direct check by skill template ID
+                update.skillTemplateId ? storage.canUserApproveSkill(
                   userId,
                   categoryId || 0,
                   undefined,
-                  existingSkillWithSameName
+                  update.skillTemplateId
                 ) : false
               ]).then(results => results.some(result => result));
               
-              console.log(`Skill ${update.name} (ID: ${update.skillId || 'new'}), canApprove: ${canApprove}`);
+              const templateName = update.skillTemplateId 
+                ? (await storage.getSkillTemplate(update.skillTemplateId))?.name || 'Unknown'
+                : 'Unknown';
+                
+              console.log(`Skill template ${templateName} (ID: ${update.skillTemplateId || 'new'}), canApprove: ${canApprove}`);
               
               return {
                 update,
@@ -2629,7 +2637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(result);
     } catch (error) {
-      console.error("Error fetching pending skill updates:", error);
+      console.error("Error fetching pending skill updates V2:", error);
       res.status(500).json({ message: "Error fetching pending skill updates", error });
     }
   });
@@ -2640,20 +2648,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reviewerId = req.user!.id;
       const { notes } = req.body;
       
-      // Approve the pending skill update
-      const approvedSkill = await storage.approvePendingSkillUpdate(updateId, reviewerId, notes);
+      // Approve the pending skill update using V2 method
+      const approvedSkill = await storage.approvePendingSkillUpdateV2(updateId, reviewerId, notes);
+      
+      // Get skill template name for notification
+      let skillName = "your skill";
+      if (approvedSkill.skillTemplateId) {
+        const template = await storage.getSkillTemplate(approvedSkill.skillTemplateId);
+        if (template) {
+          skillName = template.name;
+        }
+      }
       
       // Create a notification for the user
       await storage.createNotification({
         userId: approvedSkill.userId,
         type: "achievement",
-        content: `Your skill ${approvedSkill.name} has been approved`,
-        relatedSkillId: approvedSkill.id
+        content: `Your skill ${skillName} has been approved`,
+        relatedUserSkillId: approvedSkill.id
       });
       
       res.json(approvedSkill);
     } catch (error) {
-      res.status(500).json({ message: "Error approving skill update", error });
+      res.status(500).json({ message: "Error approving skill update V2", error });
     }
   });
 
@@ -2663,27 +2680,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reviewerId = req.user!.id;
       const { notes } = req.body;
       
-      // Get the pending update before rejection for notification
-      const pendingUpdate = await storage.getPendingSkillUpdate(updateId);
+      // Get the pending update before rejection for notification using V2 method
+      const pendingUpdate = await storage.getPendingSkillUpdateV2(updateId);
       
       if (!pendingUpdate) {
-        return res.status(404).json({ message: "Pending skill update not found" });
+        return res.status(404).json({ message: "Pending skill update V2 not found" });
       }
       
-      // Reject the pending skill update
-      await storage.rejectPendingSkillUpdate(updateId, reviewerId, notes);
+      // Reject the pending skill update using V2 method
+      await storage.rejectPendingSkillUpdateV2(updateId, reviewerId, notes);
+      
+      // Get skill template name for notification
+      let skillName = "your skill";
+      if (pendingUpdate.skillTemplateId) {
+        const template = await storage.getSkillTemplate(pendingUpdate.skillTemplateId);
+        if (template) {
+          skillName = template.name;
+        }
+      }
       
       // Create a notification for the user
       await storage.createNotification({
         userId: pendingUpdate.userId,
         type: "achievement",
-        content: `Your skill ${pendingUpdate.name} has been rejected. Please review the feedback.`,
-        relatedSkillId: pendingUpdate.skillId
+        content: `Your skill ${skillName} has been rejected. Please review the feedback.`,
+        relatedUserSkillId: pendingUpdate.userSkillId || undefined
       });
       
-      res.status(200).json({ message: "Skill update rejected successfully" });
+      res.status(200).json({ message: "Skill update V2 rejected successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Error rejecting skill update", error });
+      res.status(500).json({ message: "Error rejecting skill update V2", error });
     }
   });
 
