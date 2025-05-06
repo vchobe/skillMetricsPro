@@ -579,16 +579,17 @@ export class PostgresStorage implements IStorage {
       userId: userSkill.userId,
       name: userSkill.skillName || 'Unknown Skill',
       category: userSkill.skillCategory || 'Uncategorized',
-      categoryId: userSkill.categoryId || null,
-      subcategoryId: userSkill.subcategoryId || null,
+      // Ensure categoryId and subcategoryId are correctly mapped from both snake_case and camelCase sources
+      categoryId: userSkill.categoryId || userSkill.category_id || null,
+      subcategoryId: userSkill.subcategoryId || userSkill.subcategory_id || null,
       level: userSkill.level,
-      lastUpdated: userSkill.lastUpdated,
+      lastUpdated: userSkill.lastUpdated || userSkill.last_updated,
       certification: userSkill.certification || '',
-      credlyLink: userSkill.credlyLink || '',
+      credlyLink: userSkill.credlyLink || userSkill.credly_link || '',
       notes: userSkill.notes || '',
-      endorsementCount: userSkill.endorsementCount || 0,
-      certificationDate: userSkill.certificationDate || null,
-      expirationDate: userSkill.expirationDate || null
+      endorsementCount: userSkill.endorsementCount || userSkill.endorsement_count || 0,
+      certificationDate: userSkill.certificationDate || userSkill.certification_date || null,
+      expirationDate: userSkill.expirationDate || userSkill.expiration_date || null
     };
     
     // Add the extended properties as a separate step
@@ -596,12 +597,17 @@ export class PostgresStorage implements IStorage {
     const result = legacySkill as any;
     
     // Add extended properties used by the UI
-    result.categoryName = userSkill.categoryName || null;
-    result.categoryColor = userSkill.categoryColor || null;
-    result.categoryIcon = userSkill.categoryIcon || null;
-    result.subcategoryName = userSkill.subcategoryName || null;
-    result.subcategoryColor = userSkill.subcategoryColor || null;
-    result.subcategoryIcon = userSkill.subcategoryIcon || null;
+    result.categoryName = userSkill.categoryName || userSkill.category_name || userSkill.skillCategory || userSkill.skill_category || null;
+    result.categoryColor = userSkill.categoryColor || userSkill.category_color || '#3B82F6';
+    result.categoryIcon = userSkill.categoryIcon || userSkill.category_icon || 'code';
+    result.subcategoryName = userSkill.subcategoryName || userSkill.subcategory_name || null;
+    result.subcategoryColor = userSkill.subcategoryColor || userSkill.subcategory_color || '#3B82F6';
+    result.subcategoryIcon = userSkill.subcategoryIcon || userSkill.subcategory_icon || 'code';
+    
+    // For debugging
+    if (!result.categoryId && !result.subcategoryId) {
+      console.log(`Warning: Converted user skill without category/subcategory IDs: ${result.name}`);
+    }
     
     return result as Skill;
   }
