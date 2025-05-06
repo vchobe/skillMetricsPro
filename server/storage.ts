@@ -4450,6 +4450,31 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  // V2 implementation using project_skills_v2 table
+  async getAllProjectSkillsV2(): Promise<ProjectSkillV2[]> {
+    try {
+      const result = await pool.query(`
+        SELECT ps.*,
+               st.name as skill_name,
+               p.name as project_name,
+               c.name as client_name,
+               sc.name as category,
+               sc.color as category_color
+        FROM project_skills_v2 ps
+        LEFT JOIN user_skills us ON ps.user_skill_id = us.id
+        LEFT JOIN skill_templates st ON us.skill_template_id = st.id
+        LEFT JOIN projects p ON ps.project_id = p.id
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        ORDER BY ps.id
+      `);
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all project skills V2:", error);
+      throw error;
+    }
+  }
+  
   async createProjectSkill(projectSkill: InsertProjectSkill): Promise<ProjectSkill> {
     try {
       // Verify this is a valid user_skill from the user_skills table
