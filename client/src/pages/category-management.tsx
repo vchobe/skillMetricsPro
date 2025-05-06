@@ -1052,7 +1052,7 @@ export default function CategoryManagementPage() {
                           <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
                             <Check size={12} className="mr-1" /> Can approve all categories
                           </Badge>
-                        ) : approver.skillId ? (
+                        ) : approver.skillTemplateId ? (
                           <div className="flex items-center flex-wrap gap-2">
                             {category && (
                               <Badge 
@@ -1081,7 +1081,7 @@ export default function CategoryManagementPage() {
                             <ChevronRight size={14} className="text-muted-foreground" />
                             <Badge className="bg-purple-100 text-purple-800 border-purple-300">
                               <span className="font-medium">Specific Skill:</span> 
-                              {approver.skillId && <SkillDisplayName skillId={approver.skillId} />}
+                              {approver.skillTemplateId && <SkillDisplayName skillId={approver.skillTemplateId} />}
                             </Badge>
                           </div>
                         ) : category ? (
