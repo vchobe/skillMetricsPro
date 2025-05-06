@@ -607,6 +607,21 @@ export const insertPendingSkillUpdateV2Schema = baseInsertPendingSkillUpdateV2Sc
 export type PendingSkillUpdate = typeof pendingSkillUpdates.$inferSelect;
 export type InsertPendingSkillUpdate = z.infer<typeof insertPendingSkillUpdateSchema>;
 
+export type PendingSkillUpdateV2 = typeof pendingSkillUpdatesV2.$inferSelect & {
+  skillName?: string;
+  skillCategory?: string;
+  categoryName?: string;
+  categoryColor?: string;
+  categoryIcon?: string;
+  subcategoryName?: string;
+  subcategoryColor?: string;
+  subcategoryIcon?: string;
+  userUsername?: string;
+  userEmail?: string;
+  reviewerUsername?: string;
+};
+export type InsertPendingSkillUpdateV2 = z.infer<typeof insertPendingSkillUpdateV2Schema>;
+
 export type PendingSkillUpdateV2 = typeof pendingSkillUpdatesV2.$inferSelect;
 export type InsertPendingSkillUpdateV2 = z.infer<typeof insertPendingSkillUpdateV2Schema>;
 

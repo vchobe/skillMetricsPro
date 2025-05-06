@@ -2769,11 +2769,21 @@ export class PostgresStorage implements IStorage {
       
       console.log(`Starting approval for pending skill update V2 ID ${id} by reviewer ${reviewerId}`);
       
-      // Get the pending update to be approved
+      // Get the pending update to be approved with skill name and category
       const pendingResult = await pool.query(`
-        SELECT p.*, st.name as skill_name
+        SELECT p.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               sc.name as category_name,
+               sc.color as category_color,
+               sc.icon as category_icon, 
+               ss.name as subcategory_name,
+               ss.color as subcategory_color,
+               ss.icon as subcategory_icon
         FROM pending_skill_updates_v2 p
         JOIN skill_templates st ON p.skill_template_id = st.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id 
+        LEFT JOIN skill_subcategories ss ON st.subcategory_id = ss.id
         WHERE p.id = $1
       `, [id]);
       
@@ -2968,11 +2978,21 @@ export class PostgresStorage implements IStorage {
       
       console.log(`Starting rejection for pending skill update V2 ID ${id} by reviewer ${reviewerId}`);
       
-      // Get the pending update to be rejected
+      // Get the pending update to be rejected with skill name and category
       const pendingResult = await pool.query(`
-        SELECT p.*, st.name as skill_name
+        SELECT p.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               sc.name as category_name,
+               sc.color as category_color,
+               sc.icon as category_icon, 
+               ss.name as subcategory_name,
+               ss.color as subcategory_color,
+               ss.icon as subcategory_icon
         FROM pending_skill_updates_v2 p
         JOIN skill_templates st ON p.skill_template_id = st.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id 
+        LEFT JOIN skill_subcategories ss ON st.subcategory_id = ss.id
         WHERE p.id = $1
       `, [id]);
       
