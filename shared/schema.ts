@@ -321,7 +321,16 @@ export type LoginUser = z.infer<typeof loginUserSchema>;
 export type Skill = typeof skills.$inferSelect;
 export type InsertSkill = z.infer<typeof insertSkillSchema>;
 
-export type UserSkill = typeof userSkills.$inferSelect;
+export type UserSkill = typeof userSkills.$inferSelect & {
+  skillName?: string;
+  skillCategory?: string;
+  categoryName?: string;
+  categoryColor?: string;
+  categoryIcon?: string;
+  subcategoryName?: string;
+  subcategoryColor?: string;
+  subcategoryIcon?: string;
+};
 export type InsertUserSkill = z.infer<typeof insertUserSkillSchema>;
 
 export type SkillHistory = typeof skillHistories.$inferSelect;
@@ -620,9 +629,6 @@ export type PendingSkillUpdateV2 = typeof pendingSkillUpdatesV2.$inferSelect & {
   userEmail?: string;
   reviewerUsername?: string;
 };
-export type InsertPendingSkillUpdateV2 = z.infer<typeof insertPendingSkillUpdateV2Schema>;
-
-export type PendingSkillUpdateV2 = typeof pendingSkillUpdatesV2.$inferSelect;
 export type InsertPendingSkillUpdateV2 = z.infer<typeof insertPendingSkillUpdateV2Schema>;
 
 // Client schema

@@ -5128,7 +5128,7 @@ export default function AdminDashboard() {
                                       {userGroup.pendingSkills.map((skill, skillIndex) => (
                                         <tr key={skillIndex}>
                                           <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">{skill.name}</div>
+                                            <div className="text-sm font-medium text-gray-900">{skill.skillName || skill.name || 'Unknown Skill'}</div>
                                             {skill.notes && (
                                               <Popover>
                                                 <PopoverTrigger asChild>
@@ -5146,7 +5146,7 @@ export default function AdminDashboard() {
                                             )}
                                           </td>
                                           <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">{skill.category}</div>
+                                            <div className="text-sm text-gray-900">{skill.skillCategory || skill.category || 'Uncategorized'}</div>
                                           </td>
                                           <td className="px-6 py-4 whitespace-nowrap">
                                             <SkillLevelBadge level={skill.level} />
