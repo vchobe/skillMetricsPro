@@ -4514,6 +4514,72 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  
+  // V2 implementation for creating project skill using the project_skills_v2 table
+  async createProjectSkillV2(projectSkill: InsertProjectSkillV2): Promise<ProjectSkillV2> {
+    try {
+      // Verify this is a valid user_skill from the user_skills table
+      const skillCheck = await pool.query(
+        'SELECT id FROM user_skills WHERE id = $1',
+        [projectSkill.userSkillId]
+      );
+      
+      if (skillCheck.rows.length === 0) {
+        throw new Error(`Cannot associate skill with project: user_skill with ID ${projectSkill.userSkillId} does not exist`);
+      }
+      
+      // Check if this skill is already associated with the project
+      const existingResult = await pool.query(
+        'SELECT id FROM project_skills_v2 WHERE project_id = $1 AND user_skill_id = $2',
+        [projectSkill.projectId, projectSkill.userSkillId]
+      );
+      
+      if (existingResult.rows.length > 0) {
+        throw new Error("This skill is already associated with the project");
+      }
+      
+      // Start a transaction
+      await pool.query('BEGIN');
+      
+      try {
+        const result = await pool.query(
+          `INSERT INTO project_skills_v2 (project_id, user_skill_id, required_level, importance) 
+           VALUES ($1, $2, $3, $4) 
+           RETURNING *`,
+          [
+            projectSkill.projectId,
+            projectSkill.userSkillId,
+            projectSkill.requiredLevel || 'beginner',
+            projectSkill.importance || 'medium'
+          ]
+        );
+        
+        // Return the result with skill details using user_skills and templates
+        const fullResult = await pool.query(`
+          SELECT ps.*, st.name as skill_name, st.category, us.level
+          FROM project_skills_v2 ps
+          JOIN user_skills us ON ps.user_skill_id = us.id
+          JOIN skill_templates st ON us.skill_template_id = st.id
+          WHERE ps.id = $1
+        `, [result.rows[0].id]);
+        
+        if (fullResult.rows.length === 0) {
+          throw new Error('Failed to retrieve created project skill V2');
+        }
+        
+        await pool.query('COMMIT');
+        
+        console.log(`Successfully associated user_skill ${projectSkill.userSkillId} with project ${projectSkill.projectId}`);
+        return this.snakeToCamel(fullResult.rows[0]);
+      } catch (error) {
+        await pool.query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.error("Error creating project skill V2:", error);
+      throw error;
+    }
+  }
 
   async deleteProjectSkill(id: number): Promise<void> {
     try {
@@ -4524,6 +4590,20 @@ export class PostgresStorage implements IStorage {
       }
     } catch (error) {
       console.error("Error deleting project skill:", error);
+      throw error;
+    }
+  }
+  
+  // V2 implementation using project_skills_v2 table
+  async deleteProjectSkillV2(id: number): Promise<void> {
+    try {
+      const result = await pool.query('DELETE FROM project_skills_v2 WHERE id = $1', [id]);
+      
+      if (result.rowCount === 0) {
+        throw new Error("Project skill V2 not found");
+      }
+    } catch (error) {
+      console.error("Error deleting project skill V2:", error);
       throw error;
     }
   }
