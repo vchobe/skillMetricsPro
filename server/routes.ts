@@ -884,7 +884,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // All users directory (accessible to all authenticated users)
   app.get("/api/users", ensureAuth, async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
+      let users;
+      
+      // Check for client or project filters
+      const clientId = req.query.clientId ? parseInt(req.query.clientId as string) : undefined;
+      const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
+      
+      if (clientId) {
+        // Filter users by client
+        users = await storage.getUsersByClientId(clientId);
+      } else if (projectId) {
+        // Filter users by project
+        users = await storage.getUsersByProjectId(projectId);
+      } else {
+        // Get all users
+        users = await storage.getAllUsers();
+      }
+      
       // Remove passwords from response
       const usersWithoutPasswords = users.map(user => {
         const { password, ...userWithoutPassword } = user;
