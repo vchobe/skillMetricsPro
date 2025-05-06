@@ -469,6 +469,43 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  async getUsersByClientId(clientId: number): Promise<User[]> {
+    try {
+      // Find users associated with projects under the given client
+      const result = await pool.query(`
+        SELECT DISTINCT u.* 
+        FROM users u
+        JOIN project_resources pr ON u.id = pr.user_id
+        JOIN projects p ON pr.project_id = p.id
+        WHERE p.client_id = $1
+        ORDER BY u.email
+      `, [clientId]);
+      
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting users by client ID:", error);
+      throw error;
+    }
+  }
+  
+  async getUsersByProjectId(projectId: number): Promise<User[]> {
+    try {
+      // Find users who are resources on the given project
+      const result = await pool.query(`
+        SELECT DISTINCT u.* 
+        FROM users u
+        JOIN project_resources pr ON u.id = pr.user_id
+        WHERE pr.project_id = $1
+        ORDER BY u.email
+      `, [projectId]);
+      
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting users by project ID:", error);
+      throw error;
+    }
+  }
+  
   async deleteUser(id: number): Promise<void> {
     try {
       // Delete related records first to maintain referential integrity
