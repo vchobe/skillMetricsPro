@@ -2557,6 +2557,348 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // Pending Skill Updates V2 operations
+  async getPendingSkillUpdatesV2(): Promise<PendingSkillUpdateV2[]> {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               u.username as user_username,
+               u.email as user_email,
+               r.username as reviewer_username
+        FROM pending_skill_updates_v2 p
+        JOIN skill_templates st ON p.skill_template_id = st.id
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN users r ON p.reviewed_by = r.id
+        ORDER BY p.submitted_at DESC
+      `);
+      
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting pending skill updates V2:", error);
+      throw error;
+    }
+  }
+
+  async getPendingSkillUpdatesByUserV2(userId: number): Promise<PendingSkillUpdateV2[]> {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               u.username as user_username,
+               u.email as user_email,
+               r.username as reviewer_username
+        FROM pending_skill_updates_v2 p
+        JOIN skill_templates st ON p.skill_template_id = st.id
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN users r ON p.reviewed_by = r.id
+        WHERE p.user_id = $1
+        ORDER BY p.submitted_at DESC
+      `, [userId]);
+      
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting pending skill updates V2 by user:", error);
+      throw error;
+    }
+  }
+
+  async getPendingSkillUpdateV2(id: number): Promise<PendingSkillUpdateV2 | undefined> {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               u.username as user_username,
+               u.email as user_email,
+               r.username as reviewer_username
+        FROM pending_skill_updates_v2 p
+        JOIN skill_templates st ON p.skill_template_id = st.id
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN users r ON p.reviewed_by = r.id
+        WHERE p.id = $1
+      `, [id]);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting pending skill update V2:", error);
+      throw error;
+    }
+  }
+
+  async createPendingSkillUpdateV2(update: InsertPendingSkillUpdateV2): Promise<PendingSkillUpdateV2> {
+    try {
+      // Log the incoming data to help with debugging
+      console.log("Creating pending skill update V2 with data:", update);
+      
+      // Convert camelCase to snake_case for database insertion
+      const fields: string[] = [];
+      const placeholders: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+      
+      // Explicitly handle all possible fields, including nested ones
+      for (const [key, value] of Object.entries(update)) {
+        let dbField = key;
+        
+        // Convert camelCase to snake_case
+        if (key === 'userId') dbField = 'user_id';
+        else if (key === 'userSkillId') dbField = 'user_skill_id';
+        else if (key === 'skillTemplateId') dbField = 'skill_template_id';
+        else if (key === 'credlyLink') dbField = 'credly_link';
+        else if (key === 'certificationDate') dbField = 'certification_date';
+        else if (key === 'expirationDate') dbField = 'expiration_date';
+        else if (key === 'isUpdate') dbField = 'is_update';
+        
+        // Skip null/undefined values except for explicit nulls
+        if (value === undefined) continue;
+        
+        fields.push(dbField);
+        placeholders.push(`$${paramIndex}`);
+        values.push(value);
+        paramIndex++;
+      }
+      
+      // Add the status field if not provided
+      if (!fields.includes('status')) {
+        fields.push('status');
+        placeholders.push(`$${paramIndex}`);
+        values.push('pending');
+        paramIndex++;
+      }
+      
+      // Add the submitted_at field if not provided
+      if (!fields.includes('submitted_at')) {
+        fields.push('submitted_at');
+        placeholders.push(`CURRENT_TIMESTAMP`);
+      }
+      
+      const query = `
+        INSERT INTO pending_skill_updates_v2 (${fields.join(', ')})
+        VALUES (${placeholders.join(', ')})
+        RETURNING *
+      `;
+      
+      console.log("Executing insert query:", query);
+      console.log("With values:", values);
+      
+      const result = await pool.query(query, values);
+      const insertedData = result.rows[0];
+      
+      // Get the full pending update with all joined data
+      return await this.getPendingSkillUpdateV2(insertedData.id) as PendingSkillUpdateV2;
+    } catch (error) {
+      console.error("Error creating pending skill update V2:", error);
+      throw error;
+    }
+  }
+
+  async approvePendingSkillUpdateV2(id: number, reviewerId: number, notes?: string): Promise<UserSkill> {
+    try {
+      // Start a transaction
+      await pool.query('BEGIN');
+      
+      console.log(`Starting approval for pending skill update V2 ID ${id} by reviewer ${reviewerId}`);
+      
+      // Get the pending update to be approved
+      const pendingResult = await pool.query(`
+        SELECT p.*, st.name as skill_name
+        FROM pending_skill_updates_v2 p
+        JOIN skill_templates st ON p.skill_template_id = st.id
+        WHERE p.id = $1
+      `, [id]);
+      
+      if (pendingResult.rows.length === 0) {
+        await pool.query('ROLLBACK');
+        throw new Error('Pending skill update not found');
+      }
+      
+      // Get the pending update data
+      const pendingUpdate = this.snakeToCamel(pendingResult.rows[0]) as PendingSkillUpdateV2;
+      console.log(`Pending update data:`, JSON.stringify(pendingUpdate));
+      
+      let userSkill: UserSkill;
+      
+      // Check if it's a new skill or an update
+      if (pendingUpdate.isUpdate && pendingUpdate.userSkillId) {
+        // It's an update to an existing skill
+        console.log(`Updating existing user skill ID ${pendingUpdate.userSkillId}`);
+        
+        // Get current skill state for history recording
+        const currentSkillResult = await pool.query(
+          'SELECT * FROM user_skills WHERE id = $1',
+          [pendingUpdate.userSkillId]
+        );
+        
+        if (currentSkillResult.rows.length === 0) {
+          await pool.query('ROLLBACK');
+          throw new Error(`User skill with ID ${pendingUpdate.userSkillId} not found`);
+        }
+        
+        const currentSkill = this.snakeToCamel(currentSkillResult.rows[0]);
+        console.log(`Current skill data:`, JSON.stringify(currentSkill));
+        
+        // Create skill history entry
+        await pool.query(`
+          INSERT INTO skill_histories_v2 (
+            user_skill_id, user_id, previous_level, new_level, change_note
+          ) VALUES ($1, $2, $3, $4, $5)
+        `, [
+          pendingUpdate.userSkillId,
+          pendingUpdate.userId,
+          currentSkill.level,
+          pendingUpdate.level,
+          `Skill updated via approval process.${notes ? ` Note: ${notes}` : ''}`
+        ]);
+        
+        // Update the user skill
+        await pool.query(`
+          UPDATE user_skills SET 
+            level = $1, 
+            certification = $2, 
+            credly_link = $3, 
+            notes = $4,
+            certification_date = $5,
+            expiration_date = $6,
+            last_updated = CURRENT_TIMESTAMP
+          WHERE id = $7
+        `, [
+          pendingUpdate.level,
+          pendingUpdate.certification || '',
+          pendingUpdate.credlyLink || '',
+          pendingUpdate.notes || '',
+          pendingUpdate.certificationDate || null,
+          pendingUpdate.expirationDate || null,
+          pendingUpdate.userSkillId
+        ]);
+        
+        // Get the updated skill
+        userSkill = await this.getUserSkillById(pendingUpdate.userSkillId) as UserSkill;
+      } else {
+        // It's a new skill
+        console.log(`Creating new user skill from template ID ${pendingUpdate.skillTemplateId}`);
+        
+        // Create a new user skill
+        userSkill = await this.createUserSkill({
+          userId: pendingUpdate.userId,
+          skillTemplateId: pendingUpdate.skillTemplateId,
+          level: pendingUpdate.level,
+          certification: pendingUpdate.certification || '',
+          credlyLink: pendingUpdate.credlyLink || '',
+          notes: pendingUpdate.notes || '',
+          certificationDate: pendingUpdate.certificationDate || null,
+          expirationDate: pendingUpdate.expirationDate || null
+        });
+        
+        // Create a skill history entry for the new skill
+        await pool.query(`
+          INSERT INTO skill_histories_v2 (
+            user_skill_id, user_id, previous_level, new_level, change_note
+          ) VALUES ($1, $2, $3, $4, $5)
+        `, [
+          userSkill.id,
+          pendingUpdate.userId,
+          null,
+          pendingUpdate.level,
+          `Skill created via approval process.${notes ? ` Note: ${notes}` : ''}`
+        ]);
+      }
+      
+      // Update the pending update status
+      console.log(`Updating pending skill update status to approved`);
+      await pool.query(`
+        UPDATE pending_skill_updates_v2 SET 
+         status = 'approved', 
+         reviewed_at = CURRENT_TIMESTAMP, 
+         reviewed_by = $1,
+         review_notes = $2,
+         user_skill_id = $3
+         WHERE id = $4
+      `, [
+        reviewerId, 
+        notes || null, 
+        userSkill.id,
+        id
+      ]);
+      
+      // Create a notification for the user
+      await this.createNotification({
+        userId: pendingUpdate.userId,
+        type: 'level_up',
+        content: `Your ${pendingUpdate.isUpdate ? 'skill update' : 'new skill'} request for "${pendingUpdate.skillName}" was approved.${notes ? ` Note: ${notes}` : ''}`,
+        relatedSkillId: userSkill.id
+      });
+      
+      await pool.query('COMMIT');
+      console.log(`Approval transaction committed successfully`);
+      
+      return userSkill;
+    } catch (error) {
+      // Roll back the transaction on error
+      await pool.query('ROLLBACK');
+      console.error('Error approving skill update V2:', error);
+      throw error;
+    }
+  }
+
+  async rejectPendingSkillUpdateV2(id: number, reviewerId: number, notes?: string): Promise<void> {
+    try {
+      // Start a transaction
+      await pool.query('BEGIN');
+      
+      console.log(`Starting rejection for pending skill update V2 ID ${id} by reviewer ${reviewerId}`);
+      
+      // Get the pending update to be rejected
+      const pendingResult = await pool.query(`
+        SELECT p.*, st.name as skill_name
+        FROM pending_skill_updates_v2 p
+        JOIN skill_templates st ON p.skill_template_id = st.id
+        WHERE p.id = $1
+      `, [id]);
+      
+      if (pendingResult.rows.length === 0) {
+        await pool.query('ROLLBACK');
+        throw new Error('Pending skill update V2 not found');
+      }
+      
+      // Get the pending update data
+      const pendingUpdate = this.snakeToCamel(pendingResult.rows[0]) as PendingSkillUpdateV2;
+      console.log(`Pending update V2 data for rejection:`, JSON.stringify(pendingUpdate));
+      
+      // Update the pending update status
+      console.log(`Updating pending skill update V2 status to rejected`);
+      await pool.query(`
+        UPDATE pending_skill_updates_v2 SET 
+         status = 'rejected', 
+         reviewed_at = CURRENT_TIMESTAMP, 
+         reviewed_by = $1,
+         review_notes = $2
+         WHERE id = $3
+      `, [reviewerId, notes || null, id]);
+      
+      // Create a notification for the user
+      await this.createNotification({
+        userId: pendingUpdate.userId,
+        type: 'endorsement', // Use endorsement type for rejection too
+        content: `Your ${pendingUpdate.isUpdate ? 'skill update' : 'new skill'} request for "${pendingUpdate.skillName}" was rejected.${notes ? ` Note: ${notes}` : ''}`
+      });
+      
+      await pool.query('COMMIT');
+      console.log(`Rejection transaction committed successfully`);
+    } catch (error) {
+      // Roll back the transaction on error
+      await pool.query('ROLLBACK');
+      console.error("Error rejecting pending skill update V2:", error);
+      throw error;
+    }
+  }
+
   // Client operations
   async getAllClients(): Promise<Client[]> {
     try {
@@ -3047,8 +3389,8 @@ export class PostgresStorage implements IStorage {
       // Delete project resources first (cascading delete)
       await pool.query('DELETE FROM project_resources WHERE project_id = $1', [id]);
       
-      // Delete project skills
-      await pool.query('DELETE FROM project_skills WHERE project_id = $1', [id]);
+      // Delete project skills (V2 table)
+      await pool.query('DELETE FROM project_skills_v2 WHERE project_id = $1', [id]);
       
       // Delete the project
       await pool.query('DELETE FROM projects WHERE id = $1', [id]);
@@ -4063,8 +4405,8 @@ export class PostgresStorage implements IStorage {
         // Delete project resources
         await pool.query('DELETE FROM project_resources WHERE project_id = $1', [id]);
         
-        // Delete project skills
-        await pool.query('DELETE FROM project_skills WHERE project_id = $1', [id]);
+        // Delete project skills (V2 table)
+        await pool.query('DELETE FROM project_skills_v2 WHERE project_id = $1', [id]);
         
         // Finally delete the project
         const result = await pool.query('DELETE FROM projects WHERE id = $1', [id]);
