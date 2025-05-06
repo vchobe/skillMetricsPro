@@ -92,7 +92,7 @@ export interface IStorage {
   getApproversForSubcategory(subcategoryId: number): Promise<SkillApprover[]>;
   createSkillApprover(approver: InsertSkillApprover): Promise<SkillApprover>;
   deleteSkillApprover(id: number): Promise<void>;
-  canUserApproveSkill(userId: number, categoryId: number, subcategoryId?: number, skillId?: number): Promise<boolean>;
+  canUserApproveSkill(userId: number, categoryId: number, subcategoryId?: number, skillTemplateId?: number): Promise<boolean>;
   
   // Skill history operations
   getSkillHistory(skillId: number): Promise<SkillHistory[]>;
