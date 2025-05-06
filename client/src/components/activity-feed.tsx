@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface Activity {
+export interface Activity {
   id: number;
   type: "update" | "add";
   skillId?: number;
