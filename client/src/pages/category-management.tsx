@@ -22,6 +22,12 @@ import {
 } from "lucide-react";
 import { SkillCategory, SkillApprover, User, SkillSubcategory, Skill, SkillTemplate } from "@shared/schema";
 
+// Extended interface to handle both the new skillTemplateId and legacy skillId fields
+interface SkillApproverDisplay extends Omit<SkillApprover, 'skillTemplateId'> {
+  skillTemplateId?: number | null;
+  skillId?: number | null; // For backward compatibility with older data
+}
+
 // Available icons for category selection
 const availableIcons = [
   { name: "code", component: <Code size={16} /> },
@@ -474,8 +480,19 @@ export default function CategoryManagementPage() {
     data: approvers = [], 
     isLoading: isLoadingApprovers,
     error: approversError 
-  } = useQuery<SkillApprover[]>({
+  } = useQuery<SkillApproverDisplay[]>({
     queryKey: ['/api/skill-approvers'],
+    select: (data) => {
+      // Adapt the data to our display interface that supports both fields
+      return data.map(approver => {
+        const displayApprover: SkillApproverDisplay = {
+          ...approver,
+          // Handle the field mapping between schema versions
+          skillId: (approver as any).skillId
+        };
+        return displayApprover;
+      });
+    }
   });
   
   // Fetch users for user lookup in approver cards
@@ -1052,7 +1069,7 @@ export default function CategoryManagementPage() {
                           <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
                             <Check size={12} className="mr-1" /> Can approve all categories
                           </Badge>
-                        ) : approver.skillTemplateId ? (
+                        ) : approver.skillTemplateId || approver.skillId ? (
                           <div className="flex items-center flex-wrap gap-2">
                             {category && (
                               <Badge 
@@ -1081,7 +1098,9 @@ export default function CategoryManagementPage() {
                             <ChevronRight size={14} className="text-muted-foreground" />
                             <Badge className="bg-purple-100 text-purple-800 border-purple-300">
                               <span className="font-medium">Specific Skill:</span> 
-                              {approver.skillTemplateId && <SkillDisplayName skillId={approver.skillTemplateId} />}
+                              {(approver.skillTemplateId || approver.skillId) && (
+                                <SkillDisplayName skillId={approver.skillTemplateId || approver.skillId!} />
+                              )}
                             </Badge>
                           </div>
                         ) : category ? (
