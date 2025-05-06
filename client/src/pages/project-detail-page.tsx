@@ -273,11 +273,11 @@ export default function ProjectDetailPage() {
     refetchOnWindowFocus: false,
   });
   
-  // Fetch all skills for the skill dropdown
-  const { data: allSkills, isLoading: isLoadingAllSkills } = useQuery<Skill[]>({
-    queryKey: ["/api/all-skills"],
+  // Fetch all skill templates for the skill dropdown
+  const { data: skillTemplates, isLoading: isLoadingSkillTemplates } = useQuery<SkillTemplate[]>({
+    queryKey: ["/api/skill-templates"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/all-skills");
+      const res = await apiRequest("GET", "/api/skill-templates");
       return await res.json();
     },
     refetchOnWindowFocus: false,
@@ -590,34 +590,24 @@ export default function ProjectDetailPage() {
   
   // Get skill name by ID
   const getSkillName = (skillId: number) => {
-    if (!allSkills) return "Loading...";
-    const skill = allSkills.find((s: Skill) => s.id === skillId);
-    return skill ? skill.name : "—";
+    if (!skillTemplates) return "Loading...";
+    const template = skillTemplates.find((t: SkillTemplate) => t.id === skillId);
+    return template ? template.name : "—";
   };
   
-  // Get skill by ID
-  const getSkill = (skillId: number) => {
-    if (!allSkills) return null;
-    return allSkills.find((s: Skill) => s.id === skillId);
+  // Get skill template by ID
+  const getSkillTemplate = (skillId: number) => {
+    if (!skillTemplates) return null;
+    return skillTemplates.find((t: SkillTemplate) => t.id === skillId);
   };
   
-  // Create an array of available skills (all skills except those already assigned)
-  // First deduplicate skills by name to avoid showing duplicates in the dropdown
-  const deduplicatedSkills = allSkills
-    ? allSkills.reduce((unique: Skill[], skill: Skill) => {
-        // Check if we already have a skill with this name
-        const existingSkill = unique.find((s) => s.name === skill.name);
-        if (!existingSkill) {
-          unique.push(skill);
-        }
-        return unique;
-      }, [])
+  // Create an array of available skill templates to choose from
+  // Filter out templates that are already assigned to the project
+  const availableSkillTemplates = skillTemplates
+    ? skillTemplates.filter((template: SkillTemplate) => 
+        !projectSkills || !projectSkills.some((ps: ProjectSkill) => ps.skillId === template.id)
+      )
     : [];
-    
-  // Then filter out skills that are already assigned to the project
-  const availableSkills = deduplicatedSkills.filter((skill: Skill) => 
-    !projectSkills || !projectSkills.some((ps: ProjectSkill) => ps.skillId === skill.id)
-  );
     
   // Create an array of available users (all users except those already assigned)
   const availableUsers = users
