@@ -2452,10 +2452,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           for (const admin of admins) {
             await storage.createNotification({
               userId: admin.id,
-              title: "New Skill Approval Request",
-              message: `User ${req.user!.username} has requested approval for ${pendingSkillData.name} skill`,
-              type: "skill_approval_request",
-              isRead: false,
+              type: "achievement", // Using "achievement" type which is allowed in the schema
+              content: `User ${req.user!.username} has requested approval for ${pendingSkillData.name} skill`,
               data: JSON.stringify({
                 pendingSkillUpdateId: pendingSkillUpdate.id,
                 skillName: pendingSkillData.name,
