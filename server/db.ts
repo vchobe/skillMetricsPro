@@ -14,6 +14,19 @@ function getDatabaseConfig() {
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
   
+  // Make the DATABASE_URL temporarily available for schema comparison
+  if (process.env.COMPARE_SCHEMAS === 'true' && process.env.DATABASE_URL) {
+    console.log('SCHEMA COMPARISON MODE: Using DATABASE_URL connection string');
+    console.log(`Database URL exists, pointing to: ${process.env.DATABASE_URL.split('@')[1].split('/')[0]}`);
+    
+    return {
+      connectionString: process.env.DATABASE_URL,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    };
+  }
+  
   // REPLIT ENVIRONMENT OVERRIDE
   // Force using Cloud SQL regardless of DATABASE_URL
   console.log('FORCED CONFIGURATION: Using Google Cloud SQL instead of DATABASE_URL');

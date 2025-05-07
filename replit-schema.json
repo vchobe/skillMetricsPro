@@ -1,0 +1,1801 @@
+{
+  "tables": {
+    "clients": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('clients_id_seq'::regclass)"
+        },
+        {
+          "column_name": "name",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "industry",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "contact_name",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "contact_email",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "contact_phone",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "website",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "logo_url",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "notes",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "account_manager_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "clients_pkey",
+          "indexdef": "CREATE UNIQUE INDEX clients_pkey ON public.clients USING btree (id)"
+        }
+      ]
+    },
+    "endorsements": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('endorsements_id_seq'::regclass)"
+        },
+        {
+          "column_name": "skill_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "endorser_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "endorsee_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "comment",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "endorsements_pkey",
+          "indexdef": "CREATE UNIQUE INDEX endorsements_pkey ON public.endorsements USING btree (id)"
+        },
+        {
+          "indexname": "endorsements_skill_id_endorser_id_key",
+          "indexdef": "CREATE UNIQUE INDEX endorsements_skill_id_endorser_id_key ON public.endorsements USING btree (skill_id, endorser_id)"
+        }
+      ]
+    },
+    "endorsements_v2": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('endorsements_v2_id_seq'::regclass)"
+        },
+        {
+          "column_name": "user_skill_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "endorser_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "comment",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "NO",
+          "column_default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "endorsements_v2_pkey",
+          "indexdef": "CREATE UNIQUE INDEX endorsements_v2_pkey ON public.endorsements_v2 USING btree (id)"
+        },
+        {
+          "indexname": "idx_endorsements_v2_user_skill_id",
+          "indexdef": "CREATE INDEX idx_endorsements_v2_user_skill_id ON public.endorsements_v2 USING btree (user_skill_id)"
+        },
+        {
+          "indexname": "idx_endorsements_v2_user_id",
+          "indexdef": "CREATE INDEX idx_endorsements_v2_user_id ON public.endorsements_v2 USING btree (user_id)"
+        },
+        {
+          "indexname": "idx_endorsements_v2_endorser_id",
+          "indexdef": "CREATE INDEX idx_endorsements_v2_endorser_id ON public.endorsements_v2 USING btree (endorser_id)"
+        }
+      ]
+    },
+    "notifications": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('notifications_id_seq'::regclass)"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "type",
+          "data_type": "USER-DEFINED",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "content",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "is_read",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "false"
+        },
+        {
+          "column_name": "related_skill_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "related_user_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "column_name": "related_user_skill_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "notifications_pkey",
+          "indexdef": "CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)"
+        },
+        {
+          "indexname": "idx_notifications_related_user_skill_id",
+          "indexdef": "CREATE INDEX idx_notifications_related_user_skill_id ON public.notifications USING btree (related_user_skill_id)"
+        }
+      ]
+    },
+    "pending_skill_updates": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('pending_skill_updates_id_seq'::regclass)"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "skill_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "name",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "category",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "level",
+          "data_type": "USER-DEFINED",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "certification",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "credly_link",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "notes",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "certification_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "expiration_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "status",
+          "data_type": "USER-DEFINED",
+          "is_nullable": "NO",
+          "column_default": "'pending'::approval_status"
+        },
+        {
+          "column_name": "submitted_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "NO",
+          "column_default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "column_name": "reviewed_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "reviewed_by",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "review_notes",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "is_update",
+          "data_type": "boolean",
+          "is_nullable": "NO",
+          "column_default": "false"
+        },
+        {
+          "column_name": "category_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "subcategory_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "pending_skill_updates_pkey",
+          "indexdef": "CREATE UNIQUE INDEX pending_skill_updates_pkey ON public.pending_skill_updates USING btree (id)"
+        },
+        {
+          "indexname": "idx_pending_skill_updates_user_id",
+          "indexdef": "CREATE INDEX idx_pending_skill_updates_user_id ON public.pending_skill_updates USING btree (user_id)"
+        },
+        {
+          "indexname": "idx_pending_skill_updates_status",
+          "indexdef": "CREATE INDEX idx_pending_skill_updates_status ON public.pending_skill_updates USING btree (status)"
+        }
+      ]
+    },
+    "pending_skill_updates_v2": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('pending_skill_updates_v2_id_seq'::regclass)"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "user_skill_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "skill_template_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "level",
+          "data_type": "USER-DEFINED",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "certification",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "credly_link",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "notes",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "certification_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "expiration_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "status",
+          "data_type": "USER-DEFINED",
+          "is_nullable": "NO",
+          "column_default": "'pending'::approval_status"
+        },
+        {
+          "column_name": "submitted_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "NO",
+          "column_default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "column_name": "reviewed_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "reviewed_by",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "review_notes",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "is_update",
+          "data_type": "boolean",
+          "is_nullable": "NO",
+          "column_default": "false"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "pending_skill_updates_v2_pkey",
+          "indexdef": "CREATE UNIQUE INDEX pending_skill_updates_v2_pkey ON public.pending_skill_updates_v2 USING btree (id)"
+        }
+      ]
+    },
+    "profile_histories": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('profile_histories_id_seq'::regclass)"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "changed_field",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "previous_value",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "new_value",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "profile_histories_pkey",
+          "indexdef": "CREATE UNIQUE INDEX profile_histories_pkey ON public.profile_histories USING btree (id)"
+        }
+      ]
+    },
+    "project_resource_histories": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('project_resource_histories_id_seq'::regclass)"
+        },
+        {
+          "column_name": "project_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "action",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "previous_role",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "new_role",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "previous_allocation",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "new_allocation",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "performed_by_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "note",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "project_resource_histories_pkey",
+          "indexdef": "CREATE UNIQUE INDEX project_resource_histories_pkey ON public.project_resource_histories USING btree (id)"
+        }
+      ]
+    },
+    "project_resources": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('project_resources_id_seq'::regclass)"
+        },
+        {
+          "column_name": "project_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "role",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "allocation",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "100"
+        },
+        {
+          "column_name": "start_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "end_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "notes",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "project_resources_pkey",
+          "indexdef": "CREATE UNIQUE INDEX project_resources_pkey ON public.project_resources USING btree (id)"
+        }
+      ]
+    },
+    "project_skills": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('project_skills_id_seq'::regclass)"
+        },
+        {
+          "column_name": "project_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "skill_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "required_level",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "'beginner'::text"
+        },
+        {
+          "column_name": "importance",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "'medium'::text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "project_skills_pkey",
+          "indexdef": "CREATE UNIQUE INDEX project_skills_pkey ON public.project_skills USING btree (id)"
+        }
+      ]
+    },
+    "project_skills_v2": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('project_skills_v2_id_seq'::regclass)"
+        },
+        {
+          "column_name": "project_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "user_skill_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "required_level",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": "'beginner'::text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "column_name": "skill_template_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "project_skills_v2_pkey",
+          "indexdef": "CREATE UNIQUE INDEX project_skills_v2_pkey ON public.project_skills_v2 USING btree (id)"
+        }
+      ]
+    },
+    "projects": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('projects_id_seq'::regclass)"
+        },
+        {
+          "column_name": "name",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "description",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "client_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "start_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "end_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "location",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "confluence_link",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "lead_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "delivery_lead_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "status",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "'active'::text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "hr_coordinator_email",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "finance_team_email",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "projects_pkey",
+          "indexdef": "CREATE UNIQUE INDEX projects_pkey ON public.projects USING btree (id)"
+        }
+      ]
+    },
+    "report_settings": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('report_settings_id_seq'::regclass)"
+        },
+        {
+          "column_name": "name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "frequency",
+          "data_type": "USER-DEFINED",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "day_of_week",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "day_of_month",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "recipient_email",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "client_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "active",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "true"
+        },
+        {
+          "column_name": "next_scheduled_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "base_url",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "description",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "report_settings_pkey",
+          "indexdef": "CREATE UNIQUE INDEX report_settings_pkey ON public.report_settings USING btree (id)"
+        },
+        {
+          "indexname": "idx_report_settings_client_id",
+          "indexdef": "CREATE INDEX idx_report_settings_client_id ON public.report_settings USING btree (client_id)"
+        },
+        {
+          "indexname": "idx_report_settings_next_scheduled_at",
+          "indexdef": "CREATE INDEX idx_report_settings_next_scheduled_at ON public.report_settings USING btree (next_scheduled_at)"
+        }
+      ]
+    },
+    "session": {
+      "columns": [
+        {
+          "column_name": "sid",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "sess",
+          "data_type": "json",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "expire",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "NO",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "session_pkey",
+          "indexdef": "CREATE UNIQUE INDEX session_pkey ON public.session USING btree (sid)"
+        },
+        {
+          "indexname": "IDX_session_expire",
+          "indexdef": "CREATE INDEX \"IDX_session_expire\" ON public.session USING btree (expire)"
+        }
+      ]
+    },
+    "skill_approvers": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('skill_approvers_id_seq'::regclass)"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "category_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "can_approve_all",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "false"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "subcategory_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "skill_template_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "skill_approvers_pkey",
+          "indexdef": "CREATE UNIQUE INDEX skill_approvers_pkey ON public.skill_approvers USING btree (id)"
+        }
+      ]
+    },
+    "skill_categories": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('skill_categories_id_seq'::regclass)"
+        },
+        {
+          "column_name": "name",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "description",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "tab_order",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "0"
+        },
+        {
+          "column_name": "visibility",
+          "data_type": "USER-DEFINED",
+          "is_nullable": "YES",
+          "column_default": "'visible'::tab_visibility"
+        },
+        {
+          "column_name": "color",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "'#3B82F6'::text"
+        },
+        {
+          "column_name": "icon",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "'code'::text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "category_type",
+          "data_type": "USER-DEFINED",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "skill_categories_pkey",
+          "indexdef": "CREATE UNIQUE INDEX skill_categories_pkey ON public.skill_categories USING btree (id)"
+        }
+      ]
+    },
+    "skill_histories": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('skill_histories_id_seq'::regclass)"
+        },
+        {
+          "column_name": "skill_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "previous_level",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "new_level",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "change_note",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "skill_histories_pkey",
+          "indexdef": "CREATE UNIQUE INDEX skill_histories_pkey ON public.skill_histories USING btree (id)"
+        }
+      ]
+    },
+    "skill_histories_v2": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('skill_histories_v2_id_seq'::regclass)"
+        },
+        {
+          "column_name": "user_skill_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "previous_level",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "new_level",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "change_note",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "NO",
+          "column_default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "skill_histories_v2_pkey",
+          "indexdef": "CREATE UNIQUE INDEX skill_histories_v2_pkey ON public.skill_histories_v2 USING btree (id)"
+        },
+        {
+          "indexname": "idx_skill_histories_v2_user_skill_id",
+          "indexdef": "CREATE INDEX idx_skill_histories_v2_user_skill_id ON public.skill_histories_v2 USING btree (user_skill_id)"
+        },
+        {
+          "indexname": "idx_skill_histories_v2_user_id",
+          "indexdef": "CREATE INDEX idx_skill_histories_v2_user_id ON public.skill_histories_v2 USING btree (user_id)"
+        }
+      ]
+    },
+    "skill_migration_map": {
+      "columns": [
+        {
+          "column_name": "old_skill_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "new_user_skill_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "migrated_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        }
+      ],
+      "indexes": []
+    },
+    "skill_subcategories": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('skill_subcategories_id_seq'::regclass)"
+        },
+        {
+          "column_name": "name",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "description",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "category_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "color",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "'#3B82F6'::text"
+        },
+        {
+          "column_name": "icon",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "'code'::text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "skill_subcategories_pkey",
+          "indexdef": "CREATE UNIQUE INDEX skill_subcategories_pkey ON public.skill_subcategories USING btree (id)"
+        }
+      ]
+    },
+    "skill_target_skills": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('skill_target_skills_id_seq'::regclass)"
+        },
+        {
+          "column_name": "target_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "skill_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "skill_target_skills_pkey",
+          "indexdef": "CREATE UNIQUE INDEX skill_target_skills_pkey ON public.skill_target_skills USING btree (id)"
+        }
+      ]
+    },
+    "skill_target_users": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('skill_target_users_id_seq'::regclass)"
+        },
+        {
+          "column_name": "target_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "skill_target_users_pkey",
+          "indexdef": "CREATE UNIQUE INDEX skill_target_users_pkey ON public.skill_target_users USING btree (id)"
+        }
+      ]
+    },
+    "skill_targets": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('skill_targets_id_seq'::regclass)"
+        },
+        {
+          "column_name": "name",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "description",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "target_level",
+          "data_type": "USER-DEFINED",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "target_date",
+          "data_type": "date",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "NO",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "NO",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "target_number",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "skill_targets_pkey",
+          "indexdef": "CREATE UNIQUE INDEX skill_targets_pkey ON public.skill_targets USING btree (id)"
+        }
+      ]
+    },
+    "skill_templates": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('skill_templates_id_seq'::regclass)"
+        },
+        {
+          "column_name": "name",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "category",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "description",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "is_recommended",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "false"
+        },
+        {
+          "column_name": "target_level",
+          "data_type": "USER-DEFINED",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "target_date",
+          "data_type": "date",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "NO",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "NO",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "category_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "subcategory_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "skill_templates_pkey",
+          "indexdef": "CREATE UNIQUE INDEX skill_templates_pkey ON public.skill_templates USING btree (id)"
+        }
+      ]
+    },
+    "skills": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('skills_id_seq'::regclass)"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "name",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "category",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "level",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "certification",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "credly_link",
+          "data_type": "character varying",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "notes",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "endorsement_count",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "0"
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "column_name": "certification_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "expiration_date",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "category_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "subcategory_id",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "skills_pkey",
+          "indexdef": "CREATE UNIQUE INDEX skills_pkey ON public.skills USING btree (id)"
+        },
+        {
+          "indexname": "idx_skills_category_id",
+          "indexdef": "CREATE INDEX idx_skills_category_id ON public.skills USING btree (category_id)"
+        },
+        {
+          "indexname": "idx_skills_subcategory_id",
+          "indexdef": "CREATE INDEX idx_skills_subcategory_id ON public.skills USING btree (subcategory_id)"
+        }
+      ]
+    },
+    "user_skills": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('user_skills_id_seq'::regclass)"
+        },
+        {
+          "column_name": "user_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "skill_template_id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "level",
+          "data_type": "text",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "certification",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "credly_link",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "notes",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "endorsement_count",
+          "data_type": "integer",
+          "is_nullable": "YES",
+          "column_default": "0"
+        },
+        {
+          "column_name": "certification_date",
+          "data_type": "timestamp with time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "expiration_date",
+          "data_type": "timestamp with time zone",
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "last_updated",
+          "data_type": "timestamp with time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": "YES",
+          "column_default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "user_skills_pkey",
+          "indexdef": "CREATE UNIQUE INDEX user_skills_pkey ON public.user_skills USING btree (id)"
+        },
+        {
+          "indexname": "user_skills_user_id_skill_template_id_key",
+          "indexdef": "CREATE UNIQUE INDEX user_skills_user_id_skill_template_id_key ON public.user_skills USING btree (user_id, skill_template_id)"
+        }
+      ]
+    },
+    "users": {
+      "columns": [
+        {
+          "column_name": "id",
+          "data_type": "integer",
+          "is_nullable": "NO",
+          "column_default": "nextval('users_id_seq'::regclass)"
+        },
+        {
+          "column_name": "username",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "email",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "password",
+          "data_type": "character varying",
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "is_admin",
+          "data_type": "boolean",
+          "is_nullable": "YES",
+          "column_default": "false"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "column_name": "updated_at",
+          "data_type": "timestamp without time zone",
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "column_name": "first_name",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "''::text"
+        },
+        {
+          "column_name": "last_name",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "''::text"
+        },
+        {
+          "column_name": "project",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "''::text"
+        },
+        {
+          "column_name": "role",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "''::text"
+        },
+        {
+          "column_name": "location",
+          "data_type": "text",
+          "is_nullable": "YES",
+          "column_default": "''::text"
+        }
+      ],
+      "indexes": [
+        {
+          "indexname": "users_pkey",
+          "indexdef": "CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)"
+        },
+        {
+          "indexname": "users_username_key",
+          "indexdef": "CREATE UNIQUE INDEX users_username_key ON public.users USING btree (username)"
+        },
+        {
+          "indexname": "users_email_key",
+          "indexdef": "CREATE UNIQUE INDEX users_email_key ON public.users USING btree (email)"
+        }
+      ]
+    }
+  }
+}
