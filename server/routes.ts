@@ -2424,6 +2424,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create pending skill update using V2 format
         const pendingSkillDataV2: any = {
           user_id: req.user!.id,  // Using snake_case to match DB column names
+          name: req.body.name || '', // Explicitly include name to avoid null violations
+          category: req.body.category || '', // Include category
           skill_template_id: skillTemplateId,
           level: req.body.level,
           certification: req.body.certification || null,
@@ -2533,8 +2535,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create pending skill update using the provided template ID
         const skillTemplateId = req.body.skillTemplateId || req.body.skill_template_id;
         
+        // Get the skill template to get its name and category
+        let templateName = '';
+        let templateCategory = '';
+        
+        try {
+          const template = await storage.getSkillTemplate(skillTemplateId);
+          if (template) {
+            templateName = template.name;
+            templateCategory = template.category;
+          }
+        } catch (err) {
+          console.error("Error getting skill template details:", err);
+        }
+        
         const pendingSkillDataV2: any = {
           user_id: req.user!.id,
+          name: templateName || req.body.name || '', // Use template name or fallback to request body
+          category: templateCategory || req.body.category || '', // Use template category or fallback
           skill_template_id: skillTemplateId,
           level: req.body.level,
           certification: req.body.certification || null,
