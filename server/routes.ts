@@ -2478,14 +2478,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET route for /api/skills/pending (temporarily public for testing)
-  app.get("/api/skills/pending", async (req, res) => {
+  // GET route for /api/skills/pending (with explicit authentication)
+  app.get("/api/skills/pending", ensureApprover, async (req, res) => {
     try {
-      console.log("GET /api/skills/pending endpoint called without auth check");
+      console.log("GET /api/skills/pending endpoint called with approver check");
+      
+      const userId = req.user!.id;
+      const userEmail = req.user!.email;
+      const isAdmin = req.user!.isAdmin || req.user!.is_admin;
+      console.log(`User ID: ${userId}, Email: ${userEmail}, isAdmin: ${isAdmin}`);
       
       // Get all pending skill updates using V2 method
       const pendingUpdates = await storage.getPendingSkillUpdatesV2();
       console.log(`Got ${pendingUpdates.length} total pending updates`);
+      
+      // If not an admin or super admin, we should filter the results
+      // For now we're returning all results since the user has already passed the approver check
       
       res.json(pendingUpdates);
     } catch (error) {
