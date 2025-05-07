@@ -640,39 +640,39 @@ export class PostgresStorage implements IStorage {
   
   // Convert UserSkill (new schema) to Skill (old schema) format for backward compatibility
   userSkillToLegacySkill(userSkill: any): Skill {
-    // Extract all the direct properties that match the Skill type with snake_case property names
+    // Extract all the direct properties that match the Skill type, ensuring camelCase for TS type compatibility
     const legacySkill: Partial<Skill> = {
       id: userSkill.id,
-      user_id: userSkill.user_id || userSkill.userId,
-      name: userSkill.skill_name || userSkill.skillName || 'Unknown Skill',
-      category: userSkill.skill_category || userSkill.skillCategory || 'Uncategorized',
-      // Ensure category_id and subcategory_id are correctly mapped from both sources
-      category_id: userSkill.category_id || userSkill.categoryId || null,
-      subcategory_id: userSkill.subcategory_id || userSkill.subcategoryId || null,
+      userId: userSkill.userId || userSkill.user_id,
+      name: userSkill.skillName || userSkill.skill_name || 'Unknown Skill',
+      category: userSkill.skillCategory || userSkill.skill_category || 'Uncategorized',
+      // Ensure categoryId and subcategoryId are correctly mapped from both sources
+      categoryId: userSkill.categoryId || userSkill.category_id || null,
+      subcategoryId: userSkill.subcategoryId || userSkill.subcategory_id || null,
       level: userSkill.level,
-      last_updated: userSkill.last_updated || userSkill.lastUpdated,
+      lastUpdated: userSkill.lastUpdated || userSkill.last_updated,
       certification: userSkill.certification || '',
-      credly_link: userSkill.credly_link || userSkill.credlyLink || '',
+      credlyLink: userSkill.credlyLink || userSkill.credly_link || '',
       notes: userSkill.notes || '',
-      endorsement_count: userSkill.endorsement_count || userSkill.endorsementCount || 0,
-      certification_date: userSkill.certification_date || userSkill.certificationDate || null,
-      expiration_date: userSkill.expiration_date || userSkill.expirationDate || null
+      endorsementCount: userSkill.endorsementCount || userSkill.endorsement_count || 0,
+      certificationDate: userSkill.certificationDate || userSkill.certification_date || null,
+      expirationDate: userSkill.expirationDate || userSkill.expiration_date || null
     };
     
     // Add the extended properties as a separate step
     // This avoids TypeScript errors about unknown properties
     const result = legacySkill as any;
     
-    // Add extended properties used by the UI, using snake_case consistently
-    result.category = userSkill.category_name || userSkill.categoryName || userSkill.skill_category || userSkill.skillCategory || null;
-    result.category_color = userSkill.category_color || userSkill.categoryColor || '#3B82F6';
-    result.category_icon = userSkill.category_icon || userSkill.categoryIcon || 'code';
-    result.subcategory = userSkill.subcategory_name || userSkill.subcategoryName || null;
-    result.subcategory_color = userSkill.subcategory_color || userSkill.subcategoryColor || '#3B82F6';
-    result.subcategory_icon = userSkill.subcategory_icon || userSkill.subcategoryIcon || 'code';
+    // Add extended properties used by the UI, using camelCase for TS type compatibility
+    result.categoryName = userSkill.categoryName || userSkill.category_name || userSkill.skillCategory || userSkill.skill_category || null;
+    result.categoryColor = userSkill.categoryColor || userSkill.category_color || '#3B82F6';
+    result.categoryIcon = userSkill.categoryIcon || userSkill.category_icon || 'code';
+    result.subcategoryName = userSkill.subcategoryName || userSkill.subcategory_name || null;
+    result.subcategoryColor = userSkill.subcategoryColor || userSkill.subcategory_color || '#3B82F6';
+    result.subcategoryIcon = userSkill.subcategoryIcon || userSkill.subcategory_icon || 'code';
     
     // For debugging
-    if (!result.category_id && !result.subcategory_id) {
+    if (!result.categoryId && !result.subcategoryId) {
       console.log(`Warning: Converted user skill without category/subcategory IDs: ${result.name}`);
     }
     
@@ -849,35 +849,35 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Updated to use new schema (user_skills joined with skill_templates) and return in Skill format
+  // Updated to use new schema (user_skills joined with skill_templates) and return in Skill format with snake_case
   async getSkill(id: number): Promise<Skill | undefined> {
     try {
       // First check if we can find this skill in the user_skills table
       const userSkill = await this.getUserSkillById(id);
       
       if (userSkill) {
-        // Convert from UserSkill to Skill format for API compatibility
+        // Convert from UserSkill to Skill format for API compatibility, using snake_case properties
         const transformedSkill = {
           id: userSkill.id,
-          userId: userSkill.userId,
+          user_id: userSkill.userId,
           name: userSkill.skillName || '', // From the joined skill_templates.name
           category: userSkill.skillCategory || '', // From the joined skill_templates.category
           level: userSkill.level,
-          lastUpdated: userSkill.lastUpdated,
+          last_updated: userSkill.lastUpdated,
           certification: userSkill.certification,
-          credlyLink: userSkill.credlyLink,
+          credly_link: userSkill.credlyLink,
           notes: userSkill.notes,
-          endorsementCount: userSkill.endorsementCount,
-          certificationDate: userSkill.certificationDate,
-          expirationDate: userSkill.expirationDate,
-          categoryId: null, // These fields won't be used in new schema
-          subcategoryId: null,
-          categoryName: userSkill.categoryName || null,
-          categoryColor: userSkill.categoryColor || null,
-          categoryIcon: userSkill.categoryIcon || null,
-          subcategoryName: userSkill.subcategoryName || null,
-          subcategoryColor: userSkill.subcategoryColor || null,
-          subcategoryIcon: userSkill.subcategoryIcon || null,
+          endorsement_count: userSkill.endorsementCount,
+          certification_date: userSkill.certificationDate,
+          expiration_date: userSkill.expirationDate,
+          category_id: null, // These fields won't be used in new schema
+          subcategory_id: null,
+          category_name: userSkill.categoryName || null,
+          category_color: userSkill.categoryColor || null,
+          category_icon: userSkill.categoryIcon || null,
+          subcategory_name: userSkill.subcategoryName || null,
+          subcategory_color: userSkill.subcategoryColor || null,
+          subcategory_icon: userSkill.subcategoryIcon || null,
         };
         
         console.log(`Retrieved skill ${id} from user_skills:`, JSON.stringify(transformedSkill));
