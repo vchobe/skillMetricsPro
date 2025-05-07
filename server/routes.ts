@@ -1529,8 +1529,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid template ID" });
       }
       
+      console.log(`Initiating cascading delete of skill template ID ${id} by super admin ${req.user?.email}`);
+      
       // Call the enhanced deleteSkillTemplate function which handles cascading deletes
       const result = await storage.deleteSkillTemplate(id);
+      
+      console.log(`Cascading delete of skill template ID ${id} completed successfully`);
       
       res.status(200).json({
         message: "Skill template and all references successfully deleted",
