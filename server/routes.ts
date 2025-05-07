@@ -2284,16 +2284,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Detected custom skill with category and subcategory");
         
         // Create a pending skill update using the legacy format
+        // Explicitly match the database schema fields
         const pendingSkillData: any = {
-          userId: req.user!.id,
+          user_id: req.user!.id,  // Using snake_case to match DB column names
           name: req.body.name,
           category: req.body.category,
           level: req.body.level,
           certification: req.body.certification || '',
-          credlyLink: req.body.credlyLink || '',
+          credly_link: req.body.credlyLink || '',
           status: "pending",
-          submittedAt: new Date(),
-          isUpdate: false
+          submitted_at: new Date(),
+          is_update: false
         };
         
         // Process the subcategory information
@@ -2328,8 +2329,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Add the category and subcategory IDs if available
-        if (categoryId) pendingSkillData.categoryId = categoryId;
-        if (subcategoryId) pendingSkillData.subcategoryId = subcategoryId;
+        if (categoryId) pendingSkillData.category_id = categoryId;
+        if (subcategoryId) pendingSkillData.subcategory_id = subcategoryId;
         
         // Format notes to preserve subcategory information
         let metadataNotes = `${req.body.name}-beta\nCategory: ${req.body.category}\nSubcategory: ${req.body.subcategory}`;
@@ -2345,9 +2346,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (isAdmin) {
           console.log("Admin user detected, auto-approving custom skill");
           pendingSkillData.status = "approved";
-          pendingSkillData.reviewedAt = new Date();
-          pendingSkillData.reviewedBy = req.user!.id;
-          pendingSkillData.reviewNotes = "Auto-approved (admin user)";
+          pendingSkillData.reviewed_at = new Date();
+          pendingSkillData.reviewed_by = req.user!.id;
+          pendingSkillData.review_notes = "Auto-approved (admin user)";
           
           try {
             // Create the pending skill update first
