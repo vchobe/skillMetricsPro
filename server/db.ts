@@ -14,8 +14,19 @@ function getDatabaseConfig() {
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
   
-  // Check if we have DATABASE_URL - which should be used with priority
-  if (process.env.DATABASE_URL) {
+  // REPLIT ENVIRONMENT OVERRIDE
+  // Force using Cloud SQL regardless of DATABASE_URL
+  console.log('FORCED CONFIGURATION: Using Google Cloud SQL instead of DATABASE_URL');
+  
+  // Skipping DATABASE_URL completely
+  /*
+  // Check for explicit request to use Cloud SQL (overrides DATABASE_URL)
+  const forceCloudSql = process.env.PERMANENT_DB_SETTING === 'CLOUD_SQL' || 
+                        process.env.USE_CLOUD_SQL === 'true' || 
+                        process.env.DATABASE_URL_DISABLED === 'true';
+  
+  // Check if we have DATABASE_URL - which should be used with priority unless overridden
+  if (!forceCloudSql && process.env.DATABASE_URL) {
     console.log('PREFERRED DATABASE CONFIGURATION: Using DATABASE_URL connection string');
     console.log(`Database URL exists, pointing to: ${process.env.DATABASE_URL.split('@')[1].split('/')[0]}`);
     
@@ -26,8 +37,9 @@ function getDatabaseConfig() {
       connectionTimeoutMillis: 10000
     };
   }
+  */
   
-  // If DATABASE_URL is not available, fall back to Cloud SQL configuration
+  // Use Cloud SQL configuration (either because DATABASE_URL is not available or was overridden)
   // Check for Google Cloud SQL configuration
   const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
   const cloudSqlUser = process.env.CLOUD_SQL_USER;
