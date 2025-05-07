@@ -1393,13 +1393,14 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Separate method for creating skill history with v2 schema explicitly
+  // Method for creating skill history using the existing skill_histories table
   async createSkillHistoryV2(history: {
     userSkillId: number;
     userId: number;
     previousLevel: string | null;
     newLevel: string;
     changeNote?: string;
+    changeById?: number;
   }): Promise<any> {
     try {
       // Get the user skill information for context
@@ -1421,21 +1422,32 @@ export class PostgresStorage implements IStorage {
         }
       }
       
-      console.log(`Creating history V2 for ${skillName} (user skill ID: ${history.userSkillId}, user ID: ${history.userId})`);
+      console.log(`Creating history for ${skillName} (user skill ID: ${history.userSkillId}, user ID: ${history.userId})`);
       console.log(`Level change: ${history.previousLevel || 'none'} -> ${history.newLevel}`);
       
-      // Insert directly into the skill_histories_v2 table
+      // Get skill_id from skills table for the user if it exists
+      const skillResult = await pool.query(
+        'SELECT id FROM skills WHERE name = $1 AND user_id = $2 LIMIT 1',
+        [skillName, history.userId]
+      );
+      
+      const skillId = skillResult.rows.length > 0 ? skillResult.rows[0].id : null;
+      
+      // Insert history using the existing skill_histories table
       const result = await pool.query(
-        `INSERT INTO skill_histories_v2 (
-          user_skill_id, user_id, previous_level, new_level, change_note
-        ) VALUES ($1, $2, $3, $4, $5) 
+        `INSERT INTO skill_histories (
+          skill_id, user_id, user_skill_id, previous_level, new_level,
+          change_note, change_by_id, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
          RETURNING *`,
         [
-          history.userSkillId, 
+          skillId, 
           history.userId, 
+          history.userSkillId, 
           history.previousLevel, 
           history.newLevel,
-          history.changeNote || ''
+          history.changeNote || `Skill level changed from ${history.previousLevel || 'none'} to ${history.newLevel}`,
+          history.changeById || history.userId
         ]
       );
       
