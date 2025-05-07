@@ -2810,17 +2810,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reviewerId = req.user!.id;
       const { notes } = req.body;
       
-      // Approve the pending skill update
-      const approvedSkill = await storage.approvePendingSkillUpdate(updateId, reviewerId, notes);
+      // Approve the pending skill update using the V2 function
+      const approvedSkill = await storage.approvePendingSkillUpdateV2(updateId, reviewerId, notes);
       
-      // Get skill template name for notification
-      let skillName = "your skill";
-      if (approvedSkill.skillTemplateId) {
-        const template = await storage.getSkillTemplate(approvedSkill.skillTemplateId);
-        if (template) {
-          skillName = template.name;
-        }
-      }
+      // Get skill name for notification
+      let skillName = approvedSkill.name || "your skill";
       
       // Create a notification for the user
       await storage.createNotification({
@@ -2852,14 +2846,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Reject the pending skill update
       await storage.rejectPendingSkillUpdate(updateId, reviewerId, notes);
       
-      // Get skill template name for notification
-      let skillName = "your skill";
-      if (pendingUpdate.skillTemplateId) {
-        const template = await storage.getSkillTemplate(pendingUpdate.skillTemplateId);
-        if (template) {
-          skillName = template.name;
-        }
-      }
+      // Get skill name for notification
+      let skillName = pendingUpdate.name || "your skill";
       
       // Create a notification for the user
       await storage.createNotification({
