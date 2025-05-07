@@ -69,7 +69,7 @@ export async function apiRequest<T = any>(
 ): Promise<Response> {
   // Get the full URL with proper base URL
   const fullUrl = getFullApiUrl(url);
-  console.log(`Making API request: ${method} ${fullUrl}`);
+  console.log(`Making API request: ${method} ${fullUrl}`, data);
   
   // Set up headers with auth token if available
   const headers: Record<string, string> = {
@@ -110,8 +110,13 @@ export async function apiRequest<T = any>(
     }
   }
 
-  await throwIfResNotOk(res);
-  return res;
+  try {
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    console.error(`API request failed for ${method} ${fullUrl}:`, error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
