@@ -5331,6 +5331,78 @@ export default function AdminDashboard() {
           isOpen={profileDialogOpen}
           onClose={() => setProfileDialogOpen(false)}
         />
+        
+        {/* Delete Template Confirmation Dialog */}
+        <Dialog open={showDeleteTemplateDialog} onOpenChange={setShowDeleteTemplateDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                {useSuperAdminDelete ? 
+                  "Super Admin Delete - ALL RELATED DATA WILL BE DELETED" :
+                  "Delete Skill Template"}
+              </DialogTitle>
+              <DialogDescription>
+                {useSuperAdminDelete ? 
+                  "WARNING: This will permanently delete this skill template AND all associated user skills, endorsements, pending updates, and notifications." :
+                  "Are you sure you want to delete this skill template? This action cannot be undone."}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {/* Show super admin toggle only for admin@atyeti.com */}
+            {user?.email === "admin@atyeti.com" && (
+              <div className="border rounded-md p-4 mb-4 bg-yellow-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-amber-800">Super Admin Delete Mode</span>
+                    <span className="text-sm text-amber-700">
+                      Enables cascading deletion of all related data
+                    </span>
+                  </div>
+                  <Switch
+                    checked={useSuperAdminDelete}
+                    onCheckedChange={setUseSuperAdminDelete}
+                    className="data-[state=checked]:bg-red-500" 
+                  />
+                </div>
+                {useSuperAdminDelete && (
+                  <div className="mt-3 text-sm text-red-600 border-t pt-2 border-amber-200">
+                    <AlertTriangle className="h-4 w-4 inline-block mr-1" />
+                    <span className="font-bold">WARNING:</span> This will delete ALL related:
+                    <ul className="list-disc ml-5 mt-1">
+                      <li>User skills using this template</li>
+                      <li>Pending skill updates</li>
+                      <li>Skill endorsements</li>
+                      <li>Skill-related notifications</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <DialogFooter className="mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteTemplateDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className={useSuperAdminDelete ? "bg-red-600 hover:bg-red-700" : ""}
+                onClick={() => {
+                  if (useSuperAdminDelete) {
+                    superAdminDeleteTemplateMutation.mutate(deleteTemplateId!);
+                  } else {
+                    deleteTemplateMutation.mutate(deleteTemplateId!);
+                  }
+                  setShowDeleteTemplateDialog(false);
+                }}
+              >
+                {useSuperAdminDelete ? "DELETE ALL DATA" : "Delete Template"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
