@@ -645,10 +645,10 @@ export default function AddSkillsPage() {
       return;
     }
     
-    if (!customSkill.name || !customSkill.category || !customSkill.level) {
+    if (!customSkill.name || !customSkill.category || !customSkill.subcategory || !customSkill.level) {
       toast({
         title: "Missing required fields",
-        description: "Please fill in all required fields for the custom skill.",
+        description: "Please fill in all required fields (name, category, subcategory, and level) for the custom skill.",
         variant: "destructive",
       });
       return;
@@ -1223,13 +1223,32 @@ export default function AddSkillsPage() {
                                     render={({ field }) => (
                                       <FormItem className="space-y-2">
                                         <FormLabel>Subcategory *</FormLabel>
-                                        <FormControl>
-                                          <Input 
-                                            placeholder="Enter subcategory"
-                                            {...field}
-                                            required
-                                          />
-                                        </FormControl>
+                                        <Select 
+                                          onValueChange={field.onChange} 
+                                          defaultValue={field.value}
+                                          required
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select subcategory" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {/* Filter subcategories based on selected category */}
+                                            {skillSubcategories
+                                              .filter(subcategory => {
+                                                const categoryObj = skillCategories.find(c => c.name === form.getValues().category);
+                                                return categoryObj && subcategory.categoryId === categoryObj.id;
+                                              })
+                                              .map(subcategory => (
+                                                <SelectItem key={subcategory.id} value={subcategory.name}>
+                                                  {subcategory.name}
+                                                </SelectItem>
+                                              ))}
+                                              {/* Add an "Other" option if no subcategories match */}
+                                              <SelectItem value="Other">Other</SelectItem>
+                                          </SelectContent>
+                                        </Select>
                                       </FormItem>
                                     )}
                                   />
