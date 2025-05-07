@@ -2478,6 +2478,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET route for /api/skills/pending
+  app.get("/api/skills/pending", ensureAuth, async (req, res) => {
+    try {
+      console.log("GET /api/skills/pending endpoint called");
+      const userId = req.user!.id;
+      const userEmail = req.user!.email;
+      const isAdmin = req.user!.isAdmin || req.user!.is_admin;
+      console.log(`User ID: ${userId}, Email: ${userEmail}, isAdmin: ${isAdmin}`);
+      
+      // Get all pending skill updates using V2 method
+      const pendingUpdates = await storage.getPendingSkillUpdatesV2();
+      console.log(`Got ${pendingUpdates.length} total pending updates`);
+      
+      res.json(pendingUpdates);
+    } catch (error) {
+      console.error("Error fetching pending skill updates:", error);
+      res.status(500).json({ message: "Error fetching pending skill updates", error });
+    }
+  });
+
   // Admin approval routes (accessible by both admins and approvers)
   app.get("/api/admin/pending-skills", ensureApprover, async (req, res) => {
     try {
