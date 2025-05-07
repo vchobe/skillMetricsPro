@@ -286,7 +286,9 @@ export const endorsementsV2 = pgTable("endorsements_v2", {
   endorserId: integer("endorser_id").notNull(),
   endorseeId: integer("endorsee_id").notNull(), 
   comment: text("comment"),
+  level: varchar("level", { length: 20 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at"),
 });
 
 export const insertEndorsementSchema = createInsertSchema(endorsements).pick({
@@ -297,9 +299,10 @@ export const insertEndorsementSchema = createInsertSchema(endorsements).pick({
 });
 
 export const insertEndorsementV2Schema = createInsertSchema(endorsementsV2)
-  .omit({ id: true, createdAt: true })
+  .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     skillId: z.number().optional(), // For backward compatibility, maps to userSkillId
+    level: z.string().min(1, "Skill level is required"), // Add the level field
   })
   .transform(data => {
     // Handle compatibility with the legacy schema by mapping skillId to userSkillId
@@ -770,8 +773,8 @@ export const insertProjectSkillV2Schema = createInsertSchema(projectSkillsV2).pi
   projectId: true,
   skillTemplateId: true,
   requiredLevel: true
-}).omit({
-  userSkillId: true
+}).extend({
+  userSkillId: z.number().optional()
 });
 
 export type ProjectSkill = typeof projectSkills.$inferSelect;
