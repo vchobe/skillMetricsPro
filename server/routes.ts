@@ -2263,7 +2263,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/notifications/read-all", ensureAuth, async (req, res) => {
     try {
       await storage.markAllNotificationsAsRead(req.user!.id);
-      res.status(200).send();
+      // Return a JSON response instead of an empty response
+      res.status(200).json({ success: true, message: "All notifications marked as read" });
     } catch (error) {
       res.status(500).json({ message: "Error marking notifications as read", error });
     }
