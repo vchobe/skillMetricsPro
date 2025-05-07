@@ -2902,7 +2902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all project skills
   app.get("/api/project-skills", ensureAuth, async (req, res) => {
     try {
-      const skills = await storage.getAllProjectSkillsV2();
+      const skills = await storage.getAllProjectSkills();
       res.json(skills);
     } catch (error) {
       res.status(500).json({ message: "Error fetching project skills", error });
@@ -3989,7 +3989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all project skills
   app.get("/api/project-skills", ensureAuth, async (req, res) => {
     try {
-      const skills = await storage.getAllProjectSkillsV2();
+      const skills = await storage.getAllProjectSkills();
       res.json(skills);
     } catch (error) {
       console.error("Error fetching project skills:", error);
@@ -4033,7 +4033,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get project required skills
       console.log("Fetching project skills...");
-      const projectSkills = await storage.getAllProjectSkillsV2();
+      const projectSkills = await storage.getAllProjectSkills();
       console.log(`Fetched ${projectSkills.length} project skills`);
 
       // Build the hierarchy: clients -> projects -> resources -> skills
