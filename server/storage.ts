@@ -534,18 +534,18 @@ export class PostgresStorage implements IStorage {
       // 3. Delete profile histories
       await pool.query('DELETE FROM profile_histories WHERE user_id = $1', [id]);
       
-      // 4. Delete skill histories (V2 table)
-      await pool.query('DELETE FROM skill_histories_v2 WHERE user_id = $1', [id]);
+      // 4. Delete skill histories
+      await pool.query('DELETE FROM skill_histories WHERE user_id = $1', [id]);
       
       // 5. Delete notifications
       await pool.query('DELETE FROM notifications WHERE user_id = $1', [id]);
       
-      // 6. Delete endorsements given by this user (both legacy and v2)
-      await pool.query('DELETE FROM endorsements_v2 WHERE endorser_id = $1', [id]);
+      // 6. Delete endorsements given by this user
+      await pool.query('DELETE FROM endorsements WHERE endorser_id = $1', [id]);
       
       // 7. Delete endorsements received by this user's skills (using user_skills)
       await pool.query(
-        'DELETE FROM endorsements_v2 WHERE user_skill_id IN (SELECT id FROM user_skills WHERE user_id = $1)',
+        'DELETE FROM endorsements WHERE user_skill_id IN (SELECT id FROM user_skills WHERE user_id = $1)',
         [id]
       );
       
@@ -808,11 +808,11 @@ export class PostgresStorage implements IStorage {
   
   async deleteUserSkill(id: number): Promise<void> {
     try {
-      // First remove any endorsements from the v2 table
-      await pool.query('DELETE FROM endorsements_v2 WHERE user_skill_id = $1', [id]);
+      // First remove any endorsements from the endorsements table
+      await pool.query('DELETE FROM endorsements WHERE user_skill_id = $1', [id]);
       
-      // Then delete skill histories from the v2 table
-      await pool.query('DELETE FROM skill_histories_v2 WHERE user_skill_id = $1', [id]);
+      // Then delete skill histories from the skill_histories table
+      await pool.query('DELETE FROM skill_histories WHERE user_skill_id = $1', [id]);
       
       // Finally delete the skill
       await pool.query('DELETE FROM user_skills WHERE id = $1', [id]);
@@ -1237,12 +1237,12 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  // Skill history operations using V2 tables
+  // Skill history operations
   async getSkillHistory(skillId: number): Promise<SkillHistory[]> {
     try {
       const result = await pool.query(`
         SELECT sh.*, st.name as skill_name 
-        FROM skill_histories_v2 sh
+        FROM skill_histories sh
         JOIN user_skills us ON sh.user_skill_id = us.id 
         JOIN skill_templates st ON us.skill_template_id = st.id 
         WHERE sh.user_skill_id = $1 
@@ -1260,7 +1260,7 @@ export class PostgresStorage implements IStorage {
     try {
       const result = await pool.query(`
         SELECT sh.*, st.name as skill_name 
-        FROM skill_histories_v2 sh
+        FROM skill_histories sh
         JOIN user_skills us ON sh.user_skill_id = us.id 
         JOIN skill_templates st ON us.skill_template_id = st.id 
         WHERE sh.user_id = $1 
@@ -1274,23 +1274,23 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // New function to get user skill histories from both old and new schemas
+  // Function to get user skill histories 
   async getUserSkillHistoryFromAllSources(userId: number): Promise<SkillHistory[]> {
     try {
-      console.log(`Getting skill histories for user ${userId} from v2 table`);
+      console.log(`Getting skill histories for user ${userId} from skill_histories table`);
       
-      // Get histories from the v2 table linked to user_skills via skill templates
+      // Get histories from the skill_histories table linked to user_skills via skill templates
       const result = await pool.query(`
-        SELECT shv2.*, st.name as skill_name 
-        FROM skill_histories_v2 shv2
-        JOIN user_skills us ON shv2.user_skill_id = us.id 
+        SELECT sh.*, st.name as skill_name 
+        FROM skill_histories sh
+        JOIN user_skills us ON sh.user_skill_id = us.id 
         JOIN skill_templates st ON us.skill_template_id = st.id 
-        WHERE shv2.user_id = $1 
-        ORDER BY shv2.created_at DESC
+        WHERE sh.user_id = $1 
+        ORDER BY sh.created_at DESC
       `, [userId]);
       
       const count = result.rows.length;
-      console.log(`Retrieved ${count} skill histories from v2 table for user ${userId}`);
+      console.log(`Retrieved ${count} skill histories from skill_histories table for user ${userId}`);
       
       return this.snakeToCamel(result.rows);
     } catch (error) {
@@ -1303,7 +1303,7 @@ export class PostgresStorage implements IStorage {
     try {
       const result = await pool.query(`
         SELECT sh.*, st.name as skill_name, u.email as user_email 
-        FROM skill_histories_v2 sh
+        FROM skill_histories sh
         JOIN user_skills us ON sh.user_skill_id = us.id 
         JOIN skill_templates st ON us.skill_template_id = st.id 
         JOIN users u ON sh.user_id = u.id 
@@ -1317,23 +1317,23 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Updated to use only v2 tables
+  // Get all skill histories from skill_histories table
   async getAllSkillHistoriesFromAllSources(): Promise<SkillHistory[]> {
     try {
-      console.log("Getting all skill histories from v2 table");
+      console.log("Getting all skill histories from skill_histories table");
       
-      // Get histories from the v2 table linked to user_skills via skill templates
+      // Get histories from the skill_histories table linked to user_skills via skill templates
       const result = await pool.query(`
-        SELECT shv2.*, st.name as skill_name, u.email as user_email 
-        FROM skill_histories_v2 shv2
-        JOIN user_skills us ON shv2.user_skill_id = us.id 
+        SELECT sh.*, st.name as skill_name, u.email as user_email 
+        FROM skill_histories sh
+        JOIN user_skills us ON sh.user_skill_id = us.id 
         JOIN skill_templates st ON us.skill_template_id = st.id 
-        JOIN users u ON shv2.user_id = u.id 
-        ORDER BY shv2.created_at DESC
+        JOIN users u ON sh.user_id = u.id 
+        ORDER BY sh.created_at DESC
       `);
       
       const count = result.rows.length;
-      console.log(`Retrieved ${count} skill histories from v2 table`);
+      console.log(`Retrieved ${count} skill histories from skill_histories table`);
       
       return this.snakeToCamel(result.rows);
     } catch (error) {
@@ -1342,7 +1342,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Updated to use only skill_histories_v2 table with user_skills
+  // Updated to use only skill_histories table with user_skills
   async createSkillHistory(history: InsertSkillHistory): Promise<SkillHistory> {
     try {
       // Validate the user skill exists
@@ -1367,18 +1367,29 @@ export class PostgresStorage implements IStorage {
       console.log(`Creating history for ${skillName} (user skill ID: ${history.skillId}, user ID: ${history.userId})`);
       console.log(`Level change: ${history.previousLevel || 'none'} -> ${history.newLevel}`);
       
-      // Insert into the v2 table
+      // Get skill_id from skills table for the user if it exists
+      const skillResult = await pool.query(
+        'SELECT id FROM skills WHERE name = $1 AND user_id = $2 LIMIT 1',
+        [skillName, history.userId]
+      );
+      
+      const skillId = skillResult.rows.length > 0 ? skillResult.rows[0].id : null;
+      
+      // Insert into the skill_histories table
       const result = await pool.query(
-        `INSERT INTO skill_histories_v2 (
-          user_skill_id, user_id, previous_level, new_level, change_note
-        ) VALUES ($1, $2, $3, $4, $5) 
+        `INSERT INTO skill_histories (
+          skill_id, user_id, user_skill_id, previous_level, new_level,
+          change_note, change_by_id, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
          RETURNING *`,
         [
-          history.skillId, 
+          skillId, 
           history.userId, 
+          history.skillId, 
           history.previousLevel || null, 
           history.newLevel,
-          history.changeNote || ''
+          history.changeNote || `Skill level changed from ${history.previousLevel || 'none'} to ${history.newLevel}`,
+          history.userId // Change by the user themselves
         ]
       );
       
