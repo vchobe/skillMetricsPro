@@ -374,7 +374,10 @@ export default function AddSkillsPage() {
         submitted_at: new Date().toISOString(),
         // Include category and subcategory IDs if available
         category_id: categoryObj?.id || null,
-        subcategory_id: subcategoryObj?.id || null
+        subcategory_id: skillSubcategories.find(sc => 
+          sc.name === skill.subcategory && 
+          sc.categoryId === categoryObj?.id
+        )?.id || null
       };
       
       const res = await apiRequest("POST", "/api/skills/pending", skillData);
