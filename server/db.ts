@@ -7,52 +7,13 @@ import * as schema from "@shared/schema";
  * Database Configuration
  * 
  * This module handles connecting to the database for the application.
- * It now supports multiple connection methods with priority given to
- * the standardized DATABASE_URL connection string.
+ * REPLIT DATABASE ONLY - Neon DB connections have been removed
  */
 function getDatabaseConfig() {
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
   
-  // Make the DATABASE_URL temporarily available for schema comparison
-  if (process.env.COMPARE_SCHEMAS === 'true' && process.env.DATABASE_URL) {
-    console.log('SCHEMA COMPARISON MODE: Using DATABASE_URL connection string');
-    console.log(`Database URL exists, pointing to: ${process.env.DATABASE_URL.split('@')[1].split('/')[0]}`);
-    
-    return {
-      connectionString: process.env.DATABASE_URL,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000
-    };
-  }
-  
-  // REPLIT ENVIRONMENT OVERRIDE
-  // Force using Cloud SQL regardless of DATABASE_URL
-  console.log('FORCED CONFIGURATION: Using Google Cloud SQL instead of DATABASE_URL');
-  
-  // Skipping DATABASE_URL completely
-  /*
-  // Check for explicit request to use Cloud SQL (overrides DATABASE_URL)
-  const forceCloudSql = process.env.PERMANENT_DB_SETTING === 'CLOUD_SQL' || 
-                        process.env.USE_CLOUD_SQL === 'true' || 
-                        process.env.DATABASE_URL_DISABLED === 'true';
-  
-  // Check if we have DATABASE_URL - which should be used with priority unless overridden
-  if (!forceCloudSql && process.env.DATABASE_URL) {
-    console.log('PREFERRED DATABASE CONFIGURATION: Using DATABASE_URL connection string');
-    console.log(`Database URL exists, pointing to: ${process.env.DATABASE_URL.split('@')[1].split('/')[0]}`);
-    
-    return {
-      connectionString: process.env.DATABASE_URL,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000
-    };
-  }
-  */
-  
-  // Use Cloud SQL configuration (either because DATABASE_URL is not available or was overridden)
+  // Use Cloud SQL configuration (Google Cloud SQL only)
   // Check for Google Cloud SQL configuration
   const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
   const cloudSqlUser = process.env.CLOUD_SQL_USER;
@@ -64,11 +25,10 @@ function getDatabaseConfig() {
   
   // Verify required credentials
   if (!hasCloudSqlConfig) {
-    throw new Error('Database configuration is missing. Please set either DATABASE_URL or CLOUD_SQL_CONNECTION_NAME, CLOUD_SQL_USER, CLOUD_SQL_PASSWORD, and CLOUD_SQL_DATABASE environment variables.');
+    throw new Error('Database configuration is missing. Please set CLOUD_SQL_CONNECTION_NAME, CLOUD_SQL_USER, CLOUD_SQL_PASSWORD, and CLOUD_SQL_DATABASE environment variables.');
   }
   
-  // FALLBACK CONFIGURATION: Using Google Cloud SQL
-  console.log('FALLBACK DATABASE CONFIGURATION: Using Google Cloud SQL');
+  console.log('CONFIGURATION: Using Google Cloud SQL only');
   
   // For GCP Cloud Run, use Unix socket connection
   const isCloudRun = process.env.K_SERVICE || process.env.USE_CLOUD_SQL === 'true';
@@ -89,8 +49,6 @@ function getDatabaseConfig() {
     };
   } else {
     // In development or direct connection mode, use TCP connection
-    // This requires the database to be publicly accessible or using
-    // Cloud SQL Auth Proxy if connecting to private instances
     
     // Check if we have host and port override - useful for direct connections
     const dbHost = process.env.CLOUD_SQL_HOST || 'localhost';
