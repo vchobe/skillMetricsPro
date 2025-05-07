@@ -755,7 +755,8 @@ export const projectSkillsV2 = pgTable("project_skills_v2", {
 export const insertProjectSkillSchema = createInsertSchema(projectSkills).pick({
   projectId: true,
   skillId: true,
-  requiredLevel: true
+  requiredLevel: true,
+  importance: true
 });
 
 export const insertProjectSkillV2Schema = createInsertSchema(projectSkillsV2).pick({
