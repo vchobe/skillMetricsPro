@@ -2899,15 +2899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get all project skills
-  app.get("/api/project-skills", ensureAuth, async (req, res) => {
-    try {
-      const skills = await storage.getAllProjectSkills();
-      res.json(skills);
-    } catch (error) {
-      res.status(500).json({ message: "Error fetching project skills", error });
-    }
-  });
+  // ROUTE REMOVED: Duplicate of comprehensive endpoint below at line ~3990
   
   // This route has been replaced by a more comprehensive public version below
   // See the public implementation around line 2910
@@ -3056,16 +3048,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get all project skills for Project Overview
-  app.get("/api/project-skills", ensureAuth, async (req, res) => {
-    try {
-      // Get all skills from all projects using the optimized function
-      const allSkills = await storage.getAllProjectSkills();
-      res.json(allSkills);
-    } catch (error) {
-      res.status(500).json({ message: "Error fetching all project skills", error });
-    }
-  });
+  // ROUTE REMOVED: Duplicate of comprehensive endpoint below at line ~3990
   
   // This route has been replaced by a more comprehensive public version below
   // See the public implementation around line 2910
@@ -3284,11 +3267,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      // Make sure we have a skillTemplateId
-      if (!req.body.skillTemplateId) {
+      // Make sure we have a skillId (references user_skills.id)
+      if (!req.body.skillId) {
         return res.status(400).json({ 
-          message: "Missing required field: skillTemplateId is required" 
+          message: "Missing required field: skillId is required" 
         });
+      }
+      
+      // Add importance field if not provided
+      if (!req.body.importance) {
+        req.body.importance = "medium";
       }
       
       const parsedData = insertProjectSkillSchema.safeParse({
