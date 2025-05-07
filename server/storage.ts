@@ -802,16 +802,29 @@ export class PostgresStorage implements IStorage {
   
   async deleteUserSkill(id: number): Promise<void> {
     try {
-      // First remove any endorsements from the endorsements table
-      await pool.query('DELETE FROM endorsements WHERE user_skill_id = $1', [id]);
+      console.log(`Deleting user skill ${id} - checking for related records first`);
       
-      // Then delete skill histories from the skill_histories table
+      // First delete any pending skill updates referencing this user skill
+      await pool.query('DELETE FROM pending_skill_updates WHERE user_skill_id = $1', [id]);
+      console.log(`Deleted any pending skill updates for user skill ${id}`);
+      
+      // Delete any notifications referencing this user skill
+      await pool.query('DELETE FROM notifications WHERE related_user_skill_id = $1', [id]);
+      console.log(`Deleted any notifications for user skill ${id}`);
+      
+      // Remove any endorsements from the endorsements table
+      await pool.query('DELETE FROM endorsements WHERE user_skill_id = $1', [id]);
+      console.log(`Deleted endorsements for user skill ${id}`);
+      
+      // Delete skill histories from the skill_histories table
       await pool.query('DELETE FROM skill_histories WHERE user_skill_id = $1', [id]);
+      console.log(`Deleted skill histories for user skill ${id}`);
       
       // Finally delete the skill
       await pool.query('DELETE FROM user_skills WHERE id = $1', [id]);
+      console.log(`Successfully deleted user skill ${id}`);
     } catch (error) {
-      console.error("Error deleting user skill:", error);
+      console.error(`Error deleting user skill ${id}:`, error);
       throw error;
     }
   }
