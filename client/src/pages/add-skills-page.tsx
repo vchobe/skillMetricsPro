@@ -613,11 +613,11 @@ export default function AddSkillsPage() {
     });
   };
 
-  // Handle submission of custom skill
-  const handleSubmitCustomSkill = () => {
-    // Check if user has visited all required tabs
-    if (!allTabsVisited()) {
-      // Get a list of missing tabs for better user guidance
+  // Check if all tabs have been visited (used for bulk skill submission)
+  const checkTabsVisited = () => {
+    // First check if all required tabs have been visited
+    if (requireTabVisits && !allTabsVisited()) {
+      // Calculate which tabs haven't been visited
       const techTabs = skillCategories
         .filter(category => category.categoryType === "technical")
         .map(category => ({ 
@@ -648,32 +648,9 @@ export default function AddSkillsPage() {
         description,
         variant: "destructive",
       });
-      return;
+      return false;
     }
-    
-    if (!customSkill.name || !customSkill.category || !customSkill.subcategory || !customSkill.level) {
-      toast({
-        title: "Missing required fields",
-        description: "Please fill in all required fields (name, category, subcategory, and level) for the custom skill.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const existingSkill = userSkills.find(
-      skill => skill.name.toLowerCase() === customSkill.name?.toLowerCase()
-    );
-
-    if (existingSkill) {
-      toast({
-        title: "Skill already exists",
-        description: "You already have this skill in your profile.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    customSubmitMutation.mutate(customSkill);
+    return true;
   };
 
   // Check if a skill is already added by the user
@@ -1166,9 +1143,35 @@ export default function AddSkillsPage() {
                           });
                           
                           const onSubmit = (data: any) => {
-                            // Copy form data to customSkill before submitting
-                            setCustomSkill(data);
-                            handleSubmitCustomSkill();
+                            // Instead of updating state and then calling another function,
+                            // directly submit the data without depending on state update
+                            console.log("Preparing custom skill submission with data:", data);
+                            
+                            if (!data.name || !data.category || !data.subcategory || !data.level) {
+                              toast({
+                                title: "Missing required fields",
+                                description: "Please fill in all required fields (name, category, subcategory, and level) for the custom skill.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            // Check for existing skill with same name
+                            const existingSkill = userSkills.find(
+                              skill => skill.name.toLowerCase() === data.name.toLowerCase()
+                            );
+                            
+                            if (existingSkill) {
+                              toast({
+                                title: "Skill already exists",
+                                description: "You already have this skill in your profile.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            // Submit directly using the form data
+                            customSubmitMutation.mutate(data);
                           };
                           
                           return (
