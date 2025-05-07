@@ -200,13 +200,7 @@ export interface IStorage {
   deleteProjectSkill(id: number): Promise<void>;
   // For Project Overview feature
   getAllProjectSkills(): Promise<ProjectSkill[]>;
-  
-  // Project Skills V2 operations (working with user_skills instead of skills)
-  getProjectSkillsV2(projectId: number): Promise<ProjectSkillV2[]>;
-  getUserSkillProjects(userSkillId: number): Promise<ProjectSkillV2[]>;
-  createProjectSkillV2(projectSkill: InsertProjectSkillV2): Promise<ProjectSkillV2>;
-  deleteProjectSkillV2(id: number): Promise<void>;
-  getAllProjectSkillsV2(): Promise<ProjectSkillV2[]>;
+  getUserSkillProjects(userSkillId: number): Promise<ProjectSkill[]>;
   
   // Project Resource History operations
   getProjectResourceHistory(projectId: number): Promise<ProjectResourceHistory[]>;
