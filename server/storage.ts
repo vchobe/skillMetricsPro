@@ -2706,7 +2706,7 @@ export class PostgresStorage implements IStorage {
       await pool.query(
         `UPDATE pending_skill_updates SET 
           status = 'approved', 
-          reviewer_id = $1,
+          reviewed_by = $1,
           review_notes = $2,
           reviewed_at = CURRENT_TIMESTAMP
         WHERE id = $3`,
