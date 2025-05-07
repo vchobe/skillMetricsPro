@@ -3259,10 +3259,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      // Make sure we have a skillId (references user_skills.id)
-      if (!req.body.skillId) {
+      // Make sure we have a skillTemplateId (references skill_templates.id)
+      if (!req.body.skillTemplateId) {
         return res.status(400).json({ 
-          message: "Missing required field: skillId is required" 
+          message: "Missing required field: skillTemplateId is required" 
         });
       }
       
