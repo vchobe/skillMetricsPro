@@ -1855,6 +1855,35 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  async getSkillTemplatesByCategory(category: string): Promise<SkillTemplate[]> {
+    try {
+      console.log(`Finding skill templates for category: "${category}"`);
+      
+      const result = await pool.query(
+        'SELECT * FROM skill_templates WHERE category = $1 ORDER BY id LIMIT 10', 
+        [category]
+      );
+      
+      console.log(`Found ${result.rows.length} templates for category "${category}"`);
+      
+      if (result.rows.length === 0) {
+        // If no exact category match, try a more flexible search
+        console.log("No exact category match, trying partial match");
+        const flexResult = await pool.query(
+          "SELECT * FROM skill_templates WHERE category ILIKE $1 ORDER BY id LIMIT 10", 
+          [`%${category}%`]
+        );
+        console.log(`Found ${flexResult.rows.length} templates with partial category match for "${category}"`);
+        return this.snakeToCamel(flexResult.rows);
+      }
+      
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error(`Error getting skill templates by category "${category}":`, error);
+      return []; // Return empty array rather than throwing to make this method more resilient
+    }
+  }
+  
   async createSkillTemplate(template: InsertSkillTemplate): Promise<SkillTemplate> {
     try {
       const result = await pool.query(

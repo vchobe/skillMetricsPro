@@ -2300,6 +2300,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Set the user ID from the authenticated user
         pendingSkillData.userId = userId;
         
+        // Handle custom skills with sentinel value (-1) for skillTemplateId
+        if (pendingSkillData.skillTemplateId === -1 || pendingSkillData.skill_template_id === -1) {
+          console.log("Custom skill detected with sentinel skillTemplateId (-1)");
+          
+          // Extract the category from the request body since it's not in the pendingSkillData
+          const category = req.body.category || "";
+          console.log(`Custom skill category from request body: "${category}"`);
+          
+          // Find an appropriate template to use, or add special handling
+          try {
+            // Now we use the method we added to storage.ts
+            const categoryTemplates = await storage.getSkillTemplatesByCategory(category);
+            if (categoryTemplates && categoryTemplates.length > 0) {
+              console.log(`Found ${categoryTemplates.length} templates for category "${category}"`);
+              console.log(`Using template ID ${categoryTemplates[0].id} for custom skill`);
+              pendingSkillData.skillTemplateId = categoryTemplates[0].id;
+              pendingSkillData.skill_template_id = categoryTemplates[0].id;
+            } else {
+              console.log(`No templates found for category "${category}". Using default template ID 1.`);
+              // Fall back to a basic template ID
+              pendingSkillData.skillTemplateId = 1;
+              pendingSkillData.skill_template_id = 1;
+            }
+          } catch (err) {
+            console.error("Error finding templates for category:", err);
+            // Default fallback
+            pendingSkillData.skillTemplateId = 1;
+            pendingSkillData.skill_template_id = 1;
+          }
+        }
+        
         // For admin users, we'll auto-approve updates to their own skills
         if (isAdmin) {
           console.log("Admin user detected, auto-approving skill update");

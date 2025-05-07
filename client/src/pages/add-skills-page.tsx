@@ -332,6 +332,13 @@ export default function AddSkillsPage() {
       // Using -1 as a sentinel value to indicate this is a custom skill (server can handle this)
       const defaultTemplateId = -1;
       
+      console.log("Preparing custom skill submission with data:", { 
+        name: skill.name, 
+        category: skill.category,
+        level: skill.level,
+        usingTemplateId: skill.skillTemplateId || defaultTemplateId
+      });
+      
       const skillData = {
         userId: user?.id || 0,
         name: skill.name,
