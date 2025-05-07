@@ -2283,20 +2283,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isCustomSkill) {
         console.log("Detected custom skill with category and subcategory");
         
-        // Create a pending skill update using the legacy format
-        // Explicitly match the database schema fields
-        const pendingSkillData: any = {
-          user_id: req.user!.id,  // Using snake_case to match DB column names
-          name: req.body.name,
-          category: req.body.category,
-          level: req.body.level,
-          certification: req.body.certification || '',
-          credly_link: req.body.credlyLink || '',
-          status: "pending",
-          submitted_at: new Date(),
-          is_update: false
-        };
-        
         // Process the subcategory information
         // Find or get category ID
         let categoryId = null;
@@ -2328,142 +2314,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Error looking up category/subcategory:", err);
         }
         
-        // Add the category and subcategory IDs if available
-        if (categoryId) pendingSkillData.category_id = categoryId;
-        if (subcategoryId) pendingSkillData.subcategory_id = subcategoryId;
-        
         // Format notes to preserve subcategory information
-        let metadataNotes = `${req.body.name}-beta\nCategory: ${req.body.category}\nSubcategory: ${req.body.subcategory}`;
+        let metadataNotes = `${req.body.name}\nCategory: ${req.body.category}\nSubcategory: ${req.body.subcategory}`;
         if (req.body.notes) {
-          pendingSkillData.notes = `${metadataNotes}\n\n${req.body.notes}`;
-        } else {
-          pendingSkillData.notes = metadataNotes;
+          metadataNotes = `${metadataNotes}\n\n${req.body.notes}`;
         }
         
-        console.log("Formatted notes with metadata:", pendingSkillData.notes);
+        console.log("Formatted notes with metadata:", metadataNotes);
+        
+        // Create or find a skill template for this custom skill
+        // Try to find an existing template
+        let skillTemplateId;
+        let skillTemplate;
+        
+        try {
+          skillTemplate = await storage.getSkillTemplateByNameAndCategory(
+            req.body.name, 
+            categoryId || 0
+          );
+          
+          if (skillTemplate) {
+            skillTemplateId = skillTemplate.id;
+            console.log(`Found existing skill template for "${req.body.name}" with ID ${skillTemplateId}`);
+          } else {
+            // Create a new skill template for this custom skill
+            console.log(`Creating new skill template for custom skill "${req.body.name}"`);
+            
+            skillTemplate = await storage.createSkillTemplate({
+              name: req.body.name,
+              category: req.body.category,
+              categoryId: categoryId,
+              subcategoryId: subcategoryId,
+              description: `Custom skill created by ${req.user!.username}`
+            });
+            
+            skillTemplateId = skillTemplate.id;
+            console.log(`Created new skill template with ID ${skillTemplateId}`);
+          }
+        } catch (err) {
+          console.error("Error creating/finding skill template:", err);
+          // Use -1 as a sentinel value for special handling later
+          skillTemplateId = -1;
+        }
+        
+        // Create pending skill update using V2 format
+        const pendingSkillDataV2: any = {
+          user_id: req.user!.id,  // Using snake_case to match DB column names
+          skill_template_id: skillTemplateId,
+          level: req.body.level,
+          certification: req.body.certification || null,
+          credly_link: req.body.credlyLink || req.body.credly_link || null,
+          notes: metadataNotes,
+          status: "pending",
+          submitted_at: new Date(),
+          is_update: false
+        };
+        
+        console.log("Creating V2 pending skill update with data:", pendingSkillDataV2);
         
         // Auto-approve for admin users
         if (isAdmin) {
           console.log("Admin user detected, auto-approving custom skill");
-          pendingSkillData.status = "approved";
-          pendingSkillData.reviewed_at = new Date();
-          pendingSkillData.reviewed_by = req.user!.id;
-          pendingSkillData.review_notes = "Auto-approved (admin user)";
+          pendingSkillDataV2.status = "approved";
+          pendingSkillDataV2.reviewed_at = new Date();
+          pendingSkillDataV2.reviewed_by = req.user!.id;
+          pendingSkillDataV2.review_notes = "Auto-approved (admin user)";
           
           try {
             // Create the pending skill update first
-            console.log("Creating pending skill update with data:", pendingSkillData);
-            const pendingSkillUpdate = await storage.createPendingSkillUpdate(pendingSkillData);
+            console.log("Creating V2 pending skill update with data:", pendingSkillDataV2);
+            const pendingSkillUpdate = await storage.createPendingSkillUpdateV2(pendingSkillDataV2);
             
-            console.log("Creating skill directly (admin auto-approval)");
+            console.log("Creating user skill directly (admin auto-approval)");
             
-            // Create a new skill
-            const newSkill = await storage.createSkill({
+            // Create the user skill entry
+            const userSkill = await storage.createUserSkill({
               userId: req.user!.id,
-              name: pendingSkillData.name,
-              category: pendingSkillData.category,
-              level: pendingSkillData.level,
-              certification: pendingSkillData.certification || '',
-              credlyLink: pendingSkillData.credlyLink || '',
-              notes: pendingSkillData.notes || '',
-              categoryId: pendingSkillData.categoryId,
-              subcategoryId: pendingSkillData.subcategoryId
+              skillTemplateId: skillTemplateId,
+              level: req.body.level,
+              certification: req.body.certification || '',
+              credlyLink: req.body.credlyLink || req.body.credly_link || '',
+              notes: metadataNotes
             });
             
-            // Create a skill history entry
-            await storage.createSkillHistory({
-              skillId: newSkill.id,
+            console.log("Created user skill:", userSkill);
+            
+            // Create a skill history v2 entry
+            await storage.createSkillHistoryV2({
+              userSkillId: userSkill.id,
               userId: req.user!.id,
               previousLevel: null,
-              newLevel: pendingSkillData.level,
-              changeNote: "Initial skill creation (admin auto-approval)"
+              newLevel: req.body.level,
+              changeNote: "Initial skill creation (custom skill)"
             });
             
-            // Also create a user_skill entry and skill_template (if allowed)
-            try {
-              // First create or get a skill template
-              let skillTemplateId;
-              let skillTemplate = await storage.getSkillTemplateByNameAndCategory(
-                pendingSkillData.name,
-                pendingSkillData.categoryId
-              );
-              
-              if (!skillTemplate) {
-                console.log("Creating skill template for custom skill");
-                skillTemplate = await storage.createSkillTemplate({
-                  name: pendingSkillData.name,
-                  categoryId: pendingSkillData.categoryId,
-                  subcategoryId: pendingSkillData.subcategoryId,
-                  category: pendingSkillData.category,
-                  description: `Auto-created from custom skill by ${req.user!.username}`
-                });
-                console.log("Created new skill template:", skillTemplate);
-                skillTemplateId = skillTemplate.id;
-              } else {
-                skillTemplateId = skillTemplate.id;
-                console.log("Using existing skill template:", skillTemplate.id);
-              }
-              
-              // Then create the user skill
-              const userSkill = await storage.createUserSkill({
-                userId: req.user!.id,
-                skillTemplateId,
-                level: pendingSkillData.level,
-                certification: pendingSkillData.certification || '',
-                credlyLink: pendingSkillData.credlyLink || '',
-                notes: pendingSkillData.notes || ''
-              });
-              
-              console.log("Created user_skill entry for custom skill:", userSkill);
-              
-              // Create skill history v2 entry
-              await storage.createSkillHistoryV2({
-                userSkillId: userSkill.id,
-                userId: req.user!.id,
-                previousLevel: null,
-                newLevel: pendingSkillData.level,
-                changeNote: "Initial skill creation from custom skill"
-              });
-            } catch (err) {
-              console.error("Error creating v2 entries for custom skill:", err);
-              // Continue anyway since we've already created the legacy skill
-            }
+            // Convert to legacy format for API response consistency
+            const legacyFormatSkill = storage.userSkillToLegacySkill(userSkill);
             
             return res.status(201).json({
               message: "New skill created successfully (admin auto-approval)",
-              skill: newSkill
+              skill: legacyFormatSkill
             });
           } catch (error) {
-            console.error("Error creating custom skill:", error);
+            console.error("Error auto-approving custom skill:", error);
             return res.status(500).json({
               message: "Error creating custom skill",
-              error: error.message
+              error: error instanceof Error ? error.message : String(error)
             });
           }
         }
         
         // For non-admin users, create a pending skill update
-        console.log("Creating pending skill update for non-admin user");
-        const pendingSkillUpdate = await storage.createPendingSkillUpdate(pendingSkillData);
-        
-        // Notify approvers (all admins for now)
-        const admins = await storage.getAllAdmins();
-        
-        if (admins && admins.length > 0) {
-          for (const admin of admins) {
-            await storage.createNotification({
-              user_id: admin.id,
-              type: "achievement", // Using "achievement" type which is allowed in the schema
-              content: `User ${req.user!.username} has requested approval for ${pendingSkillData.name} skill`,
-              related_user_id: req.user!.id
-            });
+        try {
+          console.log("Creating V2 pending skill update for non-admin user");
+          const pendingSkillUpdate = await storage.createPendingSkillUpdateV2(pendingSkillDataV2);
+          
+          // Notify approvers (all admins for now)
+          const admins = await storage.getAllAdmins();
+          
+          if (admins && admins.length > 0) {
+            for (const admin of admins) {
+              await storage.createNotification({
+                user_id: admin.id,
+                type: "achievement", // Using "achievement" type which is allowed in the schema
+                content: `User ${req.user!.username} has requested approval for ${req.body.name} skill`,
+                related_user_id: req.user!.id
+              });
+            }
           }
+          
+          return res.status(201).json({
+            message: "Pending skill update created successfully",
+            pendingSkillUpdate
+          });
+        } catch (error) {
+          console.error("Error creating pending skill update:", error);
+          return res.status(500).json({
+            message: "Error creating pending skill update",
+            error: error instanceof Error ? error.message : String(error)
+          });
         }
-        
-        return res.status(201).json({
-          message: "Pending skill update created successfully",
-          pendingSkillUpdate
-        });
+      } else {
+        // Handle standard skill updates through skill template
+        console.log("Standard skill update request (non-custom skill)");
+        // Let the rest of the function handle this case
       }
     } catch (error) {
       console.error("Error in custom skill submission:", error);
