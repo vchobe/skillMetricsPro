@@ -110,6 +110,7 @@ export default function AddSkillsPage() {
   const [customSkill, setCustomSkill] = useState<{
     name?: string;
     category?: string;
+    subcategory?: string;  // Added subcategory field
     level?: "beginner" | "intermediate" | "expert";
     certification?: string;
     credlyLink?: string;
