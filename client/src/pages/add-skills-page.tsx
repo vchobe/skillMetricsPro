@@ -348,22 +348,21 @@ export default function AddSkillsPage() {
       // Format notes to include metadata
       const metadataNote = `${skill.name}\nCategory: ${skill.category}\nSubcategory: ${skill.subcategory}\n\n${skill.notes || ''}`;
       
-      // Use the original pending_skill_updates table instead of V2
+      // Use the original pending_skill_updates table, with snake_case field names
       const skillData = {
-        userId: user?.id || 0,
+        user_id: user?.id || 0,
         name: skill.name,
         category: skill.category,
         level: skill.level,
         certification: skill.certification || "",
-        credlyLink: skill.credlyLink || "",
+        credly_link: skill.credlyLink || "",
         notes: metadataNote,
-        changeNote: "Custom skill addition",
         status: "pending",
-        isUpdate: false,
-        submittedAt: new Date().toISOString(),
+        is_update: false,
+        submitted_at: new Date().toISOString(),
         // Include category and subcategory IDs if available
-        categoryId: categoryObj?.id || null,
-        subcategoryId: subcategoryObj?.id || null
+        category_id: categoryObj?.id || null,
+        subcategory_id: subcategoryObj?.id || null
       };
       
       const res = await apiRequest("POST", "/api/skills/pending", skillData);

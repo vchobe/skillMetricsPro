@@ -1726,8 +1726,24 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  async createNotification(notification: InsertNotification): Promise<Notification> {
+  async createNotification(notification: InsertNotification | any): Promise<Notification> {
     try {
+      // Support both camelCase and snake_case property names
+      const userId = notification.userId || notification.user_id; 
+      const content = notification.content || notification.message;
+      const relatedSkillId = notification.relatedSkillId || notification.related_skill_id || null;
+      const relatedUserSkillId = notification.relatedUserSkillId || notification.related_user_skill_id || null;
+      const relatedUserId = notification.relatedUserId || notification.related_user_id || null;
+      
+      console.log("Creating notification with params:", JSON.stringify({
+        userId, 
+        type: notification.type,
+        content,
+        relatedSkillId,
+        relatedUserSkillId,
+        relatedUserId
+      }, null, 2));
+      
       const result = await pool.query(
         `INSERT INTO notifications (
           user_id, type, content, related_skill_id, 
@@ -1735,12 +1751,12 @@ export class PostgresStorage implements IStorage {
         ) VALUES ($1, $2, $3, $4, $5, $6) 
          RETURNING *`,
         [
-          notification.userId, 
+          userId, 
           notification.type, 
-          notification.content,
-          notification.relatedSkillId || null,
-          notification.relatedUserSkillId || null,
-          notification.relatedUserId || null
+          content,
+          relatedSkillId,
+          relatedUserSkillId,
+          relatedUserId
         ]
       );
       return this.snakeToCamel(result.rows[0]);

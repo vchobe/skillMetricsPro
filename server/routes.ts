@@ -2452,10 +2452,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (admins && admins.length > 0) {
           for (const admin of admins) {
             await storage.createNotification({
-              userId: admin.id,
+              user_id: admin.id,
               type: "achievement", // Using "achievement" type which is allowed in the schema
               content: `User ${req.user!.username} has requested approval for ${pendingSkillData.name} skill`,
-              relatedUserId: req.user!.id
+              related_user_id: req.user!.id
             });
           }
         }
@@ -2646,10 +2646,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create a notification for the user
       await storage.createNotification({
-        userId: approvedSkill.userId,
+        user_id: approvedSkill.userId,
         type: "achievement",
         content: `Your skill ${skillName} has been approved`,
-        relatedUserSkillId: approvedSkill.id
+        related_user_skill_id: approvedSkill.id
       });
       
       res.json(approvedSkill);
@@ -2685,10 +2685,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create a notification for the user
       await storage.createNotification({
-        userId: pendingUpdate.userId,
+        user_id: pendingUpdate.userId,
         type: "achievement",
         content: `Your skill ${skillName} has been rejected. Please review the feedback.`,
-        relatedUserSkillId: pendingUpdate.userSkillId || undefined
+        related_user_skill_id: pendingUpdate.userSkillId || undefined
       });
       
       res.status(200).json({ message: "Skill update V2 rejected successfully" });
