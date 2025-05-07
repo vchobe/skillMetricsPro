@@ -1,0 +1,47 @@
+Error during cascading deletion of skill template 83: error: update or delete on table "skill_templates" violates foreign key constraint "pending_skill_updates_skill_template_id_fkey" on table "pending_skill_updates"
+    at /home/runner/workspace/node_modules/pg/lib/client.js:535:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PostgresStorage.deleteSkillTemplate (/home/runner/workspace/server/storage.ts:2201:30)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1533:22) {
+  length: 372,
+  severity: 'ERROR',
+  code: '23503',
+  detail: 'Key (id)=(83) is still referenced from table "pending_skill_updates".',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'pending_skill_updates',
+  column: undefined,
+  dataType: undefined,
+  constraint: 'pending_skill_updates_skill_template_id_fkey',
+  file: 'ri_triggers.c',
+  line: '2624',
+  routine: 'ri_ReportViolation'
+}
+Error in cascading delete of skill template: error: update or delete on table "skill_templates" violates foreign key constraint "pending_skill_updates_skill_template_id_fkey" on table "pending_skill_updates"
+    at /home/runner/workspace/node_modules/pg/lib/client.js:535:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PostgresStorage.deleteSkillTemplate (/home/runner/workspace/server/storage.ts:2201:30)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1533:22) {
+  length: 372,
+  severity: 'ERROR',
+  code: '23503',
+  detail: 'Key (id)=(83) is still referenced from table "pending_skill_updates".',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'pending_skill_updates',
+  column: undefined,
+  dataType: undefined,
+  constraint: 'pending_skill_updates_skill_template_id_fkey',
+  file: 'ri_triggers.c',
+  line: '2624',
+  routine: 'ri_ReportViolation'
+}
+10:23:31 PM [server] DELETE /api/super-admin/skill-templates/83 500 in 348ms :: {"message":"Error pe…
