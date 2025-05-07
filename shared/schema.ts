@@ -183,7 +183,7 @@ export const insertUserSkillSchema = createInsertSchema(userSkills).pick({
   expirationDate: true,
 });
 
-// Skill history schema (legacy)
+// Skill history schema
 export const skillHistories = pgTable("skill_histories", {
   id: serial("id").primaryKey(),
   skillId: integer("skill_id").notNull(),
@@ -192,20 +192,14 @@ export const skillHistories = pgTable("skill_histories", {
   newLevel: skillLevelEnum("new_level").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   changeNote: text("change_note"),
+  // Additional fields for user_skills references
+  userSkillId: integer("user_skill_id").references(() => userSkills.id, { onDelete: 'cascade' }),
+  changeById: integer("change_by_id").references(() => users.id, { onDelete: 'set null' }),
+  approvalId: integer("approval_id").references(() => pendingSkillUpdates.id, { onDelete: 'set null' }),
 });
 
-// Skill history schema V2 (for user_skills)
-export const skillHistoriesV2 = pgTable("skill_histories_v2", {
-  id: serial("id").primaryKey(),
-  userSkillId: integer("user_skill_id").notNull().references(() => userSkills.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull(),
-  previousLevel: skillLevelEnum("previous_level"),
-  newLevel: skillLevelEnum("new_level").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  changeNote: text("change_note"),
-  changeById: integer("change_by_id").references(() => users.id, { onDelete: 'set null' }),
-  approvalId: integer("approval_id").references(() => pendingSkillUpdatesV2.id, { onDelete: 'set null' }),
-});
+// Alias for compatibility - points to the same table
+export const skillHistoriesV2 = skillHistories;
 
 export const insertSkillHistorySchema = createInsertSchema(skillHistories).pick({
   skillId: true,
@@ -273,7 +267,7 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
   relatedUserId: true,
 });
 
-// Endorsements schema (legacy)
+// Endorsements schema
 export const endorsements = pgTable("endorsements", {
   id: serial("id").primaryKey(),
   skillId: integer("skill_id").notNull(),
@@ -281,20 +275,15 @@ export const endorsements = pgTable("endorsements", {
   endorseeId: integer("endorsee_id").notNull(), 
   comment: text("comment"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Endorsements schema V2 (for user_skills)
-export const endorsementsV2 = pgTable("endorsements_v2", {
-  id: serial("id").primaryKey(),
-  userSkillId: integer("user_skill_id").notNull().references(() => userSkills.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull(), // The user who owns the skill
-  endorserId: integer("endorser_id").notNull(),
-  // No endorseeId in the actual database, the userId serves this purpose
-  comment: text("comment"),
-  level: varchar("level", { length: 20 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Additional fields for user_skills references
+  userSkillId: integer("user_skill_id").references(() => userSkills.id, { onDelete: 'cascade' }),
+  userId: integer("user_id"), // The user who owns the skill (same as endorseeId)
+  level: varchar("level", { length: 20 }),
   updatedAt: timestamp("updated_at"),
 });
+
+// Alias for compatibility - points to the same table
+export const endorsementsV2 = endorsements;
 
 export const insertEndorsementSchema = createInsertSchema(endorsements).pick({
   skillId: true,
@@ -428,7 +417,7 @@ export type InsertSkillTemplate = z.infer<typeof insertSkillTemplateSchema>;
 export type SkillTarget = typeof skillTargets.$inferSelect;
 export type InsertSkillTarget = z.infer<typeof insertSkillTargetSchema>;
 
-// Pending Skill Updates schema (legacy - keeps for compatibility)
+// Pending Skill Updates schema
 export const pendingSkillUpdates = pgTable("pending_skill_updates", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -449,27 +438,13 @@ export const pendingSkillUpdates = pgTable("pending_skill_updates", {
   reviewedBy: integer("reviewed_by"),
   reviewNotes: text("review_notes"),
   isUpdate: boolean("is_update").default(false).notNull(), // true for updates, false for new skills
+  // Additional fields for user_skills references
+  userSkillId: integer("user_skill_id").references(() => userSkills.id), // Null for new skills
+  skillTemplateId: integer("skill_template_id").references(() => skillTemplates.id),
 });
 
-// Pending Skill Updates V2 schema (works with user_skills)
-export const pendingSkillUpdatesV2 = pgTable("pending_skill_updates_v2", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  userSkillId: integer("user_skill_id").references(() => userSkills.id), // Null for new skills
-  skillTemplateId: integer("skill_template_id").notNull().references(() => skillTemplates.id),
-  level: skillLevelEnum("level").notNull(),
-  certification: text("certification"),
-  credlyLink: text("credly_link"),
-  notes: text("notes"),
-  certificationDate: timestamp("certification_date"),
-  expirationDate: timestamp("expiration_date"),
-  status: approvalStatusEnum("status").default("pending").notNull(),
-  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
-  reviewedAt: timestamp("reviewed_at"),
-  reviewedBy: integer("reviewed_by"),
-  reviewNotes: text("review_notes"),
-  isUpdate: boolean("is_update").default(false).notNull(), // true for updates, false for new skills
-});
+// Alias for compatibility - points to the same table
+export const pendingSkillUpdatesV2 = pendingSkillUpdates;
 
 // Create the base schema
 const baseInsertPendingSkillUpdateSchema = createInsertSchema(pendingSkillUpdates).pick({
