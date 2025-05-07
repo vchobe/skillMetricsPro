@@ -328,6 +328,10 @@ export default function AddSkillsPage() {
         throw new Error("Please fill all required fields");
       }
       
+      // We need to provide a default skillTemplateId for custom skills since it's required by the API
+      // Using -1 as a sentinel value to indicate this is a custom skill (server can handle this)
+      const defaultTemplateId = -1;
+      
       const skillData = {
         userId: user?.id || 0,
         name: skill.name,
@@ -340,9 +344,9 @@ export default function AddSkillsPage() {
         status: "pending",
         isUpdate: false,
         submittedAt: new Date().toISOString(),
-        // Include skill template ID if available
-        skillTemplateId: skill.skillTemplateId, 
-        skill_template_id: skill.skillTemplateId // Also include snake_case version for compatibility
+        // Include skill template ID - provide a default if not available
+        skillTemplateId: skill.skillTemplateId || defaultTemplateId, 
+        skill_template_id: skill.skillTemplateId || defaultTemplateId // Also include snake_case version for compatibility
       };
       
       const res = await apiRequest("POST", "/api/skills/pending", skillData);
