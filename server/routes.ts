@@ -2426,6 +2426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user_id: req.user!.id,  // Using snake_case to match DB column names
           name: req.body.name || '', // Explicitly include name to avoid null violations
           category: req.body.category || '', // Include category
+          subcategory: req.body.subcategory || '', // Include subcategory name
           skill_template_id: skillTemplateId,
           level: req.body.level,
           certification: req.body.certification || null,
@@ -2433,7 +2434,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           notes: metadataNotes,
           status: "pending",
           submitted_at: new Date(),
-          is_update: false
+          is_update: false,
+          // Include category and subcategory IDs if available
+          category_id: categoryId || null,
+          subcategory_id: subcategoryId || null
         };
         
         console.log("Creating V2 pending skill update with data:", pendingSkillDataV2);
@@ -2535,15 +2539,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create pending skill update using the provided template ID
         const skillTemplateId = req.body.skillTemplateId || req.body.skill_template_id;
         
-        // Get the skill template to get its name and category
+        // Get the skill template to get its name, category, and subcategory
         let templateName = '';
         let templateCategory = '';
+        let templateSubcategory = '';
+        let categoryId = null;
+        let subcategoryId = null;
         
         try {
           const template = await storage.getSkillTemplate(skillTemplateId);
           if (template) {
             templateName = template.name;
             templateCategory = template.category;
+            categoryId = template.categoryId;
+            subcategoryId = template.subcategoryId;
+            
+            // Try to get subcategory name if subcategoryId is provided
+            if (template.subcategoryId) {
+              try {
+                const subcategory = await storage.getSkillSubcategoryById(template.subcategoryId);
+                if (subcategory) {
+                  templateSubcategory = subcategory.name;
+                }
+              } catch (subcategoryErr) {
+                console.error("Error getting subcategory details:", subcategoryErr);
+              }
+            }
           }
         } catch (err) {
           console.error("Error getting skill template details:", err);
@@ -2553,6 +2574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user_id: req.user!.id,
           name: templateName || req.body.name || '', // Use template name or fallback to request body
           category: templateCategory || req.body.category || '', // Use template category or fallback
+          subcategory: templateSubcategory || req.body.subcategory || '', // Include subcategory
           skill_template_id: skillTemplateId,
           level: req.body.level,
           certification: req.body.certification || null,
@@ -2560,7 +2582,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           notes: req.body.notes || null,
           status: "pending",
           submitted_at: new Date(),
-          is_update: req.body.is_update || req.body.isUpdate || false
+          is_update: req.body.is_update || req.body.isUpdate || false,
+          // Include category and subcategory IDs if available
+          category_id: categoryId || req.body.category_id || null,
+          subcategory_id: subcategoryId || req.body.subcategory_id || null
         };
         
         console.log("Creating standard V2 pending skill update with data:", pendingSkillDataV2);
