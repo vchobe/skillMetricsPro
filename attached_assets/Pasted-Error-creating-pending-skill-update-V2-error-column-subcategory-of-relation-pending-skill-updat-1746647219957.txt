@@ -1,0 +1,55 @@
+Error creating pending skill update V2: error: column "subcategory" of relation "pending_skill_updates" does not exist
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PostgresStorage.createPendingSkillUpdateV2 (/home/runner/workspace/server/storage.ts:2961:22)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:2456:40) {
+  length: 145,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '70',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '1070',
+  routine: 'checkInsertTargets'
+}
+Error auto-approving custom skill: error: column "subcategory" of relation "pending_skill_updates" does not exist
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PostgresStorage.createPendingSkillUpdateV2 (/home/runner/workspace/server/storage.ts:2961:22)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:2456:40) {
+  length: 145,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '70',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '1070',
+  routine: 'checkInsertTargets'
+}
+7:46:28 PM [server] POST /api/skills/pending 500 in 570ms :: {"message":"Error creating custom skil…
+Converting is_admin from true to true
+Direct DB admin check for admin@atyeti.com: raw value = true (boolean)
+Passport deserialize: Ensured admin status (true) is available under both properties for user admin@atyeti.com
+7:46:40 PM [server] GET /api/notifications 304 in 172ms :: []
+Converting is_admin from true to true
+Direct DB admin check for admin@atyeti.com: raw value = true (boolean)
+Passport deserialize: Ensured admin status (true) is available under both properties for user admin@atyeti.com
+7:46:48 PM [server] GET /api/notifications 304 in 170ms :: []
