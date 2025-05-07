@@ -834,8 +834,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Get history from the skill_histories_v2 table
-      const history = await storage.getSkillHistoryV2(skillId);
+      // Get history from the skill_histories table
+      const history = await storage.getSkillHistory(skillId);
       console.log(`Found ${history.length} history entries for user skill ${skillId}`);
       res.json(history);
     } catch (error) {
@@ -2141,7 +2141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/skills/:id/endorse", ensureAuth, async (req, res) => {
     try {
       const skillId = parseInt(req.params.id);
-      const userSkill = await storage.getUserSkillV2(skillId);
+      const userSkill = await storage.getUserSkillById(skillId);
       
       if (!userSkill) {
         return res.status(404).json({ message: "Skill not found" });
@@ -2198,7 +2198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/skills/:id/endorsements", ensureAuth, async (req, res) => {
     try {
       const skillId = parseInt(req.params.id);
-      const userSkill = await storage.getUserSkillV2(skillId);
+      const userSkill = await storage.getUserSkillById(skillId);
       
       if (!userSkill) {
         return res.status(404).json({ message: "Skill not found" });
