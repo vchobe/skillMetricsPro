@@ -736,8 +736,9 @@ export type InsertProjectResource = z.infer<typeof insertProjectResourceSchema>;
 export const projectSkills = pgTable("project_skills", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
-  skillId: integer("skill_id").notNull().references(() => skills.id),
+  skillId: integer("skill_id").notNull(), // References user_skills.id
   requiredLevel: skillLevelEnum("required_level").default("beginner"), // beginner, intermediate, expert
+  importance: varchar("importance", { length: 10 }).default("medium"), // low, medium, high
   createdAt: timestamp("created_at").defaultNow()
 });
 
