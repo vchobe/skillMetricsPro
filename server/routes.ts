@@ -2454,12 +2454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userId: admin.id,
               type: "achievement", // Using "achievement" type which is allowed in the schema
               content: `User ${req.user!.username} has requested approval for ${pendingSkillData.name} skill`,
-              data: JSON.stringify({
-                pendingSkillUpdateId: pendingSkillUpdate.id,
-                skillName: pendingSkillData.name,
-                requesterName: req.user!.username,
-                requesterId: req.user!.id
-              })
+              relatedUserId: req.user!.id
             });
           }
         }
