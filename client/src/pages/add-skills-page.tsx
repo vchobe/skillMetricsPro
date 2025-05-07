@@ -510,39 +510,12 @@ export default function AddSkillsPage() {
   
   // Handle submission of selected skills
   const handleSubmitSkills = () => {
+    // Only check tab visits for template-based skills, not custom skills
+    // Custom skills are handled in a separate form with its own validation
+    
     // Check if user has visited all required tabs
-    if (!allTabsVisited()) {
-      // Get a list of missing tabs for better user guidance
-      const techTabs = skillCategories
-        .filter(category => category.categoryType === "technical")
-        .map(category => ({ 
-          name: category.name, 
-          key: getTabKey(category.name),
-          visited: !!visitedTabs[getTabKey(category.name) as keyof typeof visitedTabs]
-        }))
-        .filter(tab => !tab.visited);
-      
-      const functionalTabs = skillCategories
-        .filter(category => category.categoryType === "functional")
-        .map(category => ({ 
-          name: category.name, 
-          key: getTabKey(category.name),
-          visited: !!visitedTabs[getTabKey(category.name) as keyof typeof visitedTabs]
-        }))
-        .filter(tab => !tab.visited);
-      
-      const missingTechTabs = techTabs.map(t => t.name).join(', ');
-      const missingFunctionalTabs = functionalTabs.map(t => t.name).join(', ');
-      
-      let description = "Please visit all required tabs before submitting:";
-      if (missingTechTabs) description += `\n• Missing technical: ${missingTechTabs}`;
-      if (missingFunctionalTabs) description += `\n• Missing functional: ${missingFunctionalTabs}`;
-      
-      toast({
-        title: "Please review all required categories",
-        description,
-        variant: "destructive",
-      });
+    if (!checkTabsVisited()) {
+      // Stop here as checkTabsVisited already showed the error message
       return;
     }
     
