@@ -324,7 +324,7 @@ export default function AddSkillsPage() {
   // Submit custom skill mutation
   const customSubmitMutation = useMutation({
     mutationFn: async (skill: typeof customSkill) => {
-      if (!skill.name || !skill.category || !skill.level) {
+      if (!skill.name || !skill.category || !skill.subcategory || !skill.level) {
         throw new Error("Please fill all required fields");
       }
       
@@ -335,6 +335,7 @@ export default function AddSkillsPage() {
       console.log("Preparing custom skill submission with data:", { 
         name: skill.name, 
         category: skill.category,
+        subcategory: skill.subcategory,
         level: skill.level,
         usingTemplateId: skill.skillTemplateId || defaultTemplateId
       });
@@ -343,6 +344,7 @@ export default function AddSkillsPage() {
         userId: user?.id || 0,
         name: skill.name,
         category: skill.category,
+        subcategory: skill.subcategory,
         level: skill.level,
         certification: skill.certification || "",
         credlyLink: skill.credlyLink || "",
@@ -1148,6 +1150,7 @@ export default function AddSkillsPage() {
                             defaultValues: {
                               name: "",
                               category: "",
+                              subcategory: "",
                               level: "beginner" as "beginner" | "intermediate" | "expert",
                               certification: "",
                               credlyLink: "",
@@ -1209,6 +1212,23 @@ export default function AddSkillsPage() {
                                             ))}
                                           </SelectContent>
                                         </Select>
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="subcategory"
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-2">
+                                        <FormLabel>Subcategory *</FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            placeholder="Enter subcategory"
+                                            {...field}
+                                            required
+                                          />
+                                        </FormControl>
                                       </FormItem>
                                     )}
                                   />
