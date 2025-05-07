@@ -2837,14 +2837,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { notes } = req.body;
       
       // Get the pending update before rejection for notification
-      const pendingUpdate = await storage.getPendingSkillUpdate(updateId);
+      const pendingUpdate = await storage.getPendingSkillUpdateV2(updateId);
       
       if (!pendingUpdate) {
         return res.status(404).json({ message: "Pending skill update not found" });
       }
       
-      // Reject the pending skill update
-      await storage.rejectPendingSkillUpdate(updateId, reviewerId, notes);
+      // Reject the pending skill update using the V2 function
+      await storage.rejectPendingSkillUpdateV2(updateId, reviewerId, notes);
       
       // Get skill name for notification
       let skillName = pendingUpdate.name || "your skill";
