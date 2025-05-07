@@ -2631,7 +2631,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user/pending-skills", ensureAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const pendingUpdates = await storage.getPendingSkillUpdatesByUser(userId);
+      // Use V2 function for consistency
+      const pendingUpdates = await storage.getPendingSkillUpdatesByUserV2(userId);
       res.json(pendingUpdates);
     } catch (error) {
       res.status(500).json({ message: "Error fetching pending skill updates V2", error });
@@ -2648,8 +2649,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAdmin = req.user!.isAdmin || req.user!.is_admin;
       console.log(`User ID: ${userId}, Email: ${userEmail}, isAdmin: ${isAdmin}`);
       
-      // Get all pending skill updates
-      const pendingUpdates = await storage.getPendingSkillUpdates();
+      // Get all pending skill updates using V2 function
+      const pendingUpdates = await storage.getPendingSkillUpdatesV2();
       console.log(`Got ${pendingUpdates.length} total pending updates`);
       
       // If not an admin or super admin, we should filter the results
@@ -2665,8 +2666,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin approval routes (accessible by both admins and approvers)
   app.get("/api/admin/pending-skills", ensureApprover, async (req, res) => {
     try {
-      // Get all pending skill updates
-      const pendingUpdates = await storage.getPendingSkillUpdates();
+      // Get all pending skill updates using V2 function
+      const pendingUpdates = await storage.getPendingSkillUpdatesV2();
       console.log(`Got ${pendingUpdates.length} total pending updates`);
       
       // Check if user is super admin
