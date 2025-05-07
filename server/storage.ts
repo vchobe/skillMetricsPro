@@ -5010,8 +5010,8 @@ export class PostgresStorage implements IStorage {
         // Delete project resources
         await pool.query('DELETE FROM project_resources WHERE project_id = $1', [id]);
         
-        // Delete project skills (V2 table)
-        await pool.query('DELETE FROM project_skills_v2 WHERE project_id = $1', [id]);
+        // Delete project skills
+        await pool.query('DELETE FROM project_skills WHERE project_id = $1', [id]);
         
         // Finally delete the project
         const result = await pool.query('DELETE FROM projects WHERE id = $1', [id]);
