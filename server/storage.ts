@@ -40,6 +40,12 @@ export interface IStorage {
   createReportSetting(data: InsertReportSettings): Promise<ReportSettings>;
   updateReportSetting(id: number, data: Partial<InsertReportSettings>): Promise<ReportSettings>;
   deleteReportSetting(id: number): Promise<boolean>;
+  
+  // Category and subcategory operations
+  getSkillCategoryByName(name: string): Promise<SkillCategory | undefined>;
+  getSkillSubcategoryByNameAndCategory(name: string, categoryId: number): Promise<SkillSubcategory | undefined>;
+  getSkillTemplateByNameAndCategory(name: string, categoryId: number | null): Promise<SkillTemplate | undefined>;
+  getAllAdmins(): Promise<User[]>;
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -1881,6 +1887,98 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error(`Error getting skill templates by category "${category}":`, error);
       return []; // Return empty array rather than throwing to make this method more resilient
+    }
+  }
+  
+  async getSkillCategoryByName(name: string): Promise<SkillCategory | undefined> {
+    try {
+      console.log(`Looking up skill category by name: "${name}"`);
+      
+      const result = await pool.query(
+        `SELECT * FROM skill_categories WHERE LOWER(name) = LOWER($1)`,
+        [name]
+      );
+      
+      if (result.rows.length === 0) {
+        console.log(`No category found with name "${name}"`);
+        return undefined;
+      }
+      
+      console.log(`Found category: ${result.rows[0].name} (ID: ${result.rows[0].id})`);
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting skill category by name:", error);
+      return undefined; // Return undefined instead of throwing
+    }
+  }
+  
+  async getSkillSubcategoryByNameAndCategory(
+    name: string, 
+    categoryId: number
+  ): Promise<SkillSubcategory | undefined> {
+    try {
+      console.log(`Looking up subcategory "${name}" in category ID ${categoryId}`);
+      
+      const result = await pool.query(
+        `SELECT * FROM skill_subcategories 
+         WHERE LOWER(name) = LOWER($1) AND category_id = $2`,
+        [name, categoryId]
+      );
+      
+      if (result.rows.length === 0) {
+        console.log(`No subcategory found with name "${name}" in category ${categoryId}`);
+        return undefined;
+      }
+      
+      console.log(`Found subcategory: ${result.rows[0].name} (ID: ${result.rows[0].id})`);
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting skill subcategory:", error);
+      return undefined; // Return undefined instead of throwing
+    }
+  }
+  
+  async getSkillTemplateByNameAndCategory(
+    name: string,
+    categoryId: number | null
+  ): Promise<SkillTemplate | undefined> {
+    try {
+      if (!categoryId) {
+        console.log("Cannot look up skill template without categoryId");
+        return undefined;
+      }
+      
+      console.log(`Looking up skill template "${name}" in category ID ${categoryId}`);
+      
+      const result = await pool.query(
+        `SELECT * FROM skill_templates 
+         WHERE LOWER(name) = LOWER($1) AND category_id = $2`,
+        [name, categoryId]
+      );
+      
+      if (result.rows.length === 0) {
+        console.log(`No skill template found with name "${name}" in category ${categoryId}`);
+        return undefined;
+      }
+      
+      console.log(`Found skill template: ${result.rows[0].name} (ID: ${result.rows[0].id})`);
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting skill template by name and category:", error);
+      return undefined; // Return undefined instead of throwing
+    }
+  }
+  
+  async getAllAdmins(): Promise<User[]> {
+    try {
+      const result = await pool.query(
+        `SELECT * FROM users WHERE is_admin = true OR admin = true`
+      );
+      
+      return this.snakeToCamel(result.rows);
+    } catch (error) {
+      console.error("Error getting all admin users:", error);
+      return []; // Return empty array instead of throwing
     }
   }
   
