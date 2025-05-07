@@ -5863,10 +5863,22 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-  
+
   // Alias for consistent naming across the codebase
   async getSkillSubcategoryById(id: number): Promise<SkillSubcategory | undefined> {
     return this.getSkillSubcategory(id);
+  }
+
+      console.error("Error getting skill subcategory:", error);
+      throw error;
+    }
+  }
+  
+  // Alias for consistent naming across the codebase
+    } catch (error) {
+      console.error("Error getting skill subcategory:", error);
+      throw error;
+    }
   }
   
   async createSkillSubcategory(subcategory: InsertSkillSubcategory): Promise<SkillSubcategory> {

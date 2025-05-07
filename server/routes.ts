@@ -2319,8 +2319,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Check if we have name, category, and subcategory fields - indicating it's a custom skill
-      const isCustomSkill = req.body.name && req.body.category && req.body.subcategory;
+      // Check if we have name and category fields - indicating it's a custom skill
+      // The subcategory can be provided either as a string or as subcategory_id
+      const isCustomSkill = req.body.name && req.body.category && 
+        (req.body.subcategory || req.body.subcategory_id || req.body.subcategoryId);
+      
+      console.log(`Custom skill check: name=${req.body.name}, category=${req.body.category}, subcategory=${req.body.subcategory || 'none'}, subcategory_id=${req.body.subcategory_id || req.body.subcategoryId || 'none'}, isCustomSkill=${isCustomSkill}`);
       
       if (isCustomSkill) {
         console.log("Detected custom skill with category and subcategory");
@@ -2337,17 +2341,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             categoryId = category.id;
             console.log(`Found existing category "${req.body.category}" with ID ${categoryId}`);
             
-            // Look up subcategory within this category
-            const subcategory = await storage.getSkillSubcategoryByNameAndCategory(
-              req.body.subcategory, 
-              category.id
-            );
+            // Use subcategory_id if provided directly
+            if (req.body.subcategory_id || req.body.subcategoryId) {
+              subcategoryId = req.body.subcategory_id || req.body.subcategoryId;
+              console.log(`Using provided subcategory ID: ${subcategoryId}`);
+            }
+            // Otherwise try to look up by name
+            else if (req.body.subcategory) {
+              const subcategory = await storage.getSkillSubcategoryByNameAndCategory(
+                req.body.subcategory, 
+                category.id
+              );
             
-            if (subcategory) {
-              subcategoryId = subcategory.id;
-              console.log(`Found existing subcategory "${req.body.subcategory}" with ID ${subcategoryId}`);
-            } else {
-              console.log(`Subcategory "${req.body.subcategory}" not found, will create during approval`);
+              if (subcategory) {
+                subcategoryId = subcategory.id;
+                console.log(`Found existing subcategory "${req.body.subcategory}" with ID ${subcategoryId}`);
+              } else {
+                console.log(`Subcategory "${req.body.subcategory}" not found, will create during approval`);
+              }
             }
           } else {
             console.log(`Category "${req.body.category}" not found, will create during approval`);
@@ -2357,7 +2368,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Format notes to preserve subcategory information
-        let metadataNotes = `${req.body.name}\nCategory: ${req.body.category}\nSubcategory: ${req.body.subcategory}`;
+        let subcategoryInfo = '';
+        if (req.body.subcategory) {
+          subcategoryInfo = `Subcategory: ${req.body.subcategory}`;
+        } else if (subcategoryId) {
+          // Just use the subcategory ID in the notes
+          subcategoryInfo = `Subcategory ID: ${subcategoryId}`;
+          
+          // No need for getSkillSubcategoryById that was causing errors
+          // We'll just use the ID directly
+        }
+        
+        let metadataNotes = `${req.body.name}\nCategory: ${req.body.category}\n${subcategoryInfo}`;
         if (req.body.notes) {
           metadataNotes = `${metadataNotes}\n\n${req.body.notes}`;
         }
