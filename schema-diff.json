@@ -1,0 +1,34 @@
+{
+  "tablesOnlyInCloud": [],
+  "tablesOnlyInReplit": [
+    "endorsements_v2",
+    "pending_skill_updates_v2",
+    "project_skills_v2",
+    "skill_histories_v2"
+  ],
+  "commonTablesWithDifferences": {
+    "notifications": {
+      "columnsOnlyInCloud": [],
+      "columnsOnlyInReplit": [
+        "related_user_skill_id"
+      ],
+      "columnTypesDifferent": []
+    },
+    "skill_approvers": {
+      "columnsOnlyInCloud": [
+        "skill_id"
+      ],
+      "columnsOnlyInReplit": [
+        "skill_template_id"
+      ],
+      "columnTypesDifferent": []
+    },
+    "skill_categories": {
+      "columnsOnlyInCloud": [],
+      "columnsOnlyInReplit": [
+        "category_type"
+      ],
+      "columnTypesDifferent": []
+    }
+  }
+}
