@@ -1496,12 +1496,12 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Endorsement operations - updated to use endorsements_v2 table
+  // Endorsement operations - using endorsements table with user_skill_id column
   async getSkillEndorsements(skillId: number): Promise<Endorsement[]> {
     try {
       const result = await pool.query(`
         SELECT e.*, u.email as endorser_email 
-        FROM endorsements_v2 e 
+        FROM endorsements e 
         JOIN users u ON e.endorser_id = u.id 
         WHERE user_skill_id = $1 
         ORDER BY created_at DESC
@@ -1514,12 +1514,12 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Updated to use the endorsements_v2 table with user_skills
+  // Updated to use the endorsements table with user_skills
   async getUserEndorsements(userId: number): Promise<Endorsement[]> {
     try {
       const result = await pool.query(`
         SELECT e.*, st.name as skill_name, u.email as endorser_email 
-        FROM endorsements_v2 e 
+        FROM endorsements e 
         JOIN user_skills us ON e.user_skill_id = us.id 
         JOIN skill_templates st ON us.skill_template_id = st.id 
         JOIN users u ON e.endorser_id = u.id 
@@ -1534,12 +1534,12 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // V2 alias for getUserEndorsements - same implementation but returns EndorsementV2 type
+  // V2 alias for getUserEndorsements - using the endorsements table
   async getUserEndorsementsV2(userId: number): Promise<EndorsementV2[]> {
     try {
       const result = await pool.query(`
         SELECT e.*, st.name as skill_name, u.email as endorser_email 
-        FROM endorsements_v2 e 
+        FROM endorsements e 
         JOIN user_skills us ON e.user_skill_id = us.id 
         JOIN skill_templates st ON us.skill_template_id = st.id 
         JOIN users u ON e.endorser_id = u.id 
@@ -1554,19 +1554,19 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Updated to use endorsements_v2 table with user_skills
+  // Updated to use endorsements table with user_skills
   async createEndorsement(endorsement: InsertEndorsement): Promise<Endorsement> {
     try {
-      // First check if the endorsement already exists in v2 table
+      // First check if the endorsement already exists in the endorsements table
       const existingEndorsement = await pool.query(
-        'SELECT * FROM endorsements_v2 WHERE user_skill_id = $1 AND endorser_id = $2',
+        'SELECT * FROM endorsements WHERE user_skill_id = $1 AND endorser_id = $2',
         [endorsement.skillId, endorsement.endorserId]
       );
       
       if (existingEndorsement.rows.length > 0) {
         // Update existing endorsement with new comment
         const result = await pool.query(
-          `UPDATE endorsements_v2 SET comment = $1, created_at = CURRENT_TIMESTAMP 
+          `UPDATE endorsements SET comment = $1, created_at = CURRENT_TIMESTAMP 
            WHERE user_skill_id = $2 AND endorser_id = $3 
            RETURNING *`,
           [endorsement.comment || '', endorsement.skillId, endorsement.endorserId]
@@ -1581,9 +1581,9 @@ export class PostgresStorage implements IStorage {
         return this.snakeToCamel(result.rows[0]);
       }
       
-      // Create new endorsement in v2 table
+      // Create new endorsement in the endorsements table
       const result = await pool.query(
-        `INSERT INTO endorsements_v2 (user_skill_id, endorser_id, endorsee_id, comment) 
+        `INSERT INTO endorsements (user_skill_id, endorser_id, endorsee_id, comment) 
          VALUES ($1, $2, $3, $4) 
          RETURNING *`,
         [
@@ -1607,19 +1607,19 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // V2 alias for createEndorsement - same implementation but returns EndorsementV2 type
+  // V2 alias for createEndorsement - using the endorsements table
   async createEndorsementV2(endorsement: InsertEndorsementV2): Promise<EndorsementV2> {
     try {
-      // First check if the endorsement already exists in v2 table
+      // First check if the endorsement already exists in the endorsements table
       const existingEndorsement = await pool.query(
-        'SELECT * FROM endorsements_v2 WHERE user_skill_id = $1 AND endorser_id = $2',
+        'SELECT * FROM endorsements WHERE user_skill_id = $1 AND endorser_id = $2',
         [endorsement.userSkillId, endorsement.endorserId]
       );
       
       if (existingEndorsement.rows.length > 0) {
         // Update existing endorsement with new comment
         const result = await pool.query(
-          `UPDATE endorsements_v2 SET comment = $1, created_at = CURRENT_TIMESTAMP 
+          `UPDATE endorsements SET comment = $1, created_at = CURRENT_TIMESTAMP 
            WHERE user_skill_id = $2 AND endorser_id = $3 
            RETURNING *`,
           [endorsement.comment || '', endorsement.userSkillId, endorsement.endorserId]
@@ -1634,9 +1634,9 @@ export class PostgresStorage implements IStorage {
         return this.snakeToCamel(result.rows[0]);
       }
       
-      // Create new endorsement in v2 table
+      // Create new endorsement in the endorsements table
       const result = await pool.query(
-        `INSERT INTO endorsements_v2 (user_skill_id, endorser_id, endorsee_id, comment) 
+        `INSERT INTO endorsements (user_skill_id, endorser_id, endorsee_id, comment) 
          VALUES ($1, $2, $3, $4) 
          RETURNING *`,
         [
@@ -1660,12 +1660,12 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Updated to use endorsements_v2 table with user_skills
+  // Updated to use endorsements table with user_skills
   async deleteEndorsement(endorsementId: number): Promise<void> {
     try {
       // First get the endorsement to know which skill to update
       const endorsement = await pool.query(
-        'SELECT user_skill_id FROM endorsements_v2 WHERE id = $1',
+        'SELECT user_skill_id FROM endorsements WHERE id = $1',
         [endorsementId]
       );
       
@@ -1675,8 +1675,8 @@ export class PostgresStorage implements IStorage {
       
       const userSkillId = endorsement.rows[0].user_skill_id;
       
-      // Delete the endorsement from v2 table
-      await pool.query('DELETE FROM endorsements_v2 WHERE id = $1', [endorsementId]);
+      // Delete the endorsement from the endorsements table
+      await pool.query('DELETE FROM endorsements WHERE id = $1', [endorsementId]);
       
       // Decrement the endorsement count on the user_skills table
       await pool.query(
@@ -1689,12 +1689,12 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // V2 alias for deleteEndorsement - same implementation for deleting from endorsements_v2
+  // V2 alias for deleteEndorsement - using the endorsements table
   async deleteEndorsementV2(endorsementId: number): Promise<void> {
     try {
       // First get the endorsement to know which skill to update
       const endorsement = await pool.query(
-        'SELECT user_skill_id FROM endorsements_v2 WHERE id = $1',
+        'SELECT user_skill_id FROM endorsements WHERE id = $1',
         [endorsementId]
       );
       
@@ -1704,8 +1704,8 @@ export class PostgresStorage implements IStorage {
       
       const userSkillId = endorsement.rows[0].user_skill_id;
       
-      // Delete the endorsement from v2 table
-      await pool.query('DELETE FROM endorsements_v2 WHERE id = $1', [endorsementId]);
+      // Delete the endorsement from the endorsements table
+      await pool.query('DELETE FROM endorsements WHERE id = $1', [endorsementId]);
       
       // Decrement the endorsement count on the user_skills table
       await pool.query(
