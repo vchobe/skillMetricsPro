@@ -2304,9 +2304,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (pendingSkillData.skillTemplateId === -1 || pendingSkillData.skill_template_id === -1) {
           console.log("Custom skill detected with sentinel skillTemplateId (-1)");
           
-          // Extract the category from the request body since it's not in the pendingSkillData
+          // Extract the category and subcategory from the request body
           const category = req.body.category || "";
-          console.log(`Custom skill category from request body: "${category}"`);
+          const subcategory = req.body.subcategory || "";
+          console.log(`Custom skill category from request body: "${category}", subcategory: "${subcategory}"`);
+          
+          // Store the custom skill metadata for use during approval
+          const metaData = {
+            category,
+            subcategory,
+            name: req.body.name || "Custom Skill",
+            // Add any additional metadata that might be useful during approval
+            isCustomSkill: true
+          };
+          
+          // Store metadata in the notes field for now (we'll extract it during approval)
+          if (!pendingSkillData.notes) {
+            pendingSkillData.notes = '';
+          }
+          
+          // Format the notes to include metadata in a structured way
+          if (pendingSkillData.notes) {
+            pendingSkillData.notes = `${req.body.name || "Custom Skill"}\nCategory: ${category}\nSubcategory: ${subcategory}\n\n${pendingSkillData.notes}`;
+          } else {
+            pendingSkillData.notes = `${req.body.name || "Custom Skill"}\nCategory: ${category}\nSubcategory: ${subcategory}`;
+          }
+          
+          console.log(`Stored metadata in notes: ${pendingSkillData.notes}`);
           
           // Find an appropriate template to use, or add special handling
           try {
