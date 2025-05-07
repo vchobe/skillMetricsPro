@@ -3060,7 +3060,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/project-skills", ensureAuth, async (req, res) => {
     try {
       // Get all skills from all projects using the optimized function
-      const allSkills = await storage.getAllProjectSkillsV2();
+      const allSkills = await storage.getAllProjectSkills();
       res.json(allSkills);
     } catch (error) {
       res.status(500).json({ message: "Error fetching all project skills", error });
