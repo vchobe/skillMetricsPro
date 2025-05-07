@@ -1,0 +1,48 @@
+Deleting user skill 48
+Error deleting user skill: error: update or delete on table "user_skills" violates foreign key constraint "pending_skill_updates_user_skill_id_fkey" on table "pending_skill_updates"
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PostgresStorage.deleteUserSkill (/home/runner/workspace/server/storage.ts:812:7)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:809:7) {
+  length: 360,
+  severity: 'ERROR',
+  code: '23503',
+  detail: 'Key (id)=(48) is still referenced from table "pending_skill_updates".',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'pending_skill_updates',
+  column: undefined,
+  dataType: undefined,
+  constraint: 'pending_skill_updates_user_skill_id_fkey',
+  file: 'ri_triggers.c',
+  line: '2624',
+  routine: 'ri_ReportViolation'
+}
+Error in /api/skills/:id DELETE endpoint: error: update or delete on table "user_skills" violates foreign key constraint "pending_skill_updates_user_skill_id_fkey" on table "pending_skill_updates"
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PostgresStorage.deleteUserSkill (/home/runner/workspace/server/storage.ts:812:7)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:809:7) {
+  length: 360,
+  severity: 'ERROR',
+  code: '23503',
+  detail: 'Key (id)=(48) is still referenced from table "pending_skill_updates".',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'pending_skill_updates',
+  column: undefined,
+  dataType: undefined,
+  constraint: 'pending_skill_updates_user_skill_id_fkey',
+  file: 'ri_triggers.c',
+  line: '2624',
+  routine: 'ri_ReportViolation'
+}
+8:02:58 PM [server] DELETE /api/skills/48 500 in 299ms :: {"message":"Error deleting skill","error"…
