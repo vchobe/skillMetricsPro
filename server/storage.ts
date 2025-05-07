@@ -2147,6 +2147,59 @@ export class PostgresStorage implements IStorage {
       const template = templateCheck.rows[0];
       console.log(`Deleting skill template: ${template.name} (${template.category}) with ID ${id}`);
       
+      // Check all tables that might have foreign key constraints to skill_templates
+      console.log(`Checking foreign key references to skill template ${id}...`);
+      try {
+        const dependentTablesQuery = `
+          SELECT
+            tc.table_name as dependent_table,
+            kcu.column_name as dependent_column,
+            ccu.table_name as referenced_table,
+            ccu.column_name as referenced_column,
+            tc.constraint_name
+          FROM 
+            information_schema.table_constraints AS tc 
+            JOIN information_schema.key_column_usage AS kcu
+              ON tc.constraint_name = kcu.constraint_name
+              AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage AS ccu
+              ON ccu.constraint_name = tc.constraint_name
+              AND ccu.table_schema = tc.table_schema
+          WHERE tc.constraint_type = 'FOREIGN KEY'
+            AND ccu.table_name = 'skill_templates'
+            AND ccu.column_name = 'id'
+            AND tc.table_schema = 'public';
+        `;
+        
+        const dependentTables = await client.query(dependentTablesQuery);
+        
+        console.log(`Found ${dependentTables.rows.length} dependent tables with foreign keys to skill_templates.id:`);
+        for (const dep of dependentTables.rows) {
+          console.log(`Table ${dep.dependent_table} references skill_templates.id via ${dep.dependent_column}`);
+          
+          // For each dependent table, check for rows referencing this template ID
+          const checkQuery = `
+            SELECT COUNT(*) FROM ${dep.dependent_table} WHERE ${dep.dependent_column} = $1
+          `;
+          
+          const countResult = await client.query(checkQuery, [id]);
+          console.log(`  Table ${dep.dependent_table} has ${countResult.rows[0].count} rows referencing template ID ${id}`);
+          
+          // If we found references, delete them
+          if (parseInt(countResult.rows[0].count) > 0) {
+            console.log(`  Removing ${countResult.rows[0].count} references from ${dep.dependent_table}`);
+            const deleteQuery = `
+              DELETE FROM ${dep.dependent_table} WHERE ${dep.dependent_column} = $1 RETURNING id
+            `;
+            
+            const deleteResult = await client.query(deleteQuery, [id]);
+            console.log(`  Deleted ${deleteResult.rowCount} rows from ${dep.dependent_table}`);
+          }
+        }
+      } catch (error) {
+        console.warn(`Error checking dependent tables: ${error}`);
+      }
+      
       // 1. Find all user skills that reference this template
       const userSkillsResult = await client.query(
         'SELECT id, user_id FROM user_skills WHERE skill_template_id = $1',
