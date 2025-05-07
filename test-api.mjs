@@ -1,5 +1,5 @@
-const fetch = require('node-fetch');
-const fs = require('fs');
+import fetch from 'node-fetch';
+import fs from 'fs';
 
 // Base URL for our API
 const API_BASE_URL = 'http://localhost:5000/api';
