@@ -3243,7 +3243,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      const skills = await storage.getProjectSkills(projectId);
+      // Use the V2 function to get project skills from the V2 table
+      const skills = await storage.getProjectSkillsV2(projectId);
       res.json(skills);
     } catch (error) {
       res.status(500).json({ message: "Error fetching project skills", error });
@@ -3297,7 +3298,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project skill ID" });
       }
       
-      await storage.deleteProjectSkill(projectSkillId);
+      // Use the V2 function to delete project skills from the V2 table
+      await storage.deleteProjectSkillV2(projectSkillId);
       res.status(204).send();
     } catch (error) {
       console.error("Error removing skill from project:", error);
