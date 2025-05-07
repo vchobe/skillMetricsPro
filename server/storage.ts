@@ -2190,11 +2190,39 @@ export class PostgresStorage implements IStorage {
       }
       
       // Delete any pending_skill_updates that directly reference this skill template
-      const pendingTemplateUpdatesResult = await client.query(
-        'DELETE FROM pending_skill_updates WHERE skill_template_id = $1 RETURNING id',
-        [id]
-      );
-      console.log(`Deleted ${pendingTemplateUpdatesResult.rowCount} pending skill updates referencing the template directly`);
+      // First, try the skill_template_id column (which exists in new schema)
+      try {
+        const pendingTemplateUpdatesResult = await client.query(
+          'DELETE FROM pending_skill_updates WHERE skill_template_id = $1 RETURNING id',
+          [id]
+        );
+        console.log(`Deleted ${pendingTemplateUpdatesResult.rowCount} pending skill updates referencing the template directly via skill_template_id`);
+      } catch (pendingError) {
+        console.warn(`Error deleting from pending_skill_updates using skill_template_id: ${pendingError.message}`);
+      }
+
+      // Then try the skill_id column (which maps to skill_templates in the legacy schema)
+      try {
+        const pendingTemplateBySkillIdResult = await client.query(
+          'DELETE FROM pending_skill_updates WHERE skill_id = $1 RETURNING id',
+          [id]
+        );
+        console.log(`Deleted ${pendingTemplateBySkillIdResult.rowCount} pending skill updates referencing the template via skill_id`);
+      } catch (pendingError) {
+        console.warn(`Error deleting from pending_skill_updates using skill_id: ${pendingError.message}`);
+      }
+      
+      // For pending_skill_updates_v2 table if it exists
+      try {
+        const pendingTemplateV2Result = await client.query(
+          'DELETE FROM pending_skill_updates_v2 WHERE skill_template_id = $1 RETURNING id',
+          [id]
+        );
+        console.log(`Deleted ${pendingTemplateV2Result.rowCount} pending skill updates (v2) referencing the template`);
+      } catch (pendingV2Error) {
+        // This is expected to fail if the table doesn't exist yet
+        console.warn(`Note: No pending_skill_updates_v2 table or error: ${pendingV2Error.message}`);
+      }
       
       // 5. Delete project skills that reference this template
       // Note: project_skills.skill_id is now referencing skill_templates.id after our schema update
