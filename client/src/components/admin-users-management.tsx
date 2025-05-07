@@ -204,14 +204,16 @@ const AdminUsersManagement = () => {
 
   // Handle client filter change
   const handleClientChange = (value: string) => {
-    setSelectedClientId(value);
+    // Convert "all_clients" to empty string for filtering logic
+    setSelectedClientId(value === "all_clients" ? "" : value);
     // Reset project selection when client changes
     setSelectedProjectId("");
   };
   
   // Handle project filter change
   const handleProjectChange = (value: string) => {
-    setSelectedProjectId(value);
+    // Convert "all_projects" to empty string for filtering logic
+    setSelectedProjectId(value === "all_projects" ? "" : value);
   };
   
   // Handle clearing filters
@@ -278,7 +280,7 @@ const AdminUsersManagement = () => {
                 <SelectValue placeholder="Filter by client" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Clients</SelectItem>
+                <SelectItem value="all_clients">All Clients</SelectItem>
                 {clients.map(client => (
                   <SelectItem key={client.id} value={client.id.toString()}>
                     {client.name}
@@ -300,7 +302,7 @@ const AdminUsersManagement = () => {
                 <SelectValue placeholder="Filter by project" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Projects</SelectItem>
+                <SelectItem value="all_projects">All Projects</SelectItem>
                 {projects
                   .filter(project => !selectedClientId || project.clientId.toString() === selectedClientId)
                   .map(project => (
