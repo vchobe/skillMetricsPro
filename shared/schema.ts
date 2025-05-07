@@ -580,6 +580,9 @@ export const insertPendingSkillUpdateV2Schema = baseInsertPendingSkillUpdateV2Sc
     credly_link: z.string().optional(),
     certification_date: z.date().optional(),
     expiration_date: z.date().optional(),
+    // Add custom skill fields
+    category: z.string().optional(),
+    subcategory: z.string().optional(),
   })
   .transform((data) => {
     // Make sure camelCase values are prioritized, but fall back to snake_case
