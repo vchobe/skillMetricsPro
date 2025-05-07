@@ -1752,30 +1752,55 @@ export class PostgresStorage implements IStorage {
       const relatedUserSkillId = notification.relatedUserSkillId || notification.related_user_skill_id || null;
       const relatedUserId = notification.relatedUserId || notification.related_user_id || null;
       
-      console.log("Creating notification with params:", JSON.stringify({
+      console.log("Creating notification with params:", {
         userId, 
         type: notification.type,
         content,
         relatedSkillId,
         relatedUserSkillId,
         relatedUserId
-      }, null, 2));
+      });
       
-      const result = await pool.query(
-        `INSERT INTO notifications (
-          user_id, type, content, related_skill_id, 
-          related_user_skill_id, related_user_id
-        ) VALUES ($1, $2, $3, $4, $5, $6) 
-         RETURNING *`,
-        [
-          userId, 
-          notification.type, 
-          content,
-          relatedSkillId,
-          relatedUserSkillId,
-          relatedUserId
-        ]
-      );
+      // First, determine what columns to include in the insert
+      let columns = ['user_id', 'type', 'content'];
+      let placeholders = ['$1', '$2', '$3'];
+      let values = [userId, notification.type, content];
+      let paramIndex = 4;
+      
+      // Only include related_skill_id if actually provided
+      if (relatedSkillId !== null && relatedSkillId !== undefined) {
+        columns.push('related_skill_id');
+        placeholders.push(`$${paramIndex}`);
+        values.push(relatedSkillId);
+        paramIndex++;
+      }
+      
+      // Only include related_user_skill_id if actually provided
+      if (relatedUserSkillId !== null && relatedUserSkillId !== undefined) {
+        columns.push('related_user_skill_id');
+        placeholders.push(`$${paramIndex}`);
+        values.push(relatedUserSkillId);
+        paramIndex++;
+      }
+      
+      // Only include related_user_id if actually provided
+      if (relatedUserId !== null && relatedUserId !== undefined) {
+        columns.push('related_user_id');
+        placeholders.push(`$${paramIndex}`);
+        values.push(relatedUserId);
+        paramIndex++;
+      }
+      
+      const query = `
+        INSERT INTO notifications (${columns.join(', ')})
+        VALUES (${placeholders.join(', ')})
+        RETURNING *
+      `;
+      
+      console.log("Executing notification insert query:", query);
+      console.log("With values:", values);
+      
+      const result = await pool.query(query, values);
       return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating notification:", error);
