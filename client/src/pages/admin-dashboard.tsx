@@ -64,7 +64,7 @@ import { formatDate, DATE_FORMATS } from "@/lib/date-utils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 // Helper function to get color for skill badges based on level
 // Helper components for Project and Skill Overview visualization
