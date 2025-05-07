@@ -2933,7 +2933,7 @@ export class PostgresStorage implements IStorage {
       }
       
       const query = `
-        INSERT INTO pending_skill_updates_v2 (${fields.join(', ')})
+        INSERT INTO pending_skill_updates (${fields.join(', ')})
         VALUES (${placeholders.join(', ')})
         RETURNING *
       `;
@@ -2961,7 +2961,7 @@ export class PostgresStorage implements IStorage {
       
       // First, get the raw pending update without joins to check if it's a custom skill with sentinel value
       const rawPendingResult = await pool.query(`
-        SELECT * FROM pending_skill_updates_v2 WHERE id = $1
+        SELECT * FROM pending_skill_updates WHERE id = $1
       `, [id]);
       
       if (rawPendingResult.rows.length === 0) {
@@ -2981,9 +2981,9 @@ export class PostgresStorage implements IStorage {
         // For custom skills, we need to get additional fields that might be stored elsewhere
         // Get original request data from the request/notes
         const originalResult = await pool.query(`
-          SELECT * FROM pending_skill_updates_v2 
-          LEFT JOIN users u ON pending_skill_updates_v2.user_id = u.id
-          WHERE pending_skill_updates_v2.id = $1
+          SELECT * FROM pending_skill_updates 
+          LEFT JOIN users u ON pending_skill_updates.user_id = u.id
+          WHERE pending_skill_updates.id = $1
         `, [id]);
         
         if (originalResult.rows.length === 0) {
@@ -3004,7 +3004,7 @@ export class PostgresStorage implements IStorage {
                  ss.name as subcategory_name,
                  ss.color as subcategory_color,
                  ss.icon as subcategory_icon
-          FROM pending_skill_updates_v2 p
+          FROM pending_skill_updates p
           JOIN skill_templates st ON p.skill_template_id = st.id
           LEFT JOIN skill_categories sc ON st.category_id = sc.id 
           LEFT JOIN skill_subcategories ss ON st.subcategory_id = ss.id
@@ -3038,7 +3038,7 @@ export class PostgresStorage implements IStorage {
           SELECT 
             p.*,
             psu.meta_data
-          FROM pending_skill_updates_v2 p
+          FROM pending_skill_updates p
           LEFT JOIN pending_skill_update_metadata psu ON p.id = psu.pending_skill_update_id
           WHERE p.id = $1
         `, [id]);
@@ -3148,7 +3148,7 @@ export class PostgresStorage implements IStorage {
         
         // Update the pending skill update to use the new template ID
         await pool.query(`
-          UPDATE pending_skill_updates_v2 
+          UPDATE pending_skill_updates 
           SET skill_template_id = $1 
           WHERE id = $2
         `, [newTemplateId, id]);
@@ -3296,7 +3296,7 @@ export class PostgresStorage implements IStorage {
       // Update the pending update status
       console.log(`Updating pending skill update status to approved`);
       await pool.query(`
-        UPDATE pending_skill_updates_v2 SET 
+        UPDATE pending_skill_updates SET 
          status = 'approved', 
          reviewed_at = CURRENT_TIMESTAMP, 
          reviewed_by = $1,
@@ -3339,7 +3339,7 @@ export class PostgresStorage implements IStorage {
       
       // First, get the raw pending update without joins to check if it's a custom skill with sentinel value
       const rawPendingResult = await pool.query(`
-        SELECT * FROM pending_skill_updates_v2 WHERE id = $1
+        SELECT * FROM pending_skill_updates WHERE id = $1
       `, [id]);
       
       if (rawPendingResult.rows.length === 0) {
@@ -3358,9 +3358,9 @@ export class PostgresStorage implements IStorage {
         
         // For custom skills, we need to get additional fields that might be stored elsewhere
         const originalResult = await pool.query(`
-          SELECT * FROM pending_skill_updates_v2 
-          LEFT JOIN users u ON pending_skill_updates_v2.user_id = u.id
-          WHERE pending_skill_updates_v2.id = $1
+          SELECT * FROM pending_skill_updates 
+          LEFT JOIN users u ON pending_skill_updates.user_id = u.id
+          WHERE pending_skill_updates.id = $1
         `, [id]);
         
         if (originalResult.rows.length === 0) {
@@ -3385,7 +3385,7 @@ export class PostgresStorage implements IStorage {
                  ss.name as subcategory_name,
                  ss.color as subcategory_color,
                  ss.icon as subcategory_icon
-          FROM pending_skill_updates_v2 p
+          FROM pending_skill_updates p
           JOIN skill_templates st ON p.skill_template_id = st.id
           LEFT JOIN skill_categories sc ON st.category_id = sc.id 
           LEFT JOIN skill_subcategories ss ON st.subcategory_id = ss.id
@@ -3405,7 +3405,7 @@ export class PostgresStorage implements IStorage {
       // Update the pending update status
       console.log(`Updating pending skill update V2 status to rejected`);
       await pool.query(`
-        UPDATE pending_skill_updates_v2 SET 
+        UPDATE pending_skill_updates SET 
          status = 'rejected', 
          reviewed_at = CURRENT_TIMESTAMP, 
          reviewed_by = $1,
