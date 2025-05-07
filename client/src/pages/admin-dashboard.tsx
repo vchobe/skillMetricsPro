@@ -1186,6 +1186,9 @@ export default function AdminDashboard() {
   
   // Skill templates state
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [showDeleteTemplateDialog, setShowDeleteTemplateDialog] = useState(false);
+  const [deleteTemplateId, setDeleteTemplateId] = useState<number | null>(null);
+  const [useSuperAdminDelete, setUseSuperAdminDelete] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
   const [templateSearchQuery, setTemplateSearchQuery] = useState("");
   const [categories, setCategories] = useState<any[]>([]);
@@ -1274,6 +1277,61 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const csvExportRef = useRef<HTMLAnchorElement>(null);
   const skillGapExportRef = useRef<HTMLAnchorElement>(null);
+  
+  // Delete skill template mutation (regular admin)
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/skill-templates/${id}`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete skill template");
+      }
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
+      toast({
+        title: "Success",
+        description: "Skill template deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Super admin delete skill template mutation (with cascading delete)
+  const superAdminDeleteTemplateMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/super-admin/skill-templates/${id}`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete skill and dependencies");
+      }
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/project-skills"] });
+      toast({
+        title: "Super Admin Delete Success",
+        description: "Skill template and ALL dependent data successfully deleted",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Super Admin Delete Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
   
   // We already have isApprover from the top of the component
   // Don't re-declare it here
@@ -4010,22 +4068,37 @@ export default function AdminDashboard() {
                                     )}
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setEditingTemplate(template);
-                                        setShowTemplateDialog(true);
-                                        fetchCategories();
-                                        // If template has category ID, load subcategories
-                                        if (template.categoryId) {
-                                          fetchSubcategoriesForCategory(template.categoryId);
-                                        }
-                                      }}
-                                    >
-                                      <Edit className="h-4 w-4 mr-2" />
-                                      Edit
-                                    </Button>
+                                    <div className="flex justify-end gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setEditingTemplate(template);
+                                          setShowTemplateDialog(true);
+                                          fetchCategories();
+                                          // If template has category ID, load subcategories
+                                          if (template.categoryId) {
+                                            fetchSubcategoriesForCategory(template.categoryId);
+                                          }
+                                        }}
+                                      >
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                        onClick={() => {
+                                          setDeleteTemplateId(template.id);
+                                          setUseSuperAdminDelete(false); // Default to regular delete
+                                          setShowDeleteTemplateDialog(true);
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                      </Button>
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               ))}
