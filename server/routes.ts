@@ -3268,7 +3268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      const skills = await storage.getProjectSkillsV2(projectId);
+      const skills = await storage.getProjectSkills(projectId);
       res.json(skills);
     } catch (error) {
       res.status(500).json({ message: "Error fetching project skills", error });
@@ -3291,7 +3291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const parsedData = insertProjectSkillV2Schema.safeParse({
+      const parsedData = insertProjectSkillSchema.safeParse({
         ...req.body,
         projectId
       });
@@ -3303,7 +3303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const projectSkill = await storage.createProjectSkillV2(parsedData.data);
+      const projectSkill = await storage.createProjectSkill(parsedData.data);
       res.status(201).json(projectSkill);
     } catch (error) {
       console.error("Error adding skill to project:", error);
@@ -3320,7 +3320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project skill ID" });
       }
       
-      await storage.deleteProjectSkillV2(projectSkillId);
+      await storage.deleteProjectSkill(projectSkillId);
       res.status(204).send();
     } catch (error) {
       console.error("Error removing skill from project:", error);
