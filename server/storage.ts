@@ -4476,20 +4476,29 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // V2 implementation using project_skills_v2 table that references skill templates
+  // V2 implementation adapted to use the existing project_skills table
   // Get projects requiring a specific skill template
   async getProjectsBySkillTemplate(skillTemplateId: number): Promise<ProjectSkillV2[]> {
     try {
       console.log(`Looking for projects using skill template ID ${skillTemplateId}`);
       
       // Get all projects that require this skill template
+      // In project_skills table, the skill_id column is used to store the skill_template_id
       const result = await pool.query(`
-        SELECT ps.*, p.name as project_name, p.status as project_status, 
-               st.name as skill_name, st.category as skill_category
-        FROM project_skills_v2 ps
+        SELECT 
+          ps.id, 
+          ps.project_id, 
+          ps.skill_id as skill_template_id, 
+          ps.required_level,
+          ps.created_at,
+          p.name as project_name, 
+          p.status as project_status, 
+          st.name as skill_name, 
+          st.category as skill_category
+        FROM project_skills ps
         JOIN projects p ON ps.project_id = p.id
-        JOIN skill_templates st ON ps.skill_template_id = st.id
-        WHERE ps.skill_template_id = $1
+        JOIN skill_templates st ON ps.skill_id = st.id
+        WHERE ps.skill_id = $1
         ORDER BY p.name
       `, [skillTemplateId]);
       
