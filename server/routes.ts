@@ -2277,6 +2277,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const isAdmin = req.user!.isAdmin || req.user!.is_admin;
       
+      // First, check if we have a skill_template_id in the request - that takes priority
+      if (req.body.skill_template_id || req.body.skillTemplateId) {
+        // If we already have a template ID, we can proceed with standard handling
+        console.log("Found skill template ID in request, using standard flow");
+        const skillTemplateId = req.body.skill_template_id || req.body.skillTemplateId;
+        
+        // Create pending skill update using the provided template ID
+        const pendingSkillDataV2: any = {
+          user_id: userId,
+          skill_template_id: skillTemplateId,
+          level: req.body.level,
+          certification: req.body.certification || null,
+          credly_link: req.body.credlyLink || req.body.credly_link || null,
+          notes: req.body.notes || null,
+          status: "pending",
+          submitted_at: new Date(),
+          is_update: req.body.is_update || req.body.isUpdate || false
+        };
+        
+        console.log("Creating standard V2 pending skill update with data:", pendingSkillDataV2);
+        const pendingSkillUpdate = await storage.createPendingSkillUpdateV2(pendingSkillDataV2);
+        
+        // Notify approvers (all admins for now)
+        const admins = await storage.getAllAdmins();
+        
+        if (admins && admins.length > 0) {
+          for (const admin of admins) {
+            await storage.createNotification({
+              user_id: admin.id,
+              type: "achievement",
+              content: `User ${req.user!.username} has requested approval for a skill update`,
+              related_user_id: req.user!.id
+            });
+          }
+        }
+        
+        return res.status(201).json({
+          message: "Pending skill update created successfully",
+          pendingSkillUpdate
+        });
+      }
+      
       // Check if we have name, category, and subcategory fields - indicating it's a custom skill
       const isCustomSkill = req.body.name && req.body.category && req.body.subcategory;
       
@@ -2457,12 +2499,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Handle standard skill updates through skill template
         console.log("Standard skill update request (non-custom skill)");
-        // Let the rest of the function handle this case
+        
+        // Check if required fields are present
+        if (!req.body.skillTemplateId && !req.body.skill_template_id) {
+          return res.status(400).json({
+            message: "Missing required field: skillTemplateId or skill_template_id",
+            error: "When not submitting a custom skill, you must provide a skill template ID"
+          });
+        }
+        
+        // Create pending skill update using the provided template ID
+        const skillTemplateId = req.body.skillTemplateId || req.body.skill_template_id;
+        
+        const pendingSkillDataV2: any = {
+          user_id: req.user!.id,
+          skill_template_id: skillTemplateId,
+          level: req.body.level,
+          certification: req.body.certification || null,
+          credly_link: req.body.credlyLink || req.body.credly_link || null,
+          notes: req.body.notes || null,
+          status: "pending",
+          submitted_at: new Date(),
+          is_update: req.body.is_update || req.body.isUpdate || false
+        };
+        
+        console.log("Creating standard V2 pending skill update with data:", pendingSkillDataV2);
+        
+        try {
+          const pendingSkillUpdate = await storage.createPendingSkillUpdateV2(pendingSkillDataV2);
+          
+          // Notify approvers (all admins for now)
+          const admins = await storage.getAllAdmins();
+          
+          if (admins && admins.length > 0) {
+            for (const admin of admins) {
+              await storage.createNotification({
+                user_id: admin.id,
+                type: "achievement",
+                content: `User ${req.user!.username} has requested approval for a skill update`,
+                related_user_id: req.user!.id
+              });
+            }
+          }
+          
+          return res.status(201).json({
+            message: "Pending skill update created successfully",
+            pendingSkillUpdate
+          });
+        } catch (error) {
+          console.error("Error creating standard pending skill update:", error);
+          return res.status(500).json({
+            message: "Error creating pending skill update",
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
       }
     } catch (error) {
-      console.error("Error in custom skill submission:", error);
+      console.error("Error in skill submission:", error);
       res.status(400).json({ 
-        message: "Error processing custom skill", 
+        message: "Error processing skill submission", 
         error: error instanceof Error ? error.message : String(error)
       });
     }
