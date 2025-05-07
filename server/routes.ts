@@ -1490,6 +1490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Regular admins can only delete templates with no dependencies
   app.delete("/api/admin/skill-templates/:id", ensureAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -1497,10 +1498,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid template ID" });
       }
       
+      // Check if there are any user skills using this template
+      const userSkillsCheck = await pool.query(
+        'SELECT COUNT(*) FROM user_skills WHERE skill_template_id = $1',
+        [id]
+      );
+      
+      const userSkillCount = parseInt(userSkillsCheck.rows[0].count);
+      
+      if (userSkillCount > 0) {
+        return res.status(409).json({ 
+          message: "Cannot delete skill template", 
+          details: `This template is being used by ${userSkillCount} user skills. Please use the super admin delete endpoint to perform a cascading delete.`,
+          userSkillCount
+        });
+      }
+      
       await storage.deleteSkillTemplate(id);
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting skill template", error });
+    }
+  });
+  
+  // Super admin can perform cascading delete of templates with all dependencies
+  app.delete("/api/super-admin/skill-templates/:id", ensureSuperAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid template ID" });
+      }
+      
+      // Call the enhanced deleteSkillTemplate function which handles cascading deletes
+      const result = await storage.deleteSkillTemplate(id);
+      
+      res.status(200).json({
+        message: "Skill template and all references successfully deleted",
+        details: `Deleted template ID ${id} along with ${result.deletedUserSkills} user skills and all related data`,
+        result
+      });
+    } catch (error) {
+      console.error("Error in cascading delete of skill template:", error);
+      res.status(500).json({ 
+        message: "Error performing cascading deletion of skill template", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
   
