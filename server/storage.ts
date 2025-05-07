@@ -3228,17 +3228,23 @@ export class PostgresStorage implements IStorage {
           
           const existingSkill = this.snakeToCamel(existingSkillResult.rows[0]);
           
-          // Create skill history entry
+          // Create skill history entry using existing skill_histories table
           await pool.query(`
-            INSERT INTO skill_histories_v2 (
-              user_skill_id, user_id, previous_level, new_level, change_note
-            ) VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO skill_histories (
+              skill_id, user_id, user_skill_id, previous_level, new_level, change_note,
+              change_by_id, created_at
+            ) VALUES (
+              (SELECT id FROM skills WHERE name = $1 AND user_id = $2 LIMIT 1),
+              $2, $3, $4, $5, $6, $7, NOW()
+            )
           `, [
-            existingSkill.id,
+            pendingUpdate.name,
             pendingUpdate.userId,
+            existingSkill.id,
             existingSkill.level,
             pendingUpdate.level,
-            `Skill updated via approval process.${notes ? ` Note: ${notes}` : ''}`
+            `Skill updated via approval process.${notes ? ` Note: ${notes}` : ''}`,
+            reviewerId
           ]);
           
           // Update the existing skill
@@ -3278,17 +3284,23 @@ export class PostgresStorage implements IStorage {
             expirationDate: pendingUpdate.expirationDate || null
           });
           
-          // Create a skill history entry for the new skill
+          // Create a skill history entry for the new skill using the existing skill_histories table
           await pool.query(`
-            INSERT INTO skill_histories_v2 (
-              user_skill_id, user_id, previous_level, new_level, change_note
-            ) VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO skill_histories (
+              skill_id, user_id, user_skill_id, previous_level, new_level, change_note, 
+              change_by_id, created_at
+            ) VALUES (
+              (SELECT id FROM skills WHERE name = $1 AND user_id = $2 LIMIT 1), 
+              $2, $3, $4, $5, $6, $7, NOW()
+            )
           `, [
-            userSkill.id,
+            pendingUpdate.name,
             pendingUpdate.userId,
+            userSkill.id,
             null,
             pendingUpdate.level,
-            `Skill created via approval process.${notes ? ` Note: ${notes}` : ''}`
+            `Skill created via approval process.${notes ? ` Note: ${notes}` : ''}`,
+            reviewerId
           ]);
         }
       }
