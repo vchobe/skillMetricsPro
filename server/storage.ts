@@ -2838,34 +2838,203 @@ export class PostgresStorage implements IStorage {
       
       console.log(`Starting approval for pending skill update V2 ID ${id} by reviewer ${reviewerId}`);
       
-      // Get the pending update to be approved with skill name and category
-      const pendingResult = await pool.query(`
-        SELECT p.*, 
-               st.name as skill_name, 
-               st.category as skill_category,
-               sc.name as category_name,
-               sc.color as category_color,
-               sc.icon as category_icon, 
-               ss.name as subcategory_name,
-               ss.color as subcategory_color,
-               ss.icon as subcategory_icon
-        FROM pending_skill_updates_v2 p
-        JOIN skill_templates st ON p.skill_template_id = st.id
-        LEFT JOIN skill_categories sc ON st.category_id = sc.id 
-        LEFT JOIN skill_subcategories ss ON st.subcategory_id = ss.id
-        WHERE p.id = $1
+      // First, get the raw pending update without joins to check if it's a custom skill with sentinel value
+      const rawPendingResult = await pool.query(`
+        SELECT * FROM pending_skill_updates_v2 WHERE id = $1
       `, [id]);
       
-      if (pendingResult.rows.length === 0) {
+      if (rawPendingResult.rows.length === 0) {
         await pool.query('ROLLBACK');
         throw new Error('Pending skill update not found');
       }
       
-      // Get the pending update data
-      const pendingUpdate = this.snakeToCamel(pendingResult.rows[0]) as PendingSkillUpdateV2;
+      // Check for custom skill with sentinel value (-1)
+      const rawPendingUpdate = this.snakeToCamel(rawPendingResult.rows[0]) as PendingSkillUpdateV2;
+      let pendingUpdate: PendingSkillUpdateV2;
+      let isCustomSkill = false;
+      
+      if (rawPendingUpdate.skillTemplateId === -1) {
+        console.log('Custom skill detected with sentinel template ID (-1)');
+        isCustomSkill = true;
+        
+        // For custom skills, we need to get additional fields that might be stored elsewhere
+        // Get original request data from the request/notes
+        const originalResult = await pool.query(`
+          SELECT * FROM pending_skill_updates_v2 
+          LEFT JOIN users u ON pending_skill_updates_v2.user_id = u.id
+          WHERE pending_skill_updates_v2.id = $1
+        `, [id]);
+        
+        if (originalResult.rows.length === 0) {
+          await pool.query('ROLLBACK');
+          throw new Error('Could not retrieve custom skill data');
+        }
+        
+        pendingUpdate = this.snakeToCamel(originalResult.rows[0]) as PendingSkillUpdateV2;
+      } else {
+        // Normal skill (non-custom) - get the pending update with joins to templates and categories
+        const pendingResult = await pool.query(`
+          SELECT p.*, 
+                 st.name as skill_name, 
+                 st.category as skill_category,
+                 sc.name as category_name,
+                 sc.color as category_color,
+                 sc.icon as category_icon, 
+                 ss.name as subcategory_name,
+                 ss.color as subcategory_color,
+                 ss.icon as subcategory_icon
+          FROM pending_skill_updates_v2 p
+          JOIN skill_templates st ON p.skill_template_id = st.id
+          LEFT JOIN skill_categories sc ON st.category_id = sc.id 
+          LEFT JOIN skill_subcategories ss ON st.subcategory_id = ss.id
+          WHERE p.id = $1
+        `, [id]);
+        
+        if (pendingResult.rows.length === 0) {
+          await pool.query('ROLLBACK');
+          throw new Error('Pending skill update details not found');
+        }
+        
+        pendingUpdate = this.snakeToCamel(pendingResult.rows[0]) as PendingSkillUpdateV2;
+      }
+      
       console.log(`Pending update data:`, JSON.stringify(pendingUpdate));
       
       let userSkill: UserSkill;
+      
+      // For custom skills, create a new skill template record
+      if (isCustomSkill) {
+        console.log('Creating new skill template for custom skill');
+        
+        // Get the custom skill data from notes or metadata
+        // We need to extract the name, category, subcategory (if any)
+        // Note: We should store these in a structured way in pendingUpdate.notes
+        const skillName = pendingUpdate.notes ? pendingUpdate.notes.split(':')[0].trim() : "Custom Skill";
+        
+        // Extract category and subcategory info - this may come from different sources
+        // Try to get from the pending update data or from any additional metadata
+        const customSkillQuery = await pool.query(`
+          SELECT 
+            p.*,
+            psu.meta_data
+          FROM pending_skill_updates_v2 p
+          LEFT JOIN pending_skill_update_metadata psu ON p.id = psu.pending_skill_update_id
+          WHERE p.id = $1
+        `, [id]);
+
+        const customSkillData = customSkillQuery.rows[0] || {};
+        let metaData = {};
+        
+        // Parse metadata if available
+        if (customSkillData.meta_data) {
+          try {
+            metaData = JSON.parse(customSkillData.meta_data);
+            console.log('Custom skill metadata:', metaData);
+          } catch (err) {
+            console.error('Failed to parse custom skill metadata:', err);
+          }
+        }
+        
+        // Get category and subcategory information, with fallbacks
+        // These might come from:
+        // 1. Metadata (preferred)
+        // 2. Notes in a specific format
+        // 3. Default values
+        const category = metaData.category || (pendingUpdate.notes && pendingUpdate.notes.includes('Category:') ? 
+          pendingUpdate.notes.split('Category:')[1].split('\n')[0].trim() : 'Other');
+        
+        const subcategory = metaData.subcategory || (pendingUpdate.notes && pendingUpdate.notes.includes('Subcategory:') ? 
+          pendingUpdate.notes.split('Subcategory:')[1].split('\n')[0].trim() : null);
+        
+        // Get or create the category ID
+        let categoryId: number | null = null;
+        if (category) {
+          const categoryResult = await pool.query(
+            'SELECT id FROM skill_categories WHERE name = $1',
+            [category]
+          );
+          
+          if (categoryResult.rows.length > 0) {
+            categoryId = categoryResult.rows[0].id;
+          } else {
+            // Create a new category if it doesn't exist
+            console.log(`Creating new skill category: ${category}`);
+            const newCategoryResult = await pool.query(
+              'INSERT INTO skill_categories (name, description, color, icon) VALUES ($1, $2, $3, $4) RETURNING id',
+              [category, `Custom category for ${category}`, '#4B5563', 'square'] // Default color and icon
+            );
+            
+            if (newCategoryResult.rows.length > 0) {
+              categoryId = newCategoryResult.rows[0].id;
+            }
+          }
+        }
+        
+        // Get or create the subcategory ID
+        let subcategoryId: number | null = null;
+        if (subcategory && categoryId) {
+          const subcategoryResult = await pool.query(
+            'SELECT id FROM skill_subcategories WHERE name = $1 AND category_id = $2',
+            [subcategory, categoryId]
+          );
+          
+          if (subcategoryResult.rows.length > 0) {
+            subcategoryId = subcategoryResult.rows[0].id;
+          } else if (subcategory) {
+            // Create a new subcategory if it doesn't exist
+            console.log(`Creating new skill subcategory: ${subcategory} under category ${category} (${categoryId})`);
+            const newSubcategoryResult = await pool.query(
+              'INSERT INTO skill_subcategories (name, description, category_id, color, icon) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+              [subcategory, `Custom subcategory for ${subcategory}`, categoryId, '#4B5563', 'square'] // Default color and icon
+            );
+            
+            if (newSubcategoryResult.rows.length > 0) {
+              subcategoryId = newSubcategoryResult.rows[0].id;
+            }
+          }
+        }
+        
+        // Create a new skill template
+        console.log(`Creating new skill template for ${skillName} in category ${category} (${categoryId}) and subcategory ${subcategory || 'None'} (${subcategoryId})`);
+        const templateResult = await pool.query(`
+          INSERT INTO skill_templates (
+            name, 
+            category, 
+            description,
+            category_id,
+            subcategory_id,
+            is_recommended,
+            created_at,
+            updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id
+        `, [
+          skillName,
+          category,
+          `Custom skill created by approval of user request`,
+          categoryId,
+          subcategoryId,
+          true // Mark as recommended
+        ]);
+        
+        if (templateResult.rows.length === 0) {
+          await pool.query('ROLLBACK');
+          throw new Error('Failed to create new skill template for custom skill');
+        }
+        
+        // Update the pending skill update with the new template ID
+        const newTemplateId = templateResult.rows[0].id;
+        console.log(`Created new skill template with ID ${newTemplateId}`);
+        
+        // Update the pending skill update to use the new template ID
+        await pool.query(`
+          UPDATE pending_skill_updates_v2 
+          SET skill_template_id = $1 
+          WHERE id = $2
+        `, [newTemplateId, id]);
+        
+        // Update our in-memory object to use the new template ID
+        pendingUpdate.skillTemplateId = newTemplateId;
+      }
       
       // Check if it's a new skill or an update
       if (pendingUpdate.isUpdate && pendingUpdate.userSkillId) {
@@ -3047,31 +3216,69 @@ export class PostgresStorage implements IStorage {
       
       console.log(`Starting rejection for pending skill update V2 ID ${id} by reviewer ${reviewerId}`);
       
-      // Get the pending update to be rejected with skill name and category
-      const pendingResult = await pool.query(`
-        SELECT p.*, 
-               st.name as skill_name, 
-               st.category as skill_category,
-               sc.name as category_name,
-               sc.color as category_color,
-               sc.icon as category_icon, 
-               ss.name as subcategory_name,
-               ss.color as subcategory_color,
-               ss.icon as subcategory_icon
-        FROM pending_skill_updates_v2 p
-        JOIN skill_templates st ON p.skill_template_id = st.id
-        LEFT JOIN skill_categories sc ON st.category_id = sc.id 
-        LEFT JOIN skill_subcategories ss ON st.subcategory_id = ss.id
-        WHERE p.id = $1
+      // First, get the raw pending update without joins to check if it's a custom skill with sentinel value
+      const rawPendingResult = await pool.query(`
+        SELECT * FROM pending_skill_updates_v2 WHERE id = $1
       `, [id]);
       
-      if (pendingResult.rows.length === 0) {
+      if (rawPendingResult.rows.length === 0) {
         await pool.query('ROLLBACK');
-        throw new Error('Pending skill update V2 not found');
+        throw new Error('Pending skill update not found');
       }
       
-      // Get the pending update data
-      const pendingUpdate = this.snakeToCamel(pendingResult.rows[0]) as PendingSkillUpdateV2;
+      // Check for custom skill with sentinel value (-1)
+      const rawPendingUpdate = this.snakeToCamel(rawPendingResult.rows[0]) as PendingSkillUpdateV2;
+      let pendingUpdate: PendingSkillUpdateV2;
+      let isCustomSkill = false;
+      
+      if (rawPendingUpdate.skillTemplateId === -1) {
+        console.log('Custom skill with sentinel template ID (-1) being rejected');
+        isCustomSkill = true;
+        
+        // For custom skills, we need to get additional fields that might be stored elsewhere
+        const originalResult = await pool.query(`
+          SELECT * FROM pending_skill_updates_v2 
+          LEFT JOIN users u ON pending_skill_updates_v2.user_id = u.id
+          WHERE pending_skill_updates_v2.id = $1
+        `, [id]);
+        
+        if (originalResult.rows.length === 0) {
+          await pool.query('ROLLBACK');
+          throw new Error('Could not retrieve custom skill data');
+        }
+        
+        pendingUpdate = this.snakeToCamel(originalResult.rows[0]) as PendingSkillUpdateV2;
+        
+        // For custom skills, the name might be in the notes
+        pendingUpdate.skillName = pendingUpdate.notes ? pendingUpdate.notes.split(':')[0].trim() : "Custom Skill";
+        pendingUpdate.skillCategory = "Custom";
+      } else {
+        // Regular skill - get with template info
+        const pendingResult = await pool.query(`
+          SELECT p.*, 
+                 st.name as skill_name, 
+                 st.category as skill_category,
+                 sc.name as category_name,
+                 sc.color as category_color,
+                 sc.icon as category_icon, 
+                 ss.name as subcategory_name,
+                 ss.color as subcategory_color,
+                 ss.icon as subcategory_icon
+          FROM pending_skill_updates_v2 p
+          JOIN skill_templates st ON p.skill_template_id = st.id
+          LEFT JOIN skill_categories sc ON st.category_id = sc.id 
+          LEFT JOIN skill_subcategories ss ON st.subcategory_id = ss.id
+          WHERE p.id = $1
+        `, [id]);
+        
+        if (pendingResult.rows.length === 0) {
+          await pool.query('ROLLBACK');
+          throw new Error('Pending skill update V2 not found');
+        }
+        
+        pendingUpdate = this.snakeToCamel(pendingResult.rows[0]) as PendingSkillUpdateV2;
+      }
+      
       console.log(`Pending update V2 data for rejection:`, JSON.stringify(pendingUpdate));
       
       // Update the pending update status
