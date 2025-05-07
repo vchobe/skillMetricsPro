@@ -134,7 +134,7 @@ export interface IStorage {
   getSkillTemplate(id: number): Promise<SkillTemplate | undefined>;
   createSkillTemplate(template: InsertSkillTemplate): Promise<SkillTemplate>;
   updateSkillTemplate(id: number, data: Partial<SkillTemplate>): Promise<SkillTemplate>;
-  deleteSkillTemplate(id: number): Promise<void>;
+  deleteSkillTemplate(id: number): Promise<{ deletedUserSkills: number; deletedTemplate: boolean }>;
   
   // Skill Target operations
   getAllSkillTargets(): Promise<SkillTarget[]>;
