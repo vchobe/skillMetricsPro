@@ -2189,6 +2189,13 @@ export class PostgresStorage implements IStorage {
         console.log(`Deleted ${userSkillsDeleteResult.rowCount} user skills`);
       }
       
+      // Delete any pending_skill_updates that directly reference this skill template
+      const pendingTemplateUpdatesResult = await client.query(
+        'DELETE FROM pending_skill_updates WHERE skill_template_id = $1 RETURNING id',
+        [id]
+      );
+      console.log(`Deleted ${pendingTemplateUpdatesResult.rowCount} pending skill updates referencing the template directly`);
+      
       // 5. Delete project skills that reference this template
       // Note: project_skills.skill_id is now referencing skill_templates.id after our schema update
       const projectSkillsResult = await client.query(
