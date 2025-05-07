@@ -101,6 +101,7 @@ export default function SkillManagementPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [showDeleteTemplateDialog, setShowDeleteTemplateDialog] = useState(false);
   const [showDeleteTargetDialog, setShowDeleteTargetDialog] = useState(false);
+  const [useSuperAdminDelete, setUseSuperAdminDelete] = useState(false);
   // This state holds the form data for the skill target being viewed/edited
   const [targetFormData, setTargetFormData] = useState<{
     id: number | null;
@@ -317,7 +318,7 @@ export default function SkillManagementPage() {
     },
   });
   
-  // Delete skill template mutation
+  // Delete skill template mutation (regular admin)
   const deleteTemplateMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await apiRequest("DELETE", `/api/admin/skill-templates/${id}`);
@@ -339,6 +340,34 @@ export default function SkillManagementPage() {
     onError: (error: Error) => {
       toast({
         title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Super admin delete skill template mutation (with cascading delete)
+  const superAdminDeleteTemplateMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/super-admin/skill-templates/${id}`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete skill and dependencies");
+      }
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/project-skills"] });
+      toast({
+        title: "Super Admin Delete Success",
+        description: "Skill template and ALL dependent data successfully deleted",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Super Admin Delete Error",
         description: error.message,
         variant: "destructive",
       });
@@ -1274,22 +1303,64 @@ export default function SkillManagementPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the skill.
+              {user?.email === "admin@atyeti.com" ? (
+                <>
+                  <p className="mb-2">This action cannot be undone. Choose how you want to delete this template:</p>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Switch 
+                      id="super-admin-delete" 
+                      checked={useSuperAdminDelete}
+                      onCheckedChange={setUseSuperAdminDelete}
+                    />
+                    <label 
+                      htmlFor="super-admin-delete" 
+                      className="font-medium cursor-pointer"
+                    >
+                      Use Super Admin Delete
+                    </label>
+                  </div>
+                  {useSuperAdminDelete ? (
+                    <div className="p-2 bg-red-100 border border-red-200 rounded-md text-red-800 text-sm">
+                      <strong>WARNING:</strong> Super Admin Delete will permanently remove this template AND all associated:
+                      <ul className="list-disc list-inside mt-1">
+                        <li>User skills using this template</li>
+                        <li>Project skills using this template</li>
+                        <li>Pending skill updates</li>
+                        <li>Endorsements</li>
+                        <li>Related notifications</li>
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="p-2 bg-gray-100 border border-gray-200 rounded-md text-gray-700 text-sm">
+                      Standard delete will only remove this template if it is not used by any user skills.
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  This action cannot be undone. This will permanently delete the skill template if it is not in use.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setUseSuperAdminDelete(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className={`${useSuperAdminDelete ? 'bg-red-700 hover:bg-red-800' : 'bg-red-600 hover:bg-red-700'}`}
               onClick={() => {
                 if (deleteTemplateId) {
-                  deleteTemplateMutation.mutate(deleteTemplateId);
+                  if (useSuperAdminDelete && user?.email === "admin@atyeti.com") {
+                    superAdminDeleteTemplateMutation.mutate(deleteTemplateId);
+                  } else {
+                    deleteTemplateMutation.mutate(deleteTemplateId);
+                  }
                   setDeleteTemplateId(null);
                 }
                 setShowDeleteTemplateDialog(false);
+                setUseSuperAdminDelete(false);
               }}
             >
-              Delete
+              {useSuperAdminDelete ? 'Super Delete' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
