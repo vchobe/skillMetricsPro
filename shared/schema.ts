@@ -324,6 +324,7 @@ export type Skill = typeof skills.$inferSelect;
 export type InsertSkill = z.infer<typeof insertSkillSchema>;
 
 export type UserSkill = typeof userSkills.$inferSelect & {
+  name?: string; // Added to support approval flow
   skillName?: string;
   skillCategory?: string;
   categoryName?: string;
