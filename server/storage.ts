@@ -4432,18 +4432,22 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // V2 implementation using the project_skills_v2 table that references user_skills
+  // V2 implementation adapted to use the existing project_skills table
   async getProjectSkillsV2(projectId: number): Promise<ProjectSkillV2[]> {
     try {
       const result = await pool.query(`
         SELECT 
-          ps.*, 
+          ps.id, 
+          ps.project_id, 
+          ps.skill_id as skill_template_id, 
+          ps.required_level,
+          ps.created_at,
           st.name as skill_name, 
           st.category as skill_category, 
           st.description,
           ps.required_level as skill_level
-        FROM project_skills_v2 ps
-        JOIN skill_templates st ON ps.skill_template_id = st.id
+        FROM project_skills ps
+        JOIN skill_templates st ON ps.skill_id = st.id
         WHERE ps.project_id = $1
         ORDER BY st.category, st.name
       `, [projectId]);
@@ -5557,7 +5561,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // V2 implementation for creating project skill using the project_skills_v2 table and skill_templates
+  // V2 implementation for creating project skill using the existing project_skills table and skill_templates
   async createProjectSkillV2(projectSkill: InsertProjectSkillV2): Promise<ProjectSkillV2> {
     try {
       console.log(`Creating project skill V2 with skillTemplateId=${projectSkill.skillTemplateId}, projectId=${projectSkill.projectId}`);
@@ -5577,7 +5581,7 @@ export class PostgresStorage implements IStorage {
       
       // Check if this template is already associated with the project
       const existingResult = await pool.query(
-        'SELECT id FROM project_skills_v2 WHERE project_id = $1 AND skill_template_id = $2',
+        'SELECT id FROM project_skills WHERE project_id = $1 AND skill_id = $2',
         [projectSkill.projectId, projectSkill.skillTemplateId]
       );
       
@@ -5589,9 +5593,9 @@ export class PostgresStorage implements IStorage {
       await pool.query('BEGIN');
       
       try {
-        // Insert with skill_template_id directly - no longer need user_skill_id
+        // In project_skills table, we use skill_id to store the skill_template_id
         const result = await pool.query(
-          `INSERT INTO project_skills_v2 (project_id, skill_template_id, required_level) 
+          `INSERT INTO project_skills (project_id, skill_id, required_level) 
            VALUES ($1, $2, $3) 
            RETURNING *`,
           [
@@ -5604,12 +5608,16 @@ export class PostgresStorage implements IStorage {
         // Return the result with skill details directly from skill_templates
         const fullResult = await pool.query(`
           SELECT 
-            ps.*, 
+            ps.id, 
+            ps.project_id, 
+            ps.skill_id as skill_template_id, 
+            ps.required_level,
+            ps.created_at,
             st.name as skill_name, 
             st.category as skill_category, 
             st.description
-          FROM project_skills_v2 ps
-          JOIN skill_templates st ON ps.skill_template_id = st.id
+          FROM project_skills ps
+          JOIN skill_templates st ON ps.skill_id = st.id
           WHERE ps.id = $1
         `, [result.rows[0].id]);
         
@@ -5644,10 +5652,11 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // V2 implementation using project_skills_v2 table
+  // V2 implementation adapted to use the existing project_skills table
   async deleteProjectSkillV2(id: number): Promise<void> {
     try {
-      const result = await pool.query('DELETE FROM project_skills_v2 WHERE id = $1', [id]);
+      // We now use the existing project_skills table
+      const result = await pool.query('DELETE FROM project_skills WHERE id = $1', [id]);
       
       if (result.rowCount === 0) {
         throw new Error("Project skill V2 not found");
