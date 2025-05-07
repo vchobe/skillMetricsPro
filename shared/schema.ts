@@ -289,7 +289,7 @@ export const endorsementsV2 = pgTable("endorsements_v2", {
   userSkillId: integer("user_skill_id").notNull().references(() => userSkills.id, { onDelete: 'cascade' }),
   userId: integer("user_id").notNull(), // The user who owns the skill
   endorserId: integer("endorser_id").notNull(),
-  endorseeId: integer("endorsee_id").notNull(), 
+  // No endorseeId in the actual database, the userId serves this purpose
   comment: text("comment"),
   level: varchar("level", { length: 20 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -308,12 +308,17 @@ export const insertEndorsementV2Schema = createInsertSchema(endorsementsV2)
   .extend({
     skillId: z.number().optional(), // For backward compatibility, maps to userSkillId
     level: z.string().min(1, "Skill level is required"), // Add the level field
+    endorseeId: z.number().optional(), // For backward compatibility, maps to userId
   })
   .transform(data => {
     // Handle compatibility with the legacy schema by mapping skillId to userSkillId
     const result: any = { ...data };
     if (data.skillId !== undefined && data.userSkillId === undefined) {
       result.userSkillId = data.skillId;
+    }
+    // Map endorseeId to userId if needed
+    if (data.endorseeId !== undefined && data.userId === undefined) {
+      result.userId = data.endorseeId;
     }
     return result;
   });
