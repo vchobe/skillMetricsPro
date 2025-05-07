@@ -4459,24 +4459,42 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // Legacy method - maintained for backward compatibility
-  async getUserSkillProjects(userSkillId: number): Promise<ProjectSkillV2[]> {
+  // Project Skills for a specific user skill
+  async getUserSkillProjects(userSkillId: number): Promise<ProjectSkill[]> {
     try {
-      // Get the skill template ID for this user skill
-      const userSkillResult = await pool.query(
-        'SELECT skill_template_id FROM user_skills WHERE id = $1',
+      // First, check if the skill exists in the user_skills table
+      const skillCheck = await pool.query(
+        'SELECT id, skill_template_id FROM user_skills WHERE id = $1',
         [userSkillId]
       );
       
-      if (userSkillResult.rows.length === 0) {
+      if (skillCheck.rows.length === 0) {
         console.warn(`No user skill found with ID ${userSkillId}`);
         return [];
       }
       
-      const skillTemplateId = userSkillResult.rows[0].skill_template_id;
+      // Get projects associated with this user skill
+      const result = await pool.query(`
+        SELECT 
+          ps.*,
+          p.name as project_name,
+          c.name as client_name,
+          st.name as skill_name,
+          st.category as skill_category,
+          sc.name as category,
+          sc.color as category_color
+        FROM project_skills ps
+        JOIN projects p ON ps.project_id = p.id
+        LEFT JOIN clients c ON p.client_id = c.id
+        LEFT JOIN user_skills us ON ps.skill_id = us.id
+        LEFT JOIN skill_templates st ON us.skill_template_id = st.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        WHERE ps.skill_id = $1
+        ORDER BY p.name
+      `, [userSkillId]);
       
-      // Use the new method that works directly with skillTemplateId
-      return this.getProjectsBySkillTemplate(skillTemplateId);
+      console.log(`Found ${result.rows.length} projects for user skill ${userSkillId}`);
+      return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error(`Error retrieving projects for user skill ${userSkillId}:`, error);
       throw error;
