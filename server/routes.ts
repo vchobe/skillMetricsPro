@@ -3266,12 +3266,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Add importance field if not provided
-      if (!req.body.importance) {
-        req.body.importance = "medium";
-      }
-      
-      const parsedData = insertProjectSkillSchema.safeParse({
+      // Use the V2 schema that expects skillTemplateId instead of skillId
+      const parsedData = insertProjectSkillV2Schema.safeParse({
         ...req.body,
         projectId
       });
@@ -3283,7 +3279,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const projectSkill = await storage.createProjectSkill(parsedData.data);
+      // Use the V2 function since we're now using the V2 schema
+      const projectSkill = await storage.createProjectSkillV2(parsedData.data);
       res.status(201).json(projectSkill);
     } catch (error) {
       console.error("Error adding skill to project:", error);
