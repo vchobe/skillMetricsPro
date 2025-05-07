@@ -3201,15 +3201,16 @@ export class PostgresStorage implements IStorage {
         
         // Create skill history entry
         await pool.query(`
-          INSERT INTO skill_histories_v2 (
-            user_skill_id, user_id, previous_level, new_level, change_note
-          ) VALUES ($1, $2, $3, $4, $5)
+          INSERT INTO skill_histories (
+            user_skill_id, user_id, previous_level, new_level, change_note, change_by_id, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
         `, [
           pendingUpdate.userSkillId,
           pendingUpdate.userId,
           currentSkill.level,
           pendingUpdate.level,
-          `Skill updated via approval process.${notes ? ` Note: ${notes}` : ''}`
+          `Skill updated via approval process.${notes ? ` Note: ${notes}` : ''}`,
+          reviewerId || pendingUpdate.userId  // Use reviewerId instead of approverId
         ]);
         
         // Update the user skill
