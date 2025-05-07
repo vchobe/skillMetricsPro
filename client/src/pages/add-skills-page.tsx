@@ -345,16 +345,20 @@ export default function AddSkillsPage() {
         sc.categoryId === categoryObj?.id
       );
       
+      // Log the custom skill data for debugging
+      console.log("Custom skill submission data before processing:", skill);
+      
       // Don't add redundant metadata to notes since we're now storing it in dedicated fields
       // This avoids the "too long for type character varying(255)" error
       const trimmedNotes = skill.notes ? skill.notes.substring(0, 250) : '';
       
       // Use the original pending_skill_updates table, with snake_case field names
+      // Make sure all required fields are properly set to avoid null values
       const skillData = {
         user_id: user?.id || 0,
-        name: skill.name,
-        category: skill.category,
-        level: skill.level,
+        name: skill.name || "", // Ensure name is never null
+        category: skill.category || "",
+        level: skill.level || "beginner",
         certification: skill.certification || "",
         credly_link: skill.credlyLink || "",
         notes: trimmedNotes,
