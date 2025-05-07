@@ -615,8 +615,11 @@ export default function AddSkillsPage() {
 
   // Check if all tabs have been visited (used for bulk skill submission)
   const checkTabsVisited = () => {
-    // First check if all required tabs have been visited
-    if (requireTabVisits && !allTabsVisited()) {
+    // First check if all required tabs have been visited - don't require for custom skills tab
+    const isCustomSkillTab = activeTab === "other";
+    
+    // Skip tab visit requirement for custom skills tab
+    if (!isCustomSkillTab && !allTabsVisited()) {
       // Calculate which tabs haven't been visited
       const techTabs = skillCategories
         .filter(category => category.categoryType === "technical")
