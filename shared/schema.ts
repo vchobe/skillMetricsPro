@@ -203,6 +203,8 @@ export const skillHistoriesV2 = pgTable("skill_histories_v2", {
   newLevel: skillLevelEnum("new_level").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   changeNote: text("change_note"),
+  changeById: integer("change_by_id").references(() => users.id, { onDelete: 'set null' }),
+  approvalId: integer("approval_id").references(() => pendingSkillUpdatesV2.id, { onDelete: 'set null' }),
 });
 
 export const insertSkillHistorySchema = createInsertSchema(skillHistories).pick({
@@ -217,6 +219,8 @@ export const insertSkillHistoryV2Schema = createInsertSchema(skillHistoriesV2)
   .omit({ id: true, createdAt: true })
   .extend({
     skillId: z.number().optional(), // For backward compatibility, maps to userSkillId
+    changeById: z.number().optional(), // User who made the change
+    approvalId: z.number().optional(), // Reference to approval record
   })
   .transform(data => {
     // Handle compatibility with the legacy schema by mapping skillId to userSkillId
@@ -283,6 +287,7 @@ export const endorsements = pgTable("endorsements", {
 export const endorsementsV2 = pgTable("endorsements_v2", {
   id: serial("id").primaryKey(),
   userSkillId: integer("user_skill_id").notNull().references(() => userSkills.id, { onDelete: 'cascade' }),
+  userId: integer("user_id").notNull(), // The user who owns the skill
   endorserId: integer("endorser_id").notNull(),
   endorseeId: integer("endorsee_id").notNull(), 
   comment: text("comment"),
