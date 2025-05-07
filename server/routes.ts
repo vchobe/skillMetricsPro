@@ -2308,7 +2308,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               user_id: admin.id,
               type: "achievement",
               content: `User ${req.user!.username} has requested approval for a skill update`,
-              related_user_id: req.user!.id
+              related_user_id: req.user!.id,
+              related_user_skill_id: pendingSkillUpdate.userSkillId
             });
           }
         }
@@ -2508,7 +2509,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 user_id: admin.id,
                 type: "achievement", // Using "achievement" type which is allowed in the schema
                 content: `User ${req.user!.username} has requested approval for ${req.body.name} skill`,
-                related_user_id: req.user!.id
+                related_user_id: req.user!.id,
+                related_user_skill_id: pendingSkillUpdate.userSkillId
               });
             }
           }
@@ -2602,7 +2604,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 user_id: admin.id,
                 type: "achievement",
                 content: `User ${req.user!.username} has requested approval for a skill update`,
-                related_user_id: req.user!.id
+                related_user_id: req.user!.id,
+                related_user_skill_id: pendingSkillUpdate.userSkillId
               });
             }
           }
