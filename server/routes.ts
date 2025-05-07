@@ -2320,14 +2320,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if we have name and category fields - indicating it's a custom skill
-      // The subcategory can be provided either as a string or as subcategory_id
-      const isCustomSkill = req.body.name && req.body.category && 
-        (req.body.subcategory || req.body.subcategory_id || req.body.subcategoryId);
+      // The subcategory is optional and can be provided either as a string or as subcategory_id
+      const isCustomSkill = req.body.name && req.body.category;
       
       console.log(`Custom skill check: name=${req.body.name}, category=${req.body.category}, subcategory=${req.body.subcategory || 'none'}, subcategory_id=${req.body.subcategory_id || req.body.subcategoryId || 'none'}, isCustomSkill=${isCustomSkill}`);
       
       if (isCustomSkill) {
-        console.log("Detected custom skill with category and subcategory");
+        console.log("Detected custom skill with category");
         
         // Process the subcategory information
         // Find or get category ID
