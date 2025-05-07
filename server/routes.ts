@@ -2204,7 +2204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Skill not found" });
       }
       
-      const endorsements = await storage.getUserSkillEndorsementsV2(skillId);
+      const endorsements = await storage.getSkillEndorsements(skillId);
       res.json(endorsements);
     } catch (error) {
       res.status(500).json({ message: "Error fetching endorsements", error });
@@ -2213,7 +2213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/user/endorsements", ensureAuth, async (req, res) => {
     try {
-      const endorsements = await storage.getUserEndorsementsV2(req.user!.id);
+      const endorsements = await storage.getUserEndorsements(req.user!.id);
       res.json(endorsements);
     } catch (error) {
       res.status(500).json({ message: "Error fetching endorsements", error });
@@ -2232,7 +2232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      await storage.deleteEndorsementV2(endorsementId);
+      await storage.deleteEndorsement(endorsementId);
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting endorsement", error });
@@ -2469,9 +2469,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             console.log("Created user skill:", userSkill);
             
-            // Create a skill history v2 entry
-            await storage.createSkillHistoryV2({
-              userSkillId: userSkill.id,
+            // Create a skill history entry
+            await storage.createSkillHistory({
+              skillId: userSkill.id,
               userId: req.user!.id,
               previousLevel: null,
               newLevel: req.body.level,
