@@ -2802,6 +2802,7 @@ export class PostgresStorage implements IStorage {
   // Pending Skill Updates V2 operations
   async getPendingSkillUpdatesV2(): Promise<PendingSkillUpdateV2[]> {
     try {
+      console.log("Getting all pending skill updates from pending_skill_updates table");
       const result = await pool.query(`
         SELECT p.*, 
                st.name as skill_name, 
@@ -2809,14 +2810,15 @@ export class PostgresStorage implements IStorage {
                u.username as user_username,
                u.email as user_email,
                r.username as reviewer_username
-        FROM pending_skill_updates_v2 p
-        JOIN skill_templates st ON p.skill_template_id = st.id
+        FROM pending_skill_updates p
+        LEFT JOIN skill_templates st ON p.skill_template_id = st.id
         JOIN users u ON p.user_id = u.id
         LEFT JOIN users r ON p.reviewed_by = r.id
         WHERE p.status = 'pending'
         ORDER BY p.submitted_at DESC
       `);
       
+      console.log(`Found ${result.rows.length} pending skill updates`);
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting pending skill updates V2:", error);
@@ -2826,6 +2828,7 @@ export class PostgresStorage implements IStorage {
 
   async getPendingSkillUpdatesByUserV2(userId: number): Promise<PendingSkillUpdateV2[]> {
     try {
+      console.log(`Getting pending skill updates for user ${userId} from pending_skill_updates table`);
       const result = await pool.query(`
         SELECT p.*, 
                st.name as skill_name, 
@@ -2833,14 +2836,15 @@ export class PostgresStorage implements IStorage {
                u.username as user_username,
                u.email as user_email,
                r.username as reviewer_username
-        FROM pending_skill_updates_v2 p
-        JOIN skill_templates st ON p.skill_template_id = st.id
+        FROM pending_skill_updates p
+        LEFT JOIN skill_templates st ON p.skill_template_id = st.id
         JOIN users u ON p.user_id = u.id
         LEFT JOIN users r ON p.reviewed_by = r.id
         WHERE p.user_id = $1 AND p.status = 'pending'
         ORDER BY p.submitted_at DESC
       `, [userId]);
       
+      console.log(`Found ${result.rows.length} pending updates for user ${userId}`);
       return this.snakeToCamel(result.rows);
     } catch (error) {
       console.error("Error getting pending skill updates V2 by user:", error);
@@ -2850,6 +2854,7 @@ export class PostgresStorage implements IStorage {
 
   async getPendingSkillUpdateV2(id: number): Promise<PendingSkillUpdateV2 | undefined> {
     try {
+      console.log(`Getting pending skill update with ID ${id} from pending_skill_updates table`);
       const result = await pool.query(`
         SELECT p.*, 
                st.name as skill_name, 
@@ -2857,17 +2862,19 @@ export class PostgresStorage implements IStorage {
                u.username as user_username,
                u.email as user_email,
                r.username as reviewer_username
-        FROM pending_skill_updates_v2 p
-        JOIN skill_templates st ON p.skill_template_id = st.id
+        FROM pending_skill_updates p
+        LEFT JOIN skill_templates st ON p.skill_template_id = st.id
         JOIN users u ON p.user_id = u.id
         LEFT JOIN users r ON p.reviewed_by = r.id
         WHERE p.id = $1
       `, [id]);
       
       if (result.rows.length === 0) {
+        console.log(`No pending skill update found with ID ${id}`);
         return undefined;
       }
       
+      console.log(`Found pending skill update with ID ${id}`);
       return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error getting pending skill update V2:", error);
