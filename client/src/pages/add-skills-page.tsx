@@ -325,7 +325,7 @@ export default function AddSkillsPage() {
   // Submit custom skill mutation
   const customSubmitMutation = useMutation({
     mutationFn: async (skill: typeof customSkill) => {
-      if (!skill.name || !skill.category || !skill.subcategory || !skill.level) {
+      if (!skill.name || !skill.category || !skill.level) {
         throw new Error("Please fill all required fields");
       }
       
@@ -346,7 +346,7 @@ export default function AddSkillsPage() {
       );
       
       // Format notes to include metadata
-      const metadataNote = `${skill.name}\nCategory: ${skill.category}\nSubcategory: ${skill.subcategory}\n\n${skill.notes || ''}`;
+      const metadataNote = `${skill.name}\nCategory: ${skill.category}${skill.subcategory ? `\nSubcategory: ${skill.subcategory}` : ''}\n\n${skill.notes || ''}`;
       
       // Use the original pending_skill_updates table, with snake_case field names
       const skillData = {
@@ -651,10 +651,10 @@ export default function AddSkillsPage() {
       return;
     }
     
-    if (!customSkill.name || !customSkill.category || !customSkill.subcategory || !customSkill.level) {
+    if (!customSkill.name || !customSkill.category || !customSkill.level) {
       toast({
         title: "Missing required fields",
-        description: "Please fill in all required fields (name, category, subcategory, and level) for the custom skill.",
+        description: "Please fill in all required fields (name, category, and level) for the custom skill.",
         variant: "destructive",
       });
       return;
@@ -1228,11 +1228,10 @@ export default function AddSkillsPage() {
                                     name="subcategory"
                                     render={({ field }) => (
                                       <FormItem className="space-y-2">
-                                        <FormLabel>Subcategory *</FormLabel>
+                                        <FormLabel>Subcategory (Optional)</FormLabel>
                                         <Select 
                                           onValueChange={field.onChange} 
                                           defaultValue={field.value}
-                                          required
                                         >
                                           <FormControl>
                                             <SelectTrigger>
