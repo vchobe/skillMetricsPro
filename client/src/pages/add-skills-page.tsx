@@ -329,34 +329,41 @@ export default function AddSkillsPage() {
         throw new Error("Please fill all required fields");
       }
       
-      // We need to provide a default skillTemplateId for custom skills since it's required by the API
-      // Using -1 as a sentinel value to indicate this is a custom skill (server can handle this)
-      const defaultTemplateId = -1;
-      
       console.log("Preparing custom skill submission with data:", { 
         name: skill.name, 
         category: skill.category,
         subcategory: skill.subcategory,
-        level: skill.level,
-        usingTemplateId: skill.skillTemplateId || defaultTemplateId
+        level: skill.level
       });
       
+      // Find the category ID for the selected category
+      const categoryObj = skillCategories.find(c => c.name === skill.category);
+      
+      // Find the subcategory ID for the selected subcategory
+      const subcategoryObj = skillSubcategories.find(sc => 
+        sc.name === skill.subcategory && 
+        sc.categoryId === categoryObj?.id
+      );
+      
+      // Format notes to include metadata
+      const metadataNote = `${skill.name}\nCategory: ${skill.category}\nSubcategory: ${skill.subcategory}\n\n${skill.notes || ''}`;
+      
+      // Use the original pending_skill_updates table instead of V2
       const skillData = {
         userId: user?.id || 0,
         name: skill.name,
         category: skill.category,
-        subcategory: skill.subcategory,
         level: skill.level,
         certification: skill.certification || "",
         credlyLink: skill.credlyLink || "",
-        notes: skill.notes || "",
+        notes: metadataNote,
         changeNote: "Custom skill addition",
         status: "pending",
         isUpdate: false,
         submittedAt: new Date().toISOString(),
-        // Include skill template ID - provide a default if not available
-        skillTemplateId: skill.skillTemplateId || defaultTemplateId, 
-        skill_template_id: skill.skillTemplateId || defaultTemplateId // Also include snake_case version for compatibility
+        // Include category and subcategory IDs if available
+        categoryId: categoryObj?.id || null,
+        subcategoryId: subcategoryObj?.id || null
       };
       
       const res = await apiRequest("POST", "/api/skills/pending", skillData);
