@@ -352,16 +352,23 @@ export default function AddSkillsPage() {
       // This avoids the "too long for type character varying(255)" error
       const trimmedNotes = skill.notes ? skill.notes.substring(0, 250) : '';
       
+      // Find subcategory information is handled below - no need to duplicate here
+      
+      // Mark this as a custom skill
+      const isCustomSkill = true;
+      
       // Use the original pending_skill_updates table, with snake_case field names
       // Make sure all required fields are properly set to avoid null values
       const skillData = {
         user_id: user?.id || 0,
         name: skill.name || "", // Ensure name is never null
         category: skill.category || "",
+        subcategory: skill.subcategory || "", // Include subcategory name
         level: skill.level || "beginner",
         certification: skill.certification || "",
         credly_link: skill.credlyLink || "",
         notes: trimmedNotes,
+        is_custom_skill: isCustomSkill, // Add flag to mark as custom skill
         status: "pending",
         is_update: false,
         submitted_at: new Date().toISOString(),
