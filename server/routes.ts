@@ -2631,7 +2631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user/pending-skills", ensureAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const pendingUpdates = await storage.getPendingSkillUpdatesByUserV2(userId);
+      const pendingUpdates = await storage.getPendingSkillUpdatesByUser(userId);
       res.json(pendingUpdates);
     } catch (error) {
       res.status(500).json({ message: "Error fetching pending skill updates V2", error });
@@ -2648,8 +2648,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAdmin = req.user!.isAdmin || req.user!.is_admin;
       console.log(`User ID: ${userId}, Email: ${userEmail}, isAdmin: ${isAdmin}`);
       
-      // Get all pending skill updates using V2 method
-      const pendingUpdates = await storage.getPendingSkillUpdatesV2();
+      // Get all pending skill updates
+      const pendingUpdates = await storage.getPendingSkillUpdates();
       console.log(`Got ${pendingUpdates.length} total pending updates`);
       
       // If not an admin or super admin, we should filter the results
@@ -2665,9 +2665,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin approval routes (accessible by both admins and approvers)
   app.get("/api/admin/pending-skills", ensureApprover, async (req, res) => {
     try {
-      // Get all pending skill updates using V2 method
-      const pendingUpdates = await storage.getPendingSkillUpdatesV2();
-      console.log(`Got ${pendingUpdates.length} total pending updates V2`);
+      // Get all pending skill updates
+      const pendingUpdates = await storage.getPendingSkillUpdates();
+      console.log(`Got ${pendingUpdates.length} total pending updates`);
       
       // Check if user is super admin
       const userId = req.user!.id;
@@ -2810,8 +2810,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reviewerId = req.user!.id;
       const { notes } = req.body;
       
-      // Approve the pending skill update using V2 method
-      const approvedSkill = await storage.approvePendingSkillUpdateV2(updateId, reviewerId, notes);
+      // Approve the pending skill update
+      const approvedSkill = await storage.approvePendingSkillUpdate(updateId, reviewerId, notes);
       
       // Get skill template name for notification
       let skillName = "your skill";
@@ -2832,7 +2832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(approvedSkill);
     } catch (error) {
-      res.status(500).json({ message: "Error approving skill update V2", error });
+      res.status(500).json({ message: "Error approving skill update", error });
     }
   });
 
@@ -2842,15 +2842,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reviewerId = req.user!.id;
       const { notes } = req.body;
       
-      // Get the pending update before rejection for notification using V2 method
-      const pendingUpdate = await storage.getPendingSkillUpdateV2(updateId);
+      // Get the pending update before rejection for notification
+      const pendingUpdate = await storage.getPendingSkillUpdate(updateId);
       
       if (!pendingUpdate) {
-        return res.status(404).json({ message: "Pending skill update V2 not found" });
+        return res.status(404).json({ message: "Pending skill update not found" });
       }
       
-      // Reject the pending skill update using V2 method
-      await storage.rejectPendingSkillUpdateV2(updateId, reviewerId, notes);
+      // Reject the pending skill update
+      await storage.rejectPendingSkillUpdate(updateId, reviewerId, notes);
       
       // Get skill template name for notification
       let skillName = "your skill";
@@ -2869,9 +2869,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         related_user_skill_id: pendingUpdate.userSkillId || undefined
       });
       
-      res.status(200).json({ message: "Skill update V2 rejected successfully" });
+      res.status(200).json({ message: "Skill update rejected successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Error rejecting skill update V2", error });
+      res.status(500).json({ message: "Error rejecting skill update", error });
     }
   });
 
