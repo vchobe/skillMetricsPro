@@ -1498,26 +1498,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid template ID" });
       }
       
-      // Check if there are any user skills using this template
-      const userSkillsCheck = await pool.query(
-        'SELECT COUNT(*) FROM user_skills WHERE skill_template_id = $1',
-        [id]
-      );
-      
-      const userSkillCount = parseInt(userSkillsCheck.rows[0].count);
-      
-      if (userSkillCount > 0) {
-        return res.status(409).json({ 
-          message: "Cannot delete skill template", 
-          details: `This template is being used by ${userSkillCount} user skills. Please use the super admin delete endpoint to perform a cascading delete.`,
-          userSkillCount
-        });
+      try {
+        // Pass forceCascade=false to prevent cascading deletion
+        // This will throw an error if dependencies exist
+        await storage.deleteSkillTemplate(id, false);
+        res.status(204).send();
+      } catch (deleteError) {
+        // Check if the error is about dependencies
+        if (deleteError instanceof Error && 
+            deleteError.message.includes('Cannot delete skill template') && 
+            deleteError.message.includes('user skills')) {
+          
+          return res.status(409).json({ 
+            message: "Cannot delete skill template", 
+            details: deleteError.message,
+            error: "DEPENDENCIES_EXIST"
+          });
+        } else {
+          // Re-throw other errors
+          throw deleteError;
+        }
       }
-      
-      await storage.deleteSkillTemplate(id);
-      res.status(204).send();
     } catch (error) {
-      res.status(500).json({ message: "Error deleting skill template", error });
+      console.error("Error deleting skill template:", error);
+      res.status(500).json({ 
+        message: "Error deleting skill template", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
   
@@ -1531,14 +1538,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Initiating cascading delete of skill template ID ${id} by super admin ${req.user?.email}`);
       
-      // Call the enhanced deleteSkillTemplate function which handles cascading deletes
-      const result = await storage.deleteSkillTemplate(id);
+      // Call the enhanced deleteSkillTemplate function with forceCascade=true
+      const result = await storage.deleteSkillTemplate(id, true);
       
       console.log(`Cascading delete of skill template ID ${id} completed successfully`);
       
       res.status(200).json({
         message: "Skill template and all references successfully deleted",
-        details: `Deleted template ID ${id} along with ${result.deletedUserSkills} user skills and all related data`,
+        details: `Deleted template ID ${id} along with ${result.deletedUserSkills} user skills, ${result.deletedProjectSkills} project skills, and all related data`,
         result
       });
     } catch (error) {
