@@ -2128,186 +2128,132 @@ export class PostgresStorage implements IStorage {
    * This operation requires super admin privileges
    */
   async deleteSkillTemplate(id: number): Promise<{ deletedUserSkills: number; deletedTemplate: boolean }> {
+    // Use a single client for the entire transaction
     const client = await pool.connect();
-    let alreadyRolledBack = false;
     
     try {
       // Start transaction
       await client.query('BEGIN');
       
-      // Check if template exists
+      // First check if the template exists
       const templateCheck = await client.query(
         'SELECT id, name, category FROM skill_templates WHERE id = $1',
         [id]
       );
       
       if (templateCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
         throw new Error(`Skill template with ID ${id} not found`);
       }
       
       const template = templateCheck.rows[0];
       console.log(`Deleting skill template: ${template.name} (${template.category}) with ID ${id}`);
       
-      // We'll use a safer approach:
-      // 1. First find and delete pending skill updates that reference this template
-      console.log("Step 1: Handling pending_skill_updates");
+      // First find all user skills to count them for the return value
+      const userSkillsResult = await client.query(
+        'SELECT COUNT(*) as count FROM user_skills WHERE skill_template_id = $1',
+        [id]
+      );
+      const userSkillCount = parseInt(userSkillsResult.rows[0].count);
+      console.log(`Found ${userSkillCount} user skills referencing this template`);
+      
+      // Execute all deletions in a specific, safe order
+      
+      // 1. First remove notifications that reference user_skills with this template
+      console.log("Step 1: Deleting notifications related to template's user skills");
+      await client.query(
+        'DELETE FROM notifications WHERE related_user_skill_id IN (SELECT id FROM user_skills WHERE skill_template_id = $1)',
+        [id]
+      );
+      
+      // 2. Remove endorsements for user_skills with this template
+      console.log("Step 2: Deleting endorsements for user skills");
+      await client.query(
+        'DELETE FROM endorsements WHERE user_skill_id IN (SELECT id FROM user_skills WHERE skill_template_id = $1)',
+        [id]
+      );
+      
+      // 3. Delete pending skill updates referencing this template (multiple ways)
+      // Via user_skill_id from skills with this template
+      console.log("Step 3: Deleting pending skill updates (via user_skill_id)");
+      await client.query(
+        'DELETE FROM pending_skill_updates WHERE user_skill_id IN (SELECT id FROM user_skills WHERE skill_template_id = $1)',
+        [id]
+      );
+      
+      // Via skill_template_id (v2 schema)
+      console.log("Step 4: Deleting pending skill updates (via skill_template_id)");
+      await client.query(
+        'DELETE FROM pending_skill_updates WHERE skill_template_id = $1',
+        [id]
+      );
+      
+      // Via skill_id (legacy schema)
+      console.log("Step 5: Deleting pending skill updates (via skill_id)");
+      await client.query(
+        'DELETE FROM pending_skill_updates WHERE skill_id = $1',
+        [id]
+      );
+      
+      // Try with pending_skill_updates_v2 table if it exists
+      console.log("Step 6: Checking for and deleting from pending_skill_updates_v2");
       try {
-        // Check for pending_skill_updates with skill_template_id column
-        const pendingTemplateUpdatesResult = await client.query(
-          'DELETE FROM pending_skill_updates WHERE skill_template_id = $1 RETURNING id',
+        await client.query(
+          'DELETE FROM pending_skill_updates_v2 WHERE skill_template_id = $1',
           [id]
         );
-        console.log(`Deleted ${pendingTemplateUpdatesResult.rowCount} pending skill updates referencing template directly via skill_template_id`);
-      } catch (pendingError) {
-        console.error(`Error deleting from pending_skill_updates using skill_template_id: ${pendingError.message}`);
-        // If an error occurs, roll back and rethrow
+      } catch (err) {
+        // This is expected to fail if the table doesn't exist
+        console.log("Note: Could not delete from pending_skill_updates_v2, table may not exist");
+      }
+      
+      // 4. Delete user skills referencing this template
+      console.log("Step 7: Deleting user skills referencing this template");
+      await client.query(
+        'DELETE FROM user_skills WHERE skill_template_id = $1',
+        [id]
+      );
+      
+      // 5. Delete project skills referencing this template
+      console.log("Step 8: Deleting project skills referencing this template");
+      await client.query(
+        'DELETE FROM project_skills WHERE skill_id = $1',
+        [id]
+      );
+      
+      // 6. Finally, delete the skill template
+      console.log("Step 9: Deleting the skill template itself");
+      const deleteResult = await client.query(
+        'DELETE FROM skill_templates WHERE id = $1 RETURNING id',
+        [id]
+      );
+      
+      if (deleteResult.rowCount === 0) {
+        // This should never happen since we checked earlier
         await client.query('ROLLBACK');
-        alreadyRolledBack = true;
-        throw pendingError;
-      }
-      
-      // Then try the skill_id column (which maps to skill_templates in the legacy schema)
-      try {
-        const pendingTemplateBySkillIdResult = await client.query(
-          'DELETE FROM pending_skill_updates WHERE skill_id = $1 RETURNING id',
-          [id]
-        );
-        console.log(`Deleted ${pendingTemplateBySkillIdResult.rowCount} pending skill updates referencing the template via skill_id`);
-      } catch (pendingError) {
-        console.warn(`Error deleting from pending_skill_updates using skill_id: ${pendingError.message}`);
-        // A warning but not critical - we can continue
-      }
-      
-      // 2. Now find and handle all user skills related to this template
-      console.log("Step 2: Finding user skills referencing this template");
-      let userSkillsToDelete = [];
-      
-      try {
-        const userSkillsResult = await client.query(
-          'SELECT id, user_id FROM user_skills WHERE skill_template_id = $1',
-          [id]
-        );
-        
-        userSkillsToDelete = userSkillsResult.rows;
-        console.log(`Found ${userSkillsToDelete.length} user skills referencing this template`);
-      } catch (error) {
-        console.error(`Error finding user skills: ${error.message}`);
-        if (!alreadyRolledBack) {
-          await client.query('ROLLBACK');
-          alreadyRolledBack = true;
-        }
-        throw error;
-      }
-      
-      // Step 3: Process any user skills we found
-      if (userSkillsToDelete.length > 0) {
-        try {
-          console.log("Step 3: Deleting related data for user skills");
-          
-          // Delete pending skill updates for these user skills
-          const pendingUpdatesResult = await client.query(
-            'DELETE FROM pending_skill_updates WHERE user_skill_id IN (SELECT id FROM user_skills WHERE skill_template_id = $1) RETURNING id',
-            [id]
-          );
-          console.log(`Deleted ${pendingUpdatesResult.rowCount} pending skill updates related to user skills`);
-          
-          // Delete endorsements for these user skills
-          const endorsementsResult = await client.query(
-            'DELETE FROM endorsements WHERE user_skill_id IN (SELECT id FROM user_skills WHERE skill_template_id = $1) RETURNING id',
-            [id]
-          );
-          console.log(`Deleted ${endorsementsResult.rowCount} endorsements`);
-          
-          // Delete notifications related to these user skills
-          const notificationsResult = await client.query(
-            'DELETE FROM notifications WHERE related_user_skill_id IN (SELECT id FROM user_skills WHERE skill_template_id = $1) RETURNING id',
-            [id]
-          );
-          console.log(`Deleted ${notificationsResult.rowCount} notifications`);
-          
-          // Now delete the user skills themselves
-          const userSkillsDeleteResult = await client.query(
-            'DELETE FROM user_skills WHERE skill_template_id = $1 RETURNING id',
-            [id]
-          );
-          console.log(`Deleted ${userSkillsDeleteResult.rowCount} user skills`);
-        } catch (error) {
-          console.error(`Error deleting related user skill data: ${error.message}`);
-          if (!alreadyRolledBack) {
-            await client.query('ROLLBACK');
-            alreadyRolledBack = true;
-          }
-          throw error;
-        }
-      }
-      
-      // Step 4: Delete any project skills that reference this template
-      console.log("Step 4: Handling project skills");
-      try {
-        // Note: project_skills.skill_id is now referencing skill_templates.id after our schema update
-        const projectSkillsResult = await client.query(
-          'DELETE FROM project_skills WHERE skill_id = $1 RETURNING id',
-          [id]
-        );
-        console.log(`Deleted ${projectSkillsResult.rowCount} project skills`);
-      } catch (error) {
-        console.error(`Error deleting project skills: ${error.message}`);
-        if (!alreadyRolledBack) {
-          await client.query('ROLLBACK');
-          alreadyRolledBack = true;
-        }
-        throw error;
-      }
-      
-      // Step 5: Try for pending_skill_updates_v2 table if it exists
-      console.log("Step 5: Checking for pending_skill_updates_v2 table");
-      try {
-        const pendingTemplateV2Result = await client.query(
-          'DELETE FROM pending_skill_updates_v2 WHERE skill_template_id = $1 RETURNING id',
-          [id]
-        );
-        console.log(`Deleted ${pendingTemplateV2Result.rowCount} pending skill updates (v2) referencing the template`);
-      } catch (pendingV2Error) {
-        // This is expected to fail if the table doesn't exist yet
-        console.warn(`Note: No pending_skill_updates_v2 table or error: ${pendingV2Error.message}`);
-        // This is not a critical error, continue
-      }
-      
-      // Step 6: Finally, delete the skill template itself
-      console.log("Step 6: Deleting the skill template");
-      try {
-        const templateResult = await client.query(
-          'DELETE FROM skill_templates WHERE id = $1 RETURNING id',
-          [id]
-        );
-        
-        if (templateResult.rowCount === 0) {
-          throw new Error(`Failed to delete skill template ${id}`);
-        }
-        
-        console.log(`Successfully deleted skill template ${id}`);
-      } catch (error) {
-        console.error(`Error deleting skill template: ${error.message}`);
-        if (!alreadyRolledBack) {
-          await client.query('ROLLBACK');
-          alreadyRolledBack = true;
-        }
-        throw error;
+        throw new Error(`Failed to delete skill template ${id}`);
       }
       
       // Commit the transaction
       await client.query('COMMIT');
+      console.log(`Successfully deleted skill template ${id}`);
       
       return {
-        deletedUserSkills: userSkillsToDelete.length,
+        deletedUserSkills: userSkillCount,
         deletedTemplate: true
       };
     } catch (error) {
-      // Rollback in case of error
-      await client.query('ROLLBACK');
-      console.error(`Error during cascading deletion of skill template ${id}:`, error);
+      // Ensure rollback happens
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error("Error during rollback:", rollbackError);
+      }
+      
+      console.error(`Error deleting skill template ${id}:`, error);
       throw error;
     } finally {
+      // Always release the client
       client.release();
     }
   }
