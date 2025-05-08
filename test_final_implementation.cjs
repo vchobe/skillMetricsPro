@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 // Import the improved function
-const { deleteSkillTemplate } = require('./improved_delete_function.js');
+const { deleteSkillTemplate } = require('./improved_delete_function.cjs');
 
 // Use the same database connection settings as the server
 function getDatabaseConfig() {
