@@ -2336,17 +2336,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Found skill template ID in request, using standard flow");
         const skillTemplateId = req.body.skill_template_id || req.body.skillTemplateId;
         
+        // Get the skill template details to include the name
+        let templateName = '';
+        let templateCategory = '';
+        let templateSubcategory = '';
+        let categoryId = null;
+        let subcategoryId = null;
+        
+        try {
+          const template = await storage.getSkillTemplate(skillTemplateId);
+          if (template) {
+            templateName = template.name;
+            templateCategory = template.category;
+            categoryId = template.categoryId;
+            subcategoryId = template.subcategoryId;
+            
+            // Try to get subcategory name if subcategoryId is provided
+            if (template.subcategoryId) {
+              try {
+                const subcategory = await storage.getSkillSubcategoryById(template.subcategoryId);
+                if (subcategory) {
+                  templateSubcategory = subcategory.name;
+                }
+              } catch (subcategoryErr) {
+                console.error("Error getting subcategory details:", subcategoryErr);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Error getting skill template details:", err);
+        }
+        
         // Create pending skill update using the provided template ID
         const pendingSkillDataV2: any = {
           user_id: userId,
           skill_template_id: skillTemplateId,
+          name: templateName || 'Skill from template ' + skillTemplateId, // Set a name to avoid NOT NULL constraint
+          category: templateCategory || '', // Include category
+          subcategory: templateSubcategory || '', // Include subcategory
           level: req.body.level,
           certification: req.body.certification || null,
           credly_link: req.body.credlyLink || req.body.credly_link || null,
           notes: req.body.notes || null,
           status: "pending",
           submitted_at: new Date(),
-          is_update: req.body.is_update || req.body.isUpdate || false
+          is_update: req.body.is_update || req.body.isUpdate || false,
+          // Include category and subcategory IDs if available
+          category_id: categoryId || null,
+          subcategory_id: subcategoryId || null
         };
         
         console.log("Creating standard V2 pending skill update with data:", pendingSkillDataV2);
