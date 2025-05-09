@@ -48,9 +48,17 @@ export interface IStorage {
   getUsersByProjectId(projectId: number): Promise<User[]>;
   deleteUser(id: number): Promise<void>;
   getAllAdmins(): Promise<User[]>;
+
+  // User skills operations (V2 Schema)
+  getUserSkillsByUser(userId: number): Promise<UserSkill[]>;
+  getUserSkillById(id: number): Promise<UserSkill | undefined>;
+  createUserSkill(userSkill: InsertUserSkill): Promise<UserSkill>;
+  updateUserSkill(id: number, data: Partial<UserSkill>): Promise<UserSkill>;
+  deleteUserSkill(id: number): Promise<void>;
+  getAllUserSkills(): Promise<UserSkill[]>;
   
-  // Add other interface methods...
-  // This is simplified for brevity
+  // Legacy to V2 adapter methods
+  getUserSkillsV2(userId: number): Promise<Skill[]>;
 }
 
 class MemStorage implements IStorage {
@@ -99,7 +107,7 @@ class MemStorage implements IStorage {
       email: user.email,
       is_admin: user.is_admin || false,
       createdAt: new Date(),
-      username: user.username || null,
+      username: null, // Set default values if not in user object
       password: user.password || null,
       firstName: null,
       lastName: null,
@@ -156,8 +164,35 @@ class MemStorage implements IStorage {
     return this.users.filter(u => u.role === 'admin');
   }
   
-  // Add stub implementations for other methods
-  // This could be much longer but is omitted for brevity
+  // User Skills operations (V2 Schema) - stub implementations
+  async getUserSkillsByUser(userId: number): Promise<UserSkill[]> {
+    return [];
+  }
+  
+  async getUserSkillById(id: number): Promise<UserSkill | undefined> {
+    return undefined;
+  }
+  
+  async createUserSkill(userSkill: InsertUserSkill): Promise<UserSkill> {
+    throw new Error("Method not implemented in memory storage");
+  }
+  
+  async updateUserSkill(id: number, data: Partial<UserSkill>): Promise<UserSkill> {
+    throw new Error("Method not implemented in memory storage");
+  }
+  
+  async deleteUserSkill(id: number): Promise<void> {
+    // No-op for memory storage
+  }
+  
+  async getAllUserSkills(): Promise<UserSkill[]> {
+    return [];
+  }
+  
+  // V2 adapter method
+  async getUserSkillsV2(userId: number): Promise<Skill[]> {
+    return [];
+  }
 }
 
 // PostgreSQL implementation (existing code)
@@ -369,7 +404,196 @@ class PostgresStorage implements IStorage {
     }
   }
   
-  // Other methods would be here, but are omitted for brevity
+  // User Skills methods (V2 Schema)
+  async getUserSkillsByUser(userId: number): Promise<UserSkill[]> {
+    try {
+      const result = await pool.query(`
+        SELECT us.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               st.description as skill_description,
+               sc.name as category_name, 
+               sc.color as category_color, 
+               sc.icon as category_icon,
+               ssc.name as subcategory_name,
+               ssc.color as subcategory_color,
+               ssc.icon as subcategory_icon
+        FROM user_skills us
+        JOIN skill_templates st ON us.skill_template_id = st.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON st.subcategory_id = ssc.id
+        WHERE us.user_id = $1 
+        ORDER BY us.last_updated DESC
+      `, [userId]);
+      
+      return result.rows.map(row => this.snakeToCamel(row));
+    } catch (error) {
+      console.error("Error getting user skills for user:", error);
+      throw error;
+    }
+  }
+  
+  async getUserSkillById(id: number): Promise<UserSkill | undefined> {
+    try {
+      const result = await pool.query(`
+        SELECT us.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               st.description as skill_description,
+               sc.name as category_name, 
+               sc.color as category_color, 
+               sc.icon as category_icon,
+               ssc.name as subcategory_name,
+               ssc.color as subcategory_color,
+               ssc.icon as subcategory_icon 
+        FROM user_skills us
+        JOIN skill_templates st ON us.skill_template_id = st.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON st.subcategory_id = ssc.id
+        WHERE us.id = $1
+      `, [id]);
+      
+      if (!result.rows[0]) return undefined;
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error("Error getting user skill by ID:", error);
+      throw error;
+    }
+  }
+  
+  async createUserSkill(userSkill: InsertUserSkill): Promise<UserSkill> {
+    try {
+      const columns = Object.keys(userSkill);
+      const values = Object.values(userSkill);
+      const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+      
+      const result = await pool.query(
+        `INSERT INTO user_skills (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+        values
+      );
+      
+      // Get the complete user skill with related data
+      const skill = await this.getUserSkillById(result.rows[0].id);
+      if (!skill) {
+        throw new Error(`Failed to retrieve created user skill with ID ${result.rows[0].id}`);
+      }
+      return skill;
+    } catch (error) {
+      console.error("Error creating user skill:", error);
+      throw error;
+    }
+  }
+  
+  async updateUserSkill(id: number, data: Partial<UserSkill>): Promise<UserSkill> {
+    try {
+      // Convert camelCase keys to snake_case for the database
+      const snakeCaseData: Record<string, any> = {};
+      for (const [key, value] of Object.entries(data)) {
+        // Convert camelCase to snake_case
+        const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        snakeCaseData[snakeKey] = value;
+      }
+      
+      const updates = Object.entries(snakeCaseData).map(([key, _], i) => `${key} = $${i + 1}`);
+      const values = [...Object.values(snakeCaseData), id];
+      
+      const result = await pool.query(
+        `UPDATE user_skills SET ${updates.join(', ')} WHERE id = $${values.length} RETURNING *`,
+        values
+      );
+      
+      if (!result.rows[0]) {
+        throw new Error(`User skill with ID ${id} not found`);
+      }
+      
+      // Get the complete user skill with related data
+      const updatedSkill = await this.getUserSkillById(id);
+      if (!updatedSkill) {
+        throw new Error(`Failed to retrieve updated user skill with ID ${id}`);
+      }
+      return updatedSkill;
+    } catch (error) {
+      console.error("Error updating user skill:", error);
+      throw error;
+    }
+  }
+  
+  async deleteUserSkill(id: number): Promise<void> {
+    try {
+      await pool.query('DELETE FROM user_skills WHERE id = $1', [id]);
+    } catch (error) {
+      console.error("Error deleting user skill:", error);
+      throw error;
+    }
+  }
+  
+  async getAllUserSkills(): Promise<UserSkill[]> {
+    try {
+      const result = await pool.query(`
+        SELECT us.*, 
+               st.name as skill_name, 
+               st.category as skill_category,
+               st.description as skill_description,
+               sc.name as category_name, 
+               sc.color as category_color,
+               sc.icon as category_icon,
+               ssc.name as subcategory_name,
+               ssc.color as subcategory_color,
+               ssc.icon as subcategory_icon
+        FROM user_skills us
+        JOIN skill_templates st ON us.skill_template_id = st.id
+        LEFT JOIN skill_categories sc ON st.category_id = sc.id
+        LEFT JOIN skill_subcategories ssc ON st.subcategory_id = ssc.id
+        ORDER BY us.last_updated DESC
+      `);
+      
+      return result.rows.map(row => this.snakeToCamel(row));
+    } catch (error) {
+      console.error("Error getting all user skills:", error);
+      throw error;
+    }
+  }
+  
+  // Helper method to convert UserSkill to legacy Skill format for API compatibility
+  userSkillToLegacySkill(userSkill: any): Skill {
+    const legacySkill: Partial<Skill> = {
+      id: userSkill.id,
+      userId: userSkill.userId || userSkill.user_id,
+      name: userSkill.skillName || userSkill.skill_name || 'Unknown Skill',
+      category: userSkill.skillCategory || userSkill.skill_category || 'Uncategorized',
+      // Ensure categoryId and subcategoryId are correctly mapped from both snake_case and camelCase sources
+      categoryId: userSkill.categoryId || userSkill.category_id || null,
+      subcategoryId: userSkill.subcategoryId || userSkill.subcategory_id || null,
+      level: userSkill.level,
+      lastUpdated: userSkill.lastUpdated || userSkill.last_updated,
+      certification: userSkill.certification || '',
+      credlyLink: userSkill.credlyLink || userSkill.credly_link || '',
+      notes: userSkill.notes || '',
+      endorsementCount: userSkill.endorsementCount || userSkill.endorsement_count || 0,
+      certificationDate: userSkill.certificationDate || userSkill.certification_date || null,
+      expirationDate: userSkill.expirationDate || userSkill.expiration_date || null
+    };
+    
+    return legacySkill as Skill;
+  }
+  
+  // Legacy to V2 adapter methods - no fallbacks to legacy skills table
+  async getUserSkillsV2(userId: number): Promise<Skill[]> {
+    try {
+      console.log(`Getting skills from user_skills table only for user ${userId}`);
+      // Get skills from new user_skills table
+      const userSkills = await this.getUserSkillsByUser(userId);
+      
+      // Convert to legacy format for API compatibility
+      const legacySkills = userSkills.map(us => this.userSkillToLegacySkill(us));
+      
+      console.log(`Converted ${legacySkills.length} user skills to legacy format for user ${userId}`);
+      return legacySkills;
+    } catch (error) {
+      console.error("Error getting user skills with v2 schema:", error);
+      throw error;
+    }
+  }
 }
 
 // Function to create PostgreSQL storage exclusively - no fallbacks
