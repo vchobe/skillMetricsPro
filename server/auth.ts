@@ -33,17 +33,11 @@ export function setupAuth(app: Express) {
   // Use environment variable for session secret or a default for development
   const sessionSecret = process.env.SESSION_SECRET || "employee-skill-metrics-secret";
   
-  // Configure session store based on environment
-  // Force memory store for testing in this environment to avoid DB connection issues
-  const useMemorySession = true; // Always use memory store for testing
-  
-  console.log(`Using memory session store for testing`);
-  
   const sessionSettings: session.SessionOptions = {
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
-    store: undefined, // undefined defaults to MemoryStore
+    store: storage.sessionStore,
     cookie: { 
       secure: process.env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 24, // 1 day
