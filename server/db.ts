@@ -59,12 +59,19 @@ function getDatabaseConfig() {
   
   // Prioritize DATABASE_URL if available (complete connection string)
   if (process.env.DATABASE_URL) {
+    // Database URL could use environment variable expansion, make sure to handle this
+    const dbUrl = process.env.DATABASE_URL;
     console.log('CONFIGURATION: Using DATABASE_URL connection string');
+    console.log('Database host:', dbHost);
+    console.log('Database user:', dbUser);
+    console.log('Database name:', dbName);
+    
     return {
-      connectionString: process.env.DATABASE_URL,
+      connectionString: dbUrl,
+      ssl: process.env.CLOUD_SQL_USE_SSL === 'true',
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000
+      connectionTimeoutMillis: 30000
     };
   }
   
@@ -107,51 +114,21 @@ function getDatabaseConfig() {
 }
 
 // Configure pool with our database config
-// Check if we're using in-memory mode
+// Check if we're in development mode
 const isDevelopment = process.env.NODE_ENV !== 'production';
-const disableDbForDev = process.env.DISABLE_DB_FOR_DEV === 'true';
-const useMemoryStore = process.env.USE_MEMORY_STORE === 'true';
+console.log('Cloud SQL Database Connection Mode');
+console.log('Environment:', process.env.NODE_ENV || 'development');
 
-// Log all environment variables for debugging
-console.log('=====================================================');
-console.log('ENV DEBUG: NODE_ENV =', process.env.NODE_ENV);
-console.log('ENV DEBUG: DISABLE_DB_FOR_DEV =', process.env.DISABLE_DB_FOR_DEV);
-console.log('ENV DEBUG: USE_MEMORY_STORE =', process.env.USE_MEMORY_STORE);
-console.log('ENV DEBUG: isDevelopment =', isDevelopment);
-console.log('ENV DEBUG: disableDbForDev =', disableDbForDev);
-console.log('ENV DEBUG: useMemoryStore =', useMemoryStore);
-console.log('=====================================================');
+// Create the database pool with the proper configuration
+export const pool = new Pool(getDatabaseConfig());
 
-// Force in-memory mode for Replit development
-const skipDbConnection = true; // Force in-memory mode
-
-// Create a mock Pool for memory-only mode, or real Pool for database mode
-export const pool = skipDbConnection 
-  ? {
-      query: async () => ({ rows: [], rowCount: 0 }),
-      connect: async () => ({ 
-        query: async () => ({ rows: [], rowCount: 0 }),
-        release: () => {} 
-      }),
-      on: () => {},
-      end: async () => {}
-    } as any
-  : new Pool(getDatabaseConfig());
-
-// Setup event handlers for connection issues (if using real pool)
-if (!skipDbConnection) {
-  pool.on('error', (err) => {
-    console.error('Unexpected database error:', err);
-  });
-}
+// Setup event handlers for connection issues
+pool.on('error', (err: Error) => {
+  console.error('Unexpected database error:', err);
+});
 
 // Test connection function for health checks
 export async function testDatabaseConnection() {
-  // Skip test in memory-only mode
-  if (skipDbConnection) {
-    console.log('Database connection test skipped (using in-memory mode)');
-    return true;
-  }
 
   let client;
   try {
@@ -159,11 +136,10 @@ export async function testDatabaseConnection() {
     await client.query('SELECT 1'); // Simple health check query
     console.log('Database connection successful');
     return true;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Database connection failed:', err);
     if (isDevelopment) {
-      console.log('In development environment - consider enabling in-memory mode:');
-      console.log('Set DISABLE_DB_FOR_DEV=true in .env to use in-memory storage');
+      console.log('Connection failed in development environment');
     }
     return false;
   } finally {

@@ -371,9 +371,9 @@ class PostgresStorage implements IStorage {
 
 // Factory function to choose the right storage implementation
 function createStorage(): IStorage {
-  // Force in-memory mode for Replit development
-  console.log('STORAGE: Using in-memory storage for Replit development');
-  return new MemStorage();
+  // Always use PostgreSQL storage for production database
+  console.log('STORAGE: Using PostgreSQL storage with Cloud SQL');
+  return new PostgresStorage();
 }
 
 export const storage = createStorage();
