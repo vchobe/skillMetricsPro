@@ -1,9 +1,7 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from 'ws';
+import { Pool } from 'pg';
+// Note: For drizzle-orm v0.39.1, the proper import path for PostgreSQL with node-postgres
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '@shared/schema';
-
-neonConfig.webSocketConstructor = ws;
 
 /**
  * Database Configuration
@@ -64,10 +62,10 @@ function getDatabaseConfig() {
     };
   }
   
-  // For development on Replit, use the provided DATABASE_URL
-  if (isReplit && process.env.DATABASE_URL && process.env.DATABASE_URL_DISABLED !== 'true') {
+  // Always use the DATABASE_URL in Replit environment if available
+  if (process.env.DATABASE_URL) {
     const dbUrlForLogging = process.env.DATABASE_URL.replace(/\/\/([^:]+):([^@]+)@/, '//[MASKED_USER]:[MASKED_PASSWORD]@');
-    console.log(`CONFIGURATION: Using Replit DATABASE_URL: ${dbUrlForLogging}`);
+    console.log(`CONFIGURATION: Using DATABASE_URL: ${dbUrlForLogging}`);
     
     return {
       connectionString: process.env.DATABASE_URL,
@@ -140,6 +138,9 @@ pool.on('error', (err) => {
   console.error('Unexpected database error:', err);
 });
 
+// Flag to track if we're running in fallback mode
+let isFallbackMode = false;
+
 // Test connection function for health checks
 export async function testDatabaseConnection() {
   let client;
@@ -150,6 +151,7 @@ export async function testDatabaseConnection() {
     return true;
   } catch (err) {
     console.error('Database connection failed:', err);
+    isFallbackMode = true; // Enable fallback mode
     return false;
   } finally {
     if (client) client.release();
@@ -160,6 +162,12 @@ export async function testDatabaseConnection() {
 testDatabaseConnection().catch(err => {
   console.error('Initial database connection test failed:', err);
   console.error('Please check your database connection configuration.');
+  console.log('APPLICATION RUNNING IN DEV/FALLBACK MODE WITH NO DATABASE');
+  isFallbackMode = true;
 });
 
+// Create drizzle instance for database operations
 export const db = drizzle(pool, { schema });
+
+// Export fallback state for other modules to check
+export const getFallbackState = () => isFallbackMode;
