@@ -5,19 +5,9 @@ import * as schema from '@shared/schema';
 
 neonConfig.webSocketConstructor = ws;
 
-// Check for the database URL
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL is not set. Database connection cannot be established."
-  );
-}
-
-// Clean up the DATABASE_URL to handle the special format
-let connectionString = process.env.DATABASE_URL;
-if (connectionString.includes('/DB3kdibkXMAw@')) {
-  console.log('Detected Cloud Run connection string format, fixing...');
-  connectionString = connectionString.replace('/DB3kdibkXMAw@', '@');
-}
+// Use a connectionString format
+const connectionString = 'postgresql://app_user:EjsUgkhcd@34.30.6.95:5432/neondb';
+console.log(`Connecting to database with connection string to host 34.30.6.95`);
 
 // Create the database connection pool
 export const pool = new Pool({ 
@@ -25,6 +15,33 @@ export const pool = new Pool({
   max: 20, 
   idleTimeoutMillis: 30000, 
   connectionTimeoutMillis: 10000 
+});
+
+// Setup event handlers for connection issues
+pool.on('error', (err) => {
+  console.error('Unexpected database error:', err);
+});
+
+// Test connection function for health checks
+export async function testDatabaseConnection() {
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('SELECT 1'); // Simple health check query
+    console.log('Database connection successful');
+    return true;
+  } catch (err) {
+    console.error('Database connection failed:', err);
+    return false;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Ensure the connection is valid at startup
+testDatabaseConnection().catch(err => {
+  console.error('Initial database connection test failed:', err);
+  console.error('Please check your database connection configuration.');
 });
 
 // Export the drizzle ORM instance
