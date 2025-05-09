@@ -1,6 +1,6 @@
 #!/bin/bash
-# Enhanced script for deploying to Google Cloud Run with database configuration
-# Takes database connection parameters as inputs
+# Simplified script for deploying to Google Cloud Run with minimal database configuration
+# Only requires database username and password
 
 set -e
 echo "===== STARTING DEPLOYMENT TO CLOUD RUN ====="
@@ -11,27 +11,24 @@ SERVICE_NAME="skills-management-app"
 REGION="us-central1"
 IMAGE_NAME="gcr.io/${PROJECT_ID}/skillmetricspro6:latest"
 
-# Prompt for database configuration if not provided
-read -p "Enter Cloud SQL Connection Name (e.g. project:region:instance): " CLOUD_SQL_CONNECTION_NAME
+# Default database settings
+CLOUD_SQL_CONNECTION_NAME="imposing-elixir-440911-u9:us-central1:skillmetrics-db"
+CLOUD_SQL_DATABASE="neondb"
+CLOUD_SQL_HOST="34.30.6.95"
+CLOUD_SQL_PORT="5432"
+
+# Only prompt for username and password
 read -p "Enter Database User: " CLOUD_SQL_USER
 read -sp "Enter Database Password: " CLOUD_SQL_PASSWORD
 echo "" # Add a new line after password input
-read -p "Enter Database Name: " CLOUD_SQL_DATABASE
-
-# For direct IP connection, optionally get host and port
-read -p "Use socket connection? (y/n, default: y): " USE_SOCKET
-USE_SOCKET=${USE_SOCKET:-y}
-
-if [[ $USE_SOCKET != "y" && $USE_SOCKET != "Y" ]]; then
-  read -p "Enter Database Host IP: " CLOUD_SQL_HOST
-  read -p "Enter Database Port (default: 5432): " CLOUD_SQL_PORT
-  CLOUD_SQL_PORT=${CLOUD_SQL_PORT:-5432}
-fi
 
 echo "Project ID: $PROJECT_ID"
 echo "Service Name: $SERVICE_NAME"
 echo "Region: $REGION"
 echo "Image: $IMAGE_NAME"
+echo "Database Connection: $CLOUD_SQL_CONNECTION_NAME"
+echo "Database Host: $CLOUD_SQL_HOST"
+echo "Database Name: $CLOUD_SQL_DATABASE"
 echo "==========================================="
 
 echo "1. Activating service account..."
@@ -44,38 +41,35 @@ echo "3. Pushing Docker image to Container Registry..."
 docker push $IMAGE_NAME
 
 echo "4. Deploying to Cloud Run with environment variables..."
-DEPLOY_CMD="gcloud run deploy $SERVICE_NAME --image $IMAGE_NAME --platform managed --region $REGION --allow-unauthenticated"
+# Configure environment variables for deployment
+ENV_VARS="NODE_ENV=production"
+ENV_VARS="$ENV_VARS,CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONNECTION_NAME"
+ENV_VARS="$ENV_VARS,CLOUD_SQL_USER=$CLOUD_SQL_USER"
+ENV_VARS="$ENV_VARS,CLOUD_SQL_PASSWORD=$CLOUD_SQL_PASSWORD"
+ENV_VARS="$ENV_VARS,CLOUD_SQL_DATABASE=$CLOUD_SQL_DATABASE"
+ENV_VARS="$ENV_VARS,CLOUD_SQL_HOST=$CLOUD_SQL_HOST"
+ENV_VARS="$ENV_VARS,CLOUD_SQL_PORT=$CLOUD_SQL_PORT"
 
-# Add environment variables
-DEPLOY_CMD="$DEPLOY_CMD --set-env-vars NODE_ENV=production"
-DEPLOY_CMD="$DEPLOY_CMD --set-env-vars CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONNECTION_NAME"
-DEPLOY_CMD="$DEPLOY_CMD --set-env-vars CLOUD_SQL_USER=$CLOUD_SQL_USER"
-DEPLOY_CMD="$DEPLOY_CMD --set-env-vars CLOUD_SQL_PASSWORD=$CLOUD_SQL_PASSWORD"
-DEPLOY_CMD="$DEPLOY_CMD --set-env-vars CLOUD_SQL_DATABASE=$CLOUD_SQL_DATABASE"
+# Add PG* variables as fallback
+ENV_VARS="$ENV_VARS,PGUSER=$CLOUD_SQL_USER"
+ENV_VARS="$ENV_VARS,PGPASSWORD=$CLOUD_SQL_PASSWORD"
+ENV_VARS="$ENV_VARS,PGDATABASE=$CLOUD_SQL_DATABASE"
+ENV_VARS="$ENV_VARS,PGHOST=$CLOUD_SQL_HOST"
+ENV_VARS="$ENV_VARS,PGPORT=$CLOUD_SQL_PORT"
 
-# Add direct connection variables if not using socket
-if [[ $USE_SOCKET != "y" && $USE_SOCKET != "Y" ]]; then
-  DEPLOY_CMD="$DEPLOY_CMD --set-env-vars CLOUD_SQL_HOST=$CLOUD_SQL_HOST"
-  DEPLOY_CMD="$DEPLOY_CMD --set-env-vars CLOUD_SQL_PORT=$CLOUD_SQL_PORT"
-fi
-
-# Also add PG* variables as fallback
-DEPLOY_CMD="$DEPLOY_CMD --set-env-vars PGUSER=$CLOUD_SQL_USER"
-DEPLOY_CMD="$DEPLOY_CMD --set-env-vars PGPASSWORD=$CLOUD_SQL_PASSWORD"
-DEPLOY_CMD="$DEPLOY_CMD --set-env-vars PGDATABASE=$CLOUD_SQL_DATABASE"
-
-if [[ $USE_SOCKET != "y" && $USE_SOCKET != "Y" ]]; then
-  DEPLOY_CMD="$DEPLOY_CMD --set-env-vars PGHOST=$CLOUD_SQL_HOST"
-  DEPLOY_CMD="$DEPLOY_CMD --set-env-vars PGPORT=$CLOUD_SQL_PORT"
-  
-  # Also add DATABASE_URL for direct connection
-  DATABASE_URL="postgresql://$CLOUD_SQL_USER:$CLOUD_SQL_PASSWORD@$CLOUD_SQL_HOST:$CLOUD_SQL_PORT/$CLOUD_SQL_DATABASE"
-  DEPLOY_CMD="$DEPLOY_CMD --set-env-vars DATABASE_URL=$DATABASE_URL"
-fi
+# Also add DATABASE_URL for direct connection
+DATABASE_URL="postgresql://$CLOUD_SQL_USER:$CLOUD_SQL_PASSWORD@$CLOUD_SQL_HOST:$CLOUD_SQL_PORT/$CLOUD_SQL_DATABASE"
+ENV_VARS="$ENV_VARS,DATABASE_URL=$DATABASE_URL"
 
 # Execute the deployment command
 echo "Running deployment command..."
-eval $DEPLOY_CMD
+gcloud run deploy $SERVICE_NAME \
+  --image $IMAGE_NAME \
+  --platform managed \
+  --region $REGION \
+  --allow-unauthenticated \
+  --set-env-vars "$ENV_VARS" \
+  --project $PROJECT_ID
 
 echo "5. Verifying deployment..."
 echo "Getting service URL..."
@@ -96,6 +90,8 @@ if [ -n "$SERVICE_URL" ]; then
   echo ""
   echo "===== DEPLOYMENT COMPLETED ====="
   echo "Service URL: $SERVICE_URL"
+  echo "Database user: $CLOUD_SQL_USER"
+  echo "Database connection: Direct IP to $CLOUD_SQL_HOST and socket connection to $CLOUD_SQL_CONNECTION_NAME"
 else
   echo "ERROR: Service URL not found. Deployment may have failed."
   echo "Check the Google Cloud Console for more details."
