@@ -5,6 +5,10 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import { log } from "./utils";
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Enable in-memory mode for development if needed
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -262,7 +266,7 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
   
   if (javaRunning) {
     // Java backend detected, use alternative port for frontend-only mode
-    const port = 5000;
+    const port = 5010;
     const host = "0.0.0.0";
     
     console.log(`Java backend detected on port 8080`);
@@ -292,9 +296,9 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
   } else {
     // No Java backend, start normally on appropriate port
     // For Cloud Run, always use port 8080 regardless of PORT env value
-    // For development or other environments, use PORT env or default to 5000
+    // For development or other environments, use PORT env or default to 5010
     const isCloudRun = process.env.K_SERVICE !== undefined;
-    const port = isCloudRun ? 8080 : (process.env.PORT ? parseInt(process.env.PORT, 10) : 5000);
+    const port = isCloudRun ? 8080 : (process.env.PORT ? parseInt(process.env.PORT, 10) : 5010);
     const host = process.env.HOST || "0.0.0.0";
     
     console.log(`No Java backend detected`);
@@ -303,7 +307,7 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
     if (isCloudRun) {
       console.log(`Using Cloud Run standard port 8080 (ignoring PORT=${process.env.PORT})`);
     } else {
-      console.log(`Using port ${port} (from env: ${process.env.PORT || 'not set, using default 5000'})`);
+      console.log(`Using port ${port} (from env: ${process.env.PORT || 'not set, using default 5010'})`);
     }
     console.log(`Starting server on host ${host} and port ${port}`);
     

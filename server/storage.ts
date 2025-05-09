@@ -62,7 +62,7 @@ class MemStorage implements IStorage {
       checkPeriod: 86400000 // One day
     });
     
-    // Create a default admin user
+    // Create a default admin user with the correct User schema format
     this.users.push({
       id: 1,
       username: 'admin',
@@ -71,17 +71,10 @@ class MemStorage implements IStorage {
       firstName: 'Admin',
       lastName: 'User',
       role: 'admin',
+      is_admin: true,
       createdAt: new Date(),
-      updatedAt: new Date(),
       location: 'US',
-      department: null,
-      title: 'Administrator',
-      profileImage: null,
-      hireDate: null,
-      linkedin: null,
-      bio: null,
-      status: 'active',
-      theme: null
+      project: null
     });
   }
 
@@ -100,12 +93,20 @@ class MemStorage implements IStorage {
   
   async createUser(user: InsertUser): Promise<User> {
     const id = this.users.length > 0 ? Math.max(...this.users.map(u => u.id)) + 1 : 1;
-    const newUser = {
-      ...user,
+    // Create user with required fields
+    const newUser: User = {
       id,
+      email: user.email,
+      is_admin: user.is_admin || false,
       createdAt: new Date(),
-      updatedAt: new Date(),
-    } as User;
+      username: user.username || null,
+      password: user.password || null,
+      firstName: null,
+      lastName: null,
+      project: null,
+      role: null,
+      location: null
+    };
     
     this.users.push(newUser);
     return newUser;
@@ -117,7 +118,9 @@ class MemStorage implements IStorage {
       throw new Error(`User with ID ${id} not found`);
     }
     
-    this.users[index] = { ...this.users[index], ...data, updatedAt: new Date() };
+    // Update only fields that exist in the User type
+    const updatedUser = { ...this.users[index], ...data };
+    this.users[index] = updatedUser;
     return this.users[index];
   }
   
@@ -371,9 +374,28 @@ class PostgresStorage implements IStorage {
 
 // Factory function to choose the right storage implementation
 function createStorage(): IStorage {
-  // Always use PostgreSQL storage for production database
-  console.log('STORAGE: Using PostgreSQL storage with Cloud SQL');
-  return new PostgresStorage();
+  // Check if we're in development and should enable fallback mode
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const enableFallback = isDevelopment && (process.env.ENABLE_MEMORY_FALLBACK === 'true');
+  
+  if (enableFallback) {
+    console.log('STORAGE: Using memory storage with fallback enabled');
+    return new MemStorage();
+  }
+  
+  try {
+    // Test the database connection before creating the storage
+    console.log('STORAGE: Using PostgreSQL storage with Cloud SQL');
+    return new PostgresStorage();
+  } catch (err) {
+    if (isDevelopment) {
+      console.error('ERROR: Failed to create PostgreSQL storage:', err);
+      console.log('FALLBACK: Using memory storage for development');
+      return new MemStorage();
+    }
+    // In production, we want to fail hard if there's a database issue
+    throw err;
+  }
 }
 
 export const storage = createStorage();
