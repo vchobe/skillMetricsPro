@@ -372,30 +372,15 @@ class PostgresStorage implements IStorage {
   // Other methods would be here, but are omitted for brevity
 }
 
-// Factory function to choose the right storage implementation
+// Function to create PostgreSQL storage exclusively - no fallbacks
 function createStorage(): IStorage {
-  // Check if we're in development and should enable fallback mode
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  const enableFallback = isDevelopment && (process.env.ENABLE_MEMORY_FALLBACK === 'true');
+  // Always use PostgreSQL storage with no fallbacks
+  console.log('STORAGE: Using PostgreSQL storage with Cloud SQL exclusively');
+  console.log('STORAGE: No memory fallbacks or alternatives will be used');
   
-  if (enableFallback) {
-    console.log('STORAGE: Using memory storage with fallback enabled');
-    return new MemStorage();
-  }
-  
-  try {
-    // Test the database connection before creating the storage
-    console.log('STORAGE: Using PostgreSQL storage with Cloud SQL');
-    return new PostgresStorage();
-  } catch (err) {
-    if (isDevelopment) {
-      console.error('ERROR: Failed to create PostgreSQL storage:', err);
-      console.log('FALLBACK: Using memory storage for development');
-      return new MemStorage();
-    }
-    // In production, we want to fail hard if there's a database issue
-    throw err;
-  }
+  // Always return PostgreSQL storage for all environments
+  // If database connection fails, the application should fail
+  return new PostgresStorage();
 }
 
 export const storage = createStorage();
