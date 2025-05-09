@@ -21,6 +21,20 @@ function getDatabaseConfig() {
   const isDevelopment = process.env.NODE_ENV !== 'production';
   const disableDbForDev = process.env.DISABLE_DB_FOR_DEV === 'true';
   
+  // Debug output for environment variables
+  console.log('DATABASE DEBUG - Environment Variables:');
+  console.log('PGUSER:', process.env.PGUSER);
+  console.log('PGHOST:', process.env.PGHOST);
+  console.log('PGDATABASE:', process.env.PGDATABASE);
+  console.log('PGPORT:', process.env.PGPORT);
+  console.log('CLOUD_SQL_USER:', process.env.CLOUD_SQL_USER);
+  console.log('CLOUD_SQL_HOST:', process.env.CLOUD_SQL_HOST);
+  console.log('CLOUD_SQL_DATABASE:', process.env.CLOUD_SQL_DATABASE);
+  console.log('CLOUD_SQL_PORT:', process.env.CLOUD_SQL_PORT);
+  console.log('DATABASE_URL format:', process.env.DATABASE_URL?.replace(/:[^:]*@/, ':***@'));
+  console.log('NEON_DB_PASSWORD exists:', process.env.NEON_DB_PASSWORD ? 'Yes' : 'No');
+  console.log('CORRECT_NEON_DB_PASSWORD exists:', process.env.CORRECT_NEON_DB_PASSWORD ? 'Yes' : 'No');
+  
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
   console.log('Database disabled for dev:', disableDbForDev ? 'Yes' : 'No');
@@ -43,19 +57,6 @@ function getDatabaseConfig() {
   // Check for both Cloud SQL and standard PG environment variables
   // Handle various environment variable formats with fallbacks
   
-  // Debug output all environment variables (without sensitive values)
-  console.log('DATABASE DEBUG - Environment Variables:');
-  console.log('PGUSER:', process.env.PGUSER);
-  console.log('PGHOST:', process.env.PGHOST);
-  console.log('PGDATABASE:', process.env.PGDATABASE);
-  console.log('PGPORT:', process.env.PGPORT);
-  console.log('CLOUD_SQL_USER:', process.env.CLOUD_SQL_USER);
-  console.log('CLOUD_SQL_HOST:', process.env.CLOUD_SQL_HOST);
-  console.log('CLOUD_SQL_DATABASE:', process.env.CLOUD_SQL_DATABASE);
-  console.log('CLOUD_SQL_PORT:', process.env.CLOUD_SQL_PORT);
-  console.log('DATABASE_URL format:', process.env.DATABASE_URL?.replace(/:[^:]*@/, ':***@'));
-  console.log('NEON_DB_PASSWORD exists:', process.env.NEON_DB_PASSWORD ? 'Yes' : 'No');
-  
   // User credentials - check both CLOUD_SQL_* and PG* variables
   const dbUser = process.env.PGUSER || process.env.CLOUD_SQL_USER;
   const dbPassword = process.env.NEON_DB_PASSWORD || process.env.PGPASSWORD || process.env.CLOUD_SQL_PASSWORD;
@@ -74,27 +75,27 @@ function getDatabaseConfig() {
     throw new Error('Database credentials are missing. Please set either CLOUD_SQL_USER, CLOUD_SQL_PASSWORD, CLOUD_SQL_DATABASE or PGUSER, PGPASSWORD, PGDATABASE environment variables.');
   }
   
-  // Prioritize Neon.tech connection for the database
-  const isNeonDb = dbHost?.includes('neon.tech');
+  // Check if environment is for Cloud SQL
+  const isCloudSql = dbHost?.includes('34.30.6.95');
   
-  if (isNeonDb) {
-    // Use neondb_owner user for Neon.tech and the dedicated password
-    // This overrides any conflicting environment variables to ensure consistency
-    const neonUser = 'neondb_owner';
-    const neonDbPassword = process.env.NEON_DB_PASSWORD;
+  if (isCloudSql) {
+    // Use app_user for Google Cloud SQL as required
+    const cloudSqlUser = 'app_user';
+    // Use the correct password for Cloud SQL
+    const cloudSqlPassword = process.env.CLOUD_SQL_PASSWORD;
     
-    console.log('CONFIGURATION: Using Neon PostgreSQL connection');
+    console.log('CONFIGURATION: Using Google Cloud SQL connection exclusively');
     console.log('Database host:', dbHost);
-    console.log('Database user:', neonUser);
-    console.log('Database name:', dbName);
+    console.log('Database user:', cloudSqlUser);
+    console.log('Database name:', 'skillmetrics');
     
-    console.log('Neon connection with explicit neondb_owner user and provided password');
-    // Force use of neondb_owner user for Neon regardless of environment variables
-    const connectionString = `postgresql://${neonUser}:${neonDbPassword}@${dbHost}:${dbPort}/${dbName}?sslmode=require`;
+    console.log('Cloud SQL connection with app_user as required');
+    // Use the connection string with the Cloud SQL password
+    const connectionString = `postgresql://${cloudSqlUser}:${cloudSqlPassword}@${dbHost}:${dbPort}/skillmetrics`;
     
     return {
       connectionString,
-      ssl: { rejectUnauthorized: true },
+      ssl: false, // Cloud SQL direct connection doesn't require SSL
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 30000
