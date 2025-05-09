@@ -7,15 +7,41 @@ import * as schema from "@shared/schema";
  * Database Configuration
  * 
  * This module handles connecting to the database for the application.
- * Supports both Cloud SQL and standard PostgreSQL connections
+ * Primary configuration method is through DATABASE_URL environment variable.
  */
 function getDatabaseConfig() {
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
   
-  // Check for both Cloud SQL and standard PG environment variables
-  // Handle various environment variable formats with fallbacks
+  // PRIORITY 1: Check for DATABASE_URL connection string (preferred approach)
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL_DISABLED !== 'true') {
+    // Log the connection string format (with password masked)
+    const dbUrlForLogging = process.env.DATABASE_URL.replace(/\/\/([^:]+):([^@]+)@/, '//[MASKED_USER]:[MASKED_PASSWORD]@');
+    console.log(`CONFIGURATION: Using DATABASE_URL connection string: ${dbUrlForLogging}`);
+    
+    try {
+      // For Cloud Run, handle the special format from screenshot with DB3kdibkXMAw before the @
+      let connectionString = process.env.DATABASE_URL;
+      if (connectionString.includes('/DB3kdibkXMAw@')) {
+        console.log('INFO: Detected special Cloud Run connection string format');
+        connectionString = connectionString.replace('/DB3kdibkXMAw@', '@');
+      }
+      
+      return {
+        connectionString,
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+        // Small timeout for better error detection in Cloud Run
+        statement_timeout: 15000
+      };
+    } catch (error) {
+      console.error('ERROR parsing DATABASE_URL:', error);
+      throw new Error('Invalid DATABASE_URL format. Please check your configuration.');
+    }
+  }
   
+  // PRIORITY 2: Check for separate database credentials (fallback approach)
   // User credentials - check both CLOUD_SQL_* and PG* variables
   const dbUser = process.env.CLOUD_SQL_USER || process.env.PGUSER;
   const dbPassword = process.env.CLOUD_SQL_PASSWORD || process.env.PGPASSWORD;
@@ -26,23 +52,12 @@ function getDatabaseConfig() {
   // Cloud SQL specific connection for Unix socket
   const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
   
-  // First check if we have sufficient credentials from either format
+  // Check if we have sufficient credentials for direct connection
   const hasBasicCredentials = dbUser && dbPassword && dbName;
   
-  // Verify required credentials
-  if (!hasBasicCredentials) {
-    throw new Error('Database credentials are missing. Please set either CLOUD_SQL_USER, CLOUD_SQL_PASSWORD, CLOUD_SQL_DATABASE or PGUSER, PGPASSWORD, PGDATABASE environment variables.');
-  }
-  
-  // Prioritize DATABASE_URL if available (complete connection string)
-  if (process.env.DATABASE_URL) {
-    console.log('CONFIGURATION: Using DATABASE_URL connection string');
-    return {
-      connectionString: process.env.DATABASE_URL,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000
-    };
+  // If no credentials are available, we cannot connect
+  if (!hasBasicCredentials && !process.env.DATABASE_URL) {
+    throw new Error('Database configuration is missing. Please set DATABASE_URL environment variable or provide individual connection parameters.');
   }
   
   // For GCP Cloud Run with Cloud SQL Connection Name, use Unix socket
