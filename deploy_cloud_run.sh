@@ -20,7 +20,7 @@ ORIGINAL_SERVICE_NAME="skillmetrics" # Set desired Cloud Run service name
 SERVICE_NAME_LOWER=$(echo "${ORIGINAL_SERVICE_NAME}" | tr '[:upper:]' '[:lower:]')
 # Create a CONSISTENT SQL instance name based on the lowercase service name
 SQL_INSTANCE_NAME="${SERVICE_NAME_LOWER}-db"
-DB_NAME="appdb"
+DB_NAME="neondb"
 # You can set a specific user, or let the script generate one
 DB_USER="app_user"
 # Artifact Registry repo name (must be lowercase)
