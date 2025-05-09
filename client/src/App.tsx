@@ -25,7 +25,6 @@ import ClientsPage from "@/pages/clients-page";
 import ClientDetailPage from "@/pages/client-detail-page";
 import AuthPage from "@/pages/auth-page";
 import ApiTestPage from "./pages/ApiTestPage";
-import TestPage from "@/pages/test-page";
 import NotFound from "@/pages/not-found";
 
 // This wrapper ensures admin components get fully remounted on user change but not on tab changes
@@ -140,7 +139,6 @@ function Router() {
       />
       <Route path="/auth" component={AuthPage} />
       <Route path="/api-test" component={ApiTestPage} />
-      <Route path="/test" component={TestPage} />
       <Route component={NotFound} />
     </Switch>
   );

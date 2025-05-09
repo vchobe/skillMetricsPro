@@ -1,97 +1,104 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-type PoolType = typeof Pool;
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
-import dotenv from 'dotenv';
-
-// Load environment variables from .env file
-dotenv.config();
 
 /**
  * Database Configuration
  * 
  * This module handles connecting to the database for the application.
- * Supports both Cloud SQL and standard PostgreSQL connections.
- * 
- * In development mode, can be configured to use in-memory storage instead
- * by setting DISABLE_DB_FOR_DEV=true in .env
+ * REPLIT DATABASE ONLY - Neon DB connections have been removed
  */
 function getDatabaseConfig() {
-  // Hardcoded Cloud SQL connection parameters with app_user
-  const cloudSqlUser = 'app_user';
-  const cloudSqlPassword = process.env.CLOUD_SQL_PASSWORD;
-  const cloudSqlHost = '34.30.6.95';
-  const cloudSqlPort = 5432;
-  const cloudSqlDatabase = 'neondb';
+  console.log('Environment:', process.env.NODE_ENV || 'development');
+  console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
   
-  console.log('CONFIGURATION: Using Cloud SQL exclusively with app_user');
-  console.log('Database host:', cloudSqlHost);
-  console.log('Database user:', cloudSqlUser);
-  console.log('Database name:', cloudSqlDatabase);
+  // Use Cloud SQL configuration (Google Cloud SQL only)
+  // Check for Google Cloud SQL configuration
+  const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
+  const cloudSqlUser = process.env.CLOUD_SQL_USER;
+  const cloudSqlPassword = process.env.CLOUD_SQL_PASSWORD;
+  const cloudSqlDatabase = process.env.CLOUD_SQL_DATABASE;
+  
+  // Check if we have Cloud SQL configuration
+  const hasCloudSqlConfig = cloudSqlConnectionName && cloudSqlUser && cloudSqlPassword && cloudSqlDatabase;
   
   // Verify required credentials
-  if (!cloudSqlPassword) {
-    throw new Error('Cloud SQL password is missing. Please set the CLOUD_SQL_PASSWORD environment variable.');
+  if (!hasCloudSqlConfig) {
+    throw new Error('Database configuration is missing. Please set CLOUD_SQL_CONNECTION_NAME, CLOUD_SQL_USER, CLOUD_SQL_PASSWORD, and CLOUD_SQL_DATABASE environment variables.');
   }
   
-  // Use direct TCP connection with app_user credentials
-  // No fallbacks, no in-memory options, strictly Cloud SQL only
-  return {
-    user: cloudSqlUser,
-    password: cloudSqlPassword,
-    database: cloudSqlDatabase,
-    host: cloudSqlHost,
-    port: cloudSqlPort,
-    ssl: false, // Cloud SQL direct connection doesn't require SSL
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 30000
-  };
+  console.log('CONFIGURATION: Using Google Cloud SQL only');
+  
+  // For GCP Cloud Run, use Unix socket connection
+  const isCloudRun = process.env.K_SERVICE || process.env.USE_CLOUD_SQL === 'true';
+  
+  if (isCloudRun) {
+    // In Cloud Run, use Unix socket connection
+    console.log(`Using Cloud SQL socket connection to: ${cloudSqlConnectionName}`);
+    
+    return {
+      user: cloudSqlUser,
+      password: cloudSqlPassword,
+      database: cloudSqlDatabase,
+      host: `/cloudsql/${cloudSqlConnectionName}`,
+      ssl: false, // SSL is not used with Unix socket
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    };
+  } else {
+    // In development or direct connection mode, use TCP connection
+    
+    // Check if we have host and port override - useful for direct connections
+    const dbHost = process.env.CLOUD_SQL_HOST || 'localhost';
+    const dbPort = parseInt(process.env.CLOUD_SQL_PORT || '5432', 10);
+    
+    console.log(`Using direct TCP connection to: ${dbHost}:${dbPort}`);
+    console.log('SSL Enabled:', process.env.CLOUD_SQL_USE_SSL === 'true' ? 'Yes' : 'No');
+    
+    return {
+      user: cloudSqlUser,
+      password: cloudSqlPassword,
+      database: cloudSqlDatabase,
+      host: dbHost,
+      port: dbPort,
+      ssl: process.env.CLOUD_SQL_USE_SSL === 'true',
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    };
+  }
 }
 
 // Configure pool with our database config
-// Check if we're in development mode
-const isDevelopment = process.env.NODE_ENV !== 'production';
-console.log('Cloud SQL Database Connection Mode');
-console.log('Environment:', process.env.NODE_ENV || 'development');
-
-// Create the database pool with the proper configuration
 export const pool = new Pool(getDatabaseConfig());
 
 // Setup event handlers for connection issues
-pool.on('error', (err: Error) => {
+pool.on('error', (err) => {
   console.error('Unexpected database error:', err);
 });
 
 // Test connection function for health checks
 export async function testDatabaseConnection() {
-
   let client;
   try {
     client = await pool.connect();
     await client.query('SELECT 1'); // Simple health check query
     console.log('Database connection successful');
     return true;
-  } catch (err: any) {
+  } catch (err) {
     console.error('Database connection failed:', err);
-    if (isDevelopment) {
-      console.log('Connection failed in development environment');
-    }
     return false;
   } finally {
     if (client) client.release();
   }
 }
 
-// Ensure the connection is valid at startup (but don't crash if it fails)
+// Ensure the connection is valid at startup
 testDatabaseConnection().catch(err => {
   console.error('Initial database connection test failed:', err);
   console.error('Please check your database connection configuration.');
-  if (isDevelopment) {
-    console.log('Running in development mode - continuing anyway');
-  }
 });
 
-// Create Drizzle ORM instance
 export const db = drizzle(pool, { schema });

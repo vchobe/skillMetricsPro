@@ -5,24 +5,6 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import { log } from "./utils";
-import dotenv from 'dotenv';
-
-// Load environment variables from .env file
-dotenv.config();
-
-// Enable in-memory mode for development if needed
-const isDevelopment = process.env.NODE_ENV !== 'production';
-const disableDbForDev = process.env.DISABLE_DB_FOR_DEV === 'true';
-const useMemoryStore = process.env.USE_MEMORY_STORE === 'true';
-const isMemoryMode = isDevelopment && (disableDbForDev || useMemoryStore);
-
-if (isMemoryMode) {
-  console.log('===================================================');
-  console.log('DEVELOPMENT MODE: Database access disabled');
-  console.log('Using in-memory storage for basic functionality');
-  console.log('Limited functionality available (login with admin/password)');
-  console.log('===================================================');
-}
 
 const app = express();
 app.use(express.json());
@@ -266,7 +248,7 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
   
   if (javaRunning) {
     // Java backend detected, use alternative port for frontend-only mode
-    const port = 5010;
+    const port = 5000;
     const host = "0.0.0.0";
     
     console.log(`Java backend detected on port 8080`);
@@ -296,19 +278,18 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
   } else {
     // No Java backend, start normally on appropriate port
     // For Cloud Run, always use port 8080 regardless of PORT env value
-    // For development or other environments, use PORT env or default to 5010
+    // For development or other environments, use PORT env or default to 5000
     const isCloudRun = process.env.K_SERVICE !== undefined;
-    // Use port 5000 to match Replit workflow configuration
-    const port = isCloudRun ? 8080 : 5000;
+    const port = isCloudRun ? 8080 : (process.env.PORT ? parseInt(process.env.PORT, 10) : 5000);
     const host = process.env.HOST || "0.0.0.0";
     
     console.log(`No Java backend detected`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Cloud Run: ${isCloudRun ? 'Yes' : 'No'}`);
     if (isCloudRun) {
-      console.log(`Using Cloud Run standard port 8080`);
+      console.log(`Using Cloud Run standard port 8080 (ignoring PORT=${process.env.PORT})`);
     } else {
-      console.log(`Using port 5000 to match Replit workflow configuration`);
+      console.log(`Using port ${port} (from env: ${process.env.PORT || 'not set, using default 5000'})`);
     }
     console.log(`Starting server on host ${host} and port ${port}`);
     
