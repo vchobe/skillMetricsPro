@@ -3,6 +3,10 @@ const { Pool } = pkg;
 type PoolType = typeof Pool;
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 /**
  * Database Configuration
@@ -39,12 +43,25 @@ function getDatabaseConfig() {
   // Check for both Cloud SQL and standard PG environment variables
   // Handle various environment variable formats with fallbacks
   
+  // Debug output all environment variables (without sensitive values)
+  console.log('DATABASE DEBUG - Environment Variables:');
+  console.log('PGUSER:', process.env.PGUSER);
+  console.log('PGHOST:', process.env.PGHOST);
+  console.log('PGDATABASE:', process.env.PGDATABASE);
+  console.log('PGPORT:', process.env.PGPORT);
+  console.log('CLOUD_SQL_USER:', process.env.CLOUD_SQL_USER);
+  console.log('CLOUD_SQL_HOST:', process.env.CLOUD_SQL_HOST);
+  console.log('CLOUD_SQL_DATABASE:', process.env.CLOUD_SQL_DATABASE);
+  console.log('CLOUD_SQL_PORT:', process.env.CLOUD_SQL_PORT);
+  console.log('DATABASE_URL format:', process.env.DATABASE_URL?.replace(/:[^:]*@/, ':***@'));
+  console.log('NEON_DB_PASSWORD exists:', process.env.NEON_DB_PASSWORD ? 'Yes' : 'No');
+  
   // User credentials - check both CLOUD_SQL_* and PG* variables
-  const dbUser = process.env.CLOUD_SQL_USER || process.env.PGUSER;
-  const dbPassword = process.env.CLOUD_SQL_PASSWORD || process.env.PGPASSWORD;
-  const dbName = process.env.CLOUD_SQL_DATABASE || process.env.PGDATABASE;
-  const dbHost = process.env.CLOUD_SQL_HOST || process.env.PGHOST || 'localhost';
-  const dbPort = parseInt(process.env.CLOUD_SQL_PORT || process.env.PGPORT || '5432', 10);
+  const dbUser = process.env.PGUSER || process.env.CLOUD_SQL_USER;
+  const dbPassword = process.env.NEON_DB_PASSWORD || process.env.PGPASSWORD || process.env.CLOUD_SQL_PASSWORD;
+  const dbName = process.env.PGDATABASE || process.env.CLOUD_SQL_DATABASE;
+  const dbHost = process.env.PGHOST || process.env.CLOUD_SQL_HOST || 'localhost';
+  const dbPort = parseInt(process.env.PGPORT || process.env.CLOUD_SQL_PORT || '5432', 10);
   
   // Cloud SQL specific connection for Unix socket
   const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
@@ -57,9 +74,36 @@ function getDatabaseConfig() {
     throw new Error('Database credentials are missing. Please set either CLOUD_SQL_USER, CLOUD_SQL_PASSWORD, CLOUD_SQL_DATABASE or PGUSER, PGPASSWORD, PGDATABASE environment variables.');
   }
   
-  // Prioritize DATABASE_URL if available (complete connection string)
+  // Prioritize Neon.tech connection for the database
+  const isNeonDb = dbHost?.includes('neon.tech');
+  
+  if (isNeonDb) {
+    // Use neondb_owner user for Neon.tech and the dedicated password
+    // This overrides any conflicting environment variables to ensure consistency
+    const neonUser = 'neondb_owner';
+    const neonDbPassword = process.env.NEON_DB_PASSWORD;
+    
+    console.log('CONFIGURATION: Using Neon PostgreSQL connection');
+    console.log('Database host:', dbHost);
+    console.log('Database user:', neonUser);
+    console.log('Database name:', dbName);
+    
+    console.log('Neon connection with explicit neondb_owner user and provided password');
+    // Force use of neondb_owner user for Neon regardless of environment variables
+    const connectionString = `postgresql://${neonUser}:${neonDbPassword}@${dbHost}:${dbPort}/${dbName}?sslmode=require`;
+    
+    return {
+      connectionString,
+      ssl: { rejectUnauthorized: true },
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 30000
+    };
+  }
+  
+  // Use DATABASE_URL if available (for non-Neon databases)
   if (process.env.DATABASE_URL) {
-    // Database URL could use environment variable expansion, make sure to handle this
+    // Database URL could use environment variable expansion
     const dbUrl = process.env.DATABASE_URL;
     console.log('CONFIGURATION: Using DATABASE_URL connection string');
     console.log('Database host:', dbHost);
