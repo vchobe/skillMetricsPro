@@ -228,30 +228,11 @@ export class PostgresStorage implements IStorage {
   sessionStore: Store;
 
   constructor() {
-    // Check if we should use the database or memory storage for sessions
-    if (process.env.USE_MEMORY_SESSION === 'true') {
-      console.log('Using memory session store');
-      this.sessionStore = new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
-      });
-    } else {
-      // Use the shared pool from db.ts with proper error handling
-      console.log('Using PostgreSQL session store with existing pool');
-      try {
-        this.sessionStore = new PostgresSessionStore({
-          pool: pool as any, // Type conversion needed due to differences between pg Pool and neon Pool
-          createTableIfMissing: true,
-          tableName: 'session', // Explicitly name the session table
-          errorLog: (error) => console.error('Session store error:', error)
-        });
-      } catch (error) {
-        console.error('Failed to create PostgreSQL session store:', error);
-        console.log('Falling back to memory session store');
-        this.sessionStore = new MemoryStore({
-          checkPeriod: 86400000 // prune expired entries every 24h
-        });
-      }
-    }
+    // Temporarily using memory store for all environments
+    console.log('Using memory session store (temporary fix)');
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
   }
 
   /**
