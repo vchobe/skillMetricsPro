@@ -23,7 +23,8 @@ IMAGE_NAME="gcr.io/${PROJECT_ID}/skillmetricspro6:latest"
 
 # Database configuration
 CLOUD_SQL_CONNECTION_NAME="imposing-elixir-440911-u9:us-central1:skillmetrics-db"
-CLOUD_SQL_DATABASE="neondb"
+DB_NAME="neondb"
+CLOUD_SQL_DATABASE="$DB_NAME"
 CLOUD_SQL_HOST="34.30.6.95"
 CLOUD_SQL_PORT="5432"
 
@@ -33,6 +34,7 @@ echo "Region: $REGION"
 echo "Image: $IMAGE_NAME"
 echo "Database Connection: $CLOUD_SQL_CONNECTION_NAME"
 echo "Database Host: $CLOUD_SQL_HOST"
+echo "Database Name: $DB_NAME"
 echo "==========================================="
 
 echo "1. Activating service account..."
@@ -85,6 +87,7 @@ if [ -n "$SERVICE_URL" ]; then
   echo "===== DEPLOYMENT COMPLETED ====="
   echo "Service URL: $SERVICE_URL"
   echo "Database user: $DB_USER"
+  echo "Database name: $DB_NAME"
   echo "Database connection: Direct IP to $CLOUD_SQL_HOST and socket connection to $CLOUD_SQL_CONNECTION_NAME"
 else
   echo "ERROR: Service URL not found. Deployment may have failed."
