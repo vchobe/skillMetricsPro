@@ -22,7 +22,7 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
       - '--set-env-vars'
-      - 'NODE_ENV=production,DATABASE_URL=${_DATABASE_URL}'
+      - '${_ENV_VARS}'
     
 # Substitution variables with default values
 substitutions:
@@ -30,7 +30,15 @@ substitutions:
   _DOCKERFILE: 'Dockerfile.cloud-run-fixed'
   _SERVICE_NAME: 'skillmetrics'
   _REGION: 'us-central1'
-  _DATABASE_URL: 'postgresql://neondb_owner:npg_6SNPYmkEt5pa@ep-flat-shape-a51t7ga4.us-east-2.aws.neon.tech/neondb?sslmode=require'
+  _ENV_VARS: >-
+    NODE_ENV=production,
+    CLOUD_SQL_CONNECTION_NAME=your-project:region:instance,
+    CLOUD_SQL_USER=db_user,
+    CLOUD_SQL_PASSWORD=db_password,
+    CLOUD_SQL_DATABASE=db_name,
+    PGUSER=db_user,
+    PGPASSWORD=db_password,
+    PGDATABASE=db_name
 
 # Store images in Google Container Registry
 images:
