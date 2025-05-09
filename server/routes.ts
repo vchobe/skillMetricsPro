@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { pool } from "./db";
+import { pool, testDatabaseConnection, isDatabaseConnected } from "./db";
 import * as schema from "@shared/schema";
 import { scheduleWeeklyReport, sendImmediateWeeklyReport } from "./email";
 import {
@@ -127,6 +127,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Database diagnostics endpoint (for troubleshooting db connectivity issues)
+  app.get("/api/diagnostics/database", async (req, res) => {
+    try {
+      const connectionTest = await testDatabaseConnection();
+      const connectionString = process.env.DATABASE_URL || '';
+      
+      // Mask sensitive parts of the connection string for security
+      const maskedConnectionString = connectionString
+        .replace(/\/\/([^:]+):([^@]+)@/, '//******:******@')
+        .replace(/password=([^&]+)/, 'password=******');
+      
+      // Get the database type (Neon, Cloud SQL, etc.)
+      const dbType = 
+        connectionString.includes('neon.tech') ? 'Neon' :
+        connectionString.includes('cloudsql') ? 'Cloud SQL' : 
+        'PostgreSQL';
+      
+      // Get the host from the connection string
+      const hostMatch = connectionString.match(/@([^:\/]+)/);
+      const host = hostMatch ? hostMatch[1] : 'unknown';
+      
+      res.json({
+        connectionSuccessful: connectionTest,
+        databaseAvailable: isDatabaseConnected(),
+        databaseType: dbType,
+        host: host,
+        connectionString: maskedConnectionString,
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        memoryMode: !connectionTest
+      });
+    } catch (error) {
+      console.error("Database diagnostics error:", error);
+      res.status(500).json({
+        connectionSuccessful: false,
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Root endpoint that will serve the frontend
   app.get("/", (req, res, next) => {
     // Let Vite handle serving the frontend
