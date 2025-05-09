@@ -371,17 +371,9 @@ class PostgresStorage implements IStorage {
 
 // Factory function to choose the right storage implementation
 function createStorage(): IStorage {
-  const useMemoryStore = process.env.USE_MEMORY_STORE === 'true';
-  const disableDbForDev = process.env.DISABLE_DB_FOR_DEV === 'true';
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  
-  if (isDevelopment && (useMemoryStore || disableDbForDev)) {
-    console.log('STORAGE: Using in-memory storage for development');
-    return new MemStorage();
-  } else {
-    console.log('STORAGE: Using PostgreSQL storage for production');
-    return new PostgresStorage();
-  }
+  // Force in-memory mode for Replit development
+  console.log('STORAGE: Using in-memory storage for Replit development');
+  return new MemStorage();
 }
 
 export const storage = createStorage();

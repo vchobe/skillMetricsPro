@@ -111,7 +111,19 @@ function getDatabaseConfig() {
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const disableDbForDev = process.env.DISABLE_DB_FOR_DEV === 'true';
 const useMemoryStore = process.env.USE_MEMORY_STORE === 'true';
-const skipDbConnection = isDevelopment && (disableDbForDev || useMemoryStore);
+
+// Log all environment variables for debugging
+console.log('=====================================================');
+console.log('ENV DEBUG: NODE_ENV =', process.env.NODE_ENV);
+console.log('ENV DEBUG: DISABLE_DB_FOR_DEV =', process.env.DISABLE_DB_FOR_DEV);
+console.log('ENV DEBUG: USE_MEMORY_STORE =', process.env.USE_MEMORY_STORE);
+console.log('ENV DEBUG: isDevelopment =', isDevelopment);
+console.log('ENV DEBUG: disableDbForDev =', disableDbForDev);
+console.log('ENV DEBUG: useMemoryStore =', useMemoryStore);
+console.log('=====================================================');
+
+// Force in-memory mode for Replit development
+const skipDbConnection = true; // Force in-memory mode
 
 // Create a mock Pool for memory-only mode, or real Pool for database mode
 export const pool = skipDbConnection 
