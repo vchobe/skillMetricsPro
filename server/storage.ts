@@ -28,9 +28,7 @@ import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db"; // Import the pool from db.ts
 
-// Use the createMemoryStore function to get a memory store constructor
 const MemoryStore = createMemoryStore(session);
-// Use connect-pg-simple for PostgreSQL session storage
 const PostgresSessionStore = connectPg(session);
 
 // Storage interface with all required CRUD operations
@@ -228,10 +226,11 @@ export class PostgresStorage implements IStorage {
   sessionStore: Store;
 
   constructor() {
-    // Temporarily using memory store for all environments
-    console.log('Using memory session store (temporary fix)');
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
+    // Use the shared pool from db.ts
+    this.sessionStore = new PostgresSessionStore({
+      pool: pool as any, // Type conversion needed due to differences between pg Pool and neon Pool
+      createTableIfMissing: true,
+      tableName: 'session' // Explicitly name the session table
     });
   }
 
