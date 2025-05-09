@@ -6,6 +6,20 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { log } from "./utils";
 
+// Enable in-memory mode for development if needed
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const disableDbForDev = process.env.DISABLE_DB_FOR_DEV === 'true';
+const useMemoryStore = process.env.USE_MEMORY_STORE === 'true';
+const isMemoryMode = isDevelopment && (disableDbForDev || useMemoryStore);
+
+if (isMemoryMode) {
+  console.log('===================================================');
+  console.log('DEVELOPMENT MODE: Database access disabled');
+  console.log('Using in-memory storage for basic functionality');
+  console.log('Limited functionality available (login with admin/password)');
+  console.log('===================================================');
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

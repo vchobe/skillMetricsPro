@@ -1,5 +1,6 @@
 import pkg from 'pg';
 const { Pool } = pkg;
+type PoolType = typeof Pool;
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
@@ -7,11 +8,33 @@ import * as schema from "@shared/schema";
  * Database Configuration
  * 
  * This module handles connecting to the database for the application.
- * Supports both Cloud SQL and standard PostgreSQL connections
+ * Supports both Cloud SQL and standard PostgreSQL connections.
+ * 
+ * In development mode, can be configured to use in-memory storage instead
+ * by setting DISABLE_DB_FOR_DEV=true in .env
  */
 function getDatabaseConfig() {
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const disableDbForDev = process.env.DISABLE_DB_FOR_DEV === 'true';
+  
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('Is Cloud Run:', process.env.K_SERVICE ? 'Yes' : 'No');
+  console.log('Database disabled for dev:', disableDbForDev ? 'Yes' : 'No');
+  
+  // If we're in development mode and database is disabled, use a mock connection
+  if (isDevelopment && disableDbForDev) {
+    console.log('CONFIGURATION: Using mock database connection for development');
+    // Return a minimal config that won't try to connect
+    return {
+      host: 'localhost',
+      port: 5432,
+      user: 'mock_user',
+      password: 'mock_password',
+      database: 'mock_db',
+      // Set a very short timeout for quick failure
+      connectionTimeoutMillis: 1
+    };
+  }
   
   // Check for both Cloud SQL and standard PG environment variables
   // Handle various environment variable formats with fallbacks
@@ -84,15 +107,40 @@ function getDatabaseConfig() {
 }
 
 // Configure pool with our database config
-export const pool = new Pool(getDatabaseConfig());
+// Check if we're using in-memory mode
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const disableDbForDev = process.env.DISABLE_DB_FOR_DEV === 'true';
+const useMemoryStore = process.env.USE_MEMORY_STORE === 'true';
+const skipDbConnection = isDevelopment && (disableDbForDev || useMemoryStore);
 
-// Setup event handlers for connection issues
-pool.on('error', (err) => {
-  console.error('Unexpected database error:', err);
-});
+// Create a mock Pool for memory-only mode, or real Pool for database mode
+export const pool = skipDbConnection 
+  ? {
+      query: async () => ({ rows: [], rowCount: 0 }),
+      connect: async () => ({ 
+        query: async () => ({ rows: [], rowCount: 0 }),
+        release: () => {} 
+      }),
+      on: () => {},
+      end: async () => {}
+    } as any
+  : new Pool(getDatabaseConfig());
+
+// Setup event handlers for connection issues (if using real pool)
+if (!skipDbConnection) {
+  pool.on('error', (err) => {
+    console.error('Unexpected database error:', err);
+  });
+}
 
 // Test connection function for health checks
 export async function testDatabaseConnection() {
+  // Skip test in memory-only mode
+  if (skipDbConnection) {
+    console.log('Database connection test skipped (using in-memory mode)');
+    return true;
+  }
+
   let client;
   try {
     client = await pool.connect();
@@ -101,16 +149,24 @@ export async function testDatabaseConnection() {
     return true;
   } catch (err) {
     console.error('Database connection failed:', err);
+    if (isDevelopment) {
+      console.log('In development environment - consider enabling in-memory mode:');
+      console.log('Set DISABLE_DB_FOR_DEV=true in .env to use in-memory storage');
+    }
     return false;
   } finally {
     if (client) client.release();
   }
 }
 
-// Ensure the connection is valid at startup
+// Ensure the connection is valid at startup (but don't crash if it fails)
 testDatabaseConnection().catch(err => {
   console.error('Initial database connection test failed:', err);
   console.error('Please check your database connection configuration.');
+  if (isDevelopment) {
+    console.log('Running in development mode - continuing anyway');
+  }
 });
 
+// Create Drizzle ORM instance
 export const db = drizzle(pool, { schema });
