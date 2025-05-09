@@ -3,18 +3,16 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from 'ws';
 import * as schema from '@shared/schema';
 
+// Configure websocket for Neon
 neonConfig.webSocketConstructor = ws;
 
-// Use a connectionString format
-const connectionString = 'postgresql://app_user:EjsUgkhcd@34.30.6.95:5432/neondb';
-console.log(`Connecting to database with connection string to host 34.30.6.95`);
+// Create the DATABASE_URL with the provided PostgreSQL credentials
+const DATABASE_URL = 'postgresql://app_user:EjsUgkhcd@34.30.6.95:5432/neondb';
+console.log('Connecting to database with connection string');
 
 // Create the database connection pool
-export const pool = new Pool({ 
-  connectionString,
-  max: 20, 
-  idleTimeoutMillis: 30000, 
-  connectionTimeoutMillis: 10000 
+export const pool = new Pool({
+  connectionString: DATABASE_URL,
 });
 
 // Setup event handlers for connection issues
