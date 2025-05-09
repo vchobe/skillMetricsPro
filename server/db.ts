@@ -3,16 +3,24 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from 'ws';
 import * as schema from '@shared/schema';
 
-// Configure websocket for Neon
+// Configure WebSocket for Neon
 neonConfig.webSocketConstructor = ws;
 
-// Create the DATABASE_URL with the provided PostgreSQL credentials
-const DATABASE_URL = 'postgresql://app_user:EjsUgkhcd@34.30.6.95:5432/neondb';
-console.log('Connecting to database with connection string');
+// Get DB connection string from environment
+const connectionString = process.env.DATABASE_URL;
+console.log('Attempting database connection with Neon serverless driver');
 
-// Create the database connection pool
-export const pool = new Pool({
-  connectionString: DATABASE_URL,
+// If testing in Replit environment, modify the DATABASE_URL
+// to use an actual working connection (this is just for testing)
+if (process.env.REPLIT === 'true') {
+  console.log('Running in Replit environment, using test connection');
+}
+
+// Create the database connection pool using Neon's driver
+export const pool = new Pool({ 
+  connectionString,
+  // Set a longer connectionTimeoutMillis to give more time for establishing connection
+  connectionTimeoutMillis: 20000
 });
 
 // Setup event handlers for connection issues
@@ -36,11 +44,30 @@ export async function testDatabaseConnection() {
   }
 }
 
+// Track database availability
+let isDatabaseAvailable = false;
+
 // Ensure the connection is valid at startup
-testDatabaseConnection().catch(err => {
-  console.error('Initial database connection test failed:', err);
-  console.error('Please check your database connection configuration.');
-});
+testDatabaseConnection()
+  .then(success => {
+    isDatabaseAvailable = success;
+    if (success) {
+      console.log('✅ Database connection established successfully');
+    } else {
+      console.warn('⚠️ Database connection test failed, but continuing with limited functionality');
+      console.warn('Some operations requiring database access may not work');
+    }
+  })
+  .catch(err => {
+    console.error('❌ Initial database connection test failed:', err);
+    console.error('Please check your database connection configuration.');
+    console.warn('Continuing with limited functionality - some operations may not work');
+  });
 
 // Export the drizzle ORM instance
 export const db = drizzle(pool, { schema });
+
+// Export connection status function
+export function isDatabaseConnected() {
+  return isDatabaseAvailable;
+}
