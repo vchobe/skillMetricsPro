@@ -298,16 +298,17 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
     // For Cloud Run, always use port 8080 regardless of PORT env value
     // For development or other environments, use PORT env or default to 5010
     const isCloudRun = process.env.K_SERVICE !== undefined;
-    const port = isCloudRun ? 8080 : (process.env.PORT ? parseInt(process.env.PORT, 10) : 5010);
+    // Use port 5000 to match Replit workflow configuration
+    const port = isCloudRun ? 8080 : 5000;
     const host = process.env.HOST || "0.0.0.0";
     
     console.log(`No Java backend detected`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Cloud Run: ${isCloudRun ? 'Yes' : 'No'}`);
     if (isCloudRun) {
-      console.log(`Using Cloud Run standard port 8080 (ignoring PORT=${process.env.PORT})`);
+      console.log(`Using Cloud Run standard port 8080`);
     } else {
-      console.log(`Using port ${port} (from env: ${process.env.PORT || 'not set, using default 5010'})`);
+      console.log(`Using port 5000 to match Replit workflow configuration`);
     }
     console.log(`Starting server on host ${host} and port ${port}`);
     
