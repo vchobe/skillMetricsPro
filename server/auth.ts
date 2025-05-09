@@ -34,16 +34,16 @@ export function setupAuth(app: Express) {
   const sessionSecret = process.env.SESSION_SECRET || "employee-skill-metrics-secret";
   
   // Configure session store based on environment
-  // For local development or when specified, use memory session store to avoid DB connection issues
-  const useMemorySession = process.env.USE_MEMORY_SESSION === 'true' || process.env.NODE_ENV === 'development';
+  // Force memory store for testing in this environment to avoid DB connection issues
+  const useMemorySession = true; // Always use memory store for testing
   
-  console.log(`Using ${useMemorySession ? 'memory' : 'PostgreSQL'} session store`);
+  console.log(`Using memory session store for testing`);
   
   const sessionSettings: session.SessionOptions = {
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
-    store: useMemorySession ? undefined : storage.sessionStore, // undefined defaults to MemoryStore
+    store: undefined, // undefined defaults to MemoryStore
     cookie: { 
       secure: process.env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 24, // 1 day
