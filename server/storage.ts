@@ -28,7 +28,9 @@ import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db"; // Import the pool from db.ts
 
+// Use the createMemoryStore function to get a memory store constructor
 const MemoryStore = createMemoryStore(session);
+// Use connect-pg-simple for PostgreSQL session storage
 const PostgresSessionStore = connectPg(session);
 
 // Storage interface with all required CRUD operations
