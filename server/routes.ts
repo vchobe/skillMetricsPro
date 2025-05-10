@@ -3339,13 +3339,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const skills = await storage.getProjectSkillsV2(projectId);
       console.log(`Retrieved ${skills.length} project skills for project ${projectId}`);
       
+      if (skills.length > 0) {
+        // Examine the first skill to see if it has the expected properties
+        const firstSkill = skills[0];
+        console.log('Example skill structure:', JSON.stringify(firstSkill));
+      }
+      
       // Add diagnostic information to help debug any missing values
       const skillsWithDebug = skills.map(skill => ({
         ...skill,
         _debug: {
-          hasName: !!skill.skillName,
-          hasCategory: !!skill.skillCategory,
-          originalTemplateId: skill.skillTemplateId,
+          hasName: !!skill.name,
+          hasCategory: !!skill.category,
+          hasSkillName: !!skill.skillName,
+          hasSkillCategory: !!skill.skillCategory,
+          properties: Object.keys(skill),
+          skillTemplateId: skill.skillTemplateId,
           requiredLevel: skill.requiredLevel
         }
       }));

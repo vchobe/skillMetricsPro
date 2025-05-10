@@ -4592,10 +4592,9 @@ export class PostgresStorage implements IStorage {
             ps.skill_template_id, 
             ps.required_level,
             ps.created_at,
-            st.name as skill_name, 
-            st.category as skill_category, 
-            st.description,
-            ps.required_level as skill_level
+            st.name, 
+            st.category, 
+            st.description
           FROM project_skills_v2 ps
           JOIN skill_templates st ON ps.skill_template_id = st.id
           WHERE ps.project_id = $1
@@ -4618,10 +4617,9 @@ export class PostgresStorage implements IStorage {
             ps.skill_id as skill_template_id, 
             ps.required_level,
             ps.created_at,
-            st.name as skill_name, 
-            st.category as skill_category, 
-            st.description,
-            ps.required_level as skill_level
+            st.name, 
+            st.category, 
+            st.description
           FROM project_skills ps
           JOIN skill_templates st ON ps.skill_id = st.id
           WHERE ps.project_id = $1
@@ -4648,10 +4646,9 @@ export class PostgresStorage implements IStorage {
               $1 as project_id,
               'beginner' as required_level,
               NOW() as created_at,
-              st.name as skill_name,
-              st.category as skill_category,
-              st.description,
-              'beginner' as skill_level
+              st.name,
+              st.category,
+              st.description
             FROM skill_templates st
             WHERE st.id IN (
               SELECT skill_id FROM project_skills WHERE project_id = $1
@@ -4662,13 +4659,55 @@ export class PostgresStorage implements IStorage {
           `, [projectId]);
           
           console.log(`Found ${directTemplateResult.rows.length} skills via direct template query for project ${projectId}`);
-          return directTemplateResult.rows.map(row => this.snakeToCamel(row)) as ProjectSkillV2[];
+          
+          // Apply the same property mapping to direct template queries
+          return directTemplateResult.rows.map(row => {
+            const camelCaseRow = this.snakeToCamel(row);
+            return {
+              ...camelCaseRow,
+              // Map from standard names to what frontend might expect
+              skillName: camelCaseRow.name,
+              skillCategory: camelCaseRow.category,
+              // Ensure required fields are present
+              id: camelCaseRow.id || camelCaseRow.skillTemplateId, // Use template ID as fallback
+              projectId: camelCaseRow.projectId,
+              skillTemplateId: camelCaseRow.skillTemplateId,
+              requiredLevel: camelCaseRow.requiredLevel,
+              createdAt: camelCaseRow.createdAt
+            };
+          }) as ProjectSkillV2[];
         } catch (e) {
           console.log(`Error in fallback query: ${e.message}`);
         }
       }
       
-      return combinedRows.map(row => this.snakeToCamel(row)) as ProjectSkillV2[];
+      // Process the rows to ensure they match the expected structure
+      const processedRows = combinedRows.map(row => {
+        // The snakeToCamel function will convert snake_case to camelCase
+        // But we need to make sure the property names match what the frontend expects
+        const camelCaseRow = this.snakeToCamel(row);
+        
+        // Log the row to see what properties are available
+        console.log(`Processing project skill row:`, JSON.stringify(camelCaseRow));
+        
+        // Add common property names that the frontend might expect
+        // This ensures we have both the direct property names and any 
+        // aliased property names the frontend might be looking for
+        return {
+          ...camelCaseRow,
+          // Map from standard names to what frontend might expect
+          skillName: camelCaseRow.name,
+          skillCategory: camelCaseRow.category,
+          // Ensure required fields are present
+          id: camelCaseRow.id,
+          projectId: camelCaseRow.projectId,
+          skillTemplateId: camelCaseRow.skillTemplateId,
+          requiredLevel: camelCaseRow.requiredLevel,
+          createdAt: camelCaseRow.createdAt
+        };
+      });
+      
+      return processedRows as ProjectSkillV2[];
     } catch (error) {
       console.error(`Error retrieving skills V2 for project ${projectId}:`, error);
       throw error;
