@@ -4580,25 +4580,95 @@ export class PostgresStorage implements IStorage {
   // V2 implementation adapted to use the existing project_skills table
   async getProjectSkillsV2(projectId: number): Promise<ProjectSkillV2[]> {
     try {
-      const result = await pool.query(`
-        SELECT 
-          ps.id, 
-          ps.project_id, 
-          ps.skill_id as skill_template_id, 
-          ps.required_level,
-          ps.created_at,
-          st.name as skill_name, 
-          st.category as skill_category, 
-          st.description,
-          ps.required_level as skill_level
-        FROM project_skills ps
-        JOIN skill_templates st ON ps.skill_id = st.id
-        WHERE ps.project_id = $1
-        ORDER BY st.category, st.name
-      `, [projectId]);
+      let v2Results = [];
+      let legacyResults = [];
       
-      console.log(`Found ${result.rows.length} project skills V2 for project ${projectId}`);
-      return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkillV2[];
+      try {
+        // First, try to get skills from the project_skills_v2 table if it exists
+        const v2Result = await pool.query(`
+          SELECT 
+            ps.id, 
+            ps.project_id, 
+            ps.skill_template_id, 
+            ps.required_level,
+            ps.created_at,
+            st.name as skill_name, 
+            st.category as skill_category, 
+            st.description,
+            ps.required_level as skill_level
+          FROM project_skills_v2 ps
+          JOIN skill_templates st ON ps.skill_template_id = st.id
+          WHERE ps.project_id = $1
+          ORDER BY st.category, st.name
+        `, [projectId]);
+        
+        v2Results = v2Result.rows;
+        console.log(`Found ${v2Result.rows.length} skills in V2 table for project ${projectId}`);
+      } catch (e) {
+        // Table might not exist, that's okay
+        console.log(`project_skills_v2 table may not exist yet: ${e.message}`);
+      }
+      
+      try {
+        // Also get skills from the legacy project_skills table
+        const legacyResult = await pool.query(`
+          SELECT 
+            ps.id, 
+            ps.project_id, 
+            ps.skill_id as skill_template_id, 
+            ps.required_level,
+            ps.created_at,
+            st.name as skill_name, 
+            st.category as skill_category, 
+            st.description,
+            ps.required_level as skill_level
+          FROM project_skills ps
+          JOIN skill_templates st ON ps.skill_id = st.id
+          WHERE ps.project_id = $1
+          ORDER BY st.category, st.name
+        `, [projectId]);
+        
+        legacyResults = legacyResult.rows;
+        console.log(`Found ${legacyResult.rows.length} skills in legacy table for project ${projectId}`);
+      } catch (e) {
+        console.log(`Error querying legacy project_skills: ${e.message}`);
+      }
+      
+      // Combine both results
+      const combinedRows = [...v2Results, ...legacyResults];
+      
+      // If we still don't have any results, try a different approach
+      if (combinedRows.length === 0) {
+        console.log("No project skills found. Using direct query to skill_templates as fallback.");
+        try {
+          // Get any skill templates associated with this project directly
+          const directTemplateResult = await pool.query(`
+            SELECT 
+              st.id as skill_template_id,
+              $1 as project_id,
+              'beginner' as required_level,
+              NOW() as created_at,
+              st.name as skill_name,
+              st.category as skill_category,
+              st.description,
+              'beginner' as skill_level
+            FROM skill_templates st
+            WHERE st.id IN (
+              SELECT skill_id FROM project_skills WHERE project_id = $1
+              UNION
+              SELECT skill_template_id FROM project_skills_v2 WHERE project_id = $1
+            )
+            ORDER BY st.category, st.name
+          `, [projectId]);
+          
+          console.log(`Found ${directTemplateResult.rows.length} skills via direct template query for project ${projectId}`);
+          return directTemplateResult.rows.map(row => this.snakeToCamel(row)) as ProjectSkillV2[];
+        } catch (e) {
+          console.log(`Error in fallback query: ${e.message}`);
+        }
+      }
+      
+      return combinedRows.map(row => this.snakeToCamel(row)) as ProjectSkillV2[];
     } catch (error) {
       console.error(`Error retrieving skills V2 for project ${projectId}:`, error);
       throw error;
