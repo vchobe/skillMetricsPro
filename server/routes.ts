@@ -3327,17 +3327,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/:id/skills", ensureAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
+      console.log(`API request for project skills for project ID: ${projectId}`);
+      
       const project = await storage.getProject(projectId);
       
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      // Use the V2 function to get project skills from the V2 table
+      // Use the V2 function to get project skills from the V2 table with improved error handling
       const skills = await storage.getProjectSkillsV2(projectId);
-      res.json(skills);
+      console.log(`Retrieved ${skills.length} project skills for project ${projectId}`);
+      
+      // Add diagnostic information to help debug any missing values
+      const skillsWithDebug = skills.map(skill => ({
+        ...skill,
+        _debug: {
+          hasName: !!skill.skillName,
+          hasCategory: !!skill.skillCategory,
+          originalTemplateId: skill.skillTemplateId,
+          requiredLevel: skill.requiredLevel
+        }
+      }));
+      
+      console.log(`Returning ${skillsWithDebug.length} project skills with debug info`);
+      res.json(skillsWithDebug);
     } catch (error) {
-      res.status(500).json({ message: "Error fetching project skills", error });
+      console.error(`Error fetching project skills for project ${req.params.id}:`, error);
+      res.status(500).json({ 
+        message: "Error fetching project skills", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
