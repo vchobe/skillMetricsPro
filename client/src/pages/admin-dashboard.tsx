@@ -4045,6 +4045,11 @@ export default function AdminDashboard() {
                     </div>
                     <Button 
                       onClick={() => {
+                        setEditingTemplate({ 
+                          name: '',
+                          description: '',
+                          isRecommended: false,
+                        }); // Initialize with default values
                         setShowTemplateDialog(true);
                         fetchCategories();
                       }}
@@ -4299,12 +4304,12 @@ export default function AdminDashboard() {
                             // Check if editing existing skill or creating new
                             if (editingTemplate?.id) {
                               // Call mutation to update
-                              console.log("Submitting update for template:", templateData);
-                              updateTemplateMutation.mutate({...templateData, id: editingTemplate.id});
+                              console.log("Submitting update for template:", skillData);
+                              updateTemplateMutation.mutate({...skillData, id: editingTemplate.id});
                             } else {
                               // Call mutation to create
-                              console.log("Submitting new template:", templateData);
-                              createTemplateMutation.mutate(templateData);
+                              console.log("Submitting new template:", skillData);
+                              createTemplateMutation.mutate(skillData);
                             }
                             
                             // Dialog will be closed in the mutation's onSuccess
