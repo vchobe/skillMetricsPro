@@ -744,15 +744,8 @@ export const projectSkills = pgTable("project_skills", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
-// Project Skills V2 (using skill_templates directly)
-export const projectSkillsV2 = pgTable("project_skills_v2", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id),
-  skillTemplateId: integer("skill_template_id").notNull().references(() => skillTemplates.id),
-  userSkillId: integer("user_skill_id"), // Legacy reference - maintained for backwards compatibility
-  requiredLevel: skillLevelEnum("required_level").default("beginner"), // beginner, intermediate, expert
-  createdAt: timestamp("created_at").defaultNow()
-});
+// Note: We're no longer using project_skills_v2 table.
+// The project_skills table has been enhanced with skill_template_id column instead.
 
 export const insertProjectSkillSchema = createInsertSchema(projectSkills).pick({
   projectId: true,
@@ -769,18 +762,25 @@ export const insertProjectSkillSchema = createInsertSchema(projectSkills).pick({
   { message: "Either skillId or skillTemplateId must be provided" }
 );
 
-export const insertProjectSkillV2Schema = createInsertSchema(projectSkillsV2).pick({
+// Define ProjectSkillV2 schema using the enhanced projectSkills table with skill_template_id
+export const insertProjectSkillV2Schema = createInsertSchema(projectSkills).pick({
   projectId: true,
   skillTemplateId: true,
-  requiredLevel: true
+  requiredLevel: true,
+  importance: true
 }).extend({
-  userSkillId: z.number().optional()
+  // Only skill_template_id is required for V2 operations
+  skillTemplateId: z.number()
 });
 
 export type ProjectSkill = typeof projectSkills.$inferSelect;
 export type InsertProjectSkill = z.infer<typeof insertProjectSkillSchema>;
 
-export type ProjectSkillV2 = typeof projectSkillsV2.$inferSelect;
+// ProjectSkillV2 type now uses the enhanced projectSkills table
+export type ProjectSkillV2 = typeof projectSkills.$inferSelect & {
+  skillName?: string;
+  skillCategory?: string;
+};
 export type InsertProjectSkillV2 = z.infer<typeof insertProjectSkillV2Schema>;
 
 // Project Resource History (tracking changes in project assignments)
