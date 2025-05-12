@@ -364,7 +364,11 @@ export default function SkillManagementPage() {
       return responseData;
     },
     onSuccess: (data) => {
-      console.log("✅ UI TRACE: Template creation successful, invalidating queries");
+      console.log("%c✅ SUCCESS: Template creation successful", "background: #27ae60; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;");
+      console.log("%c📋 CREATED TEMPLATE:", "background: #8e44ad; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", JSON.stringify(data, null, 2));
+      
+      // Invalidate queries to refresh data
+      console.log("%c🔄 Invalidating template cache", "background: #3498db; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
       // Also invalidate the admin skills query to refresh the skills section
       queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
@@ -588,12 +592,25 @@ export default function SkillManagementPage() {
   
   // Handle template form submission
   const onTemplateSubmit = (data: SkillTemplateValues) => {
-    console.log("🔍 TRACE: Template form submitted with data:", JSON.stringify(data, null, 2));
+    console.log("%c🔍 UI SUBMIT: Template form submitted", "background: #2ecc71; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;");
+    console.log("%c📋 Form Data:", "background: #f39c12; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", JSON.stringify(data, null, 2));
     
     // Ensure categoryId is properly set
     if (!data.categoryId && selectedTemplateCategoryId) {
       data.categoryId = selectedTemplateCategoryId;
-      console.log("🔍 TRACE: Using selectedTemplateCategoryId for categoryId:", selectedTemplateCategoryId);
+      console.log("%c✅ Setting categoryId from selectedTemplateCategoryId:", "background: #27ae60; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", selectedTemplateCategoryId);
+    }
+    
+    // Double-check if categoryId is set - it's required
+    if (!data.categoryId) {
+      const errorMsg = "CategoryId is missing! Required for skill template creation.";
+      console.log("%c❌ ERROR:", "background: #e74c3c; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", errorMsg);
+      toast({
+        title: "Form Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
+      return; // Prevent submission
     }
     
     // Set the category name from the categoryId if it's not already set
@@ -601,18 +618,18 @@ export default function SkillManagementPage() {
       const categoryMatch = dbCategories.find((cat: any) => cat.id === data.categoryId);
       if (categoryMatch) {
         data.category = categoryMatch.name;
-        console.log("🔍 TRACE: Set category name from categoryId:", data.category);
+        console.log("%c✅ Set category name from categoryId:", "background: #27ae60; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", data.category);
       }
     }
     
     // Log final form data after any adjustments
-    console.log("🔍 TRACE: Final template form data:", JSON.stringify(data, null, 2));
+    console.log("%c📋 FINAL FORM DATA:", "background: #8e44ad; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", JSON.stringify(data, null, 2));
     
     if (editingTemplate) {
-      console.log("🔍 TRACE: Updating template:", editingTemplate.id);
+      console.log("%c🔄 Updating template:", "background: #3498db; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", editingTemplate.id);
       updateTemplateMutation.mutate({ ...data, id: editingTemplate.id });
     } else {
-      console.log("🔍 TRACE: Creating new template");
+      console.log("%c➕ Creating new template", "background: #3498db; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;");
       createTemplateMutation.mutate(data);
     }
   };
