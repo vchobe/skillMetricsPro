@@ -9,6 +9,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig({
+  optimizeDeps: {
+    exclude: ['drizzle-zod'] // Exclude the problematic package
+  },
   plugins: [
     react(),
     runtimeErrorOverlay(),
