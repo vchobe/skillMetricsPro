@@ -259,9 +259,18 @@ export default function SkillManagementPage() {
   // Create skill template mutation
   const createTemplateMutation = useMutation({
     mutationFn: async (data: SkillTemplateValues) => {
-      const res = await apiRequest("POST", "/api/admin/skill-templates", data);
+      console.log("Creating template with data:", data);
+      const res = await apiRequest("POST", "/api/admin/skill-templates", {
+        ...data,
+        categoryId: categories.find(c => c.name === data.category)?.id,
+        subcategoryId: subcategories.find(s => s.name === data.subcategory)?.id
+      });
       if (!res.ok) {
         const error = await res.json();
+        console.error("Error creating template:", error);
+        throw new Error(error.message || "Failed to create template");
+      }
+      return res.json();
         throw new Error(error.message || "Failed to create skill");
       }
       return await res.json();
