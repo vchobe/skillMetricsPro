@@ -257,9 +257,10 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/auth", (req, res, next) => {
+  // Create a handler function for both endpoints
+  const handleLogin = (req: Request, res: Response, next: Function) => {
     try {
-      console.log("POST /api/auth - Body:", req.body);
+      console.log("POST /api/login - Body:", req.body);
       
       // Check if email exists in the request body
       if (!req.body.email) {
@@ -273,11 +274,11 @@ export function setupAuth(app: Express) {
       });
       
       if (!parsedData.success) {
-        console.log("POST /api/auth - Validation failed:", parsedData.error.format());
+        console.log("POST /api/login - Validation failed:", parsedData.error.format());
         return res.status(400).json({ message: "Invalid login data", errors: parsedData.error.format() });
       }
 
-      console.log("POST /api/auth - Validation succeeded. Parsed data:", parsedData.data);
+      console.log("POST /api/login - Validation succeeded. Parsed data:", parsedData.data);
       
       passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
         console.log("POST /api/auth - Passport auth result:", { err, user: user ? user.email : null, info });
@@ -299,10 +300,14 @@ export function setupAuth(app: Express) {
         });
       })(req, res, next);
     } catch (error) {
-      console.log("POST /api/auth - Exception:", error);
+      console.log("POST /api/login - Exception:", error);
       next(error);
     }
-  });
+  };
+  
+  // Register both /api/auth and /api/login endpoints to handle authentication
+  app.post("/api/auth", handleLogin);
+  app.post("/api/login", handleLogin);
 
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
