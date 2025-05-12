@@ -738,6 +738,7 @@ export const projectSkills = pgTable("project_skills", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   skillId: integer("skill_id").notNull(), // References user_skills.id
+  skillTemplateId: integer("skill_template_id"), // Added for new structure - allows direct reference to templates
   requiredLevel: skillLevelEnum("required_level").default("beginner"), // beginner, intermediate, expert
   importance: varchar("importance", { length: 10 }).default("medium"), // low, medium, high
   createdAt: timestamp("created_at").defaultNow()
@@ -756,9 +757,17 @@ export const projectSkillsV2 = pgTable("project_skills_v2", {
 export const insertProjectSkillSchema = createInsertSchema(projectSkills).pick({
   projectId: true,
   skillId: true,
+  skillTemplateId: true, // Added for direct template reference
   requiredLevel: true,
   importance: true
-});
+}).extend({
+  // Allow either skillId or skillTemplateId to be specified
+  skillId: z.number().optional(),
+  skillTemplateId: z.number().optional()
+}).refine(
+  data => data.skillId !== undefined || data.skillTemplateId !== undefined,
+  { message: "Either skillId or skillTemplateId must be provided" }
+);
 
 export const insertProjectSkillV2Schema = createInsertSchema(projectSkillsV2).pick({
   projectId: true,
