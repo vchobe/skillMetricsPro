@@ -3296,10 +3296,11 @@ export class PostgresStorage implements IStorage {
         // 1. Metadata (preferred)
         // 2. Notes in a specific format
         // 3. Default values
-        const category = metaData.category || (pendingUpdate.notes && pendingUpdate.notes.includes('Category:') ? 
+        const category = (pendingUpdate.notes && pendingUpdate.notes.includes('Category:') ? 
           pendingUpdate.notes.split('Category:')[1].split('\n')[0].trim() : 'Other');
         
-        const subcategory = metaData.subcategory || (pendingUpdate.notes && pendingUpdate.notes.includes('Subcategory:') ? 
+        // Extract subcategory name from notes if present, for finding subcategory ID
+        const subcategoryName = (pendingUpdate.notes && pendingUpdate.notes.includes('Subcategory:') ? 
           pendingUpdate.notes.split('Subcategory:')[1].split('\n')[0].trim() : null);
         
         // Get or create the category ID
@@ -3328,20 +3329,20 @@ export class PostgresStorage implements IStorage {
         
         // Get or create the subcategory ID
         let subcategoryId: number | null = null;
-        if (subcategory && categoryId) {
+        if (subcategoryName && categoryId) {
           const subcategoryResult = await pool.query(
             'SELECT id FROM skill_subcategories WHERE name = $1 AND category_id = $2',
-            [subcategory, categoryId]
+            [subcategoryName, categoryId]
           );
           
           if (subcategoryResult.rows.length > 0) {
             subcategoryId = subcategoryResult.rows[0].id;
-          } else if (subcategory) {
+          } else if (subcategoryName) {
             // Create a new subcategory if it doesn't exist
-            console.log(`Creating new skill subcategory: ${subcategory} under category ${category} (${categoryId})`);
+            console.log(`Creating new skill subcategory: ${subcategoryName} under category ${category} (${categoryId})`);
             const newSubcategoryResult = await pool.query(
               'INSERT INTO skill_subcategories (name, description, category_id, color, icon) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-              [subcategory, `Custom subcategory for ${subcategory}`, categoryId, '#4B5563', 'square'] // Default color and icon
+              [subcategoryName, `Custom subcategory for ${subcategoryName}`, categoryId, '#4B5563', 'square'] // Default color and icon
             );
             
             if (newSubcategoryResult.rows.length > 0) {
@@ -3351,7 +3352,7 @@ export class PostgresStorage implements IStorage {
         }
         
         // Create a new skill template
-        console.log(`Creating new skill template for ${skillName} in category ${category} (${categoryId}) and subcategory ${subcategory || 'None'} (${subcategoryId})`);
+        console.log(`Creating new skill template for ${skillName} in category ${category} (${categoryId}) and subcategory ${subcategoryName || 'None'} (${subcategoryId})`);
         const templateResult = await pool.query(`
           INSERT INTO skill_templates (
             name, 
