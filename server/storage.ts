@@ -724,6 +724,41 @@ export class PostgresStorage implements IStorage {
   
   async createUserSkill(userSkill: InsertUserSkill): Promise<UserSkill> {
     try {
+      let skillTemplateId = userSkill.skillTemplateId;
+      
+      // If we have a named skill but no template ID, check if it's a custom skill that needs a template
+      if (!skillTemplateId && userSkill.name && userSkill.category) {
+        console.log(`Checking for existing template for custom skill: ${userSkill.name} (${userSkill.category})`);
+        
+        // Try to find an existing template with this name/category
+        const templateResult = await pool.query(
+          'SELECT id FROM skill_templates WHERE name = $1 AND category = $2',
+          [userSkill.name, userSkill.category]
+        );
+        
+        if (templateResult.rows.length > 0) {
+          // Use existing template
+          skillTemplateId = templateResult.rows[0].id;
+          console.log(`Found existing template ID ${skillTemplateId} for ${userSkill.name}`);
+        } else {
+          // Create a new template for this category
+          console.log(`Creating new skill template for ${userSkill.name} in category ${userSkill.category}`);
+          const newTemplateResult = await pool.query(
+            `INSERT INTO skill_templates (name, category) 
+             VALUES ($1, $2) 
+             RETURNING id`,
+            [userSkill.name, userSkill.category]
+          );
+          
+          skillTemplateId = newTemplateResult.rows[0].id;
+          console.log(`Created new template with ID ${skillTemplateId}`);
+        }
+      }
+      
+      if (!skillTemplateId) {
+        throw new Error('A skill template ID is required to create a user skill');
+      }
+      
       const result = await pool.query(
         `INSERT INTO user_skills (
           user_id, skill_template_id, level, 
@@ -733,7 +768,7 @@ export class PostgresStorage implements IStorage {
          RETURNING *`,
         [
           userSkill.userId, 
-          userSkill.skillTemplateId,
+          skillTemplateId,
           userSkill.level, 
           userSkill.certification || '', 
           userSkill.credlyLink || '',
