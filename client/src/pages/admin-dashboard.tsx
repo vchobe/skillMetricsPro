@@ -4074,15 +4074,15 @@ export default function AdminDashboard() {
                     ) : skillTemplates.length === 0 ? (
                       <div className="text-center py-10">
                         <Database className="h-10 w-10 mx-auto text-gray-400" />
-                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No skills</h3>
-                        <p className="mt-1 text-sm text-gray-500">Get started by creating a new skill.</p>
+                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No skill templates</h3>
+                        <p className="mt-1 text-sm text-gray-500">Get started by creating a new skill template.</p>
                         <div className="mt-6">
                           <Button onClick={() => {
                             setShowTemplateDialog(true);
                             fetchCategories();
                           }}>
                             <Plus className="h-4 w-4 mr-2" />
-                            New Skill
+                            New Template
                           </Button>
                         </div>
                       </div>
@@ -4179,11 +4179,11 @@ export default function AdminDashboard() {
                 <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
                   <DialogContent className="sm:max-w-[575px] scrollable-dialog">
                     <DialogHeader>
-                      <DialogTitle>{editingTemplate ? "Edit Skill" : "Create Skill"}</DialogTitle>
+                      <DialogTitle>{editingTemplate ? "Edit Skill Template" : "Create Skill Template"}</DialogTitle>
                       <DialogDescription>
                         {editingTemplate 
-                          ? "Edit the details for this skill." 
-                          : "Add a new skill that can be used by employees."}
+                          ? "Edit the details for this skill template." 
+                          : "Add a new skill template that can be used by employees."}
                       </DialogDescription>
                     </DialogHeader>
                     
@@ -4315,7 +4315,7 @@ export default function AdminDashboard() {
                             setEditingTemplate(null);
                           }}
                         >
-                          {editingTemplate ? "Update Skill" : "Create Skill"}
+                          {editingTemplate ? "Update Template" : "Create Template"}
                         </Button>
                       </DialogFooter>
                     </div>
