@@ -2104,7 +2104,10 @@ export class PostgresStorage implements IStorage {
   }
   
   async createSkillTemplate(template: InsertSkillTemplate): Promise<SkillTemplate> {
+    const client = await pool.connect();
     try {
+      await client.query('BEGIN');
+      
       // Ensure we have the necessary category information
       let categoryName = template.category;
       let categoryId = template.categoryId;
@@ -2113,7 +2116,7 @@ export class PostgresStorage implements IStorage {
 
       // If categoryId is provided but not category name, look up the category name
       if (categoryId && !categoryName) {
-        const categoryResult = await pool.query(
+        const categoryResult = await client.query(
           'SELECT name FROM skill_categories WHERE id = $1',
           [categoryId]
         );
@@ -2128,7 +2131,7 @@ export class PostgresStorage implements IStorage {
       }
       // If category name is provided but not categoryId, look up the categoryId
       else if (categoryName && !categoryId) {
-        const categoryResult = await pool.query(
+        const categoryResult = await client.query(
           'SELECT id FROM skill_categories WHERE name = $1',
           [categoryName]
         );
@@ -2149,7 +2152,7 @@ export class PostgresStorage implements IStorage {
 
       // Verify subcategoryId is valid if provided
       if (template.subcategoryId) {
-        const subcategoryResult = await pool.query(
+        const subcategoryResult = await client.query(
           'SELECT id, name FROM skill_subcategories WHERE id = $1 AND category_id = $2',
           [template.subcategoryId, categoryId]
         );
@@ -2162,6 +2165,26 @@ export class PostgresStorage implements IStorage {
         }
       }
 
+      // Check if a template with the same name already exists in this category
+      const existingTemplateCheck = await client.query(
+        'SELECT id FROM skill_templates WHERE name = $1 AND category_id = $2',
+        [template.name, categoryId]
+      );
+      
+      if (existingTemplateCheck.rows.length > 0) {
+        console.warn(`Template "${template.name}" already exists in category ${categoryName}`);
+        // We'll continue and return the existing template ID
+        console.log(`Using existing template with ID ${existingTemplateCheck.rows[0].id}`);
+        
+        const existingTemplate = await client.query(
+          'SELECT * FROM skill_templates WHERE id = $1',
+          [existingTemplateCheck.rows[0].id]
+        );
+        
+        await client.query('COMMIT');
+        return this.snakeToCamel(existingTemplate.rows[0]);
+      }
+
       // Log what's being used for the template creation
       console.log(`Creating skill template with: 
         name: ${template.name},
@@ -2169,8 +2192,18 @@ export class PostgresStorage implements IStorage {
         categoryId: ${categoryId},
         subcategoryId: ${template.subcategoryId}`);
 
-      const result = await pool.query(
-        `INSERT INTO skill_templates (name, category, category_id, subcategory_id, description, is_recommended, target_level, target_date) 
+      // Use explicit column names to avoid any ordering issues
+      const result = await client.query(
+        `INSERT INTO skill_templates (
+           name, 
+           category, 
+           category_id, 
+           subcategory_id, 
+           description, 
+           is_recommended, 
+           target_level, 
+           target_date
+         ) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
          RETURNING *`,
         [
@@ -2186,14 +2219,28 @@ export class PostgresStorage implements IStorage {
       );
       
       if (result.rows.length === 0) {
+        await client.query('ROLLBACK');
         throw new Error('Failed to create skill template - no record returned');
       }
       
+      await client.query('COMMIT');
       console.log(`Successfully created skill template with ID ${result.rows[0].id}`);
+      console.log(`Template data: ${JSON.stringify(result.rows[0])}`);
       return this.snakeToCamel(result.rows[0]);
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error("Error creating skill template:", error);
+      // Enhanced error logging to help diagnose the issue
+      if (error instanceof Error) {
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack,
+          template: JSON.stringify(template)
+        });
+      }
       throw error;
+    } finally {
+      client.release();
     }
   }
   
