@@ -5915,9 +5915,10 @@ export class PostgresStorage implements IStorage {
       
       try {
         // Use the project_skills table with explicit skill_template_id column
+        // Set skill_id to NULL explicitly since we're using skill_template_id instead
         const result = await pool.query(
-          `INSERT INTO project_skills (project_id, skill_template_id, required_level, importance) 
-           VALUES ($1, $2, $3, $4) 
+          `INSERT INTO project_skills (project_id, skill_id, skill_template_id, required_level, importance) 
+           VALUES ($1, NULL, $2, $3, $4) 
            RETURNING *`,
           [
             projectSkill.projectId,
