@@ -4562,7 +4562,36 @@ export class PostgresStorage implements IStorage {
   // Project Skills operations - updated to use user_skills and templates instead of legacy skills table
   async getProjectSkills(projectId: number): Promise<ProjectSkill[]> {
     try {
-      const result = await pool.query(`
+      // Try query with skill_template_id column first (new structure)
+      try {
+        const result = await pool.query(`
+          SELECT 
+            ps.*, 
+            st.name as skill_name, 
+            st.category as skill_category, 
+            us.level as skill_level
+          FROM project_skills ps
+          LEFT JOIN user_skills us ON ps.skill_id = us.id
+          LEFT JOIN skill_templates st ON 
+            CASE 
+              WHEN ps.skill_template_id IS NOT NULL THEN ps.skill_template_id = st.id 
+              WHEN us.skill_template_id IS NOT NULL THEN us.skill_template_id = st.id
+              ELSE false
+            END
+          WHERE ps.project_id = $1
+          ORDER BY st.category, st.name
+        `, [projectId]);
+        
+        if (result.rows.length > 0) {
+          console.log(`Found ${result.rows.length} skills for project ${projectId} using enhanced query`);
+          return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkill[];
+        }
+      } catch (e) {
+        console.log(`Enhanced project skills query failed, falling back to original: ${e.message}`);
+      }
+      
+      // Fall back to the original query if the enhanced one fails
+      const fallbackResult = await pool.query(`
         SELECT ps.*, st.name as skill_name, st.category as skill_category, us.level as skill_level
         FROM project_skills ps
         JOIN user_skills us ON ps.skill_id = us.id
@@ -4570,7 +4599,9 @@ export class PostgresStorage implements IStorage {
         WHERE ps.project_id = $1
         ORDER BY st.category, st.name
       `, [projectId]);
-      return result.rows.map(row => this.snakeToCamel(row)) as ProjectSkill[];
+      
+      console.log(`Found ${fallbackResult.rows.length} skills for project ${projectId} using fallback query`);
+      return fallbackResult.rows.map(row => this.snakeToCamel(row)) as ProjectSkill[];
     } catch (error) {
       console.error(`Error retrieving skills for project ${projectId}:`, error);
       throw error;
@@ -5702,7 +5733,40 @@ export class PostgresStorage implements IStorage {
   // Implementation for Project Overview feature - updated to use user_skills and templates
   async getAllProjectSkills(): Promise<ProjectSkill[]> {
     try {
-      const result = await pool.query(`
+      // Try query with skill_template_id column first
+      try {
+        const result = await pool.query(`
+          SELECT ps.*,
+                 st.name as skill_name,
+                 st.category as skill_category,
+                 p.name as project_name,
+                 c.name as client_name,
+                 sc.name as category,
+                 sc.color as category_color
+          FROM project_skills ps
+          LEFT JOIN user_skills us ON ps.skill_id = us.id
+          LEFT JOIN skill_templates st ON 
+              CASE 
+                WHEN ps.skill_template_id IS NOT NULL THEN ps.skill_template_id = st.id 
+                WHEN us.skill_template_id IS NOT NULL THEN us.skill_template_id = st.id
+                ELSE false
+              END
+          LEFT JOIN projects p ON ps.project_id = p.id
+          LEFT JOIN clients c ON p.client_id = c.id
+          LEFT JOIN skill_categories sc ON st.category_id = sc.id
+          ORDER BY ps.id
+        `);
+        
+        if (result.rows.length > 0) {
+          console.log(`Retrieved ${result.rows.length} project skills with enhanced query`);
+          return this.snakeToCamel(result.rows);
+        }
+      } catch (e) {
+        console.log(`Enhanced project skills query failed, falling back to original: ${e.message}`);
+      }
+      
+      // Fall back to the original query if needed
+      const fallbackResult = await pool.query(`
         SELECT ps.*,
                st.name as skill_name,
                st.category as skill_category,
@@ -5719,8 +5783,8 @@ export class PostgresStorage implements IStorage {
         ORDER BY ps.id
       `);
       
-      console.log(`Retrieved ${result.rows.length} project skills`);
-      return this.snakeToCamel(result.rows);
+      console.log(`Retrieved ${fallbackResult.rows.length} project skills with fallback query`);
+      return this.snakeToCamel(fallbackResult.rows);
     } catch (error) {
       console.error("Error getting all project skills:", error);
       throw error;
