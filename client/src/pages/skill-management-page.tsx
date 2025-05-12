@@ -901,7 +901,18 @@ export default function SkillManagementPage() {
                           </DialogHeader>
                           
                           <Form {...templateForm}>
-                            <form onSubmit={templateForm.handleSubmit(onTemplateSubmit)} className="space-y-4 mt-4">
+                            <form 
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                console.log("Form Submission Event Triggered");
+                                console.log("Form Values:", templateForm.getValues());
+                                
+                                // Manual form submission to bypass potential issues
+                                const values = templateForm.getValues();
+                                onTemplateSubmit(values);
+                              }}
+                              className="space-y-4 mt-4"
+                            >
                               <FormField
                                 control={templateForm.control}
                                 name="name"
