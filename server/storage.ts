@@ -4133,8 +4133,8 @@ export class PostgresStorage implements IStorage {
       // Delete project resources first (cascading delete)
       await pool.query('DELETE FROM project_resources WHERE project_id = $1', [id]);
       
-      // Delete project skills (V2 table)
-      await pool.query('DELETE FROM project_skills_v2 WHERE project_id = $1', [id]);
+      // Ensure all project skills are deleted (using skill_template_id or skill_id)
+      await pool.query('DELETE FROM project_skills WHERE project_id = $1', [id]);
       
       // Delete the project
       await pool.query('DELETE FROM projects WHERE id = $1', [id]);
@@ -5767,7 +5767,7 @@ export class PostgresStorage implements IStorage {
                c.name as client_name,
                sc.name as category,
                sc.color as category_color
-        FROM project_skills_v2 ps
+        FROM project_skills ps
         -- Direct join to skill_templates via skill_template_id
         LEFT JOIN skill_templates st ON ps.skill_template_id = st.id
         LEFT JOIN projects p ON ps.project_id = p.id
@@ -5900,9 +5900,9 @@ export class PostgresStorage implements IStorage {
       const template = templateCheck.rows[0];
       console.log(`Found template: ${template.name} (${template.category})`);
       
-      // Check if this template is already associated with the project in the V2 table
+      // Check if this template is already associated with the project using the skill_template_id column
       const existingResult = await pool.query(
-        'SELECT id FROM project_skills_v2 WHERE project_id = $1 AND skill_template_id = $2',
+        'SELECT id FROM project_skills WHERE project_id = $1 AND skill_template_id = $2',
         [projectSkill.projectId, projectSkill.skillTemplateId]
       );
       
@@ -5914,15 +5914,16 @@ export class PostgresStorage implements IStorage {
       await pool.query('BEGIN');
       
       try {
-        // Use the correct V2 table with explicit skill_template_id column
+        // Use the project_skills table with explicit skill_template_id column
         const result = await pool.query(
-          `INSERT INTO project_skills_v2 (project_id, skill_template_id, required_level) 
-           VALUES ($1, $2, $3) 
+          `INSERT INTO project_skills (project_id, skill_template_id, required_level, importance) 
+           VALUES ($1, $2, $3, $4) 
            RETURNING *`,
           [
             projectSkill.projectId,
             projectSkill.skillTemplateId,
-            projectSkill.requiredLevel || 'beginner'
+            projectSkill.requiredLevel || 'beginner',
+            'medium' // Default importance
           ]
         );
         
@@ -5934,10 +5935,10 @@ export class PostgresStorage implements IStorage {
             ps.skill_template_id, 
             ps.required_level,
             ps.created_at,
-            st.name as skill_name, 
-            st.category as skill_category, 
+            st.name, 
+            st.category, 
             st.description
-          FROM project_skills_v2 ps
+          FROM project_skills ps
           JOIN skill_templates st ON ps.skill_template_id = st.id
           WHERE ps.id = $1
         `, [result.rows[0].id]);
@@ -5948,8 +5949,14 @@ export class PostgresStorage implements IStorage {
         
         await pool.query('COMMIT');
         
-        console.log(`Successfully associated skill template ${projectSkill.skillTemplateId} with project ${projectSkill.projectId}`);
-        return this.snakeToCamel(fullResult.rows[0]);
+        // Convert and map properties for consistency in the response
+        const row = this.snakeToCamel(fullResult.rows[0]);
+        return {
+          ...row,
+          // Map from standard names to what frontend might expect
+          skillName: row.name,
+          skillCategory: row.category
+        };
       } catch (error) {
         await pool.query('ROLLBACK');
         throw error;
