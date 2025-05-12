@@ -1468,13 +1468,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post("/api/admin/skill-templates", ensureAdmin, async (req, res) => {
-    console.log("🔍 API TRACE: POST /api/admin/skill-templates called by user:", req.user?.id);
+    console.log("\n\n🔍 API TRACE: POST /api/admin/skill-templates called by user:", req.user?.id, req.user?.email);
+    console.log("🔍 API TRACE: Request body:", JSON.stringify(req.body, null, 2));
+    
     try {
       // Input validation
       if (!req.body) {
         console.error("❌ API TRACE: No request body provided");
         return res.status(400).json({ message: "Request body is required" });
       }
+      
+      // Log the key fields for debugging
+      console.log("🔍 API TRACE: Template name:", req.body.name);
+      console.log("🔍 API TRACE: Category name:", req.body.category);
+      console.log("🔍 API TRACE: Category ID:", req.body.categoryId);
+      console.log("🔍 API TRACE: Subcategory ID:", req.body.subcategoryId);
       
       // Validate user is admin (extra check)
       if (!req.user || !req.user.id) {
