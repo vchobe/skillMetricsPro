@@ -45,8 +45,8 @@ async function fixPostgreSQLTemplate() {
     if (subcategoryResult.rows.length === 0) {
       console.log('Relational Databases subcategory not found, creating it...');
       const newSubcategoryResult = await pool.query(`
-        INSERT INTO skill_subcategories (name, display_name, category_id, color, icon)
-        VALUES ('Relational Databases', 'Relational Databases', $1, '#3B82F6', 'database')
+        INSERT INTO skill_subcategories (name, description, category_id, color, icon)
+        VALUES ('Relational Databases', 'SQL and relational database systems', $1, '#3B82F6', 'database')
         RETURNING id
       `, [categoryId]);
       
