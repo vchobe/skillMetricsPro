@@ -4611,63 +4611,31 @@ export class PostgresStorage implements IStorage {
   // V2 implementation adapted to use the existing project_skills table
   async getProjectSkillsV2(projectId: number): Promise<ProjectSkillV2[]> {
     try {
-      let v2Results = [];
-      let legacyResults = [];
+      console.log(`Using enhanced project_skills table with skill_template_id for project ${projectId}`);
       
-      try {
-        // First, try to get skills from the project_skills_v2 table if it exists
-        const v2Result = await pool.query(`
-          SELECT 
-            ps.id, 
-            ps.project_id, 
-            ps.skill_template_id, 
-            ps.required_level,
-            ps.created_at,
-            st.name, 
-            st.category, 
-            st.description
-          FROM project_skills_v2 ps
-          JOIN skill_templates st ON ps.skill_template_id = st.id
-          WHERE ps.project_id = $1
-          ORDER BY st.category, st.name
-        `, [projectId]);
-        
-        v2Results = v2Result.rows;
-        console.log(`Found ${v2Result.rows.length} skills in V2 table for project ${projectId}`);
-      } catch (e) {
-        // Table might not exist, that's okay
-        console.log(`project_skills_v2 table may not exist yet: ${e.message}`);
-      }
+      // Query the project_skills table using skill_template_id when available
+      const result = await pool.query(`
+        SELECT 
+          ps.id, 
+          ps.project_id, 
+          COALESCE(ps.skill_template_id, st_from_user.id) as skill_template_id, 
+          ps.required_level,
+          ps.created_at,
+          COALESCE(st_direct.name, st_from_user.name) as name, 
+          COALESCE(st_direct.category, st_from_user.category) as category, 
+          COALESCE(st_direct.description, st_from_user.description) as description
+        FROM project_skills ps
+        LEFT JOIN skill_templates st_direct ON ps.skill_template_id = st_direct.id
+        LEFT JOIN user_skills us ON ps.skill_id = us.id
+        LEFT JOIN skill_templates st_from_user ON us.skill_template_id = st_from_user.id
+        WHERE ps.project_id = $1 AND (ps.skill_template_id IS NOT NULL OR us.skill_template_id IS NOT NULL)
+        ORDER BY category, name
+      `, [projectId]);
       
-      try {
-        // Also get skills from the legacy project_skills table
-        const legacyResult = await pool.query(`
-          SELECT 
-            ps.id, 
-            ps.project_id, 
-            ps.skill_id as skill_template_id, 
-            ps.required_level,
-            ps.created_at,
-            st.name, 
-            st.category, 
-            st.description
-          FROM project_skills ps
-          JOIN skill_templates st ON ps.skill_id = st.id
-          WHERE ps.project_id = $1
-          ORDER BY st.category, st.name
-        `, [projectId]);
-        
-        legacyResults = legacyResult.rows;
-        console.log(`Found ${legacyResult.rows.length} skills in legacy table for project ${projectId}`);
-      } catch (e) {
-        console.log(`Error querying legacy project_skills: ${e.message}`);
-      }
+      console.log(`Found ${result.rows.length} skills in enhanced project_skills table for project ${projectId}`);
       
-      // Combine both results
-      const combinedRows = [...v2Results, ...legacyResults];
-      
-      // If we still don't have any results, try a different approach
-      if (combinedRows.length === 0) {
+      // If we don't have any results, try a direct skill templates query as fallback
+      if (result.rows.length === 0) {
         console.log("No project skills found. Using direct query to skill_templates as fallback.");
         try {
           // Get any skill templates associated with this project directly
@@ -4682,16 +4650,17 @@ export class PostgresStorage implements IStorage {
               st.description
             FROM skill_templates st
             WHERE st.id IN (
-              SELECT skill_id FROM project_skills WHERE project_id = $1
-              UNION
-              SELECT skill_template_id FROM project_skills_v2 WHERE project_id = $1
+              SELECT COALESCE(skill_template_id, 
+                            (SELECT skill_template_id FROM user_skills WHERE id = skill_id))
+              FROM project_skills 
+              WHERE project_id = $1
             )
             ORDER BY st.category, st.name
           `, [projectId]);
           
           console.log(`Found ${directTemplateResult.rows.length} skills via direct template query for project ${projectId}`);
           
-          // Apply the same property mapping to direct template queries
+          // Apply property mapping to direct template queries
           return directTemplateResult.rows.map(row => {
             const camelCaseRow = this.snakeToCamel(row);
             return {
@@ -4708,22 +4677,16 @@ export class PostgresStorage implements IStorage {
             };
           }) as ProjectSkillV2[];
         } catch (e) {
-          console.log(`Error in fallback query: ${e.message}`);
+          console.log(`Error in direct template query: ${e.message}`);
         }
       }
       
       // Process the rows to ensure they match the expected structure
-      const processedRows = combinedRows.map(row => {
-        // The snakeToCamel function will convert snake_case to camelCase
-        // But we need to make sure the property names match what the frontend expects
+      const processedRows = result.rows.map(row => {
+        // Convert snake_case to camelCase and map to expected frontend property names
         const camelCaseRow = this.snakeToCamel(row);
         
-        // Log the row to see what properties are available
-        console.log(`Processing project skill row:`, JSON.stringify(camelCaseRow));
-        
         // Add common property names that the frontend might expect
-        // This ensures we have both the direct property names and any 
-        // aliased property names the frontend might be looking for
         return {
           ...camelCaseRow,
           // Map from standard names to what frontend might expect
