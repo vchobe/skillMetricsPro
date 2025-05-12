@@ -1651,15 +1651,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.patch("/api/admin/skill-templates/:id", ensureAdmin, async (req, res) => {
     try {
+      console.log("\n\n🔍 API TRACE: PATCH /api/admin/skill-templates/:id called by user:", req.user?.id, req.user?.email);
+      console.log("🔍 API TRACE: Request body:", JSON.stringify(req.body, null, 2));
+      
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
+        console.error("❌ API TRACE: Invalid template ID:", req.params.id);
         return res.status(400).json({ message: "Invalid template ID" });
       }
       
+      // If categoryId is provided but category isn't, fetch the category name
+      if (req.body.categoryId && !req.body.category) {
+        try {
+          console.log(`🔍 API TRACE: Fetching category name for categoryId: ${req.body.categoryId}`);
+          
+          // Fetch category name from the database
+          const result = await pool.query(`
+            SELECT name FROM skill_categories WHERE id = $1
+          `, [req.body.categoryId]);
+          
+          if (result.rows.length > 0) {
+            req.body.category = result.rows[0].name;
+            console.log(`✅ API TRACE: Found category name: ${req.body.category}`);
+          } else {
+            console.error(`❌ API TRACE: No category found with ID: ${req.body.categoryId}`);
+            return res.status(400).json({
+              message: `Invalid category ID: ${req.body.categoryId}`,
+              error: 'category_not_found'
+            });
+          }
+        } catch (error) {
+          console.error("❌ API TRACE: Error fetching category name:", error);
+          return res.status(500).json({
+            message: "Failed to fetch category information",
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+      
       const updatedTemplate = await storage.updateSkillTemplate(id, req.body);
+      console.log("✅ API TRACE: Successfully updated skill template:", JSON.stringify(updatedTemplate, null, 2));
       res.json(updatedTemplate);
     } catch (error) {
-      res.status(500).json({ message: "Error updating skill template", error });
+      console.error("❌ API TRACE: Error updating skill template:", error);
+      res.status(500).json({ 
+        message: "Error updating skill template", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
   
