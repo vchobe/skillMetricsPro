@@ -3,107 +3,174 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SkillMetrics - Temporary Page</title>
+  <title>SkillMetrics - Static Fallback</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-      background-color: #f0f4f8;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      color: #333;
-      line-height: 1.6;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      text-align: center;
-    }
-    h1 {
-      color: #2563eb;
-      margin-bottom: 1rem;
-    }
-    .status {
-      margin: 2rem 0;
-      padding: 1rem;
-      background-color: #f8fafc;
-      border-radius: 4px;
-      border-left: 4px solid #2563eb;
-    }
-    .endpoint {
-      padding: 0.5rem;
-      background-color: #f1f5f9;
-      border-radius: 4px;
-      font-family: monospace;
-      margin: 0.5rem 0;
-      text-align: left;
-    }
-    .button {
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: background-color 0.2s;
-      text-decoration: none;
-      display: inline-block;
-      margin-top: 1rem;
-    }
-    .button:hover {
-      background-color: #1d4ed8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <h1>SkillMetrics System</h1>
-    <p>The frontend UI is currently experiencing technical difficulties with Vite dependencies.</p>
-    
-    <div class="status">
-      <h2>Backend Status: Online</h2>
-      <p>The backend API is functioning correctly with all the skill property mapping fixes implemented.</p>
-    </div>
-    
-    <h3>Available API Endpoints:</h3>
-    <div class="endpoint">/api/projects/:id/skills</div>
-    <div class="endpoint">/api/admin/project-hierarchy</div>
-    <div class="endpoint">/api/user-skills</div>
-    
-    <p>Our team is working to resolve the frontend issues as quickly as possible.</p>
-    
-    <a href="/api/user" class="button">Check API Status</a>
-  </div>
-
-  <script>
-    // Simple script to check if our API is responding
-    document.addEventListener('DOMContentLoaded', function() {
-      const statusButton = document.querySelector('.button');
+<body class="bg-gray-50">
+  <div class="min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="max-w-4xl w-full bg-white rounded-lg shadow-md p-6 border">
+      <h1 class="text-2xl font-bold text-blue-600 text-center mb-4">SkillMetrics Dashboard</h1>
+      <p class="text-gray-600 text-center mb-6">
+        This is a static fallback page for when the Vite frontend is not loading.
+        The backend API is functioning correctly with all skill mapping fixes implemented.
+      </p>
       
-      statusButton.addEventListener('click', function(e) {
-        e.preventDefault();
+      <div class="space-y-4 mb-8">
+        <div class="bg-gray-100 p-3 rounded-md">
+          <h2 class="text-gray-800 font-semibold">✓ Backend Endpoints Updated</h2>
+          <p class="text-gray-600 text-sm">All skill property mapping fixes have been applied.</p>
+        </div>
+        <div class="bg-gray-100 p-3 rounded-md">
+          <h2 class="text-gray-800 font-semibold">✓ Compatibility Mode</h2>
+          <p class="text-gray-600 text-sm">Both legacy and new field names are now supported.</p>
+        </div>
+        <div class="bg-gray-100 p-3 rounded-md">
+          <h2 class="text-gray-800 font-semibold">✓ Enhanced Debugging</h2>
+          <p class="text-gray-600 text-sm">Added detailed logging for property mapping.</p>
+        </div>
+      </div>
+      
+      <div class="mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">API Health Status</h2>
+        <div id="health-status" class="p-3 rounded border">
+          <p class="text-gray-500">Loading health data...</p>
+        </div>
+      </div>
+      
+      <div>
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">Property Mapping Status</h2>
+        <div id="property-mapping" class="p-3 rounded border">
+          <p class="text-gray-500">Loading property mapping data...</p>
+        </div>
+      </div>
+      
+      <div class="flex justify-center space-x-4 mt-6">
+        <button
+          id="refresh-health"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Refresh API Status
+        </button>
+        <button
+          id="refresh-mapping"
+          class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Refresh Property Mapping
+        </button>
+      </div>
+      
+      <div class="mt-8 pt-4 border-t text-center text-gray-500">
+        <p>Access this endpoint directly when Vite is not working: <a href="/fallback" class="text-blue-500 underline">/fallback</a></p>
+        <p class="mt-2">You can also check the backend API directly: <a href="/api/health" class="text-blue-500 underline">/api/health</a></p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initial data load
+      fetchHealthStatus();
+      fetchPropertyMappingStatus();
+      
+      // Set up event listeners
+      document.getElementById('refresh-health').addEventListener('click', fetchHealthStatus);
+      document.getElementById('refresh-mapping').addEventListener('click', fetchPropertyMappingStatus);
+      
+      // Fetch health status
+      function fetchHealthStatus() {
+        const healthElement = document.getElementById('health-status');
+        healthElement.innerHTML = '<p class="text-gray-500">Loading health data...</p>';
         
         fetch('/api/health')
-          .then(response => {
-            if (response.ok) {
-              alert('API is functioning correctly!');
-            } else {
-              alert('API returned status: ' + response.status);
-            }
+          .then(response => response.json())
+          .then(data => {
+            let html = `
+              <p class="mb-2"><strong>Status:</strong> ${data.status}</p>
+              <p class="mb-2"><strong>Database:</strong> ${data.database}</p>
+              <p class="mb-2"><strong>Environment:</strong> ${data.environment}</p>
+              <p class="mb-2"><strong>Server Time:</strong> ${data.server_time}</p>
+            `;
+            healthElement.innerHTML = html;
           })
           .catch(error => {
-            alert('Error connecting to API: ' + error.message);
+            healthElement.innerHTML = `<p class="text-red-700">Error: ${error.message}</p>`;
           });
-      });
+      }
+      
+      // Fetch property mapping status
+      function fetchPropertyMappingStatus() {
+        const mappingElement = document.getElementById('property-mapping');
+        mappingElement.innerHTML = '<p class="text-gray-500">Loading property mapping data...</p>';
+        
+        fetch('/api/property-mapping-test')
+          .then(response => response.json())
+          .then(data => {
+            let html = `
+              <div class="mb-4">
+                <p class="mb-2"><strong>Bidirectional Mapping:</strong> ${data.bidirectional_mapping_active ? 'Active ✅' : 'Inactive ❌'}</p>
+                <p class="mb-2"><strong>Status:</strong> ${data.status}</p>
+              </div>
+              
+              <h3 class="text-lg font-medium mb-2">Database Table Counts:</h3>
+              <div class="overflow-x-auto mb-4">
+                <table class="min-w-full border">
+                  <thead>
+                    <tr class="bg-gray-100">
+                      <th class="p-2 text-left border">Table</th>
+                      <th class="p-2 text-left border">Record Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+            `;
+            
+            for (const [table, count] of Object.entries(data.database_status || {})) {
+              html += `
+                <tr>
+                  <td class="p-2 border">${table}</td>
+                  <td class="p-2 border">${count}</td>
+                </tr>
+              `;
+            }
+            
+            html += `
+                  </tbody>
+                </table>
+              </div>
+            `;
+            
+            if (data.example_skills && data.example_skills.length > 0) {
+              html += `<h3 class="text-lg font-medium mb-2">Example Skills (Property Mapping):</h3>
+              <div class="space-y-2">`;
+              
+              data.example_skills.forEach((skill, index) => {
+                html += `
+                  <div class="p-3 border rounded">
+                    <p class="mb-1"><strong>ID:</strong> ${skill.id}</p>
+                    <p class="mb-1"><strong>Legacy name:</strong> ${skill.legacy_properties.name}</p>
+                    <p class="mb-1"><strong>Legacy category:</strong> ${skill.legacy_properties.category}</p>
+                    <p class="mb-1"><strong>New skillName:</strong> ${skill.new_properties.skillName}</p>
+                    <p class="mb-1"><strong>New skillCategory:</strong> ${skill.new_properties.skillCategory}</p>
+                    <p class="mb-1"><strong>Required Level:</strong> ${skill.requiredLevel}</p>
+                  </div>
+                `;
+              });
+              
+              html += '</div>';
+            } else {
+              html += '<p class="text-gray-600">No example skills available.</p>';
+            }
+            
+            mappingElement.innerHTML = html;
+          })
+          .catch(error => {
+            mappingElement.innerHTML = `<p class="text-red-700">Error: ${error.message}</p>`;
+          });
+      }
     });
   </script>
 </body>
