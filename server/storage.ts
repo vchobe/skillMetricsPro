@@ -5780,12 +5780,19 @@ export class PostgresStorage implements IStorage {
     try {
       // Verify this is a valid user_skill from the user_skills table
       const skillCheck = await pool.query(
-        'SELECT id FROM user_skills WHERE id = $1',
+        'SELECT id, skill_template_id FROM user_skills WHERE id = $1',
         [projectSkill.skillId]
       );
       
       if (skillCheck.rows.length === 0) {
         throw new Error(`Cannot associate skill with project: user_skill with ID ${projectSkill.skillId} does not exist`);
+      }
+      
+      const userSkill = skillCheck.rows[0];
+      const skillTemplateId = userSkill.skill_template_id;
+      
+      if (!skillTemplateId) {
+        throw new Error(`User skill ID ${projectSkill.skillId} does not have an associated skill template`);
       }
       
       // Check if this skill is already associated with the project
@@ -5802,13 +5809,15 @@ export class PostgresStorage implements IStorage {
       await pool.query('BEGIN');
       
       try {
+        // Store both skill_id and skill_template_id
         const result = await pool.query(
-          `INSERT INTO project_skills (project_id, skill_id, required_level, importance) 
-           VALUES ($1, $2, $3, $4) 
+          `INSERT INTO project_skills (project_id, skill_id, skill_template_id, required_level, importance) 
+           VALUES ($1, $2, $3, $4, $5) 
            RETURNING *`,
           [
             projectSkill.projectId,
             projectSkill.skillId,
+            skillTemplateId,
             projectSkill.requiredLevel || 'beginner',
             projectSkill.importance || 'medium'
           ]
@@ -5816,7 +5825,12 @@ export class PostgresStorage implements IStorage {
         
         // Return the result with skill details using user_skills and templates
         const fullResult = await pool.query(`
-          SELECT ps.*, st.name as skill_name, st.category, us.level
+          SELECT 
+            ps.*, 
+            st.name as skill_name, 
+            st.category, 
+            us.level,
+            ps.skill_template_id
           FROM project_skills ps
           JOIN user_skills us ON ps.skill_id = us.id
           JOIN skill_templates st ON us.skill_template_id = st.id
@@ -5829,7 +5843,7 @@ export class PostgresStorage implements IStorage {
         
         await pool.query('COMMIT');
         
-        console.log(`Successfully associated user_skill ${projectSkill.skillId} with project ${projectSkill.projectId}`);
+        console.log(`Successfully associated user_skill ${projectSkill.skillId} (template: ${skillTemplateId}) with project ${projectSkill.projectId}`);
         return this.snakeToCamel(fullResult.rows[0]);
       } catch (error) {
         await pool.query('ROLLBACK');
