@@ -4179,9 +4179,9 @@ export default function AdminDashboard() {
                 <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
                   <DialogContent className="sm:max-w-[575px] scrollable-dialog">
                     <DialogHeader>
-                      <DialogTitle>{editingTemplate ? "Edit Skill Template" : "Create Skill Template"}</DialogTitle>
+                      <DialogTitle>{editingTemplate?.id ? "Edit Skill Template" : "Create Skill Template"}</DialogTitle>
                       <DialogDescription>
-                        {editingTemplate 
+                        {editingTemplate?.id 
                           ? "Edit the details for this skill template." 
                           : "Add a new skill template that can be used by employees."}
                       </DialogDescription>
@@ -4315,7 +4315,7 @@ export default function AdminDashboard() {
                             setEditingTemplate(null);
                           }}
                         >
-                          {editingTemplate ? "Update Template" : "Create Template"}
+                          {editingTemplate?.id ? "Update Template" : "Create Template"}
                         </Button>
                       </DialogFooter>
                     </div>
