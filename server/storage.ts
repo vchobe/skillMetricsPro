@@ -2104,18 +2104,39 @@ export class PostgresStorage implements IStorage {
   }
   
   async createSkillTemplate(template: InsertSkillTemplate): Promise<SkillTemplate> {
+    console.log(`🔍 TRACE: createSkillTemplate called with data:`, JSON.stringify(template, null, 2));
+    
+    // Input validation
+    if (!template) {
+      console.error("❌ TRACE: No template data provided");
+      throw new Error("No template data provided");
+    }
+    
+    if (!template.name) {
+      console.error("❌ TRACE: Template name is required");
+      throw new Error("Template name is required");
+    }
+    
+    // Safety check to ensure objects are properly passed
+    if (typeof template !== 'object') {
+      console.error(`❌ TRACE: Invalid template data type: ${typeof template}`);
+      throw new Error(`Invalid template data type: ${typeof template}`);
+    }
+    
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      console.log(`🔍 TRACE: Transaction begun`);
       
       // Ensure we have the necessary category information
       let categoryName = template.category;
       let categoryId = template.categoryId;
 
-      console.log(`Initial create template data:`, JSON.stringify(template, null, 2));
+      console.log(`🔍 TRACE: Initial category data - Name: "${categoryName}", ID: ${categoryId}`);
 
       // If categoryId is provided but not category name, look up the category name
       if (categoryId && !categoryName) {
+        console.log(`🔍 TRACE: Looking up category name for ID ${categoryId}`);
         const categoryResult = await client.query(
           'SELECT name FROM skill_categories WHERE id = $1',
           [categoryId]
@@ -2123,14 +2144,15 @@ export class PostgresStorage implements IStorage {
         
         if (categoryResult.rows.length > 0) {
           categoryName = categoryResult.rows[0].name;
-          console.log(`Found category name "${categoryName}" for categoryId ${categoryId}`);
+          console.log(`✅ TRACE: Found category name "${categoryName}" for categoryId ${categoryId}`);
         } else {
-          console.warn(`Could not find category name for categoryId ${categoryId}`);
+          console.error(`❌ TRACE: Could not find category name for categoryId ${categoryId}`);
           throw new Error(`Invalid categoryId: ${categoryId} - category not found`);
         }
       }
       // If category name is provided but not categoryId, look up the categoryId
       else if (categoryName && !categoryId) {
+        console.log(`🔍 TRACE: Looking up categoryId for name "${categoryName}"`);
         const categoryResult = await client.query(
           'SELECT id FROM skill_categories WHERE name = $1',
           [categoryName]
@@ -2138,43 +2160,44 @@ export class PostgresStorage implements IStorage {
         
         if (categoryResult.rows.length > 0) {
           categoryId = categoryResult.rows[0].id;
-          console.log(`Found categoryId ${categoryId} for category name "${categoryName}"`);
+          console.log(`✅ TRACE: Found categoryId ${categoryId} for category name "${categoryName}"`);
         } else {
-          console.warn(`Could not find categoryId for category name "${categoryName}"`);
+          console.error(`❌ TRACE: Could not find categoryId for category name "${categoryName}"`);
           throw new Error(`Invalid category name: ${categoryName} - category not found`);
         }
       }
       
       // Verify we have both categoryId and categoryName
       if (!categoryId || !categoryName) {
+        console.error(`❌ TRACE: Missing required category information - ID: ${categoryId}, Name: ${categoryName}`);
         throw new Error(`Missing required category information. Need either category name or categoryId.`);
       }
 
       // Verify subcategoryId is valid if provided
       if (template.subcategoryId) {
+        console.log(`🔍 TRACE: Verifying subcategoryId ${template.subcategoryId} for category ${categoryId}`);
         const subcategoryResult = await client.query(
           'SELECT id, name FROM skill_subcategories WHERE id = $1 AND category_id = $2',
           [template.subcategoryId, categoryId]
         );
         
         if (subcategoryResult.rows.length === 0) {
-          console.warn(`Invalid subcategoryId ${template.subcategoryId} for category ${categoryId}`);
+          console.error(`❌ TRACE: Invalid subcategoryId ${template.subcategoryId} for category ${categoryId}`);
           throw new Error(`Invalid subcategoryId: ${template.subcategoryId} - subcategory not found or doesn't belong to category ${categoryName}`);
         } else {
-          console.log(`Verified subcategory: ${subcategoryResult.rows[0].name} (ID: ${template.subcategoryId})`);
+          console.log(`✅ TRACE: Verified subcategory: ${subcategoryResult.rows[0].name} (ID: ${template.subcategoryId})`);
         }
       }
 
       // Check if a template with the same name already exists in this category
+      console.log(`🔍 TRACE: Checking if template "${template.name}" already exists in category ${categoryName} (ID: ${categoryId})`);
       const existingTemplateCheck = await client.query(
         'SELECT id FROM skill_templates WHERE name = $1 AND category_id = $2',
         [template.name, categoryId]
       );
       
       if (existingTemplateCheck.rows.length > 0) {
-        console.warn(`Template "${template.name}" already exists in category ${categoryName}`);
-        // We'll continue and return the existing template ID
-        console.log(`Using existing template with ID ${existingTemplateCheck.rows[0].id}`);
+        console.log(`⚠️ TRACE: Template "${template.name}" already exists in category ${categoryName} with ID ${existingTemplateCheck.rows[0].id}`);
         
         const existingTemplate = await client.query(
           'SELECT * FROM skill_templates WHERE id = $1',
@@ -2182,19 +2205,19 @@ export class PostgresStorage implements IStorage {
         );
         
         await client.query('COMMIT');
+        console.log(`✅ TRACE: Returning existing template with ID ${existingTemplateCheck.rows[0].id}`);
         return this.snakeToCamel(existingTemplate.rows[0]);
       }
 
       // Log what's being used for the template creation
-      console.log(`Creating skill template with: 
+      console.log(`🔍 TRACE: Creating new skill template with: 
         name: ${template.name},
         category: ${categoryName},
         categoryId: ${categoryId},
-        subcategoryId: ${template.subcategoryId}`);
+        subcategoryId: ${template.subcategoryId || 'null'}`);
 
       // Use explicit column names to avoid any ordering issues
-      const result = await client.query(
-        `INSERT INTO skill_templates (
+      const insertSQL = `INSERT INTO skill_templates (
            name, 
            category, 
            category_id, 
@@ -2205,8 +2228,9 @@ export class PostgresStorage implements IStorage {
            target_date
          ) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-         RETURNING *`,
-        [
+         RETURNING *`;
+         
+      const insertParams = [
           template.name,
           categoryName,
           categoryId,
@@ -2215,32 +2239,38 @@ export class PostgresStorage implements IStorage {
           template.isRecommended || false,
           template.targetLevel || null,
           template.targetDate || null
-        ]
-      );
+      ];
+      
+      console.log(`🔍 TRACE: Executing SQL: ${insertSQL}`);
+      console.log(`🔍 TRACE: Parameters: ${JSON.stringify(insertParams)}`);
+      
+      const result = await client.query(insertSQL, insertParams);
       
       if (result.rows.length === 0) {
+        console.error(`❌ TRACE: Insert succeeded but no record returned`);
         await client.query('ROLLBACK');
         throw new Error('Failed to create skill template - no record returned');
       }
       
       await client.query('COMMIT');
-      console.log(`Successfully created skill template with ID ${result.rows[0].id}`);
-      console.log(`Template data: ${JSON.stringify(result.rows[0])}`);
+      console.log(`✅ TRACE: Successfully created skill template with ID ${result.rows[0].id}`);
+      console.log(`✅ TRACE: Complete template data:`, JSON.stringify(result.rows[0], null, 2));
       return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       await client.query('ROLLBACK');
-      console.error("Error creating skill template:", error);
+      console.error("❌ TRACE: Error creating skill template:", error);
       // Enhanced error logging to help diagnose the issue
       if (error instanceof Error) {
-        console.error("Error details:", {
+        console.error("❌ TRACE: Error details:", {
           message: error.message,
           stack: error.stack,
-          template: JSON.stringify(template)
+          template: JSON.stringify(template, null, 2)
         });
       }
       throw error;
     } finally {
       client.release();
+      console.log(`🔍 TRACE: Database client released`);
     }
   }
   
