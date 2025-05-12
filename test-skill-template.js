@@ -1,96 +1,65 @@
 /**
- * Test script to create a skill template directly via the database
+ * Test script for skill template creation
+ * 
+ * This script tests the direct database interaction for creating a skill template
+ * to diagnose and fix issues with the createSkillTemplate function.
  */
-import pkg from 'pg';
-const { Pool } = pkg;
+import pg from 'pg';
+const { Pool } = pg;
 
-// Get database connection config from environment variables
-function getDatabaseConfig() {
-  const cloudSqlUser = process.env.CLOUD_SQL_USER;
-  const cloudSqlPassword = process.env.CLOUD_SQL_PASSWORD;
-  const cloudSqlDatabase = process.env.CLOUD_SQL_DATABASE;
-  const dbHost = process.env.CLOUD_SQL_HOST || 'localhost';
-  const dbPort = parseInt(process.env.CLOUD_SQL_PORT || '5432', 10);
-  
-  console.log(`Using direct TCP connection to: ${dbHost}:${dbPort}`);
-  
-  return {
-    user: cloudSqlUser,
-    password: cloudSqlPassword,
-    database: cloudSqlDatabase,
-    host: dbHost,
-    port: dbPort,
-    ssl: process.env.CLOUD_SQL_USE_SSL === 'true',
-  };
-}
+// Create a database connection pool with Google Cloud SQL
+const pool = new Pool({
+  host: process.env.CLOUD_SQL_HOST || process.env.PGHOST || '34.30.6.95',
+  port: parseInt(process.env.CLOUD_SQL_PORT || process.env.PGPORT || '5432'),
+  user: process.env.CLOUD_SQL_USER || process.env.PGUSER || 'app_user',
+  password: process.env.CLOUD_SQL_PASSWORD || process.env.PGPASSWORD,
+  database: process.env.CLOUD_SQL_DATABASE || process.env.PGDATABASE || 'neondb'
+});
 
-// Create the database pool
-const pool = new Pool(getDatabaseConfig());
-
-async function testCreateSkillTemplate() {
+async function createSkillTemplate() {
+  const client = await pool.connect();
   try {
-    console.log('Starting test...');
+    console.log("Connected to database");
     
-    // First, check that the database is accessible
-    const testResult = await pool.query('SELECT NOW() as time');
-    console.log('Database is accessible, current time:', testResult.rows[0].time);
+    // Start a transaction
+    await client.query('BEGIN');
     
-    // Check skill_categories table structure
-    console.log('Checking skill_categories table...');
-    const categoriesTableInfo = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'skill_categories'
-    `);
-    console.log('skill_categories columns:', categoriesTableInfo.rows);
+    // Define a test skill template
+    const templateName = "Test Oracle DBA " + new Date().toISOString().substring(0, 16);
+    const categoryName = "Database";
     
-    // Check skill_subcategories table structure
-    console.log('Checking skill_subcategories table...');
-    const subcategoriesTableInfo = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'skill_subcategories'
-    `);
-    console.log('skill_subcategories columns:', subcategoriesTableInfo.rows);
+    // 1. First, find the categoryId for "Database"
+    console.log(`Looking up categoryId for "${categoryName}"`);
+    const categoryResult = await client.query(
+      'SELECT id FROM skill_categories WHERE name = $1',
+      [categoryName]
+    );
     
-    // Check skill_templates table structure
-    console.log('Checking skill_templates table...');
-    const templatesTableInfo = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'skill_templates'
-    `);
-    console.log('skill_templates columns:', templatesTableInfo.rows);
-    
-    // Get available categories
-    const categories = await pool.query('SELECT * FROM skill_categories');
-    console.log('Available categories:', categories.rows);
-    
-    // Get available subcategories
-    const subcategories = await pool.query('SELECT * FROM skill_subcategories');
-    console.log('Available subcategories:', subcategories.rows);
-    
-    // Get the Database category ID (should be around 2)
-    const databaseCategory = categories.rows.find(c => c.name === 'Database');
-    if (!databaseCategory) {
-      console.error('Database category not found!');
-      return;
+    if (categoryResult.rows.length === 0) {
+      throw new Error(`Category "${categoryName}" not found`);
     }
-    console.log('Database category:', databaseCategory);
     
-    // Get the SQL Databases subcategory ID
-    const sqlSubcategory = subcategories.rows.find(s => 
-      s.name === 'SQL Databases' && s.category_id === databaseCategory.id);
-    if (!sqlSubcategory) {
-      console.error('SQL Databases subcategory not found!');
-      return;
+    const categoryId = categoryResult.rows[0].id;
+    console.log(`Found categoryId: ${categoryId} for "${categoryName}"`);
+    
+    // 2. Find the subcategory "Relational Databases" under this category
+    console.log(`Looking up subcategoryId for "Relational Databases" under category ${categoryId}`);
+    const subcategoryResult = await client.query(
+      'SELECT id FROM skill_subcategories WHERE name = $1 AND category_id = $2',
+      ["Relational Databases", categoryId]
+    );
+    
+    if (subcategoryResult.rows.length === 0) {
+      throw new Error(`Subcategory "Relational Databases" not found under category ${categoryId}`);
     }
-    console.log('SQL Databases subcategory:', sqlSubcategory);
     
-    // Create a test skill template
-    console.log('Creating test MSSQL skill template...');
-    const result = await pool.query(`
-      INSERT INTO skill_templates (
+    const subcategoryId = subcategoryResult.rows[0].id;
+    console.log(`Found subcategoryId: ${subcategoryId}`);
+    
+    // 3. Insert the skill template with explicit column names
+    console.log(`Creating skill template: ${templateName}`);
+    const result = await client.query(
+      `INSERT INTO skill_templates (
         name, 
         category, 
         category_id, 
@@ -98,28 +67,60 @@ async function testCreateSkillTemplate() {
         description, 
         is_recommended, 
         target_level
-      ) VALUES (
-        'Microsoft SQL Server', 
-        $1, 
-        $2, 
-        $3, 
-        'Professional experience with Microsoft SQL Server database management', 
-        true, 
-        'intermediate'
-      ) RETURNING *
-    `, [databaseCategory.name, databaseCategory.id, sqlSubcategory.id]);
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7) 
+      RETURNING *`,
+      [
+        templateName,
+        categoryName,
+        categoryId,
+        subcategoryId,
+        "Experience with Oracle database administration, SQL development, and performance tuning",
+        true,
+        "intermediate"
+      ]
+    );
     
-    console.log('Successfully created skill template:', result.rows[0]);
+    if (result.rows.length === 0) {
+      throw new Error("Failed to create skill template");
+    }
+    
+    console.log(`✅ Successfully created skill template with ID ${result.rows[0].id}`);
+    console.log(`Template data:`, result.rows[0]);
+    
+    // Commit the transaction
+    await client.query('COMMIT');
+    
+    // Now try to fetch the template back
+    console.log(`Verifying template retrieval...`);
+    const verifyResult = await client.query(
+      'SELECT * FROM skill_templates WHERE id = $1',
+      [result.rows[0].id]
+    );
+    
+    if (verifyResult.rows.length === 0) {
+      throw new Error(`Could not retrieve the created template with ID ${result.rows[0].id}`);
+    }
+    
+    console.log(`✅ Successfully verified template retrieval for ID ${result.rows[0].id}`);
+    return result.rows[0];
   } catch (error) {
-    console.error('Error in test:', error);
+    await client.query('ROLLBACK');
+    console.error("❌ Error in createSkillTemplate:", error);
+    throw error;
   } finally {
-    // Close the pool
+    client.release();
     await pool.end();
-    console.log('Test completed.');
   }
 }
 
 // Run the test
-testCreateSkillTemplate().catch(error => {
-  console.error('Unhandled error:', error);
-});
+createSkillTemplate()
+  .then(result => {
+    console.log("Test completed successfully");
+    console.log("Template created:", result);
+  })
+  .catch(err => {
+    console.error("Test failed:", err);
+    process.exit(1);
+  });
