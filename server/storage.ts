@@ -5750,9 +5750,26 @@ export class PostgresStorage implements IStorage {
       `);
       
       console.log(`Retrieved ${result.rows.length} project skills directly from skill_templates`);
-      const projectSkills = this.snakeToCamel(result.rows);
       
-      return projectSkills;
+      // Process rows to ensure property names match what the frontend expects
+      const processedRows = result.rows.map(row => {
+        const camelCaseRow = this.snakeToCamel(row);
+        
+        // Add consistent naming properties to ensure frontend can find the values
+        return {
+          ...camelCaseRow,
+          // Ensure these specific property names are present as the frontend expects them
+          skillName: camelCaseRow.skillName || 'Unknown',
+          skillCategory: camelCaseRow.skillCategory || 'Uncategorized'
+        };
+      });
+      
+      // Debug log the first item if available
+      if (processedRows.length > 0) {
+        console.log(`Sample processed project skill: ${JSON.stringify(processedRows[0])}`);
+      }
+      
+      return processedRows;
     } catch (error) {
       console.error("Error getting all project skills V2:", error);
       throw error;
