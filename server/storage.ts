@@ -1995,6 +1995,29 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  async findSkillTemplate(name: string, categoryId: number): Promise<SkillTemplate | null> {
+    try {
+      console.log(`🔍 TRACE: Finding skill template with name "${name}" in category ${categoryId}`);
+      
+      const result = await pool.query(`
+        SELECT * FROM skill_templates
+        WHERE LOWER(name) = LOWER($1) AND category_id = $2
+        LIMIT 1
+      `, [name, categoryId]);
+      
+      if (result.rows.length === 0) {
+        console.log(`⚠️ TRACE: No template found with name "${name}" in category ${categoryId}`);
+        return null;
+      }
+      
+      console.log(`✅ TRACE: Found template with ID ${result.rows[0].id}`);
+      return this.snakeToCamel(result.rows[0]);
+    } catch (error) {
+      console.error(`❌ TRACE: Error finding skill template:`, error);
+      throw error;
+    }
+  }
+
   async getSkillTemplate(id: number): Promise<SkillTemplate | undefined> {
     try {
       const result = await pool.query('SELECT * FROM skill_templates WHERE id = $1', [id]);
