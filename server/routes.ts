@@ -3345,8 +3345,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Example skill structure:', JSON.stringify(firstSkill));
       }
       
+      // Process skills to ensure all required properties are present
+      const processedSkills = skills.map(skill => {
+        // Make sure we have all required fields, particularly skillName and skillCategory
+        return {
+          ...skill,
+          // Make sure skillName and skillCategory are present (for frontend)
+          skillName: skill.skillName || skill.name || "Unknown",
+          skillCategory: skill.skillCategory || skill.category || "Uncategorized",
+        };
+      });
+      
       // Add diagnostic information to help debug any missing values
-      const skillsWithDebug = skills.map(skill => ({
+      const skillsWithDebug = processedSkills.map(skill => ({
         ...skill,
         _debug: {
           hasName: !!skill.name,
@@ -4131,8 +4142,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get project required skills
       console.log("Fetching project skills...");
-      const projectSkills = await storage.getAllProjectSkills();
-      console.log(`Fetched ${projectSkills.length} project skills`);
+      // Try to get skills from the V2 table first, then fall back to legacy table if needed
+      let projectSkills = [];
+      try {
+        projectSkills = await storage.getAllProjectSkillsV2();
+        console.log(`Fetched ${projectSkills.length} V2 project skills`);
+      } catch (error) {
+        console.warn(`Error fetching V2 project skills, falling back to legacy table: ${error.message}`);
+        projectSkills = await storage.getAllProjectSkills();
+        console.log(`Fetched ${projectSkills.length} legacy project skills`);
+      }
+      
+      // Add debugging information
+      console.log("Sample project skill:", projectSkills.length > 0 ? JSON.stringify(projectSkills[0]) : "No project skills found");
 
       // Build the hierarchy: clients -> projects -> resources -> skills
       console.log("Building hierarchy data...");
