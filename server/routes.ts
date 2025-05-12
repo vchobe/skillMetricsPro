@@ -1501,59 +1501,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the request data
       console.log("🔍 API TRACE: Creating skill template with request data:", JSON.stringify(req.body, null, 2));
       
-      // Basic validation
+      // Enhanced validation with detailed error messages
       if (!req.body.name) {
-        console.error("❌ API TRACE: Template name is required");
+        console.error("❌ API TRACE: Missing required field: name");
         return res.status(400).json({ message: "Template name is required" });
       }
       
+      if (typeof req.body.name !== 'string' || req.body.name.trim().length < 2) {
+        console.error(`❌ API TRACE: Invalid template name: "${req.body.name}"`);
+        return res.status(400).json({ message: "Template name must be at least 2 characters" });
+      }
+      
       if (!req.body.category && !req.body.categoryId) {
-        console.error("❌ API TRACE: Either category name or categoryId is required");
-        return res.status(400).json({ message: "Either category name or categoryId is required" });
+        console.error("❌ API TRACE: Missing required field: category/categoryId");
+        return res.status(400).json({ message: "Category information is required" });
+      }
+      
+      if (req.body.categoryId && typeof req.body.categoryId !== 'number') {
+        console.error(`❌ API TRACE: Invalid categoryId type: ${typeof req.body.categoryId}`);
+        return res.status(400).json({ message: "Category ID must be a number" });
+      }
+      
+      if (req.body.subcategoryId && typeof req.body.subcategoryId !== 'number') {
+        console.error(`❌ API TRACE: Invalid subcategoryId type: ${typeof req.body.subcategoryId}`);
+        return res.status(400).json({ message: "Subcategory ID must be a number" });
       }
       
       try {
         // Validate against schema if available
         const validatedData = insertSkillTemplateSchema.parse(req.body);
-        console.log("✅ API TRACE: Request data validated successfully");
+        console.log("✅ API TRACE: Request data validated successfully against schema");
       } catch (validationError) {
-        console.error("❌ API TRACE: Validation error:", validationError);
+        console.error("❌ API TRACE: Schema validation error:", validationError);
         return res.status(400).json({ 
           message: "Invalid skill template data", 
           error: validationError 
         });
       }
       
-      // Create the skill template
-      const newTemplate = await storage.createSkillTemplate(req.body);
-      console.log("✅ API TRACE: Successfully created skill template:", JSON.stringify(newTemplate, null, 2));
-      
-      // Return success response
-      res.status(201).json(newTemplate);
-    } catch (error) {
-      console.error("❌ API TRACE: Error creating skill template:", error);
-      
-      // Provide better error messages based on the type of error
-      if (error instanceof Error) {
-        if (error.message.includes("category")) {
-          return res.status(400).json({ 
-            message: "Category error", 
-            error: error.message 
-          });
-        }
-        
-        if (error.message.includes("subcategory")) {
-          return res.status(400).json({ 
-            message: "Subcategory error", 
-            error: error.message 
-          });
+      // Check if this template already exists
+      if (req.body.name && req.body.categoryId) {
+        try {
+          console.log(`🔍 API TRACE: Checking for duplicate template: "${req.body.name}" in category ID ${req.body.categoryId}`);
+          
+          // Search for existing templates with the same name and category
+          const allTemplates = await storage.getAllSkillTemplates();
+          const duplicateTemplate = allTemplates.find(t => 
+            t.name.toLowerCase() === req.body.name.toLowerCase() && 
+            t.categoryId === req.body.categoryId
+          );
+          
+          if (duplicateTemplate) {
+            console.error(`❌ API TRACE: Template "${req.body.name}" already exists with ID ${duplicateTemplate.id}`);
+            return res.status(409).json({ 
+              message: `A template named "${req.body.name}" already exists in this category`,
+              error: 'duplicate_template'
+            });
+          }
+          
+          console.log("✅ API TRACE: No duplicate template found, continuing with creation");
+        } catch (error) {
+          console.error("❌ API TRACE: Error checking for duplicate template:", error);
+          // Continue with creation attempt even if duplicate check fails
         }
       }
       
-      // Default error response
+      // Create the skill template with enhanced error handling
+      try {
+        const newTemplate = await storage.createSkillTemplate(req.body);
+        console.log("✅ API TRACE: Successfully created skill template:", JSON.stringify(newTemplate, null, 2));
+        
+        // Return success response
+        res.status(201).json(newTemplate);
+      } catch (templateError) {
+        console.error("❌ API TRACE: Error during template creation:", templateError);
+        
+        // Handle specific error cases with appropriate status codes
+        if (templateError instanceof Error) {
+          const errorMsg = templateError.message.toLowerCase();
+          
+          if (errorMsg.includes("duplicate") || errorMsg.includes("already exists")) {
+            return res.status(409).json({ 
+              message: "This template already exists in this category",
+              error: 'duplicate_template',
+              details: templateError.message
+            });
+          } else if (errorMsg.includes("category not found") || errorMsg.includes("invalid categoryid")) {
+            return res.status(400).json({ 
+              message: "The specified category does not exist",
+              error: 'invalid_category',
+              details: templateError.message
+            });
+          } else if (errorMsg.includes("subcategory") || errorMsg.includes("subcategoryid")) {
+            return res.status(400).json({ 
+              message: "The specified subcategory does not exist or does not belong to this category",
+              error: 'invalid_subcategory',
+              details: templateError.message
+            });
+          }
+        }
+        
+        // Generic error response for all other errors
+        return res.status(500).json({
+          message: "Failed to create skill template",
+          error: templateError instanceof Error ? templateError.message : String(templateError)
+        });
+      }
+    } catch (error) {
+      console.error("❌ API TRACE: Unexpected error in main try/catch block:", error);
+      
+      // Only reach here if there is an error in the validation or pre-processing
+      // Template creation errors are caught in the inner try/catch block
       res.status(500).json({ 
-        message: "Error creating skill template", 
-        error: error instanceof Error ? error.message : String(error) 
+        message: "Error processing skill template request", 
+        error: error instanceof Error ? error.message : String(error),
+        errorType: 'request_processing_error'
       });
     }
   });
