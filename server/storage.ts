@@ -6021,22 +6021,21 @@ export class PostgresStorage implements IStorage {
       const template = templateCheck.rows[0];
       console.log(`Found template: ${template.name} (${template.category})`);
       
-      // Check if this template is already associated with the project using the skill_template_id column
+      // Check if this template is already associated with the project
       const existingResult = await pool.query(
         'SELECT id FROM project_skills WHERE project_id = $1 AND skill_template_id = $2',
         [projectSkill.projectId, projectSkill.skillTemplateId]
       );
       
       if (existingResult.rows.length > 0) {
-        throw new Error("This skill is already associated with the project");
+        throw new Error(`This skill template (${template.name}) is already associated with the project`);
       }
       
       // Start a transaction
       await pool.query('BEGIN');
       
       try {
-        // Use the project_skills table with explicit skill_template_id column
-        // Set skill_id to NULL explicitly since we're using skill_template_id instead
+        // ONLY use skill_template_id, explicitly set skill_id to NULL
         const result = await pool.query(
           `INSERT INTO project_skills (project_id, skill_id, skill_template_id, required_level, importance) 
            VALUES ($1, NULL, $2, $3, $4) 
@@ -6049,6 +6048,13 @@ export class PostgresStorage implements IStorage {
           ]
         );
         
+        if (!result.rows[0]) {
+          throw new Error('Failed to insert project skill');
+        }
+        
+        // Immediately verify successful insertion with project skill ID
+        console.log(`Successfully created project skill with ID: ${result.rows[0].id}`);
+        
         // Return the result with skill details directly from skill_templates
         const fullResult = await pool.query(`
           SELECT 
@@ -6060,30 +6066,33 @@ export class PostgresStorage implements IStorage {
             ps.created_at,
             st.name, 
             st.category, 
-            st.description
+            st.description,
+            p.name as project_name
           FROM project_skills ps
           JOIN skill_templates st ON ps.skill_template_id = st.id
+          JOIN projects p ON ps.project_id = p.id
           WHERE ps.id = $1
         `, [result.rows[0].id]);
         
         if (fullResult.rows.length === 0) {
-          throw new Error('Failed to retrieve created project skill V2');
+          throw new Error('Failed to retrieve created project skill');
         }
         
         await pool.query('COMMIT');
+        console.log(`Transaction committed successfully for project skill ID: ${result.rows[0].id}`);
         
         // Convert and map properties for consistency in the response
         const row = this.snakeToCamel(fullResult.rows[0]);
         
-        // Return the enhanced ProjectSkill with additional properties expected from V2 format
+        // Return the enhanced ProjectSkill with additional properties 
         return {
           ...row,
-          // Map from standard names to what frontend might expect
           skillName: row.name,
           skillCategory: row.category
         } as ProjectSkillV2;
       } catch (error) {
         await pool.query('ROLLBACK');
+        console.error("Error in transaction, rolled back:", error);
         throw error;
       }
     } catch (error) {
