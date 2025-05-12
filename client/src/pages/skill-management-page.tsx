@@ -270,9 +270,6 @@ export default function SkillManagementPage() {
         console.error("Error creating template:", error);
         throw new Error(error.message || "Failed to create template");
       }
-      return res.json();
-        throw new Error(error.message || "Failed to create skill");
-      }
       return await res.json();
     },
     onSuccess: () => {
