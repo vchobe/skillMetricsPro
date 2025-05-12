@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { pool } from "./db";
 import * as schema from "@shared/schema";
+import path from "path";
+import fs from "fs";
 import { scheduleWeeklyReport, sendImmediateWeeklyReport } from "./email";
 import {
   insertSkillSchema,
