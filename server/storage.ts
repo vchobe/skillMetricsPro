@@ -4668,9 +4668,6 @@ export class PostgresStorage implements IStorage {
               // Map from standard names to what frontend might expect
               skillName: camelCaseRow.name,
               skillCategory: camelCaseRow.category,
-              // Also provide legacy field names for compatibility
-              name: camelCaseRow.name,
-              category: camelCaseRow.category,
               // Ensure required fields are present
               id: camelCaseRow.id || camelCaseRow.skillTemplateId, // Use template ID as fallback
               projectId: camelCaseRow.projectId,
@@ -4701,9 +4698,6 @@ export class PostgresStorage implements IStorage {
           // Map from standard names to what frontend might expect
           skillName: camelCaseRow.name,
           skillCategory: camelCaseRow.category,
-          // Also provide legacy field names for compatibility
-          name: camelCaseRow.name,
-          category: camelCaseRow.category,
           // Ensure required fields are present
           id: camelCaseRow.id,
           projectId: camelCaseRow.projectId,
@@ -5766,10 +5760,7 @@ export class PostgresStorage implements IStorage {
           ...camelCaseRow,
           // Ensure these specific property names are present as the frontend expects them
           skillName: camelCaseRow.skillName || 'Unknown',
-          skillCategory: camelCaseRow.skillCategory || 'Uncategorized',
-          // Also provide legacy field names that some parts of frontend might still be using
-          name: camelCaseRow.skillName || 'Unknown',
-          category: camelCaseRow.skillCategory || 'Uncategorized'
+          skillCategory: camelCaseRow.skillCategory || 'Uncategorized'
         };
       });
       
