@@ -1,6 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { API_BASE_URL, TOKEN_STORAGE_KEY, REFRESH_ERROR_CODES, LOGOUT_ERROR_CODES } from "../api/config";
-import { refreshToken } from "../api/auth";
+import { API_BASE_URL, REFRESH_ERROR_CODES, LOGOUT_ERROR_CODES } from "../api/config";
 
 // Function to construct a full API URL
 function getFullApiUrl(path: string): string {
@@ -37,25 +36,11 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Get the authentication token
-function getAuthToken(): string | null {
-  return localStorage.getItem(TOKEN_STORAGE_KEY);
-}
-
-// Handle authentication errors with token refresh
+// Handle authentication errors
 async function handleAuthError(status: number): Promise<boolean> {
-  // If it's a token refresh error, try refreshing the token
-  if (REFRESH_ERROR_CODES.includes(status)) {
-    try {
-      await refreshToken();
-      return true; // Retry the request with the new token
-    } catch (error) {
-      // If refresh fails, redirect to login
-      window.location.href = '/auth';
-      return false;
-    }
-  } else if (LOGOUT_ERROR_CODES.includes(status)) {
-    // If it's a forbidden error, redirect to login
+  // If it's an authorization error, redirect to login
+  if (REFRESH_ERROR_CODES.includes(status) || LOGOUT_ERROR_CODES.includes(status)) {
+    console.log("Authentication error detected, redirecting to /auth");
     window.location.href = '/auth';
     return false;
   }
@@ -71,16 +56,11 @@ export async function apiRequest<T = any>(
   const fullUrl = getFullApiUrl(url);
   console.log(`Making API request: ${method} ${fullUrl}`, data);
   
-  // Set up headers with auth token if available
+  // Set up headers - we don't need Authorization header since we're using cookies
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   };
-  
-  const token = getAuthToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
   
   // Make the request with CORS support
   let res = await fetch(fullUrl, {
@@ -91,23 +71,9 @@ export async function apiRequest<T = any>(
     mode: "cors"
   });
 
-  // Handle auth errors and retry if necessary
+  // Handle auth errors
   if (!res.ok && (REFRESH_ERROR_CODES.includes(res.status) || LOGOUT_ERROR_CODES.includes(res.status))) {
-    const shouldRetry = await handleAuthError(res.status);
-    
-    if (shouldRetry) {
-      // Update the token and retry the request
-      const newToken = getAuthToken();
-      headers['Authorization'] = `Bearer ${newToken}`;
-      
-      res = await fetch(fullUrl, {
-        method,
-        headers,
-        body: data ? JSON.stringify(data) : undefined,
-        credentials: "include",
-        mode: "cors"
-      });
-    }
+    await handleAuthError(res.status);
   }
 
   try {
@@ -129,15 +95,10 @@ export const getQueryFn: <T>(options: {
     const fullUrl = getFullApiUrl(queryKey[0] as string);
     console.log(`Fetching data from: ${fullUrl}`);
     
-    // Set up headers with auth token if available
+    // Set up headers - don't need Authorization since we're using cookie-based sessions
     const headers: Record<string, string> = {
       'Accept': 'application/json'
     };
-    
-    const token = getAuthToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
     
     // Make the initial request with CORS support
     let res = await fetch(fullUrl, {
@@ -151,21 +112,9 @@ export const getQueryFn: <T>(options: {
       return null;
     }
     
-    // Try to refresh token if needed
+    // Handle auth errors
     if (!res.ok && (REFRESH_ERROR_CODES.includes(res.status) || LOGOUT_ERROR_CODES.includes(res.status))) {
-      const shouldRetry = await handleAuthError(res.status);
-      
-      if (shouldRetry) {
-        // Update the token and retry the request
-        const newToken = getAuthToken();
-        headers['Authorization'] = `Bearer ${newToken}`;
-        
-        res = await fetch(fullUrl, {
-          headers,
-          credentials: "include",
-          mode: "cors"
-        });
-      }
+      await handleAuthError(res.status);
     }
 
     await throwIfResNotOk(res);
