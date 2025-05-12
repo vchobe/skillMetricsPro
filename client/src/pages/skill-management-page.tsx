@@ -265,40 +265,69 @@ export default function SkillManagementPage() {
       console.log("🔍 UI TRACE: Available subcategories:", JSON.stringify(templateSubcategories, null, 2));
       
       // Make sure we have valid category data
-      if (!data.category && !selectedTemplateCategoryId) {
+      if (!data.category && !data.categoryId && !selectedTemplateCategoryId) {
         console.error("❌ UI TRACE: Missing category data");
         throw new Error("A category must be selected");
       }
       
-      // Attempt to get categoryId from either the selection or the categories list
-      let categoryId = selectedTemplateCategoryId;
-      if (!categoryId && data.category) {
+      // Create a clean request object to eliminate any potential issues
+      const cleanRequest: any = {
+        name: data.name,
+        description: data.description || "",
+        isRecommended: data.isRecommended || false,
+        targetLevel: data.targetLevel || null,
+        targetDate: data.targetDate || null
+      };
+      
+      // Set categoryId, either from form or selected value
+      if (data.categoryId) {
+        cleanRequest.categoryId = data.categoryId;
+        console.log(`✅ UI TRACE: Using form categoryId: ${data.categoryId}`);
+      } else if (selectedTemplateCategoryId) {
+        cleanRequest.categoryId = selectedTemplateCategoryId;
+        console.log(`✅ UI TRACE: Using selectedTemplateCategoryId: ${selectedTemplateCategoryId}`);
+      } else {
+        // Try to look up the category ID from the name if we have it
         const matchedCategory = dbCategories.find(c => 
-          c.name.toLowerCase() === data.category.toLowerCase()
+          c.name.toLowerCase() === data.category?.toLowerCase()
         );
         
         if (matchedCategory) {
-          categoryId = matchedCategory.id;
-          console.log(`✅ UI TRACE: Found category ID ${categoryId} for category name "${data.category}"`);
+          cleanRequest.categoryId = matchedCategory.id;
+          console.log(`✅ UI TRACE: Found category ID ${matchedCategory.id} for name "${data.category}"`);
         } else {
-          console.error(`❌ UI TRACE: Could not find category ID for category name "${data.category}"`);
+          console.error(`❌ UI TRACE: Could not find category ID for name "${data.category}"`);
+          throw new Error(`Could not find category ID for name "${data.category}"`);
         }
       }
       
-      // Handle subcategory - corrected from previous mistake: subcategory -> subcategoryId
-      // The form should be using subcategoryId directly now
-      console.log(`🔍 UI TRACE: Preparing API request with category ID ${categoryId} and subcategory ID ${data.subcategoryId}`);
+      // Set the category name from the category ID for the legacy API
+      const selectedCategory = dbCategories.find(c => c.id === cleanRequest.categoryId);
+      if (selectedCategory) {
+        cleanRequest.category = selectedCategory.name;
+        console.log(`✅ UI TRACE: Set category name to "${cleanRequest.category}" from ID ${cleanRequest.categoryId}`);
+      } else {
+        console.warn(`⚠️ UI TRACE: Could not find category name for ID ${cleanRequest.categoryId}`);
+      }
       
-      // Prepare the payload with complete data
-      const apiPayload = {
-        ...data,
-        categoryId: categoryId || data.categoryId // Use selected ID or form data
-      };
+      // Handle subcategory ID if provided
+      if (data.subcategoryId) {
+        cleanRequest.subcategoryId = data.subcategoryId;
+        console.log(`✅ UI TRACE: Using subcategoryId: ${data.subcategoryId}`);
+        
+        // Validate that the subcategory belongs to the selected category
+        const validSubcategory = templateSubcategories.find(sc => sc.id === data.subcategoryId);
+        if (!validSubcategory) {
+          console.warn(`⚠️ UI TRACE: Selected subcategory ID ${data.subcategoryId} may not belong to category ${cleanRequest.categoryId}`);
+        } else {
+          console.log(`✅ UI TRACE: Verified subcategory ${validSubcategory.name} (ID: ${validSubcategory.id}) belongs to category ${cleanRequest.categoryId}`);
+        }
+      }
       
-      console.log("🔍 UI TRACE: Final API request payload:", JSON.stringify(apiPayload, null, 2));
+      console.log("🔍 UI TRACE: Final API request payload:", JSON.stringify(cleanRequest, null, 2));
       
       // Send the API request
-      const res = await apiRequest("POST", "/api/admin/skill-templates", apiPayload);
+      const res = await apiRequest("POST", "/api/admin/skill-templates", cleanRequest);
       
       // Handle errors
       if (!res.ok) {
@@ -546,9 +575,31 @@ export default function SkillManagementPage() {
   
   // Handle template form submission
   const onTemplateSubmit = (data: SkillTemplateValues) => {
+    console.log("🔍 TRACE: Template form submitted with data:", JSON.stringify(data, null, 2));
+    
+    // Ensure categoryId is properly set
+    if (!data.categoryId && selectedTemplateCategoryId) {
+      data.categoryId = selectedTemplateCategoryId;
+      console.log("🔍 TRACE: Using selectedTemplateCategoryId for categoryId:", selectedTemplateCategoryId);
+    }
+    
+    // Set the category name from the categoryId if it's not already set
+    if (!data.category && data.categoryId) {
+      const categoryMatch = dbCategories.find((cat: any) => cat.id === data.categoryId);
+      if (categoryMatch) {
+        data.category = categoryMatch.name;
+        console.log("🔍 TRACE: Set category name from categoryId:", data.category);
+      }
+    }
+    
+    // Log final form data after any adjustments
+    console.log("🔍 TRACE: Final template form data:", JSON.stringify(data, null, 2));
+    
     if (editingTemplate) {
+      console.log("🔍 TRACE: Updating template:", editingTemplate.id);
       updateTemplateMutation.mutate({ ...data, id: editingTemplate.id });
     } else {
+      console.log("🔍 TRACE: Creating new template");
       createTemplateMutation.mutate(data);
     }
   };
