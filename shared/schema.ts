@@ -558,7 +558,8 @@ export const insertPendingSkillUpdateV2Schema = baseInsertPendingSkillUpdateV2Sc
     expiration_date: z.date().optional(),
     // Add custom skill fields
     category: z.string().optional(),
-    subcategory: z.string().optional(),
+    // Use subcategoryId instead of subcategory string field
+    name: z.string().optional(), // For custom skills
   })
   .transform((data) => {
     // Make sure camelCase values are prioritized, but fall back to snake_case
