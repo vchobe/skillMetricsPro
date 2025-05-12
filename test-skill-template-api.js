@@ -16,7 +16,7 @@ async function login() {
       },
       body: JSON.stringify({
         email: 'admin@atyeti.com',
-        password: 'admin123'
+        password: 'Admin@123'
       })
     });
     
