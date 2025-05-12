@@ -139,6 +139,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Special endpoint to test property mapping fixes
+  app.get("/api/property-mapping-test", async (req, res) => {
+    try {
+      // This endpoint demonstrates the bidirectional property mapping fix for skills
+      
+      // 1. Get example project skills that should be mapped with both legacy and new property names
+      const projectId = 1; // Get first project if available, or null if not
+      
+      let projectSkills = [];
+      try {
+        // Try to get project skills v2 first (should have bidirectional mapping)
+        const skillsV2 = await storage.getProjectSkillsV2(projectId);
+        if (skillsV2 && skillsV2.length > 0) {
+          projectSkills = skillsV2;
+        }
+      } catch (err) {
+        console.log("Could not retrieve project skills V2, will try V1", err);
+      }
+      
+      if (projectSkills.length === 0) {
+        try {
+          // Fall back to legacy project skills
+          const skillsV1 = await storage.getProjectSkills(projectId);
+          if (skillsV1 && skillsV1.length > 0) {
+            projectSkills = skillsV1;
+          }
+        } catch (err) {
+          console.log("Could not retrieve legacy project skills", err);
+        }
+      }
+      
+      // Gather status information about DB tables related to skills
+      const tableStatusQueries = [
+        { name: 'skills', query: 'SELECT COUNT(*) FROM skills' },
+        { name: 'user_skills', query: 'SELECT COUNT(*) FROM user_skills' },
+        { name: 'skill_templates', query: 'SELECT COUNT(*) FROM skill_templates' },
+        { name: 'project_skills', query: 'SELECT COUNT(*) FROM project_skills' },
+        { name: 'project_skills_v2', query: 'SELECT COUNT(*) FROM project_skills_v2' },
+        { name: 'skill_categories', query: 'SELECT COUNT(*) FROM skill_categories' },
+        { name: 'skill_subcategories', query: 'SELECT COUNT(*) FROM skill_subcategories' }
+      ];
+      
+      const tableStatus = {};
+      for (const { name, query } of tableStatusQueries) {
+        try {
+          const result = await pool.query(query);
+          tableStatus[name] = parseInt(result.rows[0].count);
+        } catch (err) {
+          tableStatus[name] = `Error: ${err.message}`;
+        }
+      }
+      
+      // Return detailed information
+      res.status(200).json({
+        message: "Property mapping test endpoint",
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        bidirectional_mapping_active: true,
+        database_status: tableStatus,
+        example_skills: projectSkills.slice(0, 3).map(skill => {
+          // Create a special debug view showing the actual properties available
+          // This helps diagnose mapping issues
+          return {
+            id: skill.id,
+            legacy_properties: {
+              name: skill.name || "(not mapped)",
+              category: skill.category || "(not mapped)"
+            },
+            new_properties: {
+              skillName: skill.skillName || "(not mapped)",
+              skillCategory: skill.skillCategory || "(not mapped)"
+            },
+            requiredLevel: skill.requiredLevel,
+            all_properties: Object.keys(skill)
+          };
+        })
+      });
+    } catch (error) {
+      console.error("Property mapping test error:", error);
+      res.status(500).json({ 
+        message: "Property mapping test failed", 
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Root endpoint that will serve the frontend
   app.get("/", (req, res, next) => {
     // Let Vite handle serving the frontend

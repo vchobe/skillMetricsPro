@@ -10,7 +10,7 @@ const loadApp = async () => {
     console.error("Error loading main app, using fallback:", error);
     try {
       // Load simplified fallback UI if main app fails
-      const { default: SimpleFallbackApp } = await import("./main-fallback");
+      const SimpleFallbackApp = (await import("./main-fallback")).default;
       createRoot(document.getElementById("root")!).render(<SimpleFallbackApp />);
     } catch (fallbackError) {
       console.error("Even fallback failed:", fallbackError);
