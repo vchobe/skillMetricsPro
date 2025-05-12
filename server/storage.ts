@@ -5760,7 +5760,10 @@ export class PostgresStorage implements IStorage {
           ...camelCaseRow,
           // Ensure these specific property names are present as the frontend expects them
           skillName: camelCaseRow.skillName || 'Unknown',
-          skillCategory: camelCaseRow.skillCategory || 'Uncategorized'
+          skillCategory: camelCaseRow.skillCategory || 'Uncategorized',
+          // Also provide legacy field names that some parts of frontend might still be using
+          name: camelCaseRow.skillName || 'Unknown',
+          category: camelCaseRow.skillCategory || 'Uncategorized'
         };
       });
       

@@ -4176,12 +4176,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return {
               ...project,
               // Add project skills with proper mapping for display
-              skills: projectRequiredSkills.map(skill => ({
-                ...skill,
-                // Ensure these specific properties exist for the frontend
-                skillName: skill.skillName || skill.name || "Unknown",
-                skillCategory: skill.skillCategory || skill.category || "Uncategorized"
-              })) || [],
+              skills: projectRequiredSkills.map(skill => {
+                // Log the skill object to help with debugging
+                console.log("Processing skill for frontend:", JSON.stringify(skill)); 
+                return {
+                  ...skill,
+                  // Ensure these specific properties exist for the frontend
+                  skillName: skill.skillName || skill.name || "Unknown",
+                  skillCategory: skill.skillCategory || skill.category || "Uncategorized",
+                  // Also provide duplicate fields with the legacy names
+                  name: skill.skillName || skill.name || "Unknown",
+                  category: skill.skillCategory || skill.category || "Uncategorized"
+                };
+              }) || [],
               resources: projectResources.map(resource => {
                 // Find the user for this resource
                 const user = users.find(u => u.id === resource.userId);
