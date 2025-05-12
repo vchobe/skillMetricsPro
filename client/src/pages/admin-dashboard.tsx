@@ -4299,20 +4299,15 @@ export default function AdminDashboard() {
                             // Check if editing existing skill or creating new
                             if (editingTemplate?.id) {
                               // Call mutation to update
-                              toast({
-                                title: "Skill updated",
-                                description: "The skill has been updated successfully."
-                              });
+                              console.log("Submitting update for template:", templateData);
+                              updateTemplateMutation.mutate({...templateData, id: editingTemplate.id});
                             } else {
                               // Call mutation to create
-                              toast({
-                                title: "Skill created",
-                                description: "The new skill has been created successfully."
-                              });
+                              console.log("Submitting new template:", templateData);
+                              createTemplateMutation.mutate(templateData);
                             }
                             
-                            setShowTemplateDialog(false);
-                            setEditingTemplate(null);
+                            // Dialog will be closed in the mutation's onSuccess
                           }}
                         >
                           {editingTemplate?.id ? "Update Template" : "Create Template"}
