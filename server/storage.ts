@@ -5859,9 +5859,9 @@ export class PostgresStorage implements IStorage {
       const template = templateCheck.rows[0];
       console.log(`Found template: ${template.name} (${template.category})`);
       
-      // Check if this template is already associated with the project
+      // Check if this template is already associated with the project in the V2 table
       const existingResult = await pool.query(
-        'SELECT id FROM project_skills WHERE project_id = $1 AND skill_id = $2',
+        'SELECT id FROM project_skills_v2 WHERE project_id = $1 AND skill_template_id = $2',
         [projectSkill.projectId, projectSkill.skillTemplateId]
       );
       
@@ -5873,9 +5873,9 @@ export class PostgresStorage implements IStorage {
       await pool.query('BEGIN');
       
       try {
-        // In project_skills table, we use skill_id to store the skill_template_id
+        // Use the correct V2 table with explicit skill_template_id column
         const result = await pool.query(
-          `INSERT INTO project_skills (project_id, skill_id, required_level) 
+          `INSERT INTO project_skills_v2 (project_id, skill_template_id, required_level) 
            VALUES ($1, $2, $3) 
            RETURNING *`,
           [
@@ -5890,14 +5890,14 @@ export class PostgresStorage implements IStorage {
           SELECT 
             ps.id, 
             ps.project_id, 
-            ps.skill_id as skill_template_id, 
+            ps.skill_template_id, 
             ps.required_level,
             ps.created_at,
             st.name as skill_name, 
             st.category as skill_category, 
             st.description
-          FROM project_skills ps
-          JOIN skill_templates st ON ps.skill_id = st.id
+          FROM project_skills_v2 ps
+          JOIN skill_templates st ON ps.skill_template_id = st.id
           WHERE ps.id = $1
         `, [result.rows[0].id]);
         
