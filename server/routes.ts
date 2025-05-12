@@ -1468,14 +1468,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post("/api/admin/skill-templates", ensureAdmin, async (req, res) => {
+    console.log("🔍 API TRACE: POST /api/admin/skill-templates called by user:", req.user?.id);
     try {
-      console.log("Creating skill template with request data:", JSON.stringify(req.body, null, 2));
+      // Input validation
+      if (!req.body) {
+        console.error("❌ API TRACE: No request body provided");
+        return res.status(400).json({ message: "Request body is required" });
+      }
+      
+      // Validate user is admin (extra check)
+      if (!req.user || !req.user.id) {
+        console.error("❌ API TRACE: No authenticated user found");
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const isAdmin = await checkIsUserAdminDirectly(req.user.id);
+      if (!isAdmin) {
+        console.error(`❌ API TRACE: User ${req.user.id} is not an admin`);
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      console.log("✅ API TRACE: Admin access confirmed for user:", req.user.id);
+      
+      // Log the request data
+      console.log("🔍 API TRACE: Creating skill template with request data:", JSON.stringify(req.body, null, 2));
+      
+      // Basic validation
+      if (!req.body.name) {
+        console.error("❌ API TRACE: Template name is required");
+        return res.status(400).json({ message: "Template name is required" });
+      }
+      
+      if (!req.body.category && !req.body.categoryId) {
+        console.error("❌ API TRACE: Either category name or categoryId is required");
+        return res.status(400).json({ message: "Either category name or categoryId is required" });
+      }
+      
+      try {
+        // Validate against schema if available
+        const validatedData = insertSkillTemplateSchema.parse(req.body);
+        console.log("✅ API TRACE: Request data validated successfully");
+      } catch (validationError) {
+        console.error("❌ API TRACE: Validation error:", validationError);
+        return res.status(400).json({ 
+          message: "Invalid skill template data", 
+          error: validationError 
+        });
+      }
+      
+      // Create the skill template
       const newTemplate = await storage.createSkillTemplate(req.body);
-      console.log("Successfully created skill template:", JSON.stringify(newTemplate, null, 2));
+      console.log("✅ API TRACE: Successfully created skill template:", JSON.stringify(newTemplate, null, 2));
+      
+      // Return success response
       res.status(201).json(newTemplate);
     } catch (error) {
-      console.error("Error creating skill template:", error);
-      res.status(500).json({ message: "Error creating skill template", error: error.toString() });
+      console.error("❌ API TRACE: Error creating skill template:", error);
+      
+      // Provide better error messages based on the type of error
+      if (error instanceof Error) {
+        if (error.message.includes("category")) {
+          return res.status(400).json({ 
+            message: "Category error", 
+            error: error.message 
+          });
+        }
+        
+        if (error.message.includes("subcategory")) {
+          return res.status(400).json({ 
+            message: "Subcategory error", 
+            error: error.message 
+          });
+        }
+      }
+      
+      // Default error response
+      res.status(500).json({ 
+        message: "Error creating skill template", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
   
