@@ -623,6 +623,17 @@ export default function SkillManagementPage() {
     console.log("%c🔍 UI SUBMIT: Template form submitted", "background: #2ecc71; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;");
     console.log("%c📋 Form Data:", "background: #f39c12; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", JSON.stringify(data, null, 2));
     
+    // Check if form has validation errors
+    if (Object.keys(templateForm.formState.errors).length > 0) {
+      console.error("%c❌ FORM HAS VALIDATION ERRORS:", "background: #e74c3c; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;", templateForm.formState.errors);
+      toast({
+        title: "Form Error",
+        description: "Please fix all validation errors before submitting",
+        variant: "destructive",
+      });
+      return; // Prevent submission
+    }
+    
     // Ensure categoryId is properly set
     if (!data.categoryId && selectedTemplateCategoryId) {
       data.categoryId = selectedTemplateCategoryId;
@@ -632,7 +643,7 @@ export default function SkillManagementPage() {
     // Double-check if categoryId is set - it's required
     if (!data.categoryId) {
       const errorMsg = "CategoryId is missing! Required for skill template creation.";
-      console.log("%c❌ ERROR:", "background: #e74c3c; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", errorMsg);
+      console.log("%c❌ ERROR:", "background: #e74c3c; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;", errorMsg);
       toast({
         title: "Form Error",
         description: errorMsg,
@@ -653,12 +664,21 @@ export default function SkillManagementPage() {
     // Log final form data after any adjustments
     console.log("%c📋 FINAL FORM DATA:", "background: #8e44ad; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", JSON.stringify(data, null, 2));
     
-    if (editingTemplate) {
-      console.log("%c🔄 Updating template:", "background: #3498db; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", editingTemplate.id);
-      updateTemplateMutation.mutate({ ...data, id: editingTemplate.id });
-    } else {
-      console.log("%c➕ Creating new template", "background: #3498db; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;");
-      createTemplateMutation.mutate(data);
+    try {
+      if (editingTemplate) {
+        console.log("%c🔄 Updating template:", "background: #3498db; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;", editingTemplate.id);
+        updateTemplateMutation.mutate({ ...data, id: editingTemplate.id });
+      } else {
+        console.log("%c➕ Creating new template", "background: #3498db; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;");
+        createTemplateMutation.mutate(data);
+      }
+    } catch (error) {
+      console.error("%c❌ MUTATION ERROR:", "background: #e74c3c; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
     }
   };
   
