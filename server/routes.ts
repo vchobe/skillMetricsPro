@@ -1469,10 +1469,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/admin/skill-templates", ensureAdmin, async (req, res) => {
     try {
+      console.log("Creating skill template with request data:", JSON.stringify(req.body, null, 2));
       const newTemplate = await storage.createSkillTemplate(req.body);
+      console.log("Successfully created skill template:", JSON.stringify(newTemplate, null, 2));
       res.status(201).json(newTemplate);
     } catch (error) {
-      res.status(500).json({ message: "Error creating skill template", error });
+      console.error("Error creating skill template:", error);
+      res.status(500).json({ message: "Error creating skill template", error: error.toString() });
     }
   });
   
