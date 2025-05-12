@@ -3353,6 +3353,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Make sure skillName and skillCategory are present (for frontend)
           skillName: skill.skillName || skill.name || "Unknown",
           skillCategory: skill.skillCategory || skill.category || "Uncategorized",
+          // Also ensure legacy field names are present for components that expect them
+          name: skill.skillName || skill.name || "Unknown",
+          category: skill.skillCategory || skill.category || "Uncategorized",
         };
       });
       
@@ -4153,8 +4156,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Fetched ${projectSkills.length} legacy project skills`);
       }
       
+      // Process project skills to ensure consistent property names
+      projectSkills = projectSkills.map(skill => ({
+        ...skill,
+        // Ensure frontend compatibility with both naming conventions
+        skillName: skill.skillName || skill.name || "Unknown",
+        skillCategory: skill.skillCategory || skill.category || "Uncategorized",
+        name: skill.skillName || skill.name || "Unknown",
+        category: skill.skillCategory || skill.category || "Uncategorized"
+      }));
+      
       // Add debugging information
-      console.log("Sample project skill:", projectSkills.length > 0 ? JSON.stringify(projectSkills[0]) : "No project skills found");
+      console.log("Sample project skill after processing:", projectSkills.length > 0 ? JSON.stringify(projectSkills[0]) : "No project skills found");
 
       // Build the hierarchy: clients -> projects -> resources -> skills
       console.log("Building hierarchy data...");
