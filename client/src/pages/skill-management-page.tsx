@@ -41,13 +41,26 @@ import {
 // Define the form schema for adding/editing skill templates
 const skillTemplateSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
-  category: z.string().min(2, "Category must be at least 2 characters"),
-  categoryId: z.number().optional(),
-  subcategoryId: z.number().optional(),
-  description: z.string().optional(),
+  
+  // We need both category name (for legacy compatibility) and categoryId
+  // But the actual validation will be done on categoryId for consistency
+  category: z.string().optional(), // The category name is auto-populated from categoryId
+  
+  // Make categoryId required - this is the primary identifier
+  categoryId: z.number({
+    required_error: "Category is required",
+    invalid_type_error: "Category ID must be a number"
+  }),
+  
+  // Make subcategoryId optional but validate as number when present
+  subcategoryId: z.number({
+    invalid_type_error: "Subcategory ID must be a number"
+  }).optional().nullable(),
+  
+  description: z.string().optional().default(""),
   isRecommended: z.boolean().default(false),
-  targetLevel: z.enum(["beginner", "intermediate", "expert"]).optional(),
-  targetDate: z.string().optional()
+  targetLevel: z.enum(["beginner", "intermediate", "expert"]).optional().nullable(),
+  targetDate: z.string().optional().nullable()
 });
 
 type SkillTemplateValues = z.infer<typeof skillTemplateSchema>;
@@ -203,13 +216,13 @@ export default function SkillManagementPage() {
     resolver: zodResolver(skillTemplateSchema),
     defaultValues: {
       name: "",
-      category: "",
-      categoryId: undefined,
-      subcategoryId: undefined,
+      category: "", // Legacy field
+      categoryId: null as any as number, // Required field, but we'll set it when a category is selected
+      subcategoryId: null,
       description: "",
       isRecommended: false,
-      targetLevel: undefined,
-      targetDate: undefined
+      targetLevel: null,
+      targetDate: null
     }
   });
   
