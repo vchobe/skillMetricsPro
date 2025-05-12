@@ -5923,7 +5923,7 @@ export class PostgresStorage implements IStorage {
             projectSkill.projectId,
             projectSkill.skillTemplateId,
             projectSkill.requiredLevel || 'beginner',
-            'medium' // Default importance
+            projectSkill.importance || 'medium'
           ]
         );
         
@@ -5934,6 +5934,7 @@ export class PostgresStorage implements IStorage {
             ps.project_id, 
             ps.skill_template_id, 
             ps.required_level,
+            ps.importance,
             ps.created_at,
             st.name, 
             st.category, 
@@ -5951,12 +5952,14 @@ export class PostgresStorage implements IStorage {
         
         // Convert and map properties for consistency in the response
         const row = this.snakeToCamel(fullResult.rows[0]);
+        
+        // Return the enhanced ProjectSkill with additional properties expected from V2 format
         return {
           ...row,
           // Map from standard names to what frontend might expect
           skillName: row.name,
           skillCategory: row.category
-        };
+        } as ProjectSkillV2;
       } catch (error) {
         await pool.query('ROLLBACK');
         throw error;
