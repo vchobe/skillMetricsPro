@@ -743,11 +743,26 @@ export class PostgresStorage implements IStorage {
         } else {
           // Create a new template for this category
           console.log(`Creating new skill template for ${userSkill.name} in category ${userSkill.category}`);
+          
+          // Try to get the category_id based on the category name
+          let categoryId = null;
+          const categoryResult = await pool.query(
+            'SELECT id FROM skill_categories WHERE name = $1',
+            [userSkill.category]
+          );
+          
+          if (categoryResult.rows.length > 0) {
+            categoryId = categoryResult.rows[0].id;
+            console.log(`Found categoryId ${categoryId} for category name "${userSkill.category}"`);
+          } else {
+            console.warn(`Could not find categoryId for category name "${userSkill.category}"`);
+          }
+          
           const newTemplateResult = await pool.query(
-            `INSERT INTO skill_templates (name, category) 
-             VALUES ($1, $2) 
+            `INSERT INTO skill_templates (name, category, category_id) 
+             VALUES ($1, $2, $3) 
              RETURNING id`,
-            [userSkill.name, userSkill.category]
+            [userSkill.name, userSkill.category, categoryId]
           );
           
           skillTemplateId = newTemplateResult.rows[0].id;
@@ -2090,14 +2105,54 @@ export class PostgresStorage implements IStorage {
   
   async createSkillTemplate(template: InsertSkillTemplate): Promise<SkillTemplate> {
     try {
+      // Ensure we have the necessary category information
+      let categoryName = template.category;
+      let categoryId = template.categoryId;
+
+      // If categoryId is provided but not category name, look up the category name
+      if (categoryId && !categoryName) {
+        const categoryResult = await pool.query(
+          'SELECT name FROM skill_categories WHERE id = $1',
+          [categoryId]
+        );
+        
+        if (categoryResult.rows.length > 0) {
+          categoryName = categoryResult.rows[0].name;
+          console.log(`Found category name "${categoryName}" for categoryId ${categoryId}`);
+        } else {
+          console.warn(`Could not find category name for categoryId ${categoryId}`);
+        }
+      }
+      // If category name is provided but not categoryId, look up the categoryId
+      else if (categoryName && !categoryId) {
+        const categoryResult = await pool.query(
+          'SELECT id FROM skill_categories WHERE name = $1',
+          [categoryName]
+        );
+        
+        if (categoryResult.rows.length > 0) {
+          categoryId = categoryResult.rows[0].id;
+          console.log(`Found categoryId ${categoryId} for category name "${categoryName}"`);
+        } else {
+          console.warn(`Could not find categoryId for category name "${categoryName}"`);
+        }
+      }
+
+      // Log what's being used for the template creation
+      console.log(`Creating skill template with: 
+        name: ${template.name},
+        category: ${categoryName},
+        categoryId: ${categoryId},
+        subcategoryId: ${template.subcategoryId}`);
+
       const result = await pool.query(
         `INSERT INTO skill_templates (name, category, category_id, subcategory_id, description, is_recommended, target_level, target_date) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
          RETURNING *`,
         [
           template.name,
-          template.category,
-          template.categoryId || null,
+          categoryName,
+          categoryId,
           template.subcategoryId || null,
           template.description || '',
           template.isRecommended || false,
