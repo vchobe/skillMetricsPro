@@ -89,6 +89,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
   
+  // Add a fallback route for when the Vite frontend doesn't load
+  app.get("/fallback", (req, res) => {
+    const indexPath = path.join(process.cwd(), "public", "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.send("Fallback page not found. Check backend API endpoints directly.");
+    }
+  });
+  
   // Initialize weekly report scheduler
   scheduleWeeklyReport();
   
