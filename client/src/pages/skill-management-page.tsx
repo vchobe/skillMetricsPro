@@ -339,8 +339,27 @@ export default function SkillManagementPage() {
       
       console.log("🔍 UI TRACE: Final API request payload:", JSON.stringify(cleanRequest, null, 2));
       
+      // Additional pre-flight validation
+      if (!cleanRequest.name || cleanRequest.name.trim().length < 2) {
+        console.error("%c❌ VALIDATION ERROR: Invalid template name", "background: #e74c3c; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;");
+        throw new Error("Template name must be at least 2 characters");
+      }
+
+      if (!cleanRequest.categoryId || typeof cleanRequest.categoryId !== 'number') {
+        console.error("%c❌ VALIDATION ERROR: Invalid category ID", "background: #e74c3c; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;");
+        throw new Error("A valid category must be selected");
+      }
+      
       // Send the API request
-      const res = await apiRequest("POST", "/api/admin/skill-templates", cleanRequest);
+      console.log("%c🔄 SENDING API REQUEST", "background: #3498db; color: white; font-weight: bold; padding: 2px 5px; border-radius: 2px;");
+      let res;
+      
+      try {
+        res = await apiRequest("POST", "/api/admin/skill-templates", cleanRequest);
+      } catch (networkError) {
+        console.error("%c🌐 NETWORK ERROR:", "background: #e74c3c; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;", networkError);
+        throw new Error(`Network error: ${networkError.message || 'Failed to connect to server'}`);
+      }
       
       // Handle errors
       if (!res.ok) {
@@ -348,13 +367,22 @@ export default function SkillManagementPage() {
         let errorData;
         try {
           errorData = JSON.parse(errorText);
-          console.error("❌ UI TRACE: API error response:", errorData);
+          console.error("%c❌ API ERROR:", "background: #e74c3c; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;", errorData);
+          
+          // Check for specific error types
+          if (errorData.error && errorData.error.includes('duplicate')) {
+            throw new Error(`A template with name "${cleanRequest.name}" already exists in this category`);
+          }
+          
+          throw new Error(errorData.message || errorData.error || "Failed to create template");
         } catch (parseError) {
-          console.error("❌ UI TRACE: API error (text):", errorText);
-          throw new Error("Failed to create template: " + errorText);
+          if (parseError instanceof Error && parseError.message.includes("already exists")) {
+            throw parseError; // Pass through our custom duplicate error
+          }
+          
+          console.error("%c❌ RESPONSE PARSE ERROR:", "background: #e74c3c; color: white; font-weight: bold; padding: 3px 5px; border-radius: 2px;", errorText);
+          throw new Error("Failed to create template: " + (errorText.substring(0, 100) + (errorText.length > 100 ? '...' : '')));
         }
-        
-        throw new Error(errorData.message || errorData.error || "Failed to create template");
       }
       
       // Parse successful response
