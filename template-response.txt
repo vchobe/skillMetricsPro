@@ -1,1 +1,1 @@
-{"message":"Authentication required","details":"You must be logged in to access this resource","errorCode":"AUTH_REQUIRED"}
+{"id":98,"name":"CouchDB","category":"Database","description":"Experience with Apache CouchDB document-oriented database","isRecommended":true,"targetLevel":"intermediate","targetDate":null,"createdAt":"2025-05-12T17:33:10.860Z","updatedAt":"2025-05-12T17:33:10.860Z","categoryId":2,"subcategoryId":76}
