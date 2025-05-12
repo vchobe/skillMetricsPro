@@ -259,34 +259,89 @@ export default function SkillManagementPage() {
   // Create skill template mutation
   const createTemplateMutation = useMutation({
     mutationFn: async (data: SkillTemplateValues) => {
-      console.log("Creating template with data:", data);
-      const res = await apiRequest("POST", "/api/admin/skill-templates", {
-        ...data,
-        categoryId: categories.find(c => c.name === data.category)?.id,
-        subcategoryId: subcategories.find(s => s.name === data.subcategory)?.id
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        console.error("Error creating template:", error);
-        throw new Error(error.message || "Failed to create template");
+      // Debug logging to trace the issue
+      console.log("🔍 UI TRACE: Creating template with form data:", JSON.stringify(data, null, 2));
+      console.log("🔍 UI TRACE: Selected category ID:", selectedTemplateCategoryId);
+      console.log("🔍 UI TRACE: Available subcategories:", JSON.stringify(templateSubcategories, null, 2));
+      
+      // Make sure we have valid category data
+      if (!data.category && !selectedTemplateCategoryId) {
+        console.error("❌ UI TRACE: Missing category data");
+        throw new Error("A category must be selected");
       }
-      return await res.json();
+      
+      // Attempt to get categoryId from either the selection or the categories list
+      let categoryId = selectedTemplateCategoryId;
+      if (!categoryId && data.category) {
+        const matchedCategory = dbCategories.find(c => 
+          c.name.toLowerCase() === data.category.toLowerCase()
+        );
+        
+        if (matchedCategory) {
+          categoryId = matchedCategory.id;
+          console.log(`✅ UI TRACE: Found category ID ${categoryId} for category name "${data.category}"`);
+        } else {
+          console.error(`❌ UI TRACE: Could not find category ID for category name "${data.category}"`);
+        }
+      }
+      
+      // Handle subcategory - corrected from previous mistake: subcategory -> subcategoryId
+      // The form should be using subcategoryId directly now
+      console.log(`🔍 UI TRACE: Preparing API request with category ID ${categoryId} and subcategory ID ${data.subcategoryId}`);
+      
+      // Prepare the payload with complete data
+      const apiPayload = {
+        ...data,
+        categoryId: categoryId || data.categoryId // Use selected ID or form data
+      };
+      
+      console.log("🔍 UI TRACE: Final API request payload:", JSON.stringify(apiPayload, null, 2));
+      
+      // Send the API request
+      const res = await apiRequest("POST", "/api/admin/skill-templates", apiPayload);
+      
+      // Handle errors
+      if (!res.ok) {
+        const errorText = await res.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+          console.error("❌ UI TRACE: API error response:", errorData);
+        } catch (parseError) {
+          console.error("❌ UI TRACE: API error (text):", errorText);
+          throw new Error("Failed to create template: " + errorText);
+        }
+        
+        throw new Error(errorData.message || errorData.error || "Failed to create template");
+      }
+      
+      // Parse successful response
+      const responseData = await res.json();
+      console.log("✅ UI TRACE: Template created successfully:", JSON.stringify(responseData, null, 2));
+      
+      return responseData;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("✅ UI TRACE: Template creation successful, invalidating queries");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
       // Also invalidate the admin skills query to refresh the skills section
       queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
       toast({
         title: "Success",
-        description: "Skill template created successfully",
+        description: `Skill template "${data.name}" created successfully`,
       });
       setShowTemplateDialog(false);
       templateForm.reset();
     },
     onError: (error: Error) => {
+      console.error("❌ UI TRACE: Template creation failed:", error);
+      console.error("❌ UI TRACE: Error message:", error.message);
+      console.error("❌ UI TRACE: Error stack:", error.stack);
+      
+      // Show user-friendly error message
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Error Creating Template",
+        description: error.message || "An unexpected error occurred. Please check the console for details.",
         variant: "destructive",
       });
     },
