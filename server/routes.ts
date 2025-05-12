@@ -4,8 +4,6 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { pool } from "./db";
 import * as schema from "@shared/schema";
-import path from "path";
-import fs from "fs";
 import { scheduleWeeklyReport, sendImmediateWeeklyReport } from "./email";
 import {
   insertSkillSchema,
@@ -89,16 +87,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
   
-  // Add a fallback route for when the Vite frontend doesn't load
-  app.get("/fallback", (req, res) => {
-    const indexPath = path.join(process.cwd(), "public", "index.html");
-    if (fs.existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      res.send("Fallback page not found. Check backend API endpoints directly.");
-    }
-  });
-  
   // Initialize weekly report scheduler
   scheduleWeeklyReport();
   
@@ -134,92 +122,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString(),
         database: "disconnected",
         environment: process.env.NODE_ENV || 'development',
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-  
-  // Special endpoint to test property mapping fixes
-  app.get("/api/property-mapping-test", async (req, res) => {
-    try {
-      // This endpoint demonstrates the bidirectional property mapping fix for skills
-      
-      // 1. Get example project skills that should be mapped with both legacy and new property names
-      const projectId = 1; // Get first project if available, or null if not
-      
-      let projectSkills = [];
-      try {
-        // Try to get project skills v2 first (should have bidirectional mapping)
-        const skillsV2 = await storage.getProjectSkillsV2(projectId);
-        if (skillsV2 && skillsV2.length > 0) {
-          projectSkills = skillsV2;
-        }
-      } catch (err) {
-        console.log("Could not retrieve project skills V2, will try V1", err);
-      }
-      
-      if (projectSkills.length === 0) {
-        try {
-          // Fall back to legacy project skills
-          const skillsV1 = await storage.getProjectSkills(projectId);
-          if (skillsV1 && skillsV1.length > 0) {
-            projectSkills = skillsV1;
-          }
-        } catch (err) {
-          console.log("Could not retrieve legacy project skills", err);
-        }
-      }
-      
-      // Gather status information about DB tables related to skills
-      const tableStatusQueries = [
-        { name: 'skills', query: 'SELECT COUNT(*) FROM skills' },
-        { name: 'user_skills', query: 'SELECT COUNT(*) FROM user_skills' },
-        { name: 'skill_templates', query: 'SELECT COUNT(*) FROM skill_templates' },
-        { name: 'project_skills', query: 'SELECT COUNT(*) FROM project_skills' },
-        { name: 'project_skills_v2', query: 'SELECT COUNT(*) FROM project_skills_v2' },
-        { name: 'skill_categories', query: 'SELECT COUNT(*) FROM skill_categories' },
-        { name: 'skill_subcategories', query: 'SELECT COUNT(*) FROM skill_subcategories' }
-      ];
-      
-      const tableStatus = {};
-      for (const { name, query } of tableStatusQueries) {
-        try {
-          const result = await pool.query(query);
-          tableStatus[name] = parseInt(result.rows[0].count);
-        } catch (err) {
-          tableStatus[name] = `Error: ${err.message}`;
-        }
-      }
-      
-      // Return detailed information
-      res.status(200).json({
-        message: "Property mapping test endpoint",
-        status: "ok",
-        timestamp: new Date().toISOString(),
-        bidirectional_mapping_active: true,
-        database_status: tableStatus,
-        example_skills: projectSkills.slice(0, 3).map(skill => {
-          // Create a special debug view showing the actual properties available
-          // This helps diagnose mapping issues
-          return {
-            id: skill.id,
-            legacy_properties: {
-              name: skill.name || "(not mapped)",
-              category: skill.category || "(not mapped)"
-            },
-            new_properties: {
-              skillName: skill.skillName || "(not mapped)",
-              skillCategory: skill.skillCategory || "(not mapped)"
-            },
-            requiredLevel: skill.requiredLevel,
-            all_properties: Object.keys(skill)
-          };
-        })
-      });
-    } catch (error) {
-      console.error("Property mapping test error:", error);
-      res.status(500).json({ 
-        message: "Property mapping test failed", 
         error: error instanceof Error ? error.message : String(error)
       });
     }
@@ -3451,9 +3353,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Make sure skillName and skillCategory are present (for frontend)
           skillName: skill.skillName || skill.name || "Unknown",
           skillCategory: skill.skillCategory || skill.category || "Uncategorized",
-          // Also ensure legacy field names are present for components that expect them
-          name: skill.skillName || skill.name || "Unknown",
-          category: skill.skillCategory || skill.category || "Uncategorized",
         };
       });
       
@@ -4254,18 +4153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Fetched ${projectSkills.length} legacy project skills`);
       }
       
-      // Process project skills to ensure consistent property names
-      projectSkills = projectSkills.map(skill => ({
-        ...skill,
-        // Ensure frontend compatibility with both naming conventions
-        skillName: skill.skillName || skill.name || "Unknown",
-        skillCategory: skill.skillCategory || skill.category || "Uncategorized",
-        name: skill.skillName || skill.name || "Unknown",
-        category: skill.skillCategory || skill.category || "Uncategorized"
-      }));
-      
       // Add debugging information
-      console.log("Sample project skill after processing:", projectSkills.length > 0 ? JSON.stringify(projectSkills[0]) : "No project skills found");
+      console.log("Sample project skill:", projectSkills.length > 0 ? JSON.stringify(projectSkills[0]) : "No project skills found");
 
       // Build the hierarchy: clients -> projects -> resources -> skills
       console.log("Building hierarchy data...");
@@ -4287,19 +4176,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return {
               ...project,
               // Add project skills with proper mapping for display
-              skills: projectRequiredSkills.map(skill => {
-                // Log the skill object to help with debugging
-                console.log("Processing skill for frontend:", JSON.stringify(skill)); 
-                return {
-                  ...skill,
-                  // Ensure these specific properties exist for the frontend
-                  skillName: skill.skillName || skill.name || "Unknown",
-                  skillCategory: skill.skillCategory || skill.category || "Uncategorized",
-                  // Also provide duplicate fields with the legacy names
-                  name: skill.skillName || skill.name || "Unknown",
-                  category: skill.skillCategory || skill.category || "Uncategorized"
-                };
-              }) || [],
+              skills: projectRequiredSkills.map(skill => ({
+                ...skill,
+                // Ensure these specific properties exist for the frontend
+                skillName: skill.skillName || skill.name || "Unknown",
+                skillCategory: skill.skillCategory || skill.category || "Uncategorized"
+              })) || [],
               resources: projectResources.map(resource => {
                 // Find the user for this resource
                 const user = users.find(u => u.id === resource.userId);
