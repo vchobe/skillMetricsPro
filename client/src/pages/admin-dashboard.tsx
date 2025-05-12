@@ -1121,19 +1121,85 @@ export default function AdminDashboard() {
     }
   });
   
+  // Create skill template mutation
+  const createTemplateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      console.log("🔍 CREATE TEMPLATE: Creating template with data:", JSON.stringify(data, null, 2));
+      const res = await apiRequest("POST", "/api/admin/skill-templates", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to create skill template");
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      console.log("✅ CREATE TEMPLATE: Success! Template created:", data);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
+      
+      toast({
+        title: "Success",
+        description: "Skill template created successfully",
+      });
+      
+      setShowTemplateDialog(false);
+      setEditingTemplate(null);
+    },
+    onError: (error: Error) => {
+      console.error("❌ CREATE TEMPLATE: Error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create skill template",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Update skill template mutation
+  const updateTemplateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { id, ...templateData } = data;
+      console.log("🔍 UPDATE TEMPLATE: Updating template with ID:", id, JSON.stringify(templateData, null, 2));
+      const res = await apiRequest("PATCH", `/api/admin/skill-templates/${id}`, templateData);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update skill template");
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      console.log("✅ UPDATE TEMPLATE: Success! Template updated:", data);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skill-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/skills"] });
+      
+      toast({
+        title: "Success",
+        description: "Skill template updated successfully",
+      });
+      
+      setShowTemplateDialog(false);
+      setEditingTemplate(null);
+    },
+    onError: (error: Error) => {
+      console.error("❌ UPDATE TEMPLATE: Error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update skill template",
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Submit handlers
   const onSubmitTemplate = (data: z.infer<typeof templateSchema>) => {
     // Handle template submission
     console.log("Template data:", data);
     
-    // Here you would integrate with your API to save the template
-    toast({
-      title: editingTemplate?.id ? "Template updated" : "Template created",
-      description: `The skill template has been ${editingTemplate?.id ? "updated" : "created"} successfully.`
-    });
-    
-    setShowTemplateDialog(false);
-    setEditingTemplate(null);
+    if (editingTemplate?.id) {
+      updateTemplateMutation.mutate({...data, id: editingTemplate.id});
+    } else {
+      createTemplateMutation.mutate(data);
+    }
   };
   
   const onSubmitTarget = (data: z.infer<typeof targetSchema>) => {
