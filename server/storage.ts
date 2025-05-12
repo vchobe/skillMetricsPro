@@ -2109,6 +2109,8 @@ export class PostgresStorage implements IStorage {
       let categoryName = template.category;
       let categoryId = template.categoryId;
 
+      console.log(`Initial create template data:`, JSON.stringify(template, null, 2));
+
       // If categoryId is provided but not category name, look up the category name
       if (categoryId && !categoryName) {
         const categoryResult = await pool.query(
@@ -2121,6 +2123,7 @@ export class PostgresStorage implements IStorage {
           console.log(`Found category name "${categoryName}" for categoryId ${categoryId}`);
         } else {
           console.warn(`Could not find category name for categoryId ${categoryId}`);
+          throw new Error(`Invalid categoryId: ${categoryId} - category not found`);
         }
       }
       // If category name is provided but not categoryId, look up the categoryId
@@ -2135,6 +2138,27 @@ export class PostgresStorage implements IStorage {
           console.log(`Found categoryId ${categoryId} for category name "${categoryName}"`);
         } else {
           console.warn(`Could not find categoryId for category name "${categoryName}"`);
+          throw new Error(`Invalid category name: ${categoryName} - category not found`);
+        }
+      }
+      
+      // Verify we have both categoryId and categoryName
+      if (!categoryId || !categoryName) {
+        throw new Error(`Missing required category information. Need either category name or categoryId.`);
+      }
+
+      // Verify subcategoryId is valid if provided
+      if (template.subcategoryId) {
+        const subcategoryResult = await pool.query(
+          'SELECT id, name FROM skill_subcategories WHERE id = $1 AND category_id = $2',
+          [template.subcategoryId, categoryId]
+        );
+        
+        if (subcategoryResult.rows.length === 0) {
+          console.warn(`Invalid subcategoryId ${template.subcategoryId} for category ${categoryId}`);
+          throw new Error(`Invalid subcategoryId: ${template.subcategoryId} - subcategory not found or doesn't belong to category ${categoryName}`);
+        } else {
+          console.log(`Verified subcategory: ${subcategoryResult.rows[0].name} (ID: ${template.subcategoryId})`);
         }
       }
 
@@ -2160,6 +2184,12 @@ export class PostgresStorage implements IStorage {
           template.targetDate || null
         ]
       );
+      
+      if (result.rows.length === 0) {
+        throw new Error('Failed to create skill template - no record returned');
+      }
+      
+      console.log(`Successfully created skill template with ID ${result.rows[0].id}`);
       return this.snakeToCamel(result.rows[0]);
     } catch (error) {
       console.error("Error creating skill template:", error);
