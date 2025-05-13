@@ -258,8 +258,17 @@ export default function ProjectDetailPage() {
   const { data: projectLeadData } = useQuery({
     queryKey: ["/api/user/is-project-lead", id],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/user/is-project-lead/${id}`);
-      return await res.json();
+      try {
+        const res = await apiRequest("GET", `/api/user/is-project-lead/${id}`);
+        if (!res.ok) {
+          throw new Error(`Failed to check project lead status: ${res.statusText}`);
+        }
+        return await res.json();
+      } catch (error) {
+        console.error("Error checking project lead status:", error);
+        // Default to no edit permissions if there's an error
+        return { canEdit: false, isSuperAdmin: false, isProjectLead: false };
+      }
     },
     enabled: !!user && !!id
   });
@@ -269,8 +278,12 @@ export default function ProjectDetailPage() {
     if (projectLeadData) {
       setCanEditProject(projectLeadData.canEdit);
       console.log("Project lead check result:", projectLeadData);
+    } else if (user?.email === "admin@atyeti.com") {
+      // Super admin fallback if API call fails but user is the super admin
+      setCanEditProject(true);
+      console.log("Super admin detected, enabling edit permissions");
     }
-  }, [projectLeadData]);
+  }, [projectLeadData, user]);
   
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [openEditProject, setOpenEditProject] = useState(false);
