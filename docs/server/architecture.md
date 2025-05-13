@@ -1,45 +1,76 @@
 # Server Architecture Documentation
 
-This document provides an overview of the server-side architecture of the Skills Management Platform.
-
-## Overview
-
-The Skills Management Platform uses a modern Node.js/Express.js backend architecture with PostgreSQL as the database. The server is built with TypeScript for type safety and uses the Drizzle ORM for database operations.
-
-## Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Client                               │
-│  (React.js, TanStack Query, React Hook Form, shadcn/ui)     │
-└───────────────────────────┬─────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Express.js Server                        │
-│                                                             │
-│  ┌─────────────┐    ┌────────────┐    ┌────────────────┐   │
-│  │  Routes     │◄──►│ Controllers│◄──►│ Storage Layer  │   │
-│  └─────────────┘    └────────────┘    └────────────────┘   │
-│                                                ▲            │
-│  ┌─────────────┐    ┌────────────┐             │           │
-│  │  Auth       │◄──►│ Middleware │             │           │
-│  └─────────────┘    └────────────┘             │           │
-│                                                │           │
-└───────────────────────────────────────────────┼───────────┘
-                                                │
-                                                ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     Drizzle ORM                             │
-└───────────────────────────┬─────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    PostgreSQL Database                      │
-└─────────────────────────────────────────────────────────────┘
-```
-
 ## Core Components
+
+### 1. Server Entry Point (`index.ts`)
+- Initializes Express application
+- Configures middleware
+- Sets up route handlers
+- Manages server startup
+- Handles Java backend detection and proxy setup
+
+### 2. Authentication (`auth.ts`)
+- Implements Passport.js strategies
+- Manages user sessions
+- Handles registration/login flows
+- Implements password reset functionality
+
+### 3. Storage Layer (`storage.ts`)
+- Provides database abstraction
+- Implements PostgreSQL operations
+- Handles data migrations
+- Manages relationships between entities
+
+### 4. Email System (`email.ts`)
+- Sends transactional emails
+- Manages email templates
+- Handles weekly reports
+- Provides fallback mechanisms
+
+### 5. Database (`db.ts`)
+- Configures database connection
+- Manages connection pool
+- Handles reconnection logic
+- Provides query helpers
+
+### 6. Routes (`routes.ts`)
+- Defines API endpoints
+- Implements request handlers
+- Manages authorization
+- Handles data validation
+
+## Data Flow
+1. Request arrives at server
+2. Authentication middleware validates
+3. Route handler processes request
+4. Storage layer performs database operations
+5. Response sent to client
+
+## Security Features
+- Password hashing with scrypt
+- Session management
+- CORS protection
+- Input validation
+- Role-based access control
+
+## Error Handling
+- Consistent error responses
+- Error logging
+- Fallback mechanisms
+- Transaction management
+
+## Monitoring
+- Request logging
+- Performance tracking
+- Error tracking
+- Health checks
+
+## Deployment
+- Cloud Run support
+- Environment configuration
+- Database migration handling
+- Health endpoint monitoring
+```
 
 ### Server Entry Point (`server/index.ts`)
 
@@ -383,6 +414,39 @@ export function serveStatic(app: Express) {
 }
 ```
 
+## Data Flow
+1. Request arrives at server
+2. Authentication middleware validates
+3. Route handler processes request
+4. Storage layer performs database operations
+5. Response sent to client
+
+## Security Features
+- Password hashing with scrypt
+- Session management
+- CORS protection
+- Input validation
+- Role-based access control
+
+## Error Handling
+- Consistent error responses
+- Error logging
+- Fallback mechanisms
+- Transaction management
+
+## Monitoring
+- Request logging
+- Performance tracking
+- Error tracking
+- Health checks
+
+## Deployment
+- Cloud Run support
+- Environment configuration
+- Database migration handling
+- Health endpoint monitoring
+```
+
 ## Request Flow
 
 1. **Client Request**: The client makes an HTTP request to an API endpoint
@@ -470,41 +534,3 @@ async createSkillWithHistory(skillData: InsertSkill, historyNote: string): Promi
     return skill[0];
   });
 }
-```
-
-## Performance Optimizations
-
-1. **Connection Pooling**: PostgreSQL connections are managed in a pool to reduce connection overhead
-2. **Query Optimization**: Drizzle ORM generates efficient SQL queries
-3. **Indexing**: Database tables use appropriate indexes for fast lookups
-4. **Caching**: Common queries can be cached to reduce database load
-5. **Rate Limiting**: API endpoints can be rate-limited to prevent abuse
-
-## Deployment Considerations
-
-1. **Environment Variables**: Configuration is handled via environment variables
-2. **Health Checks**: The server provides health check endpoints
-3. **Logging**: Structured logging for monitoring and debugging
-4. **Database Migrations**: Schema changes are applied using Drizzle migrations
-5. **Scalability**: The server is designed to be horizontally scalable
-
-## Security Measures
-
-1. **Password Hashing**: All passwords are hashed using bcrypt
-2. **HTTPS**: Production deployments use HTTPS for all traffic
-3. **CORS**: Cross-Origin Resource Sharing policies are enforced
-4. **Content Security Policy**: CSP headers are set to prevent XSS attacks
-5. **Rate Limiting**: Protects against brute force attacks
-6. **Input Validation**: All user input is validated before processing
-7. **Session Security**: Sessions are stored server-side with secure cookies
-
-## Testing
-
-The server components can be tested using:
-
-1. **Unit Tests**: Test individual functions and methods
-2. **Integration Tests**: Test interactions between components
-3. **API Tests**: Test API endpoints with simulated requests
-4. **Database Tests**: Test database operations with a test database
-
-For examples of test scripts, see the `/scripts` directory.
