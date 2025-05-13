@@ -912,7 +912,7 @@ export default function ProjectDetailPage() {
                                 {resource.endDate ? formatDate(resource.endDate) : "Not set"}
                               </TableCell>
                               <TableCell>
-                                {isAdmin && (
+                                {isAdmin && canEditProject && (
                                   <AlertDialog open={openRemoveResource === resource.id} onOpenChange={(isOpen) => {
                                     if (!isOpen) setOpenRemoveResource(null);
                                   }}>
@@ -1016,7 +1016,7 @@ export default function ProjectDetailPage() {
                                 </TableCell>
                                 <TableCell>{projectSkill.skillCategory || template?.category || "—"}</TableCell>
                                 <TableCell>
-                                  {isAdmin && (
+                                  {isAdmin && canEditProject && (
                                     <AlertDialog open={openRemoveSkill === projectSkill.id} onOpenChange={(isOpen) => {
                                       if (!isOpen) setOpenRemoveSkill(null);
                                     }}>
