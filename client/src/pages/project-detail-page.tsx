@@ -249,6 +249,28 @@ export default function ProjectDetailPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.isAdmin || user?.is_admin;
+  const isSuperAdmin = user?.email === "admin@atyeti.com";
+  
+  // State for project editing permissions
+  const [canEditProject, setCanEditProject] = useState<boolean>(false);
+  
+  // Query to check if the user is a project lead or super admin
+  const { data: projectLeadData } = useQuery({
+    queryKey: ["/api/user/is-project-lead", id],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/user/is-project-lead/${id}`);
+      return await res.json();
+    },
+    enabled: !!user && !!id
+  });
+  
+  // Update canEditProject when the data changes
+  useEffect(() => {
+    if (projectLeadData) {
+      setCanEditProject(projectLeadData.canEdit);
+      console.log("Project lead check result:", projectLeadData);
+    }
+  }, [projectLeadData]);
   
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [openEditProject, setOpenEditProject] = useState(false);
@@ -669,18 +691,26 @@ export default function ProjectDetailPage() {
               
               {isAdmin && (
                 <div className="flex space-x-2">
-                  <Button variant="outline" onClick={() => setOpenEditProject(true)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Project
-                  </Button>
-                  <Button onClick={() => setOpenAddResource(true)}>
-                    <Users className="mr-2 h-4 w-4" />
-                    Add Resource
-                  </Button>
-                  <Button variant="outline" onClick={() => setOpenAddSkill(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Skill
-                  </Button>
+                  {canEditProject ? (
+                    <>
+                      <Button variant="outline" onClick={() => setOpenEditProject(true)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit Project
+                      </Button>
+                      <Button onClick={() => setOpenAddResource(true)}>
+                        <Users className="mr-2 h-4 w-4" />
+                        Add Resource
+                      </Button>
+                      <Button variant="outline" onClick={() => setOpenAddSkill(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Skill
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground italic">
+                      Only project leads or super admins can edit projects
+                    </div>
+                  )}
                 </div>
               )}
             </div>

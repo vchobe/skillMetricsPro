@@ -285,7 +285,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // URL pattern: /api/projects/skills/:id
       else if (req.path.match(/^\/api\/projects\/skills\/\d+$/)) {
         try {
-          const skill = await storage.getProjectSkill(pathId);
+          // Get all project skills
+          const projectSkills = await storage.getAllProjectSkills();
+          // Find the one with the matching ID
+          const skill = projectSkills.find(s => s.id === pathId);
           if (skill) {
             projectId = skill.projectId;
           }
@@ -433,6 +436,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("[APPROVER CHECK] Error checking approver status:", error);
       res.status(500).json({ 
         message: "Error checking approver status", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Check if current user is a project lead for a specific project
+  app.get("/api/user/is-project-lead/:projectId", ensureAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      if (isNaN(projectId)) {
+        return res.status(400).json({ message: "Invalid project ID" });
+      }
+      
+      const userId = req.user!.id;
+      const userEmail = req.user?.email || 'unknown';
+      
+      console.log(`[PROJECT LEAD CHECK] Checking if user ${userId} (${userEmail}) is a project lead for project ${projectId}...`);
+      
+      // Check if user is a super admin first (they can do everything)
+      const isSuperAdmin = req.user!.email === "admin@atyeti.com";
+      
+      // Check if user is a regular admin (to distinguish in frontend)
+      const isAdmin = isUserAdmin(req.user) || await checkIsUserAdminDirectly(userId);
+      
+      // Check if user is a project lead for this project
+      const isLead = await isUserProjectLead(userId, projectId);
+      
+      // A user has edit permissions if they are either a super admin or a project lead
+      const canEdit = isSuperAdmin || isLead;
+      
+      console.log(`[PROJECT LEAD CHECK] Result for user ${userId} (${userEmail}): isSuperAdmin=${isSuperAdmin}, isAdmin=${isAdmin}, isProjectLead=${isLead}, canEdit=${canEdit}`);
+      
+      return res.json({ 
+        isProjectLead: isLead,
+        isAdmin: isAdmin,
+        isSuperAdmin: isSuperAdmin,
+        canEdit: canEdit
+      });
+    } catch (error) {
+      console.error(`[PROJECT LEAD CHECK] Error checking project lead status:`, error);
+      res.status(500).json({ 
+        message: "Failed to check project lead status", 
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
