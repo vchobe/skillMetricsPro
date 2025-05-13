@@ -20,7 +20,7 @@ ORIGINAL_SERVICE_NAME="skillmetrics" # Set desired Cloud Run service name
 SERVICE_NAME_LOWER=$(echo "${ORIGINAL_SERVICE_NAME}" | tr '[:upper:]' '[:lower:]')
 # Create a CONSISTENT SQL instance name based on the lowercase service name
 SQL_INSTANCE_NAME="${SERVICE_NAME_LOWER}-db"
-DB_NAME="appdb"
+DB_NAME="neondb"
 # You can set a specific user, or let the script generate one
 DB_USER="app_user"
 # Artifact Registry repo name (must be lowercase)
@@ -42,9 +42,9 @@ SQL_INSTANCE_CONNECTION_NAME="${PROJECT_ID}:${REGION}:${SQL_INSTANCE_NAME}"
 # --- Database Passwords Configuration ---
 # Use environment variable if provided, otherwise generate a secure password
 # IMPORTANT: For production, prefer setting the DB_PASSWORD environment variable
-# before running this script, or use Secret Manager to fetch passwords
+# before running this script, or use Secret Manager to fetch EjsUgkhcd/bD3kdibkXMAw
 DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-$(openssl rand -base64 16)}
-DB_PASSWORD=${DB_PASSWORD:-$(openssl rand -base64 16)}
+DB_PASSWORD=""
 
 # Print information about password source
 if [ -n "${DB_PASSWORD+x}" ] && [ -n "$DB_PASSWORD" ]; then
@@ -138,12 +138,7 @@ if ! gcloud sql users list --instance=$SQL_INSTANCE_NAME --project=$PROJECT_ID -
         --instance=$SQL_INSTANCE_NAME \
         --password=$DB_PASSWORD \
         --project=$PROJECT_ID
-else
-    echo "   Database user '$DB_USER' already exists. Setting/Updating password..."
-    gcloud sql users set-password $DB_USER --host=% \
-        --instance=$SQL_INSTANCE_NAME \
-        --password=$DB_PASSWORD \
-        --project=$PROJECT_ID
+
 fi
 
 # 5. Create Artifact Registry Docker Repository (if it doesn't exist)
