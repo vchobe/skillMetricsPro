@@ -253,21 +253,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     if (isAdmin) {
       // Admin users can access all projects
+      console.log(`Access granted - User ${userId} is an administrator`);
       return next();
     }
     
-    // If not admin, check if they're a project lead for this project
-    // Get the project ID from the request parameters
-    const projectId = parseInt(req.params.id);
+    // If not admin, get the project ID based on the URL pattern
+    let projectId: number | null = null;
     
-    if (isNaN(projectId)) {
+    if (req.params.id) {
+      const pathId = parseInt(req.params.id);
+      
+      // URL pattern: /api/projects/:id
+      if (req.path.match(/^\/api\/projects\/\d+$/)) {
+        projectId = pathId;
+      } 
+      // URL pattern: /api/projects/:id/resources or /api/projects/:id/skills
+      else if (req.path.match(/^\/api\/projects\/\d+\/(resources|skills)$/)) {
+        projectId = pathId;
+      }
+      // URL pattern: /api/projects/resources/:id
+      else if (req.path.match(/^\/api\/projects\/resources\/\d+$/)) {
+        try {
+          const resource = await storage.getProjectResource(pathId);
+          if (resource) {
+            projectId = resource.projectId;
+          }
+        } catch (error) {
+          console.error(`Error getting project resource ${pathId}:`, error);
+        }
+      }
+      // URL pattern: /api/projects/skills/:id
+      else if (req.path.match(/^\/api\/projects\/skills\/\d+$/)) {
+        try {
+          const skill = await storage.getProjectSkill(pathId);
+          if (skill) {
+            projectId = skill.projectId;
+          }
+        } catch (error) {
+          console.error(`Error getting project skill ${pathId}:`, error);
+        }
+      }
+    }
+    
+    if (!projectId) {
+      console.log("Could not determine project ID from request path:", req.path);
       return res.status(400).json({ 
-        message: "Invalid project ID", 
-        details: "The project ID must be a valid number",
-        errorCode: "INVALID_PROJECT_ID"
+        message: "Invalid request", 
+        details: "Could not determine which project this request applies to",
+        errorCode: "INVALID_PROJECT_REQUEST"
       });
     }
     
+    // Check if the user is a project lead for this project
     const isProjectLead = await isUserProjectLead(userId, projectId);
     
     if (!isProjectLead) {
@@ -3463,7 +3500,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/projects/:id", ensureAdmin, async (req, res) => {
+  app.patch("/api/projects/:id", ensureAdminOrProjectLead, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const project = await storage.getProject(projectId);
@@ -3512,7 +3549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects/:id/resources", ensureAdmin, async (req, res) => {
+  app.post("/api/projects/:id/resources", ensureAdminOrProjectLead, async (req, res) => {
     try {
       console.log("Project resource creation request body:", JSON.stringify(req.body, null, 2));
       
@@ -3571,7 +3608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/projects/resources/:id", ensureAdmin, async (req, res) => {
+  app.delete("/api/projects/resources/:id", ensureAdminOrProjectLead, async (req, res) => {
     try {
       const resourceId = parseInt(req.params.id);
       const resource = await storage.getProjectResource(resourceId);
@@ -3656,7 +3693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects/:id/skills", ensureAdmin, async (req, res) => {
+  app.post("/api/projects/:id/skills", ensureAdminOrProjectLead, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const project = await storage.getProject(projectId);
@@ -3696,7 +3733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/projects/skills/:id", ensureAdmin, async (req, res) => {
+  app.delete("/api/projects/skills/:id", ensureAdminOrProjectLead, async (req, res) => {
     try {
       const projectSkillId = parseInt(req.params.id);
       if (isNaN(projectSkillId)) {
