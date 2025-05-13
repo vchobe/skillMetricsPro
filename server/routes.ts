@@ -74,6 +74,22 @@ function isUserAdmin(user: any): boolean {
   return false;
 }
 
+// Helper function to check if a user is a project lead for a specific project
+async function isUserProjectLead(userId: number, projectId: number): Promise<boolean> {
+  if (!userId || !projectId) return false;
+  
+  try {
+    const project = await storage.getProject(projectId);
+    if (!project) return false;
+    
+    // Check if user is either the lead or delivery lead for this project
+    return project.leadId === userId || project.deliveryLeadId === userId;
+  } catch (error) {
+    console.error(`Error checking if user ${userId} is a project lead for project ${projectId}:`, error);
+    return false;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Import project-related schemas for validation
   const { 
@@ -217,6 +233,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     console.log("Admin check passed for user:", req.user?.email || req.user?.username);
+    next();
+  };
+  
+  // Middleware to ensure user is either admin or project lead for a specific project
+  const ensureAdminOrProjectLead = async (req: Request, res: Response, next: Function) => {
+    if (!req.isAuthenticated()) {
+      console.log("Admin/Project Lead check failed - user not authenticated");
+      return res.status(403).json({ 
+        message: "Authentication required", 
+        details: "You must be logged in to access this resource",
+        errorCode: "AUTH_REQUIRED"
+      });
+    }
+    
+    // Check if the user is an admin first (fastest path)
+    const userId = req.user!.id;
+    const isAdmin = isUserAdmin(req.user) || await checkIsUserAdminDirectly(userId);
+    
+    if (isAdmin) {
+      // Admin users can access all projects
+      return next();
+    }
+    
+    // If not admin, check if they're a project lead for this project
+    // Get the project ID from the request parameters
+    const projectId = parseInt(req.params.id);
+    
+    if (isNaN(projectId)) {
+      return res.status(400).json({ 
+        message: "Invalid project ID", 
+        details: "The project ID must be a valid number",
+        errorCode: "INVALID_PROJECT_ID"
+      });
+    }
+    
+    const isProjectLead = await isUserProjectLead(userId, projectId);
+    
+    if (!isProjectLead) {
+      console.log(`Access denied - User ${userId} is neither admin nor project lead for project ${projectId}`);
+      return res.status(403).json({ 
+        message: "Access denied", 
+        details: "You must be an administrator or project lead to access this resource",
+        errorCode: "PROJECT_LEAD_REQUIRED"
+      });
+    }
+    
+    // User is a project lead for this project
+    console.log(`Access granted - User ${userId} is a project lead for project ${projectId}`);
     next();
   };
   
