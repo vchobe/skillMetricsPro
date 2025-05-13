@@ -529,14 +529,14 @@ export default function ProjectsPage() {
                           name="deliveryLeadId"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Delivery Lead</FormLabel>
+                              <FormLabel>Client Engagement Lead</FormLabel>
                               <FormControl>
                                 <Select
                                   onValueChange={(value) => field.onChange(value === "null" ? null : value ? parseInt(value) : null)}
                                   defaultValue={field.value === null ? "null" : field.value?.toString() || undefined}
                                 >
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Select delivery lead" />
+                                    <SelectValue placeholder="Select client engagement lead" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="null">None</SelectItem>
