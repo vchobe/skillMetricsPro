@@ -192,12 +192,12 @@ export function setupAuth(app: Express) {
         if (!user) {
           return done(null, false, { message: 'Incorrect email.' });
         }
-        
+
         const passwordMatch = await comparePasswords(password, user.password);
         if (!passwordMatch) {
           return done(null, false, { message: 'Incorrect password.' });
         }
-        
+
         return done(null, user);
       } catch (error) {
         return done(error);
@@ -268,7 +268,7 @@ export async function registerRoutes(app: Express) {
       passport.authenticate('local', (err, user, info) => {
         if (err) return next(err);
         if (!user) return res.status(401).json({ error: info.message });
-        
+
         req.logIn(user, (err) => {
           if (err) return next(err);
           return res.json(user);
@@ -287,12 +287,12 @@ export async function registerRoutes(app: Express) {
       if (existingUserByEmail) {
         return res.status(409).json({ error: 'Email already registered' });
       }
-      
+
       const existingUserByUsername = await storage.getUserByUsername(validatedInput.username);
       if (existingUserByUsername) {
         return res.status(409).json({ error: 'Username already taken' });
       }
-      
+
       // Create new user
       const newUser = await storage.createUser({
         username: validatedInput.username,
@@ -303,7 +303,7 @@ export async function registerRoutes(app: Express) {
         role: validatedInput.role,
         location: validatedInput.location
       });
-      
+
       req.logIn(newUser, (err) => {
         if (err) throw err;
         return res.status(201).json(newUser);
@@ -397,19 +397,19 @@ export async function setupVite(app: Express, server: any) {
 export function serveStatic(app: Express) {
   const publicDir = path.resolve(process.cwd(), 'client/dist');
   const indexPath = path.join(publicDir, 'index.html');
-  
+
   // Serve static files
   app.use(express.static(publicDir));
-  
+
   // Serve index.html for all routes not handled by the API
   app.get('*', (req: Request, res: Response, next: NextFunction) => {
     if (req.path.startsWith('/api')) {
       return next();
     }
-    
+
     res.sendFile(indexPath);
   });
-  
+
   log("Static file serving initialized", "express");
 }
 ```
@@ -496,16 +496,16 @@ The server implements centralized error handling:
 // Global error handler middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err);
-  
+
   // Determine appropriate status code
   const statusCode = err.statusCode || 500;
-  
+
   // Format error response
   const errorResponse = {
     error: err.message || 'Internal Server Error',
     details: process.env.NODE_ENV === 'development' ? err.stack : undefined
   };
-  
+
   res.status(statusCode).json(errorResponse);
 });
 ```
@@ -520,7 +520,7 @@ async createSkillWithHistory(skillData: InsertSkill, historyNote: string): Promi
   return db.transaction(async (tx) => {
     // Create the skill
     const skill = await tx.insert(skills).values(skillData).returning();
-    
+
     // Create an entry in skill history
     await tx.insert(skillHistories).values({
       skillId: skill[0].id,
@@ -530,7 +530,54 @@ async createSkillWithHistory(skillData: InsertSkill, historyNote: string): Promi
       date: new Date(),
       note: historyNote
     });
-    
+
     return skill[0];
   });
 }
+```
+
+## Security Analysis
+
+### Authentication & Authorization
+- Password hashing using scrypt with salt
+- Session management with secure cookies
+- Role-based access control (Admin, Approver, User)
+- Email domain restrictions (@atyeti.com)
+- Session timeout controls
+- Protected API endpoints
+
+### Data Security
+- Input validation using Zod schemas
+- SQL injection prevention via parameterized queries
+- XSS protection through React escaping
+- CSRF protection via session tokens
+- Sensitive data redaction in logs
+- Secure password reset flow
+
+### Infrastructure Security
+- CORS configuration for API endpoints
+- Rate limiting on authentication endpoints
+- Secure headers configuration
+- Environment variable protection
+- Database connection encryption
+- Regular security audits
+
+### Areas for Improvement
+- Implement API key rotation
+- Add request body size limits
+- Enable strict transport security
+- Implement IP-based blocking
+- Add automated security testing
+- Enhance password requirements
+
+## Conclusion
+
+The codebase is generally well-structured but would benefit from:
+1. Better modularization of the routes
+2. Standardized error handling
+3. Consolidated schema definitions
+4. Improved frontend state management
+5. Additional automated testing
+6. Enhanced security controls
+
+The core architecture is solid and provides a good foundation for future improvements. The main focus should be on reducing complexity in the routes.ts file and standardizing patterns across the codebase.
