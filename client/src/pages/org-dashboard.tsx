@@ -164,6 +164,13 @@ export default function OrgDashboard() {
     enabled: isAdmin, // Only run this query for admin users
   });
   
+  // Get all skill history across organization (public data, accessible to all users)
+  // This provides a fallback for non-admin users to see public activity
+  const { data: publicSkillHistory, isLoading: isLoadingPublicHistory } = useQuery<any[]>({
+    queryKey: ["/api/org/skills/history"],
+    enabled: !isAdmin, // Only run this query for non-admin users
+  });
+  
   // Fetch all clients for dropdown
   const { data: clients = [], isLoading: isLoadingClients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
@@ -403,9 +410,9 @@ export default function OrgDashboard() {
     }));
   };
   
-  // For non-admins, we don't need to wait for the admin history data
+  // For non-admins, we use the public history data instead of admin history
   const isLoading = isLoadingUsers || isLoadingSkills || 
-                    (isAdmin && isLoadingHistory) || // Only include history loading for admins
+                    (isAdmin ? isLoadingHistory : isLoadingPublicHistory) || // Different loading states based on user role
                     isLoadingClients || isLoadingProjects;
 
   return (
@@ -1339,23 +1346,20 @@ export default function OrgDashboard() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Organization Activity</CardTitle>
-                      <CardDescription>Recent skill updates and certifications across the organization</CardDescription>
+                      <CardDescription>
+                        {isAdmin 
+                          ? "Complete activity history across the organization"
+                          : "Recent skill updates and certifications visible to everyone"}
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {!isAdmin ? (
-                        <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                          <BadgeCheck className="w-12 h-12 text-muted-foreground mb-4" />
-                          <h3 className="font-medium text-lg mb-2">Admin Access Required</h3>
-                          <p className="text-muted-foreground max-w-md mb-6">
-                            The detailed activity log is only accessible to administrators. 
-                            Please contact an administrator if you need this information.
-                          </p>
-                        </div>
-                      ) : isLoadingHistory ? (
+                      {/* Loading state for either admin or non-admin history */}
+                      {(isAdmin && isLoadingHistory) || (!isAdmin && isLoadingPublicHistory) ? (
                         <div className="flex justify-center py-8">
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
-                      ) : !skillHistoryData || skillHistoryData.length === 0 ? (
+                      ) : (isAdmin && (!skillHistoryData || skillHistoryData.length === 0)) || 
+                           (!isAdmin && (!publicSkillHistory || publicSkillHistory.length === 0)) ? (
                         <div className="text-center py-8 text-muted-foreground">
                           No recent activity.
                         </div>
@@ -1363,7 +1367,13 @@ export default function OrgDashboard() {
                         <div>
                           {/* Create formatted activity items for the feed */}
                           {(() => {
-                            const activityItems: ActivityItem[] = skillHistoryData.map((history: any) => ({
+                            // Use the appropriate data source based on user role
+                            const historySource = isAdmin 
+                              ? (skillHistoryData || []) 
+                              : (publicSkillHistory || []);
+                            
+                            // Safe mapping with type checking
+                            const activityItems: ActivityItem[] = historySource.map((history: any) => ({
                               id: history.id,
                               type: history.previousLevel || history.previous_level ? "update" : "add",
                               skillId: history.skillId || history.skill_id,
@@ -1378,13 +1388,34 @@ export default function OrgDashboard() {
                             }));
                             
                             return (
-                              <ActivityFeed 
-                                activities={activityItems} 
-                                skills={allSkills || []} 
-                                showAll={true}
-                                isPersonal={false}
-                                users={users || []}
-                              />
+                              <>
+                                {/* Information message for non-admin users */}
+                                {!isAdmin && (
+                                  <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                    <div className="flex">
+                                      <div className="flex-shrink-0">
+                                        <BadgeCheck className="h-5 w-5 text-blue-500" />
+                                      </div>
+                                      <div className="ml-3">
+                                        <h3 className="text-sm font-medium text-blue-800">
+                                          Limited Activity View
+                                        </h3>
+                                        <div className="mt-1 text-sm text-blue-700">
+                                          You're viewing the public activity feed. Administrators can see additional details.
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                <ActivityFeed 
+                                  activities={activityItems} 
+                                  skills={allSkills || []} 
+                                  showAll={true}
+                                  isPersonal={false}
+                                  users={users || []}
+                                />
+                              </>
                             );
                           })()}
                         </div>
