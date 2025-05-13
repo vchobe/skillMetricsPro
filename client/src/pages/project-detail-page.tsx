@@ -784,7 +784,7 @@ export default function ProjectDetailPage() {
                     <span className="font-medium">Project Lead:</span> {getUserName(project.leadId)}
                   </p>
                   <p className="text-md">
-                    <span className="font-medium">Delivery Lead:</span> {getUserName(project.deliveryLeadId)}
+                    <span className="font-medium">Client Engagement Lead:</span> {getUserName(project.deliveryLeadId)}
                   </p>
                 </CardContent>
               </Card>
@@ -1326,14 +1326,14 @@ export default function ProjectDetailPage() {
                   name="deliveryLeadId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Delivery Lead</FormLabel>
+                      <FormLabel>Client Engagement Lead</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(value === "none" ? null : parseInt(value))}
                         value={field.value !== null && field.value !== undefined ? field.value.toString() : "none"}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select delivery lead" />
+                            <SelectValue placeholder="Select client engagement lead" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
