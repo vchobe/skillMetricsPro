@@ -4367,6 +4367,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Check if current user is a project lead for a specific project
+  app.get("/api/user/is-project-lead/:projectId", ensureAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      if (isNaN(projectId)) {
+        return res.status(400).json({ message: "Invalid project ID" });
+      }
+      
+      const userId = req.user!.id;
+      const userEmail = req.user?.email || 'unknown';
+      
+      console.log(`[PROJECT LEAD CHECK] Checking if user ${userId} (${userEmail}) is a project lead for project ${projectId}...`);
+      
+      // Check if user is a super admin first (they can do everything)
+      const isSuperAdmin = req.user!.email === "admin@atyeti.com";
+      
+      // Check if user is a regular admin (to distinguish in frontend)
+      const isAdmin = isUserAdmin(req.user);
+      
+      // Check if user is a project lead for this project
+      const isProjectLead = await isUserProjectLead(userId, projectId);
+      
+      // A user has edit permissions if they are either a super admin or a project lead
+      const canEdit = isSuperAdmin || isProjectLead;
+      
+      console.log(`[PROJECT LEAD CHECK] Results for user ${userId}: isSuperAdmin=${isSuperAdmin}, isAdmin=${isAdmin}, isProjectLead=${isProjectLead}, canEdit=${canEdit}`);
+      
+      res.json({ 
+        canEdit,
+        isSuperAdmin,
+        isAdmin,
+        isProjectLead
+      });
+    } catch (error) {
+      console.error(`Error checking if user is project lead:`, error);
+      res.status(500).json({ message: "Failed to check project lead status", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+  
   // Check if current user can approve a skill in a specific subcategory
   app.get("/api/can-approve/:categoryId/:subcategoryId", ensureAuth, async (req, res) => {
     try {
