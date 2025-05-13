@@ -254,6 +254,12 @@ export default function ProjectDetailPage() {
   // State for project editing permissions
   const [canEditProject, setCanEditProject] = useState<boolean>(false);
   
+  // Function to transform role name for display (UI only change)
+  const getDisplayRoleName = (roleName: string | null | undefined): string => {
+    if (!roleName) return "—";
+    return roleName === "Delivery Lead" ? "Client Engagement Lead" : roleName;
+  };
+  
   // Query to check if the user is a project lead or super admin
   const { data: projectLeadData } = useQuery({
     queryKey: ["/api/user/is-project-lead", id],
@@ -916,7 +922,9 @@ export default function ProjectDetailPage() {
                           {resources.map((resource: ProjectResource) => (
                             <TableRow key={resource.id}>
                               <TableCell className="font-medium">{getUserName(resource.userId)}</TableCell>
-                              <TableCell>{resource.role || "—"}</TableCell>
+                              <TableCell>
+                                {getDisplayRoleName(resource.role)}
+                              </TableCell>
                               <TableCell>{resource.allocation || 100}%</TableCell>
                               <TableCell>
                                 {resource.startDate ? formatDate(resource.startDate) : "Not set"}
@@ -1139,11 +1147,11 @@ export default function ProjectDetailPage() {
                               </TableCell>
                               <TableCell>
                                 {history.action === 'added' && 
-                                  `Role: ${history.newRole || "N/A"}, Allocation: ${history.newAllocation || 0}%`}
+                                  `Role: ${getDisplayRoleName(history.newRole)}, Allocation: ${history.newAllocation || 0}%`}
                                 {history.action === 'removed' && 
-                                  `Previous role: ${history.previousRole || "N/A"}`}
+                                  `Previous role: ${getDisplayRoleName(history.previousRole)}`}
                                 {history.action === 'role_changed' && 
-                                  `${history.previousRole || "None"} → ${history.newRole || "None"}`}
+                                  `${getDisplayRoleName(history.previousRole)} → ${getDisplayRoleName(history.newRole)}`}
                                 {history.action === 'allocation_changed' && 
                                   `${history.previousAllocation || 0}% → ${history.newAllocation || 0}%`}
                                 {history.note && `: ${history.note}`}
@@ -1493,7 +1501,7 @@ export default function ProjectDetailPage() {
                   <FormItem>
                     <FormLabel>Role</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="e.g. Developer, QA Engineer, Designer" />
+                      <Input {...field} placeholder="e.g. Developer, Client Engagement Lead, Designer" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
