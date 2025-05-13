@@ -617,9 +617,20 @@ export default function ProjectDetailPage() {
     updateProject.mutate(data);
   };
   
+  // Function to convert UI role names back to backend role names
+  const getBackendRoleName = (roleName: string | null | undefined): string | null | undefined => {
+    if (!roleName) return roleName;
+    return roleName === "Client Engagement Lead" ? "Delivery Lead" : roleName;
+  };
+
   // Handle add resource form submission
   const onAddResourceSubmit = (data: ResourceFormValues) => {
-    addResource.mutate(data);
+    // Convert UI role name to backend role name
+    const submissionData = {
+      ...data,
+      role: getBackendRoleName(data.role)
+    };
+    addResource.mutate(submissionData);
   };
   
   // Handle add project skill form submission
