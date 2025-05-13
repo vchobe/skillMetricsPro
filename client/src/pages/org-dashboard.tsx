@@ -155,9 +155,13 @@ export default function OrgDashboard() {
     queryKey: ["/api/all-skills"],
   });
   
-  // Get all skill history across organization
+  // Determine if user is admin
+  const isAdmin = user?.is_admin === true || user?.isAdmin === true;
+  
+  // Get all skill history across organization (only for admins)
   const { data: skillHistoryData, isLoading: isLoadingHistory } = useQuery<any[]>({
     queryKey: ["/api/admin/skill-history"],
+    enabled: isAdmin, // Only run this query for admin users
   });
   
   // Fetch all clients for dropdown
@@ -399,7 +403,10 @@ export default function OrgDashboard() {
     }));
   };
   
-  const isLoading = isLoadingUsers || isLoadingSkills || isLoadingHistory || isLoadingClients || isLoadingProjects;
+  // For non-admins, we don't need to wait for the admin history data
+  const isLoading = isLoadingUsers || isLoadingSkills || 
+                    (isAdmin && isLoadingHistory) || // Only include history loading for admins
+                    isLoadingClients || isLoadingProjects;
 
   return (
     <div className="min-h-screen flex">
@@ -1335,7 +1342,16 @@ export default function OrgDashboard() {
                       <CardDescription>Recent skill updates and certifications across the organization</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {isLoadingHistory ? (
+                      {!isAdmin ? (
+                        <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                          <BadgeCheck className="w-12 h-12 text-muted-foreground mb-4" />
+                          <h3 className="font-medium text-lg mb-2">Admin Access Required</h3>
+                          <p className="text-muted-foreground max-w-md mb-6">
+                            The detailed activity log is only accessible to administrators. 
+                            Please contact an administrator if you need this information.
+                          </p>
+                        </div>
+                      ) : isLoadingHistory ? (
                         <div className="flex justify-center py-8">
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
