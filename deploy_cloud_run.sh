@@ -39,11 +39,19 @@ fi
 # Use the valid, lowercase SQL instance name for the connection string
 SQL_INSTANCE_CONNECTION_NAME="${PROJECT_ID}:${REGION}:${SQL_INSTANCE_NAME}"
 
-# --- Generate Secure Passwords ---
-# IMPORTANT: These passwords are regenerated on each run and reset for existing users/instances.
-# For production, store passwords securely (e.g., Secret Manager) and fetch them here.
-DB_ROOT_PASSWORD=$(openssl rand -base64 16)
-DB_PASSWORD=$(openssl rand -base64 16)
+# --- Database Passwords Configuration ---
+# Use environment variable if provided, otherwise generate a secure password
+# IMPORTANT: For production, prefer setting the DB_PASSWORD environment variable
+# before running this script, or use Secret Manager to fetch passwords
+DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-$(openssl rand -base64 16)}
+DB_PASSWORD=${DB_PASSWORD:-$(openssl rand -base64 16)}
+
+# Print information about password source
+if [ -n "${DB_PASSWORD+x}" ] && [ -n "$DB_PASSWORD" ]; then
+  echo "Using provided DB_PASSWORD from environment variable"
+else
+  echo "No DB_PASSWORD environment variable found, generated a random password"
+fi
 
 # Database URL format for Cloud Run environment (uses PostgreSQL socket connection)
 # Format the PostgreSQL connection string correctly for Cloud Run socket connection
@@ -62,6 +70,23 @@ echo "Database User:                ${DB_USER}"
 echo "Artifact Registry Repo:       ${AR_REPO_NAME}"
 echo "Artifact Registry Image:      ${AR_IMAGE_NAME}"
 echo "Cloud Build Config:           ${CLOUDBUILD_CONFIG}"
+
+echo ""
+echo "--- Required Environment Variables ---"
+echo "The following environment variables can be set before running this script:"
+echo "  - DB_PASSWORD: Database user password (will be generated if not provided)"
+echo "  - DB_ROOT_PASSWORD: Database root password (will be generated if not provided)"
+echo "  - MAILJET_API_KEY: For email functionality (uses default if not provided)"
+echo "  - MAILJET_SECRET_KEY: For email functionality (uses default if not provided)"
+echo ""
+echo "--- Database Connection Environment Variables ---"
+echo "The following environment variables will be set in Cloud Run:"
+echo "  - CLOUD_SQL_CONNECTION_NAME: ${SQL_INSTANCE_CONNECTION_NAME}"
+echo "  - CLOUD_SQL_USER: ${DB_USER}"
+echo "  - CLOUD_SQL_DATABASE: ${DB_NAME}"
+echo "  - CLOUD_SQL_PASSWORD: <from DB_PASSWORD environment variable or generated>"
+echo "  - CLOUD_SQL_HOST: /cloudsql/${SQL_INSTANCE_CONNECTION_NAME} (socket path)"
+echo ""
 echo "--- Starting Deployment ---"
 
 # 1. Enable Necessary APIs
@@ -152,10 +177,15 @@ echo "Using Mailjet credentials:"
 echo "  API Key: ${MAILJET_API_KEY}"
 echo "  Secret Key: ${MAILJET_SECRET_KEY}"
 
-# Build the environment variables string
-ENV_VARS="NODE_ENV=production,HOST=0.0.0.0,DATABASE_URL=${DATABASE_URL_CLOUD_RUN},MAILJET_API_KEY=${MAILJET_API_KEY},MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY}"
+# Build the environment variables string with both DATABASE_URL and explicit Cloud SQL connection variables
+ENV_VARS="NODE_ENV=production,HOST=0.0.0.0,DATABASE_URL=${DATABASE_URL_CLOUD_RUN},MAILJET_API_KEY=${MAILJET_API_KEY},MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY},CLOUD_SQL_CONNECTION_NAME=${SQL_INSTANCE_CONNECTION_NAME},CLOUD_SQL_USER=${DB_USER},CLOUD_SQL_PASSWORD=${DB_PASSWORD},CLOUD_SQL_DATABASE=${DB_NAME},CLOUD_SQL_HOST=/cloudsql/${SQL_INSTANCE_CONNECTION_NAME},CLOUD_SQL_PORT=5432"
 
 echo "Mailjet credentials will be included in deployment."
+echo "Database connection parameters:"
+echo "  CLOUD_SQL_CONNECTION_NAME: ${SQL_INSTANCE_CONNECTION_NAME}"
+echo "  CLOUD_SQL_USER: ${DB_USER}"
+echo "  CLOUD_SQL_DATABASE: ${DB_NAME}"
+echo "  CLOUD_SQL_HOST: /cloudsql/${SQL_INSTANCE_CONNECTION_NAME}"
 
 # Notice about PORT variable
 echo "Note: Not setting PORT environment variable as Cloud Run provides this automatically."
@@ -277,7 +307,17 @@ echo "Service URL:                ${SERVICE_URL}"
 echo "Cloud SQL Instance:         ${SQL_INSTANCE_NAME}"
 echo "Database Name:              ${DB_NAME}"
 echo "Database User:              ${DB_USER}"
-echo "Database User Password:     ${DB_PASSWORD} (Keep this safe! Reset on next run)"
-echo "Database **ROOT** Password: ${DB_ROOT_PASSWORD} (KEEP THIS SAFE! Reset on next run)"
+echo "Database User Password:     ${DB_PASSWORD} (Keep this safe! Reset on next run unless provided as env var)"
+echo "Database **ROOT** Password: ${DB_ROOT_PASSWORD} (KEEP THIS SAFE! Reset on next run unless provided as env var)"
+echo "--------------------------"
+echo "Database Connection Variables Set in Cloud Run:"
+echo "  CLOUD_SQL_CONNECTION_NAME: ${SQL_INSTANCE_CONNECTION_NAME}"
+echo "  CLOUD_SQL_USER: ${DB_USER}"
+echo "  CLOUD_SQL_DATABASE: ${DB_NAME}"
+echo "  CLOUD_SQL_HOST: /cloudsql/${SQL_INSTANCE_CONNECTION_NAME}"
+echo "  CLOUD_SQL_PORT: 5432"
+echo "--------------------------"
+echo "If you encounter database connection issues, you can set these environment variables manually in the Cloud Run console."
+echo "For security, it's recommended to set DB_PASSWORD as an environment variable before running this script in production."
 echo "--------------------------"
 echo "Deployment script finished successfully."
