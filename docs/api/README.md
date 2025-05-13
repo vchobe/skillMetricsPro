@@ -1,5 +1,58 @@
 # API Documentation
 
+## Authentication Endpoints
+
+### POST /api/auth/login
+Authenticates user and creates session
+
+### POST /api/auth/register  
+Creates new user account
+
+### GET /api/auth/logout
+Destroys user session
+
+## Skills API
+
+### GET /api/skills
+Returns user's skills with endorsements
+
+### POST /api/skills
+Creates new skill for user
+
+### PUT /api/skills/:id
+Updates existing skill
+
+### DELETE /api/skills/:id 
+Removes skill
+
+### GET /api/skills/:id/history
+Returns skill history
+
+## Users API 
+
+### GET /api/users
+Returns list of users (admin only)
+
+### GET /api/users/:id
+Returns user profile
+
+### PUT /api/users/:id
+Updates user profile
+
+## Projects API
+
+### GET /api/projects
+Returns list of projects
+
+### POST /api/projects
+Creates new project
+
+### GET /api/projects/:id/skills
+Returns skills mapped to project
+
+## Error Handling
+Standard error responses detailed in [Error Reference](./method-reference.md)
+
 This document provides comprehensive documentation for the Skills Management Platform's REST API.
 
 ## Base URL
@@ -1189,11 +1242,7 @@ All API endpoints return standardized error responses:
 ```json
 {
   "error": "Error message",
-  "details": "Additional error details (optional)"
-}
-```
-
-### Common Error Status Codes
+  "details": "Additional### Common Error Status Codes
 
 - `400 Bad Request`: Invalid request parameters or validation error
 - `401 Unauthorized`: Authentication required or invalid credentials
