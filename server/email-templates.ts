@@ -536,7 +536,7 @@ export function getSkillApprovedEmailContent(
   const text = `
 Hi ${firstName},
 
-Good news! Your submitted skill "${skillName}" has been successfully reviewed and approved.
+Your submitted skill "${skillName}" has been successfully reviewed and approved.
 
 You can now view it on your profile.
 
@@ -550,7 +550,7 @@ Atyeti Skills-Metrics Platform Team
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #4f46e5;">Your Skill Has Been Approved!</h2>
       <p>Hi ${firstName},</p>
-      <p>Good news! Your submitted skill "<strong>${skillName}</strong>" has been successfully reviewed and approved.</p>
+      <p>Your submitted skill "<strong>${skillName}</strong>" has been successfully reviewed and approved.</p>
       <p>You can now view it on your profile.</p>
       <p>Thank you for keeping your skills up to date!</p>
       <p>Best regards,<br>Atyeti Skills-Metrics Platform Team</p>
