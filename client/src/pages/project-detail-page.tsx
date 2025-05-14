@@ -856,6 +856,12 @@ export default function ProjectDetailPage() {
                 </CardHeader>
                 <CardContent className="text-sm">
                   <p className="text-md">
+                    <span className="font-medium">Project Lead:</span> {(project as ExtendedProject).projectLeadEmail || "Not set"}
+                  </p>
+                  <p className="text-md">
+                    <span className="font-medium">Client Engagement Lead:</span> {(project as ExtendedProject).clientEngagementLeadEmail || "Not set"}
+                  </p>
+                  <p className="text-md">
                     <span className="font-medium">HR:</span> {project.hrCoordinatorEmail || "Not set"}
                   </p>
                   <p className="text-md">
