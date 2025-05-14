@@ -1318,6 +1318,10 @@ export default function AdminDashboard() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  
+  // References for export downloads
+  const usersCsvLinkRef = useRef<HTMLAnchorElement>(null);
+  const usersPdfLinkRef = useRef<HTMLAnchorElement>(null);
   const [skillCategories, setSkillCategories] = useState<string[]>([]);
   const [skillNames, setSkillNames] = useState<string[]>([]);
   const [userSkillCategoryFilter, setUserSkillCategoryFilter] = useState<string>("all");
@@ -4687,6 +4691,26 @@ export default function AdminDashboard() {
                     <CardTitle>User Management</CardTitle>
                   </div>
                   <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-2">
+                    <div className="flex gap-2 mb-2 sm:mb-0 justify-end">
+                      <Button 
+                        onClick={exportUsersCsv}
+                        disabled={!filteredSortedUsers || filteredSortedUsers.length === 0}
+                        className="flex items-center gap-2"
+                      >
+                        <DownloadCloud className="h-4 w-4" />
+                        <span>Export CSV</span>
+                      </Button>
+                      <Button 
+                        onClick={exportUsersPdf}
+                        disabled={!filteredSortedUsers || filteredSortedUsers.length === 0}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Export PDF</span>
+                      </Button>
+                      <a ref={usersCsvLinkRef} className="hidden"></a>
+                      <a ref={usersPdfLinkRef} className="hidden"></a>
+                    </div>
                     <div className="relative">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                       <input 
