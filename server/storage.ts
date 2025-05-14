@@ -4111,6 +4111,7 @@ export class PostgresStorage implements IStorage {
       const { 
         name, description, clientId, startDate, endDate, 
         location, confluenceLink, leadId, deliveryLeadId, status,
+        projectLeadEmail, clientEngagementLeadEmail, 
         hrCoordinatorEmail, financeTeamEmail
       } = project;
       
@@ -4118,10 +4119,12 @@ export class PostgresStorage implements IStorage {
         `INSERT INTO projects (
           name, description, client_id, start_date, end_date, 
           location, confluence_link, lead_id, delivery_lead_id, status,
+          project_lead_email, client_engagement_lead_email,
           hr_coordinator_email, finance_team_email
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
         [name, description, clientId, startDate, endDate, 
          location, confluenceLink, leadId, deliveryLeadId, status,
+         projectLeadEmail, clientEngagementLeadEmail,
          hrCoordinatorEmail, financeTeamEmail]
       );
       
