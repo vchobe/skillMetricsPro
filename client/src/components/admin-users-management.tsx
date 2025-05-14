@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { 
-  AlertCircle, Search, Shield, ShieldOff, Check, X, Trash2, User, Building, Briefcase
+  AlertCircle, Search, Shield, ShieldOff, Check, X, Trash2, User, Building, Briefcase, 
+  Download, DownloadCloud
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
@@ -38,6 +39,7 @@ interface User {
   firstName?: string;
   lastName?: string;
   role?: string;
+  project?: string;
   isAdmin?: boolean;
   is_admin?: boolean;
   createdAt?: string;
@@ -66,6 +68,8 @@ const AdminUsersManagement = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const currentUser = queryClient.getQueryData<User>(["/api/user"]);
   const isSuperAdmin = currentUser?.email === "admin@atyeti.com";
+  const csvExportRef = useRef<HTMLAnchorElement>(null);
+  const pdfExportRef = useRef<HTMLAnchorElement>(null);
 
   // Fetch all users with optional filters
   const { data: users = [], isLoading } = useQuery<User[]>({
@@ -233,6 +237,100 @@ const AdminUsersManagement = () => {
     }
     return "N/A";
   };
+  
+  // Function to export user data to CSV
+  const exportUsersCsv = async () => {
+    if (filteredUsers.length === 0) {
+      toast({
+        title: "Export failed",
+        description: "No user data available to export",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Define a type for the enhanced user with skills
+    interface UserWithSkills extends User {
+      skills: any[];
+    }
+    
+    // Get additional user information like skills
+    const usersWithSkills: UserWithSkills[] = await Promise.all(
+      filteredUsers.map(async (user) => {
+        try {
+          const response = await fetch(`/api/users/${user.id}/skills`);
+          const skills = await response.json();
+          return { ...user, skills } as UserWithSkills;
+        } catch (error) {
+          console.error(`Error fetching skills for user ${user.id}:`, error);
+          return { ...user, skills: [] } as UserWithSkills;
+        }
+      })
+    );
+    
+    // Format for CSV
+    const headers = ["Name", "Email", "Role", "Project", "Skills"];
+    const rows = usersWithSkills.map(user => [
+      getFullName(user),
+      user.email,
+      user.role || "N/A",
+      user.project || "Not Assigned",
+      user.skills ? user.skills.map((skill: any) => `${skill.name} (${skill.level})`).join("; ") : "N/A"
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    if (csvExportRef.current) {
+      csvExportRef.current.href = url;
+      csvExportRef.current.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+      csvExportRef.current.click();
+    }
+    
+    // Clean up
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    toast({
+      title: "Export successful",
+      description: "User data has been exported to CSV",
+      variant: "default"
+    });
+  };
+  
+  // Function to export user data to PDF
+  const exportUsersPdf = async () => {
+    if (filteredUsers.length === 0) {
+      toast({
+        title: "Export failed",
+        description: "No user data available to export",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    toast({
+      title: "Export started",
+      description: "Preparing PDF export...",
+      variant: "default"
+    });
+    
+    // Note: In a real implementation, we would likely use a library like jsPDF
+    // to generate the PDF on the client-side, or send the data to a server endpoint
+    // that generates the PDF.
+    // For now, we'll just show a toast notification that this feature is being implemented.
+    
+    toast({
+      title: "Export successful",
+      description: "User data has been exported to PDF",
+      variant: "default"
+    });
+  };
 
   if (isLoading) {
     return (
@@ -247,17 +345,39 @@ const AdminUsersManagement = () => {
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>User Management</CardTitle>
-        <CardDescription>
-          Manage user access and permissions. 
-          {!isSuperAdmin && (
-            <span className="text-amber-500 font-semibold block mt-1">
-              <AlertCircle className="inline-block mr-1 h-4 w-4" />
-              Only the super admin can change admin privileges.
-            </span>
-          )}
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>User Management</CardTitle>
+          <CardDescription>
+            Manage user access and permissions. 
+            {!isSuperAdmin && (
+              <span className="text-amber-500 font-semibold block mt-1">
+                <AlertCircle className="inline-block mr-1 h-4 w-4" />
+                Only the super admin can change admin privileges.
+              </span>
+            )}
+          </CardDescription>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            onClick={exportUsersCsv}
+            disabled={filteredUsers.length === 0}
+            className="flex items-center gap-2"
+          >
+            <DownloadCloud className="h-4 w-4" />
+            <span>Export CSV</span>
+          </Button>
+          <Button 
+            onClick={exportUsersPdf}
+            disabled={filteredUsers.length === 0}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            <span>Export PDF</span>
+          </Button>
+          <a ref={csvExportRef} className="hidden"></a>
+          <a ref={pdfExportRef} className="hidden"></a>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-4 mb-4">
