@@ -543,7 +543,7 @@ You can now view it on your profile.
 Thank you for keeping your skills up to date!
 
 Best regards,  
-Atyeti Skills Platform Team
+Atyeti Skills-Metrics Platform Team
   `;
 
   const html = `
@@ -553,7 +553,7 @@ Atyeti Skills Platform Team
       <p>Good news! Your submitted skill "<strong>${skillName}</strong>" has been successfully reviewed and approved.</p>
       <p>You can now view it on your profile.</p>
       <p>Thank you for keeping your skills up to date!</p>
-      <p>Best regards,<br>Atyeti Skills Platform Team</p>
+      <p>Best regards,<br>Atyeti Skills-Metrics Platform Team</p>
     </div>
   `;
 
