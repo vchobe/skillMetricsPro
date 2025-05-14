@@ -667,6 +667,8 @@ export const projects = pgTable("projects", {
   confluenceLink: text("confluence_link"),
   leadId: integer("lead_id").references(() => users.id),
   deliveryLeadId: integer("delivery_lead_id").references(() => users.id),
+  projectLeadEmail: text("project_lead_email"),
+  clientEngagementLeadEmail: text("client_engagement_lead_email"),
   hrCoordinatorEmail: text("hr_coordinator_email"),
   financeTeamEmail: text("finance_team_email"),
   status: text("status").default("active"),
@@ -685,6 +687,8 @@ export const insertProjectSchema = createInsertSchema(projects)
     confluenceLink: true,
     leadId: true,
     deliveryLeadId: true,
+    projectLeadEmail: true,
+    clientEngagementLeadEmail: true,
     hrCoordinatorEmail: true,
     financeTeamEmail: true,
     status: true
@@ -694,6 +698,8 @@ export const insertProjectSchema = createInsertSchema(projects)
     startDate: z.union([z.string(), z.date(), z.null()]).optional(),
     endDate: z.union([z.string(), z.date(), z.null()]).optional(),
     // Email validation
+    projectLeadEmail: z.string().email("Invalid project lead email").optional(),
+    clientEngagementLeadEmail: z.string().email("Invalid client engagement lead email").optional(),
     hrCoordinatorEmail: z.string().email("Invalid HR coordinator email").optional(),
     financeTeamEmail: z.string().email("Invalid finance team email").optional(),
   });
