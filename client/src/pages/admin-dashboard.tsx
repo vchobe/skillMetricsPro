@@ -2879,7 +2879,11 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-gray-50 px-5 py-3">
                       <div className="text-sm">
-                        <Button variant="link" className="p-0 h-auto font-medium text-red-600 hover:text-red-500">
+                        <Button 
+                          variant="link" 
+                          className="p-0 h-auto font-medium text-red-600 hover:text-red-500"
+                          onClick={() => setActiveTab("skill-history")}
+                        >
                           View logs
                         </Button>
                       </div>
