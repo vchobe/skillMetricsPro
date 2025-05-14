@@ -815,7 +815,13 @@ export default function ProjectDetailPage() {
                     <span className="font-medium">Project Lead:</span> {getUserName(project.leadId)}
                   </p>
                   <p className="text-md">
+                    <span className="font-medium">Project Lead Email:</span> {(project as ExtendedProject).projectLeadEmail || "Not set"}
+                  </p>
+                  <p className="text-md">
                     <span className="font-medium">Client Engagement Lead:</span> {getUserName(project.deliveryLeadId)}
+                  </p>
+                  <p className="text-md">
+                    <span className="font-medium">Client Engagement Lead Email:</span> {(project as ExtendedProject).clientEngagementLeadEmail || "Not set"}
                   </p>
                 </CardContent>
               </Card>
@@ -1413,6 +1419,42 @@ export default function ProjectDetailPage() {
                   </FormItem>
                 )}
               />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editProjectForm.control}
+                  name="projectLeadEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project Lead Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                      <FormDescription>
+                        For project notifications
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editProjectForm.control}
+                  name="clientEngagementLeadEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Client Engagement Lead Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                      <FormDescription>
+                        For client communications
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <FormField
