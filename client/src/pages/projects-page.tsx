@@ -573,9 +573,6 @@ export default function ProjectsPage() {
                                   type="email"
                                 />
                               </FormControl>
-                              <FormDescription>
-                                Email address for the Project Lead
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -595,9 +592,6 @@ export default function ProjectsPage() {
                                   type="email"
                                 />
                               </FormControl>
-                              <FormDescription>
-                                Email address for the Client Engagement Lead
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
