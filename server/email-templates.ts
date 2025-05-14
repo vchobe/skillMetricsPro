@@ -581,7 +581,7 @@ Please review the submission and ensure it meets our skill validation criteria. 
 If you have any questions, feel free to reach out to support.
 
 Best regards,  
-Atyeti Skills Platform Team
+Atyeti Skills-Metrics Platform Team
   `;
 
   const html = `
@@ -591,7 +591,7 @@ Atyeti Skills Platform Team
       <p>Unfortunately, your submitted skill "<strong>${skillName}</strong>" could not be approved at this time.</p>
       <p>Please review the submission and ensure it meets our skill validation criteria. You can update and resubmit the skill for approval.</p>
       <p>If you have any questions, feel free to reach out to support.</p>
-      <p>Best regards,<br>Atyeti Skills Platform Team</p>
+      <p>Best regards,<br>Atyeti Skills-Metrics Platform Team</p>
     </div>
   `;
 
