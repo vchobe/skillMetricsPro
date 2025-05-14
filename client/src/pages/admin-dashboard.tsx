@@ -1899,6 +1899,141 @@ export default function AdminDashboard() {
     });
   };
   
+  // Export Users as CSV
+  const exportUsersCsv = () => {
+    if (!filteredSortedUsers || filteredSortedUsers.length === 0) return;
+    
+    toast({
+      title: "Exporting users list",
+      description: "Preparing CSV export of filtered users",
+    });
+    
+    // Create CSV header
+    const csvHeader = "Name,Email,Role,Project,Skills\n";
+    
+    // Create rows for each user
+    const csvRows = filteredSortedUsers.map(user => {
+      const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || '';
+      const email = user.email || '';
+      const role = user.role || '';
+      const project = user.project || '';
+      
+      // Get user skills
+      const userSkills = skills?.filter(s => 
+        s.userId === user.id || (s as any).user_id === user.id
+      ) || [];
+      
+      // Format skills as comma-separated string with level indicator
+      const skillsText = userSkills.map(s => `${s.name} (${s.level})`).join('; ');
+      
+      // Escape fields that might contain commas
+      return `"${name}","${email}","${role}","${project}","${skillsText}"`;
+    }).join('\n');
+    
+    // Combine header and rows
+    const csvContent = `${csvHeader}${csvRows}`;
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    if (usersCsvLinkRef.current) {
+      usersCsvLinkRef.current.href = url;
+      usersCsvLinkRef.current.download = `user-skills-export-${new Date().toISOString().split('T')[0]}.csv`;
+      usersCsvLinkRef.current.click();
+    }
+    
+    // Clean up the URL object
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  };
+  
+  // Export Users as PDF
+  const exportUsersPdf = () => {
+    if (!filteredSortedUsers || filteredSortedUsers.length === 0) return;
+    
+    toast({
+      title: "Exporting users list",
+      description: "Preparing PDF export of filtered users",
+    });
+    
+    // Create a simple HTML table for PDF export
+    let htmlContent = `
+      <html>
+      <head>
+        <title>User Skills Export</title>
+        <style>
+          body { font-family: Arial, sans-serif; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+          th { background-color: #f2f2f2; }
+          h1 { color: #333; }
+        </style>
+      </head>
+      <body>
+        <h1>User Skills Export</h1>
+        <p>Generated on ${new Date().toLocaleDateString()}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Project</th>
+              <th>Skills</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    // Add rows for each user
+    filteredSortedUsers.forEach(user => {
+      const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || '';
+      const email = user.email || '';
+      const role = user.role || '';
+      const project = user.project || '';
+      
+      // Get user skills
+      const userSkills = skills?.filter(s => 
+        s.userId === user.id || (s as any).user_id === user.id
+      ) || [];
+      
+      // Format skills as comma-separated string with level indicator
+      const skillsText = userSkills.map(s => `${s.name} (${s.level})`).join('; ');
+      
+      htmlContent += `
+        <tr>
+          <td>${name}</td>
+          <td>${email}</td>
+          <td>${role}</td>
+          <td>${project}</td>
+          <td>${skillsText}</td>
+        </tr>
+      `;
+    });
+    
+    // Close the HTML
+    htmlContent += `
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+    
+    // Create a Blob with the HTML content
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    // Open in a new window for printing to PDF
+    if (usersPdfLinkRef.current) {
+      usersPdfLinkRef.current.href = url;
+      usersPdfLinkRef.current.target = '_blank';
+      usersPdfLinkRef.current.click();
+    }
+    
+    // Clean up the URL object
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  };
+
   // Apply filters and sorting to users
   const filteredSortedUsers = useMemo(() => {
     if (!users) return [];
