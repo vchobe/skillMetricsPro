@@ -198,6 +198,11 @@ export default function ProjectsPage() {
                          Number(data.deliveryLeadId),
           startDate: data.startDate || null,
           endDate: data.endDate || null,
+          // Ensure email fields are included with proper empty string handling
+          projectLeadEmail: data.projectLeadEmail || "",
+          clientEngagementLeadEmail: data.clientEngagementLeadEmail || "",
+          hrCoordinatorEmail: data.hrCoordinatorEmail || "",
+          financeTeamEmail: data.financeTeamEmail || "",
         };
         
         console.log("Creating project with data:", formattedData);
