@@ -3777,8 +3777,32 @@ export class PostgresStorage implements IStorage {
         relatedUserSkillId: userSkill.id // Using userSkillId instead of relatedSkillId
       });
       
+      // Get user email and first name to send email notification
+      const userData = await pool.query(`
+        SELECT email, first_name FROM users WHERE id = $1
+      `, [pendingUpdate.userId]);
+      
       await pool.query('COMMIT');
       console.log(`Approval transaction committed successfully`);
+      
+      // Send email notification after transaction is complete
+      if (userData.rows.length > 0) {
+        const userEmail = userData.rows[0].email;
+        const firstName = userData.rows[0].first_name || 'User';
+        
+        // Send approval email asynchronously (don't await)
+        // Making sure skillName exists before sending
+        const skillName = pendingUpdate.skillName || 'skill';
+        sendSkillApprovedEmail(
+          userEmail,
+          firstName,
+          skillName
+        ).catch(error => {
+          console.error('Failed to send skill approval email:', error);
+        });
+        
+        console.log(`Triggered skill approval email to ${userEmail} for skill "${skillName}"`);
+      }
       
       return userSkill;
     } catch (error) {
@@ -3879,8 +3903,32 @@ export class PostgresStorage implements IStorage {
         content: `Your ${pendingUpdate.isUpdate ? 'skill update' : 'new skill'} request for "${pendingUpdate.skillName}" was rejected.${notes ? ` Note: ${notes}` : ''}`
       });
       
+      // Get user email and first name to send email notification
+      const userData = await pool.query(`
+        SELECT email, first_name FROM users WHERE id = $1
+      `, [pendingUpdate.userId]);
+      
       await pool.query('COMMIT');
       console.log(`Rejection transaction committed successfully`);
+      
+      // Send email notification after transaction is complete
+      if (userData.rows.length > 0) {
+        const userEmail = userData.rows[0].email;
+        const firstName = userData.rows[0].first_name || 'User';
+        
+        // Send rejection email asynchronously (don't await)
+        // Making sure skillName exists before sending
+        const skillName = pendingUpdate.skillName || 'skill';
+        sendSkillRejectedEmail(
+          userEmail,
+          firstName,
+          skillName
+        ).catch(error => {
+          console.error('Failed to send skill rejection email:', error);
+        });
+        
+        console.log(`Triggered skill rejection email to ${userEmail} for skill "${skillName}"`);
+      }
     } catch (error) {
       // Roll back the transaction on error
       await pool.query('ROLLBACK');
