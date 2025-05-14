@@ -4,7 +4,9 @@ import {
   getResourceRemovedEmailContent,
   getProjectCreatedEmailContent,
   getProjectUpdatedEmailContent,
-  getWeeklyResourceReportEmailContent
+  getWeeklyResourceReportEmailContent,
+  getSkillApprovedEmailContent,
+  getSkillRejectedEmailContent
 } from './email-templates';
 import Mailjet from 'node-mailjet';
 import { formatDate } from '../client/src/lib/date-utils';
@@ -859,6 +861,112 @@ export async function sendProjectUpdatedEmail(
     }
   } catch (error: any) {
     console.error('Error in project update email flow:', error?.message || error);
+    return false;
+  }
+}
+
+/**
+ * Sends a skill approval notification email to the user
+ */
+export async function sendSkillApprovedEmail(
+  to: string,
+  firstName: string,
+  skillName: string
+): Promise<boolean> {
+  try {
+    const { text, html, subject } = getSkillApprovedEmailContent(
+      firstName,
+      skillName
+    );
+
+    // Skip sending email if Mailjet is not configured
+    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+      console.log('Mailjet not configured. Logging skill approval details instead...');
+      console.log(`Skill Approval Notification for: ${to}`);
+      console.log(`Skill: ${skillName} has been approved for user: ${firstName}`);
+      return true;
+    }
+
+    await mailjet
+      .post('send', { version: 'v3.1' })
+      .request({
+        Messages: [
+          {
+            From: {
+              Email: "vinayak.chobe@atyeti.com",
+              Name: "Atyeti Skills Platform"
+            },
+            To: [
+              {
+                Email: to,
+                Name: firstName
+              }
+            ],
+            Subject: subject,
+            TextPart: text,
+            HTMLPart: html
+          }
+        ]
+      });
+
+    console.log(`Skill approval email sent to: ${to} for skill: ${skillName}`);
+    return true;
+  } catch (error: any) {
+    console.error('Error sending skill approval email:', error?.message || error);
+    console.log(`Fallback - Skill Approval for ${firstName}: Skill ${skillName} has been approved`);
+    return false;
+  }
+}
+
+/**
+ * Sends a skill rejection notification email to the user
+ */
+export async function sendSkillRejectedEmail(
+  to: string,
+  firstName: string,
+  skillName: string
+): Promise<boolean> {
+  try {
+    const { text, html, subject } = getSkillRejectedEmailContent(
+      firstName,
+      skillName
+    );
+
+    // Skip sending email if Mailjet is not configured
+    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+      console.log('Mailjet not configured. Logging skill rejection details instead...');
+      console.log(`Skill Rejection Notification for: ${to}`);
+      console.log(`Skill: ${skillName} has been rejected for user: ${firstName}`);
+      return true;
+    }
+
+    await mailjet
+      .post('send', { version: 'v3.1' })
+      .request({
+        Messages: [
+          {
+            From: {
+              Email: "vinayak.chobe@atyeti.com",
+              Name: "Atyeti Skills Platform"
+            },
+            To: [
+              {
+                Email: to,
+                Name: firstName
+              }
+            ],
+            Subject: subject,
+            TextPart: text,
+            HTMLPart: html
+          }
+        ]
+      });
+
+    console.log(`Skill rejection email sent to: ${to} for skill: ${skillName}`);
+    return true;
+  } catch (error: any) {
+    console.error('Error sending skill rejection email:', error?.message || error);
+    console.log(`Fallback - Skill Rejection for ${firstName}: Skill ${skillName} has been rejected`);
     return false;
   }
 }
