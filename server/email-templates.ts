@@ -525,3 +525,79 @@ export function getProjectUpdatedEmailContent(
     subject: `Project Updated: ${projectName}` 
   };
 }
+
+/**
+ * Gets the content for skill approval notification email
+ */
+export function getSkillApprovedEmailContent(
+  firstName: string,
+  skillName: string
+) {
+  const text = `
+Hi ${firstName},
+
+Good news! Your submitted skill "${skillName}" has been successfully reviewed and approved.
+
+You can now view it on your profile.
+
+Thank you for keeping your skills up to date!
+
+Best regards,  
+Atyeti Skills Platform Team
+  `;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #4f46e5;">Your Skill Has Been Approved!</h2>
+      <p>Hi ${firstName},</p>
+      <p>Good news! Your submitted skill "<strong>${skillName}</strong>" has been successfully reviewed and approved.</p>
+      <p>You can now view it on your profile.</p>
+      <p>Thank you for keeping your skills up to date!</p>
+      <p>Best regards,<br>Atyeti Skills Platform Team</p>
+    </div>
+  `;
+
+  return { 
+    text, 
+    html, 
+    subject: `Your Skill Has Been Approved!` 
+  };
+}
+
+/**
+ * Gets the content for skill rejection notification email
+ */
+export function getSkillRejectedEmailContent(
+  firstName: string,
+  skillName: string
+) {
+  const text = `
+Hi ${firstName},
+
+Unfortunately, your submitted skill "${skillName}" could not be approved at this time.
+
+Please review the submission and ensure it meets our skill validation criteria. You can update and resubmit the skill for approval.
+
+If you have any questions, feel free to reach out to support.
+
+Best regards,  
+Atyeti Skills Platform Team
+  `;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #ef4444;">Skill Submission Not Approved</h2>
+      <p>Hi ${firstName},</p>
+      <p>Unfortunately, your submitted skill "<strong>${skillName}</strong>" could not be approved at this time.</p>
+      <p>Please review the submission and ensure it meets our skill validation criteria. You can update and resubmit the skill for approval.</p>
+      <p>If you have any questions, feel free to reach out to support.</p>
+      <p>Best regards,<br>Atyeti Skills Platform Team</p>
+    </div>
+  `;
+
+  return { 
+    text, 
+    html, 
+    subject: `Skill Submission Not Approved` 
+  };
+}
