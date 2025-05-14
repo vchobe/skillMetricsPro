@@ -217,15 +217,17 @@ const projectSchema = z.object({
   confluenceLink: z.string().optional(),
   leadId: z.coerce.number().nullable().optional(),
   deliveryLeadId: z.coerce.number().nullable().optional(),
+  projectLeadEmail: z.string().email("Invalid project lead email format").optional(),
+  clientEngagementLeadEmail: z.string().email("Invalid client engagement lead email format").optional(),
   status: z.string().default("active"),
-  hrCoordinatorEmail: z.string().email("Invalid email format").optional(),
-  financeTeamEmail: z.string().email("Invalid email format").optional()
+  hrCoordinatorEmail: z.string().email("Invalid HR coordinator email format").optional(),
+  financeTeamEmail: z.string().email("Invalid finance team email format").optional()
 });
 
 // Resource schema
 const resourceSchema = z.object({
   userId: z.coerce.number(),
-  role: z.string().optional(),
+  role: z.string().nullable().optional(),
   allocation: z.coerce.number().min(1).max(100),
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable()
@@ -242,6 +244,12 @@ type ResourceFormValues = z.infer<typeof resourceSchema> & {
   projectId?: number; // Add optional projectId for internal use
 };
 type ProjectSkillFormValues = z.infer<typeof projectSkillSchema>;
+
+// Extended Project type to include the new email fields
+interface ExtendedProject extends Project {
+  projectLeadEmail?: string;
+  clientEngagementLeadEmail?: string;
+}
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -299,7 +307,7 @@ export default function ProjectDetailPage() {
   const [openRemoveSkill, setOpenRemoveSkill] = useState<number | null>(null);
   
   // Fetch project details
-  const { data: project, isLoading: isLoadingProject } = useQuery<Project>({
+  const { data: project, isLoading: isLoadingProject } = useQuery<ExtendedProject>({
     queryKey: ["/api/projects", id],
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/projects/${id}`);
@@ -381,6 +389,8 @@ export default function ProjectDetailPage() {
       confluenceLink: "",
       leadId: null,
       deliveryLeadId: null,
+      projectLeadEmail: "",
+      clientEngagementLeadEmail: "",
       status: "active",
       hrCoordinatorEmail: "",
       financeTeamEmail: ""
@@ -390,6 +400,8 @@ export default function ProjectDetailPage() {
   // Set form values when project data is loaded
   useEffect(() => {
     if (project) {
+      // Cast project to ExtendedProject to access the new email fields
+      const extProject = project as ExtendedProject;
       editProjectForm.reset({
         name: project.name,
         description: project.description || "",
@@ -400,6 +412,8 @@ export default function ProjectDetailPage() {
         confluenceLink: project.confluenceLink || "",
         leadId: project.leadId || null,
         deliveryLeadId: project.deliveryLeadId || null,
+        projectLeadEmail: extProject.projectLeadEmail || "",
+        clientEngagementLeadEmail: extProject.clientEngagementLeadEmail || "",
         status: project.status || "active",
         hrCoordinatorEmail: project.hrCoordinatorEmail || "",
         financeTeamEmail: project.financeTeamEmail || ""
@@ -1512,7 +1526,11 @@ export default function ProjectDetailPage() {
                   <FormItem>
                     <FormLabel>Role</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="e.g. Developer, Client Engagement Lead, Designer" />
+                      <Input 
+                        {...field} 
+                        value={field.value || ''} 
+                        placeholder="e.g. Developer, Client Engagement Lead, Designer" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
