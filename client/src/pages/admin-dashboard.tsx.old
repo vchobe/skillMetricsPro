@@ -4849,7 +4849,6 @@ export default function AdminDashboard() {
                     <a ref={usersPdfLinkRef} className="hidden"></a>
                   </div>
                 </CardHeader>
-                
                 <CardContent>
                   <div className="flex flex-col md:flex-row gap-4 mb-4">
                     <div className="relative">
@@ -5013,10 +5012,7 @@ export default function AdminDashboard() {
                       </Button>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-                
-              <Card className="overflow-hidden">
+                </CardHeader>
                 <CardContent className="px-0">
                   <div className="overflow-x-auto scrollable-container">
                     <table className="min-w-full divide-y divide-gray-200">
