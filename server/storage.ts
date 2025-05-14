@@ -27,6 +27,7 @@ import { Store } from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db"; // Import the pool from db.ts
+import { sendSkillApprovedEmail, sendSkillRejectedEmail } from "./email"; // Import email functions
 
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
