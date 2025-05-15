@@ -229,7 +229,6 @@ const projectSchema = z.object({
 const resourceSchema = z.object({
   userId: z.coerce.number(),
   role: z.string().nullable().optional(),
-  email: z.string().email("Invalid email format").optional(),
   allocation: z.coerce.number().min(1).max(100),
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable()
@@ -671,6 +670,14 @@ export default function ProjectDetailPage() {
     return user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username : "—";
   };
   
+  // Helper function to get user email
+  const getUserEmail = (userId: number | null | undefined) => {
+    if (!userId) return "—";
+    if (!users) return "Loading...";
+    const user = users.find((u: User) => u.id === userId);
+    return user ? user.email : "—";
+  };
+  
   // Get skill name by template ID
   const getSkillName = (templateId: number) => {
     if (!skillTemplates) return "Loading...";
@@ -952,7 +959,7 @@ export default function ProjectDetailPage() {
                             <TableRow key={resource.id}>
                               <TableCell className="font-medium">{getUserName(resource.userId)}</TableCell>
                               <TableCell>
-                                {resource.email || "Not set"}
+                                {getUserEmail(resource.userId) || "Not set"}
                               </TableCell>
                               <TableCell>
                                 {getDisplayRoleName(resource.role)}
@@ -1542,13 +1549,6 @@ export default function ProjectDetailPage() {
                       onValueChange={(value) => {
                         const userId = parseInt(value);
                         field.onChange(userId);
-                        
-                        // Find the selected user to get their email
-                        const selectedUser = users?.find(u => u.id === userId);
-                        if (selectedUser?.email) {
-                          // Update the email field with the user's email
-                          addResourceForm.setValue("email", selectedUser.email);
-                        }
                       }}
                       defaultValue={field.value?.toString()}
                     >
@@ -1583,24 +1583,6 @@ export default function ProjectDetailPage() {
                         {...field} 
                         value={field.value || ''} 
                         placeholder="e.g. Developer, Client Engagement Lead, Designer" 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={addResourceForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        type="email" 
-                        placeholder="resource@example.com" 
                       />
                     </FormControl>
                     <FormMessage />
