@@ -170,6 +170,7 @@ interface ProjectResource {
   projectId: number;
   userId: number;
   role: string;
+  email?: string; // Email address of the resource
   allocation?: number; // Percentage of time allocated
   startDate?: string;
   endDate?: string;
@@ -815,13 +816,7 @@ export default function ProjectDetailPage() {
                     <span className="font-medium">Project Lead:</span> {getUserName(project.leadId)}
                   </p>
                   <p className="text-md">
-                    <span className="font-medium">Project Lead Email:</span> {(project as ExtendedProject).projectLeadEmail || "Not set"}
-                  </p>
-                  <p className="text-md">
                     <span className="font-medium">Client Engagement Lead:</span> {getUserName(project.deliveryLeadId)}
-                  </p>
-                  <p className="text-md">
-                    <span className="font-medium">Client Engagement Lead Email:</span> {(project as ExtendedProject).clientEngagementLeadEmail || "Not set"}
                   </p>
                 </CardContent>
               </Card>
