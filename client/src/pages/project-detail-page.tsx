@@ -1539,7 +1539,17 @@ export default function ProjectDetailPage() {
                   <FormItem>
                     <FormLabel>Team Member</FormLabel>
                     <Select
-                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      onValueChange={(value) => {
+                        const userId = parseInt(value);
+                        field.onChange(userId);
+                        
+                        // Find the selected user to get their email
+                        const selectedUser = users?.find(u => u.id === userId);
+                        if (selectedUser?.email) {
+                          // Update the email field with the user's email
+                          addResourceForm.setValue("email", selectedUser.email);
+                        }
+                      }}
                       defaultValue={field.value?.toString()}
                     >
                       <FormControl>
