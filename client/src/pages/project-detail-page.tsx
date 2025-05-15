@@ -428,7 +428,6 @@ export default function ProjectDetailPage() {
     defaultValues: {
       userId: 0,
       role: "",
-      email: "",
       allocation: 100,
       startDate: new Date().toISOString().split('T')[0],
       endDate: null
