@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -66,6 +66,8 @@ const AdminUsersManagement = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [userSkills, setUserSkills] = useState<Record<number, any[]>>({});
+  const [isSkillSearchLoading, setIsSkillSearchLoading] = useState(false);
   const currentUser = queryClient.getQueryData<User>(["/api/user"]);
   const isSuperAdmin = currentUser?.email === "admin@atyeti.com";
   const csvExportRef = useRef<HTMLAnchorElement>(null);
@@ -197,14 +199,95 @@ const AdminUsersManagement = () => {
     deleteUserMutation.mutate(deleteUserEmail);
   };
 
-  // Filter users based on search term
-  const filteredUsers = users.filter((user) => 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.firstName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-    (user.lastName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-    (user.username?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-    (user.role?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-  );
+  // Load user skills for searching based on search term
+  useEffect(() => {
+    // Only perform skill search if there's a search term and it might be a skill search
+    if (searchTerm.trim().length < 2) {
+      return;
+    }
+    
+    const search = searchTerm.toLowerCase();
+    const loadUserSkills = async () => {
+      setIsSkillSearchLoading(true);
+      try {
+        // Get all users filtered by basic fields first
+        const basicFilteredUsers = users.filter(user =>
+          user.email.toLowerCase().includes(search) ||
+          (user.firstName?.toLowerCase() || "").includes(search) ||
+          (user.lastName?.toLowerCase() || "").includes(search) ||
+          (user.username?.toLowerCase() || "").includes(search) ||
+          (user.role?.toLowerCase() || "").includes(search) ||
+          (user.project?.toLowerCase() || "").includes(search)
+        );
+        
+        // If we already have enough matches via basic search, don't bother with skills
+        if (basicFilteredUsers.length > 10) {
+          setIsSkillSearchLoading(false);
+          return;
+        }
+        
+        // Fetch skills for all users to enable searching by skill name or description
+        const skillsData: Record<number, any[]> = {};
+        
+        await Promise.all(
+          users.map(async (user) => {
+            try {
+              const response = await fetch(`/api/users/${user.id}/skills`);
+              if (!response.ok) {
+                throw new Error(`Failed to fetch skills for user ${user.id}`);
+              }
+              const skills = await response.json();
+              skillsData[user.id] = skills;
+            } catch (error) {
+              console.error(`Error fetching skills for user ${user.id}:`, error);
+              skillsData[user.id] = [];
+            }
+          })
+        );
+        
+        setUserSkills(skillsData);
+      } catch (error) {
+        console.error("Error loading user skills for search:", error);
+      } finally {
+        setIsSkillSearchLoading(false);
+      }
+    };
+    
+    // Use a debounce for the skills search to prevent too many API calls
+    const timeoutId = setTimeout(() => {
+      loadUserSkills();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, users]);
+
+  // Enhanced search across multiple fields including skills
+  const filteredUsers = users.filter((user) => {
+    // Skip filtering if search is empty
+    if (!searchTerm.trim()) return true;
+    
+    const search = searchTerm.toLowerCase();
+    
+    // Basic user fields search
+    const basicFieldsMatch = 
+      user.email.toLowerCase().includes(search) ||
+      (user.firstName?.toLowerCase() || "").includes(search) ||
+      (user.lastName?.toLowerCase() || "").includes(search) ||
+      (user.username?.toLowerCase() || "").includes(search) ||
+      (user.role?.toLowerCase() || "").includes(search) ||
+      (user.project?.toLowerCase() || "").includes(search);
+    
+    if (basicFieldsMatch) return true;
+    
+    // Additional search through user skills (names and descriptions)
+    const userSkillList = userSkills[user.id] || [];
+    const skillsMatch = userSkillList.some(skill => 
+      (skill.name?.toLowerCase() || "").includes(search) ||
+      (skill.description?.toLowerCase() || "").includes(search)
+    );
+    
+    return skillsMatch;
+  });
 
   // Handle client filter change
   const handleClientChange = (value: string) => {
@@ -381,15 +464,22 @@ const AdminUsersManagement = () => {
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-4 mb-4">
-          {/* Search input */}
+          {/* Enhanced search input with loading indicator */}
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            {isSkillSearchLoading ? (
+              <div className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-primary border-opacity-25 border-t-primary"></div>
+            ) : (
+              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            )}
             <Input
-              placeholder="Search users..."
+              placeholder="Search by name, email, role, project, skills or descriptions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
             />
+            <div className="text-xs text-muted-foreground mt-1">
+              Search across multiple fields including skills and their descriptions
+            </div>
           </div>
           
           {/* Client filter */}
