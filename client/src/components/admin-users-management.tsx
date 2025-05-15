@@ -43,6 +43,9 @@ interface User {
   isAdmin?: boolean;
   is_admin?: boolean;
   createdAt?: string;
+  // Dynamic properties for search matching
+  _matchSource?: 'basic' | 'skill';
+  _matchingSkills?: any[];
 }
 
 // Client type definition
@@ -261,7 +264,7 @@ const AdminUsersManagement = () => {
     return () => clearTimeout(timeoutId);
   }, [searchTerm, users]);
 
-  // Enhanced search across multiple fields including skills
+  // Enhanced search across multiple fields including skills with match tracking
   const filteredUsers = users.filter((user) => {
     // Skip filtering if search is empty
     if (!searchTerm.trim()) return true;
@@ -277,16 +280,30 @@ const AdminUsersManagement = () => {
       (user.role?.toLowerCase() || "").includes(search) ||
       (user.project?.toLowerCase() || "").includes(search);
     
-    if (basicFieldsMatch) return true;
+    if (basicFieldsMatch) {
+      // Mark this as a basic field match for highlighting purposes
+      // This is a side effect in a filter function, but it's efficient for our use case
+      (user as any)._matchSource = 'basic';
+      return true;
+    }
     
     // Additional search through user skills (names and descriptions)
     const userSkillList = userSkills[user.id] || [];
-    const skillsMatch = userSkillList.some(skill => 
+    
+    // Find matching skills
+    const matchingSkills = userSkillList.filter(skill => 
       (skill.name?.toLowerCase() || "").includes(search) ||
       (skill.description?.toLowerCase() || "").includes(search)
     );
     
-    return skillsMatch;
+    if (matchingSkills.length > 0) {
+      // Store matching skills for highlighting
+      (user as any)._matchSource = 'skill';
+      (user as any)._matchingSkills = matchingSkills;
+      return true;
+    }
+    
+    return false;
   });
 
   // Handle client filter change
@@ -546,6 +563,7 @@ const AdminUsersManagement = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Skills</TableHead>
                 <TableHead>Admin Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -557,6 +575,85 @@ const AdminUsersManagement = () => {
                   <TableCell>{getFullName(user)}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.role || "N/A"}</TableCell>
+                  <TableCell>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant={(user as any)._matchSource === 'skill' ? "default" : "ghost"} 
+                            className={`h-8 px-2 ${(user as any)._matchSource === 'skill' ? "" : "hover:bg-transparent"}`}
+                            onClick={async () => {
+                              // Fetch user skills if not already fetched
+                              if (!userSkills[user.id]) {
+                                try {
+                                  const response = await fetch(`/api/users/${user.id}/skills`);
+                                  if (response.ok) {
+                                    const skills = await response.json();
+                                    setUserSkills({...userSkills, [user.id]: skills});
+                                  }
+                                } catch (error) {
+                                  console.error(`Error fetching skills for user ${user.id}:`, error);
+                                }
+                              }
+                            }}
+                          >
+                            {userSkills[user.id] ? 
+                              `${userSkills[user.id].length} skills${(user as any)._matchSource === 'skill' ? ' (match)' : ''}` : 
+                              `View skills${(user as any)._matchSource === 'skill' ? ' (match)' : ''}`}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm max-h-60 overflow-y-auto p-4">
+                          {userSkills[user.id] ? (
+                            userSkills[user.id].length > 0 ? (
+                              <div>
+                                <h4 className="font-medium mb-2">User Skills:</h4>
+                                <ul className="space-y-2 text-sm">
+                                  {userSkills[user.id].map((skill: any, index: number) => {
+                                    // Check if this skill is a match
+                                    const isMatchingSkill = searchTerm && (user as any)._matchSource === 'skill' && 
+                                      (user as any)._matchingSkills?.some((s: any) => s.id === skill.id);
+                                    
+                                    const search = searchTerm ? searchTerm.toLowerCase() : '';
+                                    const isNameMatch = search && skill.name?.toLowerCase()?.includes(search);
+                                    const isDescriptionMatch = search && skill.description?.toLowerCase()?.includes(search);
+                                    
+                                    return (
+                                      <li 
+                                        key={index} 
+                                        className={`border-b pb-2 last:border-b-0 last:pb-0 ${isMatchingSkill ? 'bg-primary/10 -mx-2 px-2 rounded-sm' : ''}`}
+                                      >
+                                        <div className="flex justify-between">
+                                          <span className={`font-medium ${isNameMatch ? 'bg-yellow-100 px-1 -ml-1 rounded' : ''}`}>
+                                            {skill.name}
+                                          </span>
+                                          <Badge variant="outline">{skill.level}</Badge>
+                                        </div>
+                                        {skill.description && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Description: {
+                                              isDescriptionMatch ? (
+                                                <span className="bg-yellow-100 px-1 rounded">
+                                                  {skill.description}
+                                                </span>
+                                              ) : skill.description
+                                            }
+                                          </p>
+                                        )}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            ) : (
+                              <p>No skills found for this user.</p>
+                            )
+                          ) : (
+                            <p>Click to load skills</p>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Switch
