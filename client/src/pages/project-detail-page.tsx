@@ -170,7 +170,7 @@ interface ProjectResource {
   projectId: number;
   userId: number;
   role: string;
-  email?: string; // Email address of the resource
+  // email field removed - now using getUserEmail helper function to fetch dynamically
   allocation?: number; // Percentage of time allocated
   startDate?: string;
   endDate?: string;
