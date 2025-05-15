@@ -62,6 +62,7 @@ const skillSubmitSchema = insertSkillSchema.extend({
   certification: z.string().optional().default(""),
   credlyLink: z.string().optional().default(""),
   notes: z.string().optional().default(""),
+  description: z.string().optional().default(""),
   level: z.enum(["beginner", "intermediate", "expert"]).default("beginner"),
   selected: z.boolean().default(false),
 });
@@ -110,10 +111,13 @@ export default function AddSkillsPage() {
   const [customSkill, setCustomSkill] = useState<{
     name?: string;
     category?: string;
+    subcategory?: string;  // Added subcategory field
     level?: "beginner" | "intermediate" | "expert";
     certification?: string;
     credlyLink?: string;
     notes?: string;
+    description?: string; // Add description field for skill experience
+    skillTemplateId?: number; // Add skill template ID for direct reference
   }>({ level: "beginner" });
 
   // Get all skills (including those from other users)
@@ -197,6 +201,7 @@ export default function AddSkillsPage() {
         certification: "",
         credlyLink: "",
         notes: "",
+        description: "",
         changeNote: "",
         selected: false,
         certificationDate: undefined,
@@ -240,6 +245,7 @@ export default function AddSkillsPage() {
         certification: "",
         credlyLink: "",
         notes: "",
+        description: "",
         changeNote: "",
         selected: false,
         certificationDate: undefined,
@@ -277,11 +283,17 @@ export default function AddSkillsPage() {
     mutationFn: async (skills: SkillEntry[]) => {
       const result = await Promise.all(
         skills.map(async (skill) => {
+          // Get the matching skill template for this skill
+          const matchingTemplate = skillTemplates.find(t => t.name === skill.name);
+          
           const res = await apiRequest("POST", "/api/skills/pending", {
             ...skill,
             status: "pending",
             isUpdate: false,
-            submittedAt: new Date().toISOString()
+            submittedAt: new Date().toISOString(),
+            // Include skill template ID if available
+            skillTemplateId: matchingTemplate?.id,
+            skill_template_id: matchingTemplate?.id // Also include snake_case version for compatibility
           });
           return await res.json();
         })
@@ -317,22 +329,60 @@ export default function AddSkillsPage() {
   // Submit custom skill mutation
   const customSubmitMutation = useMutation({
     mutationFn: async (skill: typeof customSkill) => {
-      if (!skill.name || !skill.category || !skill.level) {
+      if (!skill.name || !skill.category || !skill.subcategory || !skill.level) {
         throw new Error("Please fill all required fields");
       }
       
-      const skillData = {
-        userId: user?.id || 0,
-        name: skill.name,
+      console.log("Preparing custom skill submission with data:", { 
+        name: skill.name, 
         category: skill.category,
-        level: skill.level,
+        subcategory: skill.subcategory,
+        level: skill.level
+      });
+      
+      // Find the category ID for the selected category
+      const categoryObj = skillCategories.find(c => c.name === skill.category);
+      
+      // Find the subcategory ID for the selected subcategory
+      const subcategoryObj = skillSubcategories.find(sc => 
+        sc.name === skill.subcategory && 
+        sc.categoryId === categoryObj?.id
+      );
+      
+      // Log the custom skill data for debugging
+      console.log("Custom skill submission data before processing:", skill);
+      
+      // Don't add redundant metadata to notes since we're now storing it in dedicated fields
+      // This avoids the "too long for type character varying(255)" error
+      const trimmedNotes = skill.notes ? skill.notes.substring(0, 250) : '';
+      
+      // Find subcategory information is handled below - no need to duplicate here
+      
+      // Mark this as a custom skill
+      const isCustomSkill = true;
+      
+      // Use the original pending_skill_updates table, with snake_case field names
+      // Make sure all required fields are properly set to avoid null values
+      const skillData = {
+        user_id: user?.id || 0,
+        name: skill.name || "", // Ensure name is never null
+        category: skill.category || "",
+        subcategory: skill.subcategory || "", // Include subcategory name
+        level: skill.level || "beginner",
         certification: skill.certification || "",
-        credlyLink: skill.credlyLink || "",
-        notes: skill.notes || "",
-        changeNote: "Custom skill addition",
+        credly_link: skill.credlyLink || "",
+        notes: trimmedNotes,
+        description: skill.description || "", // Add description field
+        is_custom_skill: isCustomSkill, // Add flag to mark as custom skill
         status: "pending",
-        isUpdate: false,
-        submittedAt: new Date().toISOString()
+        is_update: false,
+        submitted_at: new Date().toISOString(),
+        // Include category and subcategory IDs if available
+        category_id: categoryObj?.id || null,
+        subcategory_id: skillSubcategories.find(sc => 
+          sc.name === skill.subcategory && 
+          sc.categoryId === categoryObj?.id
+        )?.id || null
       };
       
       const res = await apiRequest("POST", "/api/skills/pending", skillData);
@@ -443,39 +493,35 @@ export default function AddSkillsPage() {
       other: visitedTabs.other // "other" tab not required
     });
     
-    // All technical sub-tabs must be visited
-    const techSubTabsVisited = 
-      visitedTabs.programming && 
-      visitedTabs.frontend && 
-      visitedTabs.database && 
-      visitedTabs.data && 
-      visitedTabs.cloud && 
-      visitedTabs.devops;
+    // Get all technical category names from the database to be comprehensive
+    const techTabs = skillCategories
+      .filter(category => category.categoryType === "technical")
+      .map(category => getTabKey(category.name));
     
-    console.log("Tech sub-tabs visited:", techSubTabsVisited, {
-      programming: visitedTabs.programming,
-      frontend: visitedTabs.frontend,
-      database: visitedTabs.database,
-      data: visitedTabs.data,
-      cloud: visitedTabs.cloud,
-      devops: visitedTabs.devops
-    });
+    // Verify all the technical tabs have been visited
+    // Extract the visited technical tabs from the visitedTabs object
+    const techTabsVisitedArray = techTabs.map(tab => visitedTabs[tab as keyof typeof visitedTabs]);
+    // Check if all tech tabs have been visited (no false/undefined values)
+    const techSubTabsVisited = techTabsVisitedArray.every(Boolean);
     
-    // All functional sub-tabs must be visited
-    const functionalSubTabsVisited = 
-      visitedTabs.marketing && 
-      visitedTabs.design && 
-      visitedTabs.communication && 
-      visitedTabs.project && 
-      visitedTabs.leadership;
+    console.log("Tech sub-tabs visited:", techSubTabsVisited, 
+      Object.fromEntries(techTabs.map(tab => [tab, visitedTabs[tab as keyof typeof visitedTabs]]))
+    );
     
-    console.log("Functional sub-tabs visited:", functionalSubTabsVisited, {
-      marketing: visitedTabs.marketing,
-      design: visitedTabs.design,
-      communication: visitedTabs.communication,
-      project: visitedTabs.project,
-      leadership: visitedTabs.leadership
-    });
+    // Get all functional category names from the database to be comprehensive
+    const functionalTabs = skillCategories
+      .filter(category => category.categoryType === "functional")
+      .map(category => getTabKey(category.name));
+    
+    // Verify all the functional tabs have been visited
+    // Extract the visited functional tabs from the visitedTabs object
+    const functionalTabsVisitedArray = functionalTabs.map(tab => visitedTabs[tab as keyof typeof visitedTabs]);
+    // Check if all functional tabs have been visited (no false/undefined values)
+    const functionalSubTabsVisited = functionalTabsVisitedArray.every(Boolean);
+    
+    console.log("Functional sub-tabs visited:", functionalSubTabsVisited, 
+      Object.fromEntries(functionalTabs.map(tab => [tab, visitedTabs[tab as keyof typeof visitedTabs]]))
+    );
     
     const result = mainTabsVisited && techSubTabsVisited && functionalSubTabsVisited;
     console.log("All tabs visited check result:", result);
@@ -484,13 +530,12 @@ export default function AddSkillsPage() {
   
   // Handle submission of selected skills
   const handleSubmitSkills = () => {
+    // Only check tab visits for template-based skills, not custom skills
+    // Custom skills are handled in a separate form with its own validation
+    
     // Check if user has visited all required tabs
-    if (!allTabsVisited()) {
-      toast({
-        title: "Please review all required categories",
-        description: "Please visit the technical and functional tabs, and ALL their sub-tabs before submitting.",
-        variant: "destructive",
-      });
+    if (!checkTabsVisited()) {
+      // Stop here as checkTabsVisited already showed the error message
       return;
     }
     
@@ -541,6 +586,17 @@ export default function AddSkillsPage() {
     );
   };
   
+  // Handle change in description
+  const handleDescriptionChange = (skillName: string, description: string) => {
+    setSkillsList(prev => 
+      prev.map(skill => 
+        skill.name === skillName 
+          ? { ...skill, description } 
+          : skill
+      )
+    );
+  };
+  
   // Function to track tab visits
   const markTabVisited = (tab: string) => {
     console.log(`Marking tab visited: ${tab}`);
@@ -561,41 +617,47 @@ export default function AddSkillsPage() {
     });
   };
 
-  // Handle submission of custom skill
-  const handleSubmitCustomSkill = () => {
-    // Check if user has visited all required tabs
-    if (!allTabsVisited()) {
+  // Check if all tabs have been visited (used for bulk skill submission)
+  const checkTabsVisited = () => {
+    // First check if all required tabs have been visited - don't require for custom skills tab
+    const isCustomSkillTab = activeTab === "other";
+    
+    // Skip tab visit requirement for custom skills tab
+    if (!isCustomSkillTab && !allTabsVisited()) {
+      // Calculate which tabs haven't been visited
+      const techTabs = skillCategories
+        .filter(category => category.categoryType === "technical")
+        .map(category => ({ 
+          name: category.name, 
+          key: getTabKey(category.name),
+          visited: !!visitedTabs[getTabKey(category.name) as keyof typeof visitedTabs]
+        }))
+        .filter(tab => !tab.visited);
+      
+      const functionalTabs = skillCategories
+        .filter(category => category.categoryType === "functional")
+        .map(category => ({ 
+          name: category.name, 
+          key: getTabKey(category.name),
+          visited: !!visitedTabs[getTabKey(category.name) as keyof typeof visitedTabs]
+        }))
+        .filter(tab => !tab.visited);
+      
+      const missingTechTabs = techTabs.map(t => t.name).join(', ');
+      const missingFunctionalTabs = functionalTabs.map(t => t.name).join(', ');
+      
+      let description = "Please visit all required tabs before submitting:";
+      if (missingTechTabs) description += `\n• Missing technical: ${missingTechTabs}`;
+      if (missingFunctionalTabs) description += `\n• Missing functional: ${missingFunctionalTabs}`;
+      
       toast({
         title: "Please review all required categories",
-        description: "Please visit the technical and functional tabs, and ALL their sub-tabs before submitting.",
+        description,
         variant: "destructive",
       });
-      return;
+      return false;
     }
-    
-    if (!customSkill.name || !customSkill.category || !customSkill.level) {
-      toast({
-        title: "Missing required fields",
-        description: "Please fill in all required fields for the custom skill.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const existingSkill = userSkills.find(
-      skill => skill.name.toLowerCase() === customSkill.name?.toLowerCase()
-    );
-
-    if (existingSkill) {
-      toast({
-        title: "Skill already exists",
-        description: "You already have this skill in your profile.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    customSubmitMutation.mutate(customSkill);
+    return true;
   };
 
   // Check if a skill is already added by the user
@@ -681,26 +743,8 @@ export default function AddSkillsPage() {
                             skillCategories
                               .filter(category => category.categoryType === "technical")
                               .map(category => {
-                                // Use the same mapping logic as in the markTabVisited function
-                                const tabMappingsLocal: Record<string, string> = {
-                                  "Programming": "programming",
-                                  "Database": "database",
-                                  "Cloud": "cloud",
-                                  "DevOps": "devops",
-                                  "Mobile Development": "frontend",
-                                  "Data Science": "data",
-                                  "API": "api",
-                                  "Security": "security",
-                                  "AI": "ai",
-                                  "UI": "ui",
-                                  "Marketing": "marketing",
-                                  "Design": "design",
-                                  "Communication": "communication",
-                                  "Project Management": "project",
-                                  "Leadership": "leadership"
-                                };
-                                
-                                const tabId = tabMappingsLocal[category.name] || category.name.toLowerCase().replace(/\s+/g, '');
+                                // Use the global getTabKey function for consistent tab IDs
+                                const tabId = getTabKey(category.name);
                                 
                                 const getCategoryIcon = (name: string) => {
                                   switch(name.toLowerCase()) {
@@ -904,26 +948,8 @@ export default function AddSkillsPage() {
                             skillCategories
                               .filter(category => category.categoryType === "functional")
                               .map(category => {
-                                // Use the same mapping logic as in the markTabVisited function
-                                const tabMappingsLocal: Record<string, string> = {
-                                  "Programming": "programming",
-                                  "Database": "database",
-                                  "Cloud": "cloud",
-                                  "DevOps": "devops",
-                                  "Mobile Development": "frontend",
-                                  "Data Science": "data",
-                                  "API": "api",
-                                  "Security": "security",
-                                  "AI": "ai",
-                                  "UI": "ui",
-                                  "Marketing": "marketing",
-                                  "Design": "design",
-                                  "Communication": "communication",
-                                  "Project Management": "project",
-                                  "Leadership": "leadership"
-                                };
-                                
-                                const tabId = tabMappingsLocal[category.name] || category.name.toLowerCase().replace(/\s+/g, '');
+                                // Use the global getTabKey function for consistent tab IDs
+                                const tabId = getTabKey(category.name);
                                 
                                 const getCategoryIcon = (name: string) => {
                                   switch(name.toLowerCase()) {
@@ -1115,17 +1141,45 @@ export default function AddSkillsPage() {
                             defaultValues: {
                               name: "",
                               category: "",
+                              subcategory: "",
                               level: "beginner" as "beginner" | "intermediate" | "expert",
                               certification: "",
                               credlyLink: "",
-                              notes: ""
+                              notes: "",
+                              description: "" // Added description field
                             }
                           });
                           
                           const onSubmit = (data: any) => {
-                            // Copy form data to customSkill before submitting
-                            setCustomSkill(data);
-                            handleSubmitCustomSkill();
+                            // Instead of updating state and then calling another function,
+                            // directly submit the data without depending on state update
+                            console.log("Preparing custom skill submission with data:", data);
+                            
+                            if (!data.name || !data.category || !data.subcategory || !data.level) {
+                              toast({
+                                title: "Missing required fields",
+                                description: "Please fill in all required fields (name, category, subcategory, and level) for the custom skill.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            // Check for existing skill with same name
+                            const existingSkill = userSkills.find(
+                              skill => skill.name.toLowerCase() === data.name.toLowerCase()
+                            );
+                            
+                            if (existingSkill) {
+                              toast({
+                                title: "Skill already exists",
+                                description: "You already have this skill in your profile.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            // Submit directly using the form data
+                            customSubmitMutation.mutate(data);
                           };
                           
                           return (
@@ -1174,6 +1228,42 @@ export default function AddSkillsPage() {
                                                 {category.name}
                                               </SelectItem>
                                             ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="subcategory"
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-2">
+                                        <FormLabel>Subcategory *</FormLabel>
+                                        <Select 
+                                          onValueChange={field.onChange} 
+                                          defaultValue={field.value}
+                                          required
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select subcategory" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {/* Filter subcategories based on selected category */}
+                                            {skillSubcategories
+                                              .filter(subcategory => {
+                                                const categoryObj = skillCategories.find(c => c.name === form.getValues().category);
+                                                return categoryObj && subcategory.categoryId === categoryObj.id;
+                                              })
+                                              .map(subcategory => (
+                                                <SelectItem key={subcategory.id} value={subcategory.name}>
+                                                  {subcategory.name}
+                                                </SelectItem>
+                                              ))}
+                                              {/* Add an "Other" option if no subcategories match */}
+                                              <SelectItem value="Other">Other</SelectItem>
                                           </SelectContent>
                                         </Select>
                                       </FormItem>
@@ -1238,6 +1328,22 @@ export default function AddSkillsPage() {
                                     )}
                                   />
                                   
+                                  <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-2 sm:col-span-2">
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                          <Textarea 
+                                            placeholder="Describe your experience with this skill..."
+                                            {...field}
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    )}
+                                  />
+
                                   <FormField
                                     control={form.control}
                                     name="notes"
