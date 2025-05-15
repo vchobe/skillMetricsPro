@@ -229,6 +229,7 @@ const projectSchema = z.object({
 const resourceSchema = z.object({
   userId: z.coerce.number(),
   role: z.string().nullable().optional(),
+  email: z.string().email("Invalid email format").optional(),
   allocation: z.coerce.number().min(1).max(100),
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable()
