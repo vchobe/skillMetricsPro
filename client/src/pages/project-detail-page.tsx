@@ -429,6 +429,7 @@ export default function ProjectDetailPage() {
     defaultValues: {
       userId: 0,
       role: "",
+      email: "",
       allocation: 100,
       startDate: new Date().toISOString().split('T')[0],
       endDate: null
@@ -1572,6 +1573,24 @@ export default function ProjectDetailPage() {
                         {...field} 
                         value={field.value || ''} 
                         placeholder="e.g. Developer, Client Engagement Lead, Designer" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={addResourceForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        type="email" 
+                        placeholder="resource@example.com" 
                       />
                     </FormControl>
                     <FormMessage />
