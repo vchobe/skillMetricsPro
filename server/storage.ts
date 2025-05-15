@@ -4083,20 +4083,54 @@ export class PostgresStorage implements IStorage {
 
   async getProject(id: number): Promise<Project | undefined> {
     try {
+      // Explicitly list all fields to ensure nothing is missed
       const result = await pool.query(`
-        SELECT p.*, c.name as client_name, 
-        u1.username as lead_name, 
-        u2.username as delivery_lead_name
+        SELECT 
+          p.id, 
+          p.name, 
+          p.description, 
+          p.client_id, 
+          p.start_date, 
+          p.end_date, 
+          p.location, 
+          p.confluence_link, 
+          p.lead_id, 
+          p.delivery_lead_id, 
+          p.status, 
+          p.created_at, 
+          p.updated_at,
+          p.project_lead_email, 
+          p.client_engagement_lead_email,
+          p.hr_coordinator_email, 
+          p.finance_team_email,
+          c.name as client_name, 
+          u1.username as lead_name, 
+          u2.username as delivery_lead_name
         FROM projects p
         LEFT JOIN clients c ON p.client_id = c.id
         LEFT JOIN users u1 ON p.lead_id = u1.id
         LEFT JOIN users u2 ON p.delivery_lead_id = u2.id
         WHERE p.id = $1
       `, [id]);
+      
       if (result.rows.length === 0) {
         return undefined;
       }
-      return this.snakeToCamel(result.rows[0]) as Project;
+      
+      // Log the raw result for debugging
+      console.log(`Project data for ID ${id}:`, JSON.stringify(result.rows[0]));
+      
+      const transformedProject = this.snakeToCamel(result.rows[0]) as Project;
+      
+      // Log the transformed result to ensure HR/Finance emails are present
+      console.log(`Transformed project data for ID ${id}:`, JSON.stringify({
+        id: transformedProject.id,
+        name: transformedProject.name,
+        hrCoordinatorEmail: transformedProject.hrCoordinatorEmail,
+        financeTeamEmail: transformedProject.financeTeamEmail
+      }));
+      
+      return transformedProject;
     } catch (error) {
       console.error(`Error retrieving project ${id}:`, error);
       throw error;
