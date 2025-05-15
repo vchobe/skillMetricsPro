@@ -726,7 +726,6 @@ export const insertProjectResourceSchema = createInsertSchema(projectResources)
   .pick({
     projectId: true,
     userId: true,
-    email: true,
     role: true,
     allocation: true,
     startDate: true,
@@ -737,8 +736,8 @@ export const insertProjectResourceSchema = createInsertSchema(projectResources)
     // Allow string dates that will be converted to Date objects on the server
     startDate: z.union([z.string(), z.date(), z.null()]).optional(),
     endDate: z.union([z.string(), z.date(), z.null()]).optional(),
-    // Email validation
-    email: z.string().email("Invalid email address").nonempty("Email is required"),
+    // Email is now optional - will be fetched from user profile
+    email: z.string().email("Invalid email address").optional(),
   });
 
 export type ProjectResource = typeof projectResources.$inferSelect;

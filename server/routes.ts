@@ -3605,10 +3605,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      const parsedData = insertProjectResourceSchema.safeParse({
+      // Add projectId to request body for validation
+      const requestData = {
         ...req.body,
         projectId
-      });
+      };
+      
+      // Validate the request data
+      const parsedData = insertProjectResourceSchema.safeParse(requestData);
       
       if (!parsedData.success) {
         console.error("Resource validation failed:", JSON.stringify(parsedData.error.format(), null, 2));
@@ -3631,7 +3635,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data.endDate = new Date(data.endDate);
       }
       
-      console.log("Processed resource data:", JSON.stringify(data, null, 2));
+      // Fetch user's email from their profile and set it in the resource data
+      try {
+        const user = await storage.getUser(data.userId);
+        if (user && user.email) {
+          data.email = user.email;
+          console.log(`Using email from user profile: ${data.email} for user ID: ${data.userId}`);
+        } else {
+          console.warn(`Could not find email for user ID: ${data.userId}`);
+        }
+      } catch (error) {
+        console.error(`Error fetching user email for ID ${data.userId}:`, error);
+      }
+      
+      console.log("Processed resource data with auto-generated email:", JSON.stringify(data, null, 2));
       const resource = await storage.createProjectResource(data);
       
       // Create resource history entry
