@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -43,9 +43,6 @@ interface User {
   isAdmin?: boolean;
   is_admin?: boolean;
   createdAt?: string;
-  // Dynamic properties for search matching
-  _matchSource?: 'basic' | 'skill';
-  _matchingSkills?: any[];
 }
 
 // Client type definition
@@ -69,8 +66,6 @@ const AdminUsersManagement = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-  const [userSkills, setUserSkills] = useState<Record<number, any[]>>({});
-  const [isSkillSearchLoading, setIsSkillSearchLoading] = useState(false);
   const currentUser = queryClient.getQueryData<User>(["/api/user"]);
   const isSuperAdmin = currentUser?.email === "admin@atyeti.com";
   const csvExportRef = useRef<HTMLAnchorElement>(null);
@@ -202,109 +197,14 @@ const AdminUsersManagement = () => {
     deleteUserMutation.mutate(deleteUserEmail);
   };
 
-  // Load user skills for searching based on search term
-  useEffect(() => {
-    // Only perform skill search if there's a search term and it might be a skill search
-    if (searchTerm.trim().length < 2) {
-      return;
-    }
-    
-    const search = searchTerm.toLowerCase();
-    const loadUserSkills = async () => {
-      setIsSkillSearchLoading(true);
-      try {
-        // Get all users filtered by basic fields first
-        const basicFilteredUsers = users.filter(user =>
-          user.email.toLowerCase().includes(search) ||
-          (user.firstName?.toLowerCase() || "").includes(search) ||
-          (user.lastName?.toLowerCase() || "").includes(search) ||
-          (user.username?.toLowerCase() || "").includes(search) ||
-          (user.role?.toLowerCase() || "").includes(search) ||
-          (user.project?.toLowerCase() || "").includes(search)
-        );
-        
-        // If we already have enough matches via basic search, don't bother with skills
-        if (basicFilteredUsers.length > 10) {
-          setIsSkillSearchLoading(false);
-          return;
-        }
-        
-        // Fetch skills for all users to enable searching by skill name or description
-        const skillsData: Record<number, any[]> = {};
-        
-        await Promise.all(
-          users.map(async (user) => {
-            try {
-              const response = await fetch(`/api/users/${user.id}/skills`);
-              if (!response.ok) {
-                throw new Error(`Failed to fetch skills for user ${user.id}`);
-              }
-              const skills = await response.json();
-              skillsData[user.id] = skills;
-            } catch (error) {
-              console.error(`Error fetching skills for user ${user.id}:`, error);
-              skillsData[user.id] = [];
-            }
-          })
-        );
-        
-        setUserSkills(skillsData);
-      } catch (error) {
-        console.error("Error loading user skills for search:", error);
-      } finally {
-        setIsSkillSearchLoading(false);
-      }
-    };
-    
-    // Use a debounce for the skills search to prevent too many API calls
-    const timeoutId = setTimeout(() => {
-      loadUserSkills();
-    }, 500);
-    
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, users]);
-
-  // Enhanced search across multiple fields including skills with match tracking
-  const filteredUsers = users.filter((user) => {
-    // Skip filtering if search is empty
-    if (!searchTerm.trim()) return true;
-    
-    const search = searchTerm.toLowerCase();
-    
-    // Basic user fields search
-    const basicFieldsMatch = 
-      user.email.toLowerCase().includes(search) ||
-      (user.firstName?.toLowerCase() || "").includes(search) ||
-      (user.lastName?.toLowerCase() || "").includes(search) ||
-      (user.username?.toLowerCase() || "").includes(search) ||
-      (user.role?.toLowerCase() || "").includes(search) ||
-      (user.project?.toLowerCase() || "").includes(search);
-    
-    if (basicFieldsMatch) {
-      // Mark this as a basic field match for highlighting purposes
-      // This is a side effect in a filter function, but it's efficient for our use case
-      (user as any)._matchSource = 'basic';
-      return true;
-    }
-    
-    // Additional search through user skills (names and descriptions)
-    const userSkillList = userSkills[user.id] || [];
-    
-    // Find matching skills
-    const matchingSkills = userSkillList.filter(skill => 
-      (skill.name?.toLowerCase() || "").includes(search) ||
-      (skill.description?.toLowerCase() || "").includes(search)
-    );
-    
-    if (matchingSkills.length > 0) {
-      // Store matching skills for highlighting
-      (user as any)._matchSource = 'skill';
-      (user as any)._matchingSkills = matchingSkills;
-      return true;
-    }
-    
-    return false;
-  });
+  // Filter users based on search term
+  const filteredUsers = users.filter((user) => 
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.firstName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (user.lastName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (user.username?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (user.role?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+  );
 
   // Handle client filter change
   const handleClientChange = (value: string) => {
@@ -481,22 +381,15 @@ const AdminUsersManagement = () => {
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-4 mb-4">
-          {/* Enhanced search input with loading indicator */}
+          {/* Search input */}
           <div className="relative flex-1 min-w-[200px]">
-            {isSkillSearchLoading ? (
-              <div className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-primary border-opacity-25 border-t-primary"></div>
-            ) : (
-              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            )}
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email, role, project, skills or descriptions..."
+              placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
             />
-            <div className="text-xs text-muted-foreground mt-1">
-              Search across multiple fields including skills and their descriptions
-            </div>
           </div>
           
           {/* Client filter */}
@@ -563,7 +456,6 @@ const AdminUsersManagement = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Skills</TableHead>
                 <TableHead>Admin Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -575,85 +467,6 @@ const AdminUsersManagement = () => {
                   <TableCell>{getFullName(user)}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.role || "N/A"}</TableCell>
-                  <TableCell>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant={(user as any)._matchSource === 'skill' ? "default" : "ghost"} 
-                            className={`h-8 px-2 ${(user as any)._matchSource === 'skill' ? "" : "hover:bg-transparent"}`}
-                            onClick={async () => {
-                              // Fetch user skills if not already fetched
-                              if (!userSkills[user.id]) {
-                                try {
-                                  const response = await fetch(`/api/users/${user.id}/skills`);
-                                  if (response.ok) {
-                                    const skills = await response.json();
-                                    setUserSkills({...userSkills, [user.id]: skills});
-                                  }
-                                } catch (error) {
-                                  console.error(`Error fetching skills for user ${user.id}:`, error);
-                                }
-                              }
-                            }}
-                          >
-                            {userSkills[user.id] ? 
-                              `${userSkills[user.id].length} skills${(user as any)._matchSource === 'skill' ? ' (match)' : ''}` : 
-                              `View skills${(user as any)._matchSource === 'skill' ? ' (match)' : ''}`}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-sm max-h-60 overflow-y-auto p-4">
-                          {userSkills[user.id] ? (
-                            userSkills[user.id].length > 0 ? (
-                              <div>
-                                <h4 className="font-medium mb-2">User Skills:</h4>
-                                <ul className="space-y-2 text-sm">
-                                  {userSkills[user.id].map((skill: any, index: number) => {
-                                    // Check if this skill is a match
-                                    const isMatchingSkill = searchTerm && (user as any)._matchSource === 'skill' && 
-                                      (user as any)._matchingSkills?.some((s: any) => s.id === skill.id);
-                                    
-                                    const search = searchTerm ? searchTerm.toLowerCase() : '';
-                                    const isNameMatch = search && skill.name?.toLowerCase()?.includes(search);
-                                    const isDescriptionMatch = search && skill.description?.toLowerCase()?.includes(search);
-                                    
-                                    return (
-                                      <li 
-                                        key={index} 
-                                        className={`border-b pb-2 last:border-b-0 last:pb-0 ${isMatchingSkill ? 'bg-primary/10 -mx-2 px-2 rounded-sm' : ''}`}
-                                      >
-                                        <div className="flex justify-between">
-                                          <span className={`font-medium ${isNameMatch ? 'bg-yellow-100 px-1 -ml-1 rounded' : ''}`}>
-                                            {skill.name}
-                                          </span>
-                                          <Badge variant="outline">{skill.level}</Badge>
-                                        </div>
-                                        {skill.description && (
-                                          <p className="text-xs text-muted-foreground mt-1">
-                                            Description: {
-                                              isDescriptionMatch ? (
-                                                <span className="bg-yellow-100 px-1 rounded">
-                                                  {skill.description}
-                                                </span>
-                                              ) : skill.description
-                                            }
-                                          </p>
-                                        )}
-                                      </li>
-                                    );
-                                  })}
-                                </ul>
-                              </div>
-                            ) : (
-                              <p>No skills found for this user.</p>
-                            )
-                          ) : (
-                            <p>Click to load skills</p>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Switch

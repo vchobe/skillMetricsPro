@@ -1,10 +1,9 @@
 /**
  * Script to check database columns for user_skills table
  */
-import pg from 'pg';
-import dotenv from 'dotenv';
+const { Pool } = require('pg');
+const dotenv = require('dotenv');
 
-const { Pool } = pg;
 dotenv.config();
 
 // Use direct connection parameters
