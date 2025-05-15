@@ -62,6 +62,7 @@ const skillSubmitSchema = insertSkillSchema.extend({
   certification: z.string().optional().default(""),
   credlyLink: z.string().optional().default(""),
   notes: z.string().optional().default(""),
+  description: z.string().optional().default(""),
   level: z.enum(["beginner", "intermediate", "expert"]).default("beginner"),
   selected: z.boolean().default(false),
 });
@@ -243,6 +244,7 @@ export default function AddSkillsPage() {
         certification: "",
         credlyLink: "",
         notes: "",
+        description: "",
         changeNote: "",
         selected: false,
         certificationDate: undefined,
