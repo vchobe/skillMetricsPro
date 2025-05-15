@@ -3495,11 +3495,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/:id", ensureAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
+      console.log(`Fetching project details for ID: ${projectId}`);
+      
       const project = await storage.getProject(projectId);
       
       if (!project) {
+        console.log(`Project with ID ${projectId} not found`);
         return res.status(404).json({ message: "Project not found" });
       }
+      
+      // Log specifically the HR and Finance email fields
+      console.log(`PROJECT ${projectId} DATA:`, {
+        id: project.id,
+        name: project.name,
+        hrCoordinatorEmail: project.hrCoordinatorEmail || 'NOT SET IN DB',
+        financeTeamEmail: project.financeTeamEmail || 'NOT SET IN DB'
+      });
       
       res.json(project);
     } catch (error) {
