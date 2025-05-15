@@ -856,12 +856,6 @@ export default function ProjectDetailPage() {
                 </CardHeader>
                 <CardContent className="text-sm">
                   <p className="text-md">
-                    <span className="font-medium">Project Lead:</span> {(project as ExtendedProject).projectLeadEmail || "Not set"}
-                  </p>
-                  <p className="text-md">
-                    <span className="font-medium">Client Engagement Lead:</span> {(project as ExtendedProject).clientEngagementLeadEmail || "Not set"}
-                  </p>
-                  <p className="text-md">
                     <span className="font-medium">HR:</span> {project.hrCoordinatorEmail || "Not set"}
                   </p>
                   <p className="text-md">
@@ -948,6 +942,7 @@ export default function ProjectDetailPage() {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
                             <TableHead>Role</TableHead>
                             <TableHead>Allocation</TableHead>
                             <TableHead>Start Date</TableHead>
@@ -959,6 +954,9 @@ export default function ProjectDetailPage() {
                           {resources.map((resource: ProjectResource) => (
                             <TableRow key={resource.id}>
                               <TableCell className="font-medium">{getUserName(resource.userId)}</TableCell>
+                              <TableCell>
+                                {resource.email || "Not set"}
+                              </TableCell>
                               <TableCell>
                                 {getDisplayRoleName(resource.role)}
                               </TableCell>
