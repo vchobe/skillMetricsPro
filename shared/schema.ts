@@ -712,6 +712,7 @@ export const projectResources = pgTable("project_resources", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   userId: integer("user_id").notNull().references(() => users.id),
+  email: text("email"), // Email for the resource (may be different from user email)
   role: text("role"),
   allocation: integer("allocation").default(100), // Percentage of time allocated
   startDate: timestamp("start_date"),
@@ -725,6 +726,7 @@ export const insertProjectResourceSchema = createInsertSchema(projectResources)
   .pick({
     projectId: true,
     userId: true,
+    email: true,
     role: true,
     allocation: true,
     startDate: true,
@@ -735,6 +737,8 @@ export const insertProjectResourceSchema = createInsertSchema(projectResources)
     // Allow string dates that will be converted to Date objects on the server
     startDate: z.union([z.string(), z.date(), z.null()]).optional(),
     endDate: z.union([z.string(), z.date(), z.null()]).optional(),
+    // Email validation
+    email: z.string().email("Invalid email address").nonempty("Email is required"),
   });
 
 export type ProjectResource = typeof projectResources.$inferSelect;
