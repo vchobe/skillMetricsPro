@@ -115,6 +115,7 @@ export default function AddSkillsPage() {
     certification?: string;
     credlyLink?: string;
     notes?: string;
+    description?: string; // Add description field for skill experience
     skillTemplateId?: number; // Add skill template ID for direct reference
   }>({ level: "beginner" });
 
@@ -368,6 +369,7 @@ export default function AddSkillsPage() {
         certification: skill.certification || "",
         credly_link: skill.credlyLink || "",
         notes: trimmedNotes,
+        description: skill.description || "", // Add description field
         is_custom_skill: isCustomSkill, // Add flag to mark as custom skill
         status: "pending",
         is_update: false,
@@ -1129,7 +1131,8 @@ export default function AddSkillsPage() {
                               level: "beginner" as "beginner" | "intermediate" | "expert",
                               certification: "",
                               credlyLink: "",
-                              notes: ""
+                              notes: "",
+                              description: "" // Added description field
                             }
                           });
                           
@@ -1311,6 +1314,22 @@ export default function AddSkillsPage() {
                                     )}
                                   />
                                   
+                                  <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-2 sm:col-span-2">
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                          <Textarea 
+                                            placeholder="Describe your experience with this skill..."
+                                            {...field}
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    )}
+                                  />
+
                                   <FormField
                                     control={form.control}
                                     name="notes"
