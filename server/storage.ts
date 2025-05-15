@@ -271,6 +271,18 @@ export class PostgresStorage implements IStorage {
         camelKey = 'isUpdate';
       } else if (key === 'category_type') {
         camelKey = 'categoryType';
+      } 
+      // Project email fields
+      else if (key === 'hr_coordinator_email') {
+        camelKey = 'hrCoordinatorEmail';
+        console.log("🔍 Found hr_coordinator_email, converted to hrCoordinatorEmail");
+      } else if (key === 'finance_team_email') {
+        camelKey = 'financeTeamEmail';
+        console.log("🔍 Found finance_team_email, converted to financeTeamEmail");
+      } else if (key === 'project_lead_email') {
+        camelKey = 'projectLeadEmail';
+      } else if (key === 'client_engagement_lead_email') {
+        camelKey = 'clientEngagementLeadEmail';
       }
       // General snake_case to camelCase conversion
       else if (key.includes('_')) {
