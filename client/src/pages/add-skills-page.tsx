@@ -201,6 +201,7 @@ export default function AddSkillsPage() {
         certification: "",
         credlyLink: "",
         notes: "",
+        description: "",
         changeNote: "",
         selected: false,
         certificationDate: undefined,
