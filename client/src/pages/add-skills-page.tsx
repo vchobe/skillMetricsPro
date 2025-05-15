@@ -586,6 +586,17 @@ export default function AddSkillsPage() {
     );
   };
   
+  // Handle change in description
+  const handleDescriptionChange = (skillName: string, description: string) => {
+    setSkillsList(prev => 
+      prev.map(skill => 
+        skill.name === skillName 
+          ? { ...skill, description } 
+          : skill
+      )
+    );
+  };
+  
   // Function to track tab visits
   const markTabVisited = (tab: string) => {
     console.log(`Marking tab visited: ${tab}`);
