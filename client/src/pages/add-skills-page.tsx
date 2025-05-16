@@ -54,7 +54,10 @@ import {
   Users,
   MessageSquare,
   Paintbrush,
-  PieChart
+  PieChart,
+  FileText,
+  BookOpen,
+  Info
 } from "lucide-react";
 
 // We're extending the existing insertSkillSchema to include additional fields
@@ -63,6 +66,7 @@ const skillSubmitSchema = insertSkillSchema.extend({
   certification: z.string().optional().default(""),
   credlyLink: z.string().optional().default(""),
   notes: z.string().optional().default(""),
+  description: z.string().optional().default(""),
   level: z.enum(["beginner", "intermediate", "expert"]).default("beginner"),
   selected: z.boolean().default(false),
 });
