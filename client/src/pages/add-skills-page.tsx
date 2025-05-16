@@ -583,6 +583,14 @@ export default function AddSkillsPage() {
 
   // Handle change in certification link
   const handleCertificationLinkChange = (skillName: string, credlyLink: string) => {
+  // Handle description change
+  const handleDescriptionChange = (skillName: string, description: string) => {
+    setSkillsList(prevSkills => 
+      prevSkills.map(skill => 
+        skill.name === skillName ? { ...skill, notes: description } : skill
+      )
+    );
+  };
     setSkillsList(prev => 
       prev.map(skill => 
         skill.name === skillName 
@@ -1162,6 +1170,15 @@ export default function AddSkillsPage() {
                                                         <SelectItem value="expert">Expert</SelectItem>
                                                       </SelectContent>
                                                     </Select>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <Textarea
+                                                      placeholder="Add skill description..."
+                                                      value={skillsList.find(s => s.name === skill.name)?.notes || ""}
+                                                      onChange={(e) => handleDescriptionChange(skill.name, e.target.value)}
+                                                      disabled={isDisabled || !selectedSkills[skill.name]}
+                                                      className="w-full max-w-xs h-16 text-xs"
+                                                    />
                                                   </TableCell>
                                                   <TableCell>
                                                     <div className="space-y-1">
