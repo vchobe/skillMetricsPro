@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,8 +9,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 
 interface SkillDescriptionModalProps {
   isOpen: boolean;
@@ -19,8 +18,6 @@ interface SkillDescriptionModalProps {
   onSave: (description: string) => void;
 }
 
-const MAX_DESCRIPTION_LENGTH = 500;
-
 export function SkillDescriptionModal({
   isOpen,
   onClose,
@@ -29,49 +26,36 @@ export function SkillDescriptionModal({
   onSave,
 }: SkillDescriptionModalProps) {
   const [description, setDescription] = useState(initialDescription);
-  const { toast } = useToast();
-  const charactersRemaining = MAX_DESCRIPTION_LENGTH - description.length;
 
   const handleSave = () => {
     onSave(description);
-    toast({
-      title: "Description saved",
-      description: "Your skill description has been saved.",
-      duration: 3000,
-    });
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add Description for {skillName}</DialogTitle>
           <DialogDescription>
-            Describe your experience or context with this skill.
+            Provide a detailed description of your experience with this skill.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
+        <div className="space-y-4 py-4">
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe your experience with this skill..."
+            placeholder="Describe your experience, projects, or achievements related to this skill..."
             className="min-h-[150px]"
-            maxLength={MAX_DESCRIPTION_LENGTH}
           />
-          <p className={`text-xs mt-2 text-right ${charactersRemaining < 50 ? 'text-red-500' : 'text-gray-500'}`}>
-            {charactersRemaining} characters remaining
-          </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button onClick={handleSave}>Save Description</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-export default SkillDescriptionModal;
