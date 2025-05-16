@@ -427,8 +427,11 @@ export default function AddSkillsPage() {
     }));
   };
   
-  // Open description modal for a skill
-  // These functions have been moved to avoid duplication
+  // Function to open the description modal for a skill
+  const openDescriptionModal = (skillName: string) => {
+    setCurrentSkill(skillName);
+    setDescriptionModalOpen(true);
+  };
 
   // Create derived category lists based on the database values
   const technicalCategoryNames = skillCategories
@@ -1399,5 +1402,36 @@ export default function AddSkillsPage() {
         </div>
       </div>
     </div>
+    
+    {/* Skill Description Modal */}
+    <SkillDescriptionModal
+      isOpen={descriptionModalOpen}
+      onClose={() => setDescriptionModalOpen(false)} 
+      skillName={currentSkill || ""}
+      initialDescription={currentSkill && skillDescriptions[currentSkill] ? skillDescriptions[currentSkill] : ""}
+      onSave={(description) => {
+        if (currentSkill) {
+          // Save the description
+          setSkillDescriptions(prev => ({
+            ...prev,
+            [currentSkill]: description
+          }));
+          
+          // Update the skill in the list
+          setSkillsList(prev => prev.map(skill => 
+            skill.name === currentSkill 
+              ? { ...skill, description } 
+              : skill
+          ));
+          
+          // Show confirmation
+          toast({
+            title: "Description saved",
+            description: `Your description for ${currentSkill} has been saved`,
+            variant: "default"
+          });
+        }
+      }}
+    />
   );
 }
