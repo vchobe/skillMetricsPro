@@ -4,12 +4,13 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
 
+const { Pool } = pg;
 dotenv.config();
 
 // Use direct connection parameters
 const connectionString = process.env.DATABASE_URL;
 
-const pool = new pg.Pool({
+const pool = new Pool({
   connectionString
 });
 
