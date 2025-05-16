@@ -783,9 +783,9 @@ export default function ProjectsPage() {
                                     }}
                                   >
                                     <Button 
-                                      variant="ghost" 
+                                      variant="outline" 
                                       size="sm"
-                                      className="text-red-500 hover:text-red-700 hover:bg-red-100" 
+                                      className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600" 
                                       onClick={() => {
                                         setDeleteProjectId(project.id);
                                         setConfirmDelete(true);
