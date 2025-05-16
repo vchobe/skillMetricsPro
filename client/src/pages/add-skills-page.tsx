@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Skill, insertSkillSchema, PendingSkillUpdate, SkillTemplate, SkillCategory, SkillSubcategory } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
+import SkillDescriptionModal from "@/components/skill-description-modal";
 
 // Utility function to generate consistent tab IDs
 const getTabKey = (tabName: string): string => {
@@ -83,6 +84,9 @@ export default function AddSkillsPage() {
   const [activeFunctionalCategory, setActiveFunctionalCategory] = useState<string>("Design");
   const [skillsList, setSkillsList] = useState<SkillEntry[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<Record<string, boolean>>({});
+  const [skillDescriptions, setSkillDescriptions] = useState<Record<string, string>>({});
+  const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
+  const [currentSkill, setCurrentSkill] = useState<string | null>(null);
   
   // Tab visit tracking
   const [visitedTabs, setVisitedTabs] = useState({
