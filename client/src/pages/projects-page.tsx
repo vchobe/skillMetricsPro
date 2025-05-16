@@ -33,6 +33,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormDescription,
@@ -51,7 +61,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Search, Plus, Calendar, Building, FileText } from "lucide-react";
+import { Loader2, Search, Plus, Calendar, Building, FileText, Trash2, AlertCircle } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -754,12 +764,61 @@ export default function ProjectsPage() {
                             {project.leadId ? getUserName(project.leadId) : "—"}
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end">
+                            <div className="flex justify-end space-x-2">
                               <Button variant="ghost" size="sm" asChild>
                                 <Link href={`/projects/${project.id}`}>
                                   View Details
                                 </Link>
                               </Button>
+                              
+                              {isSuperUser && (
+                                <>
+                                  <AlertDialog 
+                                    open={confirmDelete && deleteProjectId === project.id}
+                                    onOpenChange={(open) => {
+                                      if (!open) {
+                                        setConfirmDelete(false);
+                                        setDeleteProjectId(null);
+                                      }
+                                    }}
+                                  >
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      className="text-red-500 hover:text-red-700 hover:bg-red-100" 
+                                      onClick={() => {
+                                        setDeleteProjectId(project.id);
+                                        setConfirmDelete(true);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-1" />
+                                      Delete
+                                    </Button>
+                                    
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently delete the project "{project.name}". 
+                                          This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => deleteProject.mutate(project.id)}
+                                          className="bg-red-600 hover:bg-red-700"
+                                        >
+                                          {deleteProject.isPending && deleteProjectId === project.id && (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          )}
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
