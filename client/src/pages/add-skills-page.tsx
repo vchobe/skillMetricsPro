@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Skill, insertSkillSchema, PendingSkillUpdate, SkillTemplate, SkillCategory, SkillSubcategory } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
-import SkillDescriptionModal from "@/components/skill-description-modal";
+import { SkillDescriptionModal } from "@/components/skill-description-modal";
 
 // Utility function to generate consistent tab IDs
 const getTabKey = (tabName: string): string => {
@@ -248,6 +248,7 @@ export default function AddSkillsPage() {
         categoryId: skill.categoryId,
         subcategoryId: skill.subcategoryId,
         level: "beginner",
+        description: "",
         certification: "",
         credlyLink: "",
         notes: "",
@@ -425,6 +426,9 @@ export default function AddSkillsPage() {
       [skillName]: isSelected
     }));
   };
+  
+  // Open description modal for a skill
+  // These functions have been moved to avoid duplication
 
   // Create derived category lists based on the database values
   const technicalCategoryNames = skillCategories
@@ -568,28 +572,9 @@ export default function AddSkillsPage() {
     );
   };
   
-  // Description modal handlers
-  const openDescriptionModal = (skillName: string) => {
-    setCurrentSkill(skillName);
-    setDescriptionModalOpen(true);
-  };
-  
-  const handleSaveDescription = (description: string) => {
-    if (currentSkill) {
-      setSkillDescriptions(prev => ({
-        ...prev,
-        [currentSkill]: description
-      }));
-      
-      // Also update the skillsList to include the description
-      setSkillsList(prev => 
-        prev.map(skill => 
-          skill.name === currentSkill 
-            ? { ...skill, description } 
-            : skill
-        )
-      );
-    }
+  // Description button display helpers
+  const hasDescription = (skillName: string) => {
+    return Boolean(skillDescriptions[skillName] && skillDescriptions[skillName].trim());
   };
 
   // Handle change in certification name
