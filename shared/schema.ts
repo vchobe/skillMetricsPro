@@ -135,7 +135,6 @@ export const userSkills = pgTable("user_skills", {
   certification: text("certification"),
   credlyLink: text("credly_link"),
   notes: text("notes"),
-  description: text("description"), // New field to store user's experience with the skill
   endorsementCount: integer("endorsement_count").default(0),
   certificationDate: timestamp("certification_date"),
   expirationDate: timestamp("expiration_date"),
@@ -180,7 +179,6 @@ export const insertUserSkillSchema = createInsertSchema(userSkills).pick({
   certification: true,
   credlyLink: true,
   notes: true,
-  description: true, // Add description field to the insert schema
   certificationDate: true,
   expirationDate: true,
 });
@@ -430,7 +428,6 @@ export const pendingSkillUpdates = pgTable("pending_skill_updates", {
   categoryId: integer("category_id").references(() => skillCategories.id), // Reference to categories table
   subcategoryId: integer("subcategory_id").references(() => skillSubcategories.id), // Reference to subcategories table
   level: skillLevelEnum("level").notNull(),
-  description: text("description"), // Description field for user's experience with the skill
   certification: text("certification"),
   credlyLink: text("credly_link"),
   notes: text("notes"),
@@ -540,7 +537,6 @@ const baseInsertPendingSkillUpdateV2Schema = createInsertSchema(pendingSkillUpda
   userSkillId: true,
   skillTemplateId: true,
   level: true,
-  description: true,  // Include description field
   certification: true,
   credlyLink: true,
   notes: true,
