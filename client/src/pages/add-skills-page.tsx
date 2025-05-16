@@ -5,6 +5,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { Skill, insertSkillSchema, PendingSkillUpdate, SkillTemplate, SkillCategory, SkillSubcategory } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Utility function to generate consistent tab IDs
 const getTabKey = (tabName: string): string => {
@@ -83,6 +91,9 @@ export default function AddSkillsPage() {
   const [activeFunctionalCategory, setActiveFunctionalCategory] = useState<string>("Design");
   const [skillsList, setSkillsList] = useState<SkillEntry[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<Record<string, boolean>>({});
+  const [skillDescriptions, setSkillDescriptions] = useState<Record<string, string>>({});
+  const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
+  const [currentSkill, setCurrentSkill] = useState<string>("");
   
   // Tab visit tracking
   const [visitedTabs, setVisitedTabs] = useState({
@@ -581,6 +592,31 @@ export default function AddSkillsPage() {
     );
   };
   
+  // Handle opening the description modal
+  const handleOpenDescriptionModal = (skillName: string) => {
+    setCurrentSkill(skillName);
+    setDescriptionModalOpen(true);
+  };
+  
+  // Handle saving the description
+  const handleSaveDescription = (description: string) => {
+    setSkillDescriptions(prev => ({
+      ...prev,
+      [currentSkill]: description
+    }));
+    
+    // Also update the notes field in the skill list
+    setSkillsList(prev => 
+      prev.map(skill => 
+        skill.name === currentSkill 
+          ? { ...skill, notes: description } 
+          : skill
+      )
+    );
+    
+    setDescriptionModalOpen(false);
+  };
+  
   // Function to track tab visits
   const markTabVisited = (tab: string) => {
     console.log(`Marking tab visited: ${tab}`);
@@ -651,9 +687,44 @@ export default function AddSkillsPage() {
 
   const filteredSkills = getFilteredSkills();
 
+  // Description Modal Component
+  const DescriptionModal = () => {
+    const [description, setDescription] = useState(skillDescriptions[currentSkill] || "");
+    
+    return (
+      <Dialog open={descriptionModalOpen} onOpenChange={setDescriptionModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Description for {currentSkill}</DialogTitle>
+            <DialogDescription>
+              Provide details about your experience and proficiency with this skill.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Textarea 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe your experience with this skill..."
+              className="min-h-[150px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDescriptionModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => handleSaveDescription(description)}>
+              Save Description
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/skills/add" />
+      <DescriptionModal />
       
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <Header 
