@@ -81,10 +81,13 @@ export default function ProjectsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.isAdmin || user?.is_admin;
+  const isSuperUser = user?.email === "admin@atyeti.com";
   
   const [searchTerm, setSearchTerm] = useState("");
   const [openNewProject, setOpenNewProject] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [deleteProjectId, setDeleteProjectId] = useState<number | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [sortConfig, setSortConfig] = useState<{
     field: SortField;
     direction: SortDirection;
@@ -224,6 +227,30 @@ export default function ProjectsPage() {
         variant: "destructive",
       });
     },
+  });
+  
+  // Delete project mutation
+  const deleteProject = useMutation({
+    mutationFn: async (projectId: number) => {
+      return await apiRequest("DELETE", `/api/projects/${projectId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Project deleted",
+        description: "Project has been deleted successfully.",
+      });
+      setConfirmDelete(false);
+      setDeleteProjectId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete project",
+        description: error.message || "An error occurred while deleting the project.",
+        variant: "destructive"
+      });
+      setConfirmDelete(false);
+    }
   });
 
   // Handle form submission
