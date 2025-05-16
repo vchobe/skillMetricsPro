@@ -1427,34 +1427,40 @@ export default function AddSkillsPage() {
             </CardContent>
           </Card>
           
-          {/* Add Description Section - only show if there are selected skills */}
+
+
+          {/* Floating Description Management Button */}
           {Object.keys(selectedSkills).filter(name => selectedSkills[name]).length > 0 && (
-            <Card className="mt-6 mb-6">
-              <CardHeader>
-                <CardTitle>Add Descriptions to Selected Skills</CardTitle>
-                <CardDescription>
-                  You can add detailed descriptions to your selected skills before submitting.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {Object.keys(selectedSkills)
-                    .filter(name => selectedSkills[name])
-                    .map(skillName => (
-                      <div key={skillName} className="flex items-center justify-between p-2 border rounded">
-                        <div className="font-medium">{skillName}</div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenDescriptionModal(skillName)}
-                        >
-                          {skillDescriptions[skillName] ? "Edit Description" : "Add Description"}
-                        </Button>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="mb-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle>Skill Descriptions</CardTitle>
+                  <CardDescription>
+                    Add detailed descriptions to your selected skills
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Select
+                      onValueChange={(value) => handleOpenDescriptionModal(value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a skill to add description" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(selectedSkills)
+                          .filter(name => selectedSkills[name])
+                          .map(skillName => (
+                            <SelectItem key={skillName} value={skillName}>
+                              {skillName} {skillDescriptions[skillName] ? "✓" : ""}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           <div className="flex justify-between mt-6">
