@@ -592,6 +592,17 @@ export default function AddSkillsPage() {
     );
   };
   
+  // Handle change in skill description
+  const handleDescriptionChange = (skillName: string, description: string) => {
+    setSkillsList(prev => 
+      prev.map(skill => 
+        skill.name === skillName 
+          ? { ...skill, notes: description } 
+          : skill
+      )
+    );
+  };
+  
   // Handle opening the description modal
   const handleOpenDescriptionModal = (skillName: string) => {
     setCurrentSkill(skillName);
@@ -843,8 +854,8 @@ export default function AddSkillsPage() {
                                       <TableHead className="w-12">Select</TableHead>
                                       <TableHead>Skill Name</TableHead>
                                       <TableHead>Level</TableHead>
+                                      <TableHead>Description</TableHead>
                                       <TableHead>Certification</TableHead>
-                                      <TableHead>Certification Link</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -1046,8 +1057,8 @@ export default function AddSkillsPage() {
                                       <TableHead className="w-12">Select</TableHead>
                                       <TableHead>Skill Name</TableHead>
                                       <TableHead>Level</TableHead>
+                                      <TableHead>Description</TableHead>
                                       <TableHead>Certification</TableHead>
-                                      <TableHead>Certification Link</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
