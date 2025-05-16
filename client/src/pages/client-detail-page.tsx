@@ -79,6 +79,7 @@ import {
   Globe,
   Info,
   ArrowLeft,
+  AlertCircle,
   Edit,
   Loader2,
   Trash2,
@@ -332,7 +333,15 @@ export default function ClientDetailPage() {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <h1 className="text-3xl font-bold">{client.name}</h1>
+                <div>
+                  <h1 className="text-3xl font-bold">{client.name}</h1>
+                  {isAdmin && !isSuperUser && (
+                    <p className="text-amber-500 text-sm mt-1">
+                      <AlertCircle className="inline-block mr-1 h-4 w-4" />
+                      Only super users can edit or delete clients
+                    </p>
+                  )}
+                </div>
               </div>
               
               {isSuperUser && (
