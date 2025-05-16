@@ -61,7 +61,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Search, Plus, Building, Edit, Trash2 } from "lucide-react";
+import { AlertCircle, Loader2, Search, Plus, Building, Edit, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -348,6 +348,12 @@ export default function ClientsPage() {
               <h1 className="text-3xl font-bold mb-2">Clients</h1>
               <p className="text-gray-500">
                 Manage client information and contact details
+                {isAdmin && !isSuperUser && (
+                  <span className="block mt-1 text-amber-500">
+                    <AlertCircle className="inline-block mr-1 h-4 w-4" />
+                    Only super users can add, edit or delete clients.
+                  </span>
+                )}
               </p>
             </div>
             
