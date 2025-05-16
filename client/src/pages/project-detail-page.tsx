@@ -397,8 +397,6 @@ export default function ProjectDetailPage() {
   // Set form values when project data is loaded
   useEffect(() => {
     if (project) {
-      // Cast project to ExtendedProject to access the new email fields
-      const extProject = project as ExtendedProject;
       editProjectForm.reset({
         name: project.name,
         description: project.description || "",
@@ -409,8 +407,6 @@ export default function ProjectDetailPage() {
         confluenceLink: project.confluenceLink || "",
         leadId: project.leadId || null,
         deliveryLeadId: project.deliveryLeadId || null,
-        projectLeadEmail: extProject.projectLeadEmail || "",
-        clientEngagementLeadEmail: extProject.clientEngagementLeadEmail || "",
         status: project.status || "active",
         hrCoordinatorEmail: project.hrCoordinatorEmail || "",
         financeTeamEmail: project.financeTeamEmail || ""
