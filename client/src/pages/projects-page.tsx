@@ -170,8 +170,6 @@ export default function ProjectsPage() {
       confluenceLink: "",
       leadId: null,
       deliveryLeadId: null,
-      projectLeadEmail: "",
-      clientEngagementLeadEmail: "",
       status: "active",
       hrCoordinatorEmail: "",
       financeTeamEmail: ""
@@ -197,8 +195,6 @@ export default function ProjectsPage() {
           startDate: data.startDate || null,
           endDate: data.endDate || null,
           // Ensure email fields are included with proper empty string handling
-          projectLeadEmail: data.projectLeadEmail || "",
-          clientEngagementLeadEmail: data.clientEngagementLeadEmail || "",
           hrCoordinatorEmail: data.hrCoordinatorEmail || "",
           financeTeamEmail: data.financeTeamEmail || "",
         };
