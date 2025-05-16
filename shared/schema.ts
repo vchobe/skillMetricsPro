@@ -135,6 +135,7 @@ export const userSkills = pgTable("user_skills", {
   certification: text("certification"),
   credlyLink: text("credly_link"),
   notes: text("notes"),
+  description: text("description"), // Added field for skill description
   endorsementCount: integer("endorsement_count").default(0),
   certificationDate: timestamp("certification_date"),
   expirationDate: timestamp("expiration_date"),
@@ -179,6 +180,7 @@ export const insertUserSkillSchema = createInsertSchema(userSkills).pick({
   certification: true,
   credlyLink: true,
   notes: true,
+  description: true, // Added field for skill description
   certificationDate: true,
   expirationDate: true,
 });
