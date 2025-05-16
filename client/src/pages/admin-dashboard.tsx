@@ -2061,10 +2061,21 @@ export default function AdminDashboard() {
         s.userId === user.id || (s as any).user_id === user.id
       ) || [];
       
-      // Return true if any skill name matches the search query
-      return userSkills.some(skill => 
-        skill.name?.toLowerCase().includes(searchLower)
-      );
+      // Return true if any skill name or description matches the search query
+      return userSkills.some(skill => {
+        // Check skill name
+        if (skill.name?.toLowerCase().includes(searchLower)) {
+          return true;
+        }
+        
+        // Check skill description (may exist in different formats)
+        const description = skill.description || (skill as any).description || skill.notes || (skill as any).notes;
+        if (description && description.toLowerCase().includes(searchLower)) {
+          return true;
+        }
+        
+        return false;
+      });
     });
     
     // Step 2: Filter by role
@@ -4870,8 +4881,8 @@ export default function AdminDashboard() {
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                       <input 
                         type="text" 
-                        placeholder="Search users by name, email, or skills..." 
-                        className="pl-8 h-9 w-full md:w-[260px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        placeholder="Search users by name, email, skills or skill descriptions..." 
+                        className="pl-8 h-9 w-full md:w-[340px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
