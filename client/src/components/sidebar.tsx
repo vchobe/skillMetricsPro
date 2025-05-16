@@ -205,7 +205,7 @@ export default function Sidebar({ isOpen, setIsOpen, currentPath }: SidebarProps
                 
                 <div>
                   <Link href="/projects" className={`flex ${!isOpen ? "lg:justify-center" : ""} items-center px-4 py-3 rounded-md ${
-                    currentPath === "/projects" || (currentPath && currentPath.startsWith("/projects/"))
+                    currentPath === "/projects" || currentPath.startsWith("/projects/")
                       ? "bg-gray-900 text-white" 
                       : "text-gray-300 hover:bg-gray-700 hover:text-white"
                   }`}>

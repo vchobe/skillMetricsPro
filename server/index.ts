@@ -42,14 +42,7 @@ app.use((req, res, next) => {
 
 // Create a function to proxy API requests to Java backend
 const createApiProxy = (app: express.Express) => {
-  app.use('/api', async (req: Request, res: Response, next) => {
-    // Special handling for the user skills endpoint that needs to support the description field
-    if (req.method === 'POST' && req.url === '/user/skills') {
-      // Skip proxy for this specific endpoint and let it be handled by our custom Node.js routes
-      console.log("Intercepting /api/user/skills POST request to handle locally with description field support");
-      return next();
-    }
-    
+  app.use('/api', async (req: Request, res: Response) => {
     const javaBackendUrl = `http://localhost:8080${req.url}`;
     
     // Add extra debug logging for skills-related endpoints
