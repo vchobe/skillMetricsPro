@@ -85,6 +85,7 @@ export default function ClientsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.isAdmin || user?.is_admin;
+  const isSuperUser = user?.email === "admin@atyeti.com";
   
   const [searchTerm, setSearchTerm] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -598,7 +599,7 @@ export default function ClientsPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              {isAdmin && (
+                              {isSuperUser && (
                                 <>
                                   <Dialog
                                     open={editClientId === client.id}
