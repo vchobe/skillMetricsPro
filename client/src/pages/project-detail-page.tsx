@@ -388,8 +388,6 @@ export default function ProjectDetailPage() {
       confluenceLink: "",
       leadId: null,
       deliveryLeadId: null,
-      projectLeadEmail: "",
-      clientEngagementLeadEmail: "",
       status: "active",
       hrCoordinatorEmail: "",
       financeTeamEmail: ""
@@ -1426,39 +1424,6 @@ export default function ProjectDetailPage() {
               />
               
               <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={editProjectForm.control}
-                  name="projectLeadEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Project Lead Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" />
-                      </FormControl>
-                      <FormDescription>
-                        For project notifications
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={editProjectForm.control}
-                  name="clientEngagementLeadEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Client Engagement Lead Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" />
-                      </FormControl>
-                      <FormDescription>
-                        For client communications
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
