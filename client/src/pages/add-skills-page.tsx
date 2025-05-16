@@ -207,6 +207,7 @@ export default function AddSkillsPage() {
         certification: "",
         credlyLink: "",
         notes: "",
+        description: "",
         changeNote: "",
         selected: false,
         certificationDate: undefined,
@@ -565,6 +566,30 @@ export default function AddSkillsPage() {
           : skill
       )
     );
+  };
+  
+  // Description modal handlers
+  const openDescriptionModal = (skillName: string) => {
+    setCurrentSkill(skillName);
+    setDescriptionModalOpen(true);
+  };
+  
+  const handleSaveDescription = (description: string) => {
+    if (currentSkill) {
+      setSkillDescriptions(prev => ({
+        ...prev,
+        [currentSkill]: description
+      }));
+      
+      // Also update the skillsList to include the description
+      setSkillsList(prev => 
+        prev.map(skill => 
+          skill.name === currentSkill 
+            ? { ...skill, description } 
+            : skill
+        )
+      );
+    }
   };
 
   // Handle change in certification name
