@@ -218,8 +218,6 @@ const projectSchema = z.object({
   confluenceLink: z.string().optional(),
   leadId: z.coerce.number().nullable().optional(),
   deliveryLeadId: z.coerce.number().nullable().optional(),
-  projectLeadEmail: z.string().email("Invalid project lead email format").optional(),
-  clientEngagementLeadEmail: z.string().email("Invalid client engagement lead email format").optional(),
   status: z.string().default("active"),
   hrCoordinatorEmail: z.string().email("Invalid HR coordinator email format").optional(),
   financeTeamEmail: z.string().email("Invalid finance team email format").optional()
