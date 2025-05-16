@@ -91,9 +91,10 @@ export default function AddSkillsPage() {
   const [activeFunctionalCategory, setActiveFunctionalCategory] = useState<string>("Design");
   const [skillsList, setSkillsList] = useState<SkillEntry[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<Record<string, boolean>>({});
-  const [skillDescriptions, setSkillDescriptions] = useState<Record<string, string>>({});
-  const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
-  const [currentSkill, setCurrentSkill] = useState<string>("");
+  // We don't need these states anymore as descriptions are now part of the table
+  // const [skillDescriptions, setSkillDescriptions] = useState<Record<string, string>>({});
+  // const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
+  // const [currentSkill, setCurrentSkill] = useState<string>("");
   
   // Tab visit tracking
   const [visitedTabs, setVisitedTabs] = useState({
@@ -611,30 +612,7 @@ export default function AddSkillsPage() {
     );
   };
   
-  // Handle opening the description modal
-  const handleOpenDescriptionModal = (skillName: string) => {
-    setCurrentSkill(skillName);
-    setDescriptionModalOpen(true);
-  };
-  
-  // Handle saving the description
-  const handleSaveDescription = (description: string) => {
-    setSkillDescriptions(prev => ({
-      ...prev,
-      [currentSkill]: description
-    }));
-    
-    // Also update the notes field in the skill list
-    setSkillsList(prev => 
-      prev.map(skill => 
-        skill.name === currentSkill 
-          ? { ...skill, notes: description } 
-          : skill
-      )
-    );
-    
-    setDescriptionModalOpen(false);
-  };
+  // Description is now handled directly in the table, so these modal-related functions are no longer needed
   
   // Function to track tab visits
   const markTabVisited = (tab: string) => {
@@ -711,7 +689,6 @@ export default function AddSkillsPage() {
   return (
     <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/skills/add" />
-      <DescriptionModal />
       
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <Header 
