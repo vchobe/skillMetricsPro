@@ -351,7 +351,7 @@ export default function ClientsPage() {
               </p>
             </div>
             
-            {isAdmin && (
+            {isSuperUser && (
               <Dialog open={openNewClient} onOpenChange={setOpenNewClient}>
                 <DialogTrigger asChild>
                   <Button className="mt-4 md:mt-0">

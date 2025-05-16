@@ -102,6 +102,7 @@ export default function ClientDetailPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.isAdmin || user?.is_admin;
+  const isSuperUser = user?.email === "admin@atyeti.com";
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [openEditClient, setOpenEditClient] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -334,7 +335,7 @@ export default function ClientDetailPage() {
                 <h1 className="text-3xl font-bold">{client.name}</h1>
               </div>
               
-              {isAdmin && (
+              {isSuperUser && (
                 <div className="flex space-x-2">
                   <Button variant="outline" onClick={() => setOpenEditClient(true)}>
                     <Edit className="mr-2 h-4 w-4" />
