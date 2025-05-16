@@ -1429,34 +1429,38 @@ export default function AddSkillsPage() {
           
 
 
-          {/* Floating Description Management Button */}
+          {/* Selected Skills with Description */}
           {Object.keys(selectedSkills).filter(name => selectedSkills[name]).length > 0 && (
             <div className="mb-6">
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle>Skill Descriptions</CardTitle>
+                  <CardTitle>Selected Skills</CardTitle>
                   <CardDescription>
-                    Add detailed descriptions to your selected skills
+                    Add descriptions to your selected skills before submitting
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <Select
-                      onValueChange={(value) => handleOpenDescriptionModal(value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a skill to add description" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(selectedSkills)
-                          .filter(name => selectedSkills[name])
-                          .map(skillName => (
-                            <SelectItem key={skillName} value={skillName}>
-                              {skillName} {skillDescriptions[skillName] ? "✓" : ""}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                    {Object.keys(selectedSkills)
+                      .filter(name => selectedSkills[name])
+                      .map(skillName => (
+                        <div key={skillName} className="flex flex-row justify-between items-center p-2 border rounded">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{skillName}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {skillsList.find(s => s.name === skillName)?.level || "beginner"}
+                            </span>
+                          </div>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="text-blue-500 hover:text-blue-700"
+                            onClick={() => handleOpenDescriptionModal(skillName)}
+                          >
+                            {skillDescriptions[skillName] ? "Edit Description" : "Add Description"}
+                          </Button>
+                        </div>
+                      ))}
                   </div>
                 </CardContent>
               </Card>
