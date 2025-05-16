@@ -952,22 +952,31 @@ export default function AddSkillsPage() {
                                                     </Select>
                                                   </TableCell>
                                                   <TableCell>
-                                                    <Input
-                                                      placeholder="Certification name"
-                                                      value={skillsList.find(s => s.name === skill.name)?.certification || ""}
-                                                      onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                                    <Textarea
+                                                      placeholder="Add skill description..."
+                                                      value={skillsList.find(s => s.name === skill.name)?.notes || ""}
+                                                      onChange={(e) => handleDescriptionChange(skill.name, e.target.value)}
                                                       disabled={isDisabled || !selectedSkills[skill.name]}
-                                                      className="w-full max-w-xs"
+                                                      className="w-full max-w-xs h-16 text-xs"
                                                     />
                                                   </TableCell>
                                                   <TableCell>
-                                                    <Input
-                                                      placeholder="Certification link"
-                                                      value={skillsList.find(s => s.name === skill.name)?.credlyLink || ""}
-                                                      onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                                      disabled={isDisabled || !selectedSkills[skill.name]}
-                                                      className="w-full max-w-xs"
-                                                    />
+                                                    <div className="space-y-1">
+                                                      <Input
+                                                        placeholder="Certification name"
+                                                        value={skillsList.find(s => s.name === skill.name)?.certification || ""}
+                                                        onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                                        disabled={isDisabled || !selectedSkills[skill.name]}
+                                                        className="w-full max-w-xs text-xs"
+                                                      />
+                                                      <Input
+                                                        placeholder="Certification link"
+                                                        value={skillsList.find(s => s.name === skill.name)?.credlyLink || ""}
+                                                        onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
+                                                        disabled={isDisabled || !selectedSkills[skill.name]}
+                                                        className="w-full max-w-xs text-xs mt-1"
+                                                      />
+                                                    </div>
                                                   </TableCell>
                                                 </TableRow>
                                               );
@@ -1155,22 +1164,22 @@ export default function AddSkillsPage() {
                                                     </Select>
                                                   </TableCell>
                                                   <TableCell>
-                                                    <Input
-                                                      placeholder="Certification name"
-                                                      value={skillsList.find(s => s.name === skill.name)?.certification || ""}
-                                                      onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
-                                                      disabled={isDisabled || !selectedSkills[skill.name]}
-                                                      className="w-full max-w-xs"
-                                                    />
-                                                  </TableCell>
-                                                  <TableCell>
-                                                    <Input
-                                                      placeholder="Certification link"
-                                                      value={skillsList.find(s => s.name === skill.name)?.credlyLink || ""}
-                                                      onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                                      disabled={isDisabled || !selectedSkills[skill.name]}
-                                                      className="w-full max-w-xs"
-                                                    />
+                                                    <div className="space-y-1">
+                                                      <Input
+                                                        placeholder="Certification name"
+                                                        value={skillsList.find(s => s.name === skill.name)?.certification || ""}
+                                                        onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                                        disabled={isDisabled || !selectedSkills[skill.name]}
+                                                        className="w-full max-w-xs text-xs"
+                                                      />
+                                                      <Input
+                                                        placeholder="Certification link"
+                                                        value={skillsList.find(s => s.name === skill.name)?.credlyLink || ""}
+                                                        onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
+                                                        disabled={isDisabled || !selectedSkills[skill.name]}
+                                                        className="w-full max-w-xs text-xs mt-1"
+                                                      />
+                                                    </div>
                                                   </TableCell>
                                                 </TableRow>
                                               );
