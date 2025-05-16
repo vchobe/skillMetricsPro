@@ -2043,13 +2043,27 @@ export default function AdminDashboard() {
       if (searchQuery === "") return true;
       
       const searchLower = searchQuery.toLowerCase();
-      return (
+      
+      // Check if any of the user's basic information matches the search
+      const basicInfoMatches = (
         (user.username?.toLowerCase().includes(searchLower) || false) ||
         (user.email?.toLowerCase().includes(searchLower) || false) ||
         (user.firstName?.toLowerCase().includes(searchLower) || false) ||
         (user.lastName?.toLowerCase().includes(searchLower) || false) ||
         (user.role?.toLowerCase().includes(searchLower) || false) ||
         (user.project?.toLowerCase().includes(searchLower) || false)
+      );
+      
+      if (basicInfoMatches) return true;
+      
+      // Check if any of the user's skills match the search
+      const userSkills = skills?.filter(s => 
+        s.userId === user.id || (s as any).user_id === user.id
+      ) || [];
+      
+      // Return true if any skill name matches the search query
+      return userSkills.some(skill => 
+        skill.name?.toLowerCase().includes(searchLower)
       );
     });
     
@@ -4856,8 +4870,8 @@ export default function AdminDashboard() {
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                       <input 
                         type="text" 
-                        placeholder="Search users..." 
-                        className="pl-8 h-9 w-full md:w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        placeholder="Search users by name, email, or skills..." 
+                        className="pl-8 h-9 w-full md:w-[260px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
