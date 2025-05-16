@@ -4728,6 +4728,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Custom handler for user skills endpoint that supports the description field
+  app.post("/api/user/skills", ensureAuth, async (req, res) => {
+    try {
+      console.log("Processing /api/user/skills request with Node.js handler");
+      console.log("Request body:", JSON.stringify(req.body, null, 2));
+      
+      const userId = req.user!.id;
+      
+      // Extract skill template ID if present
+      const skillTemplateId = parseInt(req.body.skillTemplateId || req.body.skill_template_id || '0');
+      
+      // Variables to store template details
+      let templateName = '';
+      let templateCategory = '';
+      let templateSubcategory = '';
+      let categoryId = null;
+      let subcategoryId = null;
+      
+      // If skill template ID is provided, fetch template details
+      if (skillTemplateId > 0) {
+        try {
+          const template = await storage.getSkillTemplate(skillTemplateId);
+          
+          if (template) {
+            templateName = template.name;
+            templateCategory = template.category;
+            categoryId = template.categoryId;
+            subcategoryId = template.subcategoryId;
+            
+            // Try to get subcategory name if subcategoryId is provided
+            if (template.subcategoryId) {
+              try {
+                const subcategory = await storage.getSkillSubcategoryById(template.subcategoryId);
+                if (subcategory) {
+                  templateSubcategory = subcategory.name;
+                }
+              } catch (subcategoryErr) {
+                console.error("Error getting subcategory details:", subcategoryErr);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Error getting skill template details:", err);
+        }
+      }
+      
+      // Create user skill data with description field support
+      const userSkillData: any = {
+        user_id: userId,
+        name: templateName || req.body.name || '',
+        category: templateCategory || req.body.category || '',
+        subcategory: templateSubcategory || req.body.subcategory || '',
+        skill_template_id: skillTemplateId,
+        level: req.body.level,
+        description: req.body.description || null, // Support for description field
+        certification: req.body.certification || null,
+        credly_link: req.body.credlyLink || req.body.credly_link || null,
+        notes: req.body.notes || null,
+        category_id: categoryId || req.body.category_id || null,
+        subcategory_id: subcategoryId || req.body.subcategory_id || null
+      };
+      
+      console.log("Creating user skill with data:", userSkillData);
+      
+      // Create skill history entry
+      const historyData = {
+        user_id: userId,
+        name: userSkillData.name,
+        category: userSkillData.category,
+        subcategory: userSkillData.subcategory || '',
+        level: userSkillData.level,
+        description: userSkillData.description || null,
+        certification: userSkillData.certification || null,
+        credly_link: userSkillData.credly_link || null,
+        notes: userSkillData.notes || null,
+        change_note: req.body.changeNote || req.body.change_note || 'Added skill',
+        category_id: userSkillData.category_id,
+        subcategory_id: userSkillData.subcategory_id,
+        skill_template_id: skillTemplateId
+      };
+      
+      // Check if skill needs approval
+      const needsApproval = await storage.checkSkillNeedsApproval(userSkillData.category);
+      
+      if (needsApproval) {
+        // Create pending skill update
+        const pendingSkillDataV2: any = {
+          user_id: userId,
+          name: userSkillData.name,
+          category: userSkillData.category,
+          subcategory: userSkillData.subcategory || '',
+          skill_template_id: skillTemplateId,
+          level: userSkillData.level,
+          description: userSkillData.description || null, // Support for description field
+          certification: userSkillData.certification || null,
+          credly_link: userSkillData.credly_link || null,
+          notes: userSkillData.notes || null,
+          status: "pending",
+          submitted_at: new Date(),
+          is_update: false,
+          category_id: userSkillData.category_id,
+          subcategory_id: userSkillData.subcategory_id
+        };
+        
+        console.log("Creating pending skill update with data:", pendingSkillDataV2);
+        
+        try {
+          const pendingSkillUpdate = await storage.createPendingSkillUpdateV2(pendingSkillDataV2);
+          
+          // Notify approvers
+          const admins = await storage.getAllAdmins();
+          
+          if (admins && admins.length > 0) {
+            for (const admin of admins) {
+              await storage.createNotification({
+                user_id: admin.id,
+                type: "pending_approval",
+                message: `New skill approval request from ${req.user!.email}: ${userSkillData.name} (${userSkillData.level})`,
+                link: "/admin/pending-approvals",
+                is_read: false,
+                created_at: new Date()
+              });
+            }
+          }
+          
+          // Get specific skill approvers if they exist
+          try {
+            const approvers = await storage.getSkillApproversForCategory(userSkillData.category);
+            
+            if (approvers && approvers.length > 0) {
+              for (const approver of approvers) {
+                // Don't create duplicate notifications for admins who are also approvers
+                if (!admins.some(admin => admin.id === approver.userId)) {
+                  await storage.createNotification({
+                    user_id: approver.userId,
+                    type: "pending_approval",
+                    message: `New skill approval request from ${req.user!.email}: ${userSkillData.name} (${userSkillData.level})`,
+                    link: "/approver/pending-approvals",
+                    is_read: false,
+                    created_at: new Date()
+                  });
+                }
+              }
+            }
+          } catch (approverErr) {
+            console.error("Error notifying skill approvers:", approverErr);
+          }
+          
+          res.status(202).json({
+            message: "Skill submitted for approval",
+            pendingApproval: true,
+            pendingId: pendingSkillUpdate.id
+          });
+        } catch (pendingErr) {
+          console.error("Error creating pending skill update:", pendingErr);
+          res.status(500).json({ message: "Failed to submit skill for approval" });
+        }
+      } else {
+        // Create user skill directly as it doesn't need approval
+        try {
+          // First create skill history entry
+          await storage.createSkillHistoryV2(historyData);
+          
+          // Then create the actual skill
+          const userSkill = await storage.createUserSkill(userSkillData);
+          
+          res.status(201).json(userSkill);
+        } catch (err) {
+          console.error("Error creating user skill:", err);
+          res.status(500).json({ message: "Failed to create skill", error: err });
+        }
+      }
+    } catch (error) {
+      console.error("Error processing user skill creation:", error);
+      res.status(500).json({ message: "Internal server error", error });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;
