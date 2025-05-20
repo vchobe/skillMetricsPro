@@ -548,7 +548,19 @@ export default function CategoryManagementPage() {
       apiRequest('PATCH', `/api/skill-categories/${id}`, data)
         .then(r => r.json()),
     onSuccess: () => {
+      // Invalidate all queries that display category data
       queryClient.invalidateQueries({ queryKey: ['/api/skill-categories'] });
+      
+      // Also invalidate subcategories since they show category info
+      queryClient.invalidateQueries({ queryKey: ['/api/skill-subcategories'] });
+      
+      // Invalidate skill templates as they include category information
+      queryClient.invalidateQueries({ queryKey: ['/api/skill-templates'] });
+      
+      // Invalidate skills data which depends on category information
+      queryClient.invalidateQueries({ queryKey: ['/api/skills'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/all-skills'] });
+      
       setEditingCategory(null);
       toast({
         title: "Category updated",
