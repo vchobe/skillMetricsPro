@@ -73,6 +73,12 @@ const certificationSchema = z.object({
 
 type Certification = z.infer<typeof certificationSchema>;
 
+// Define additional certification type for multiple certifications
+type AdditionalCertification = {
+  name: string;
+  link: string;
+};
+
 // We're extending the existing insertSkillSchema to include additional fields
 const skillSubmitSchema = insertSkillSchema.extend({
   changeNote: z.string().optional().default(""),
@@ -90,7 +96,9 @@ const TECHNICAL_CATEGORIES = [
   { id: "Programming", label: "Programming Languages", icon: <Code className="h-4 w-4" /> },
 ];
 
-type SkillEntry = z.infer<typeof skillSubmitSchema>;
+type SkillEntry = z.infer<typeof skillSubmitSchema> & {
+  additionalCertifications?: AdditionalCertification[];
+};
 
 export default function AddSkillsPage() {
   const { toast } = useToast();
