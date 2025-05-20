@@ -1,6 +1,6 @@
--- SQL script to add category_type column to skill_categories table
+-- Migration: Add category_type column to skill_categories table
 
--- First check if the enum type exists, create it if it doesn't
+-- Create the enum if it doesn't exist
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'category_type') THEN
@@ -9,7 +9,7 @@ BEGIN
 END
 $$;
 
--- Check if column exists, add it if it doesn't
+-- Add the column if it doesn't exist
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -39,8 +39,3 @@ WHERE name IN (
     'Marketing', 'Messaging & Streaming', 'Metrics and visualization',
     'Log aggregation and search', 'BigData'
 );
-
--- View all categories with their types
-SELECT id, name, category_type 
-FROM skill_categories 
-ORDER BY name;
