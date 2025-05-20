@@ -46,7 +46,6 @@ import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
-
 import { 
   Plus, 
   Code, 
@@ -62,8 +61,7 @@ import {
   Users,
   MessageSquare,
   Paintbrush,
-  PieChart,
-  X
+  PieChart
 } from "lucide-react";
 
 // Define a certification object schema
@@ -75,17 +73,10 @@ const certificationSchema = z.object({
 
 type Certification = z.infer<typeof certificationSchema>;
 
-// Define additional certification type for multiple certifications
-type AdditionalCertification = {
-  name: string;
-  link: string;
-};
-
 // We're extending the existing insertSkillSchema to include additional fields
 const skillSubmitSchema = insertSkillSchema.extend({
   changeNote: z.string().optional().default(""),
-  certification: z.string().optional().default(""),
-  credlyLink: z.string().optional().default(""),
+  certifications: z.array(certificationSchema).default([{ name: "", link: "", id: crypto.randomUUID() }]),
   notes: z.string().optional().default(""),
   level: z.enum(["beginner", "intermediate", "expert"]).default("beginner"),
   selected: z.boolean().default(false),
@@ -97,9 +88,7 @@ const TECHNICAL_CATEGORIES = [
   { id: "Programming", label: "Programming Languages", icon: <Code className="h-4 w-4" /> },
 ];
 
-type SkillEntry = z.infer<typeof skillSubmitSchema> & {
-  additionalCertifications?: AdditionalCertification[];
-};
+type SkillEntry = z.infer<typeof skillSubmitSchema>;
 
 export default function AddSkillsPage() {
   const { toast } = useToast();
@@ -590,7 +579,7 @@ export default function AddSkillsPage() {
     );
   };
 
-  // Handle change in primary certification name
+  // Handle change in certification name
   const handleCertificationChange = (skillName: string, certification: string) => {
     setSkillsList(prev => 
       prev.map(skill => 
@@ -601,8 +590,16 @@ export default function AddSkillsPage() {
     );
   };
 
-  // Handle change in primary certification link
+  // Handle change in certification link
   const handleCertificationLinkChange = (skillName: string, credlyLink: string) => {
+  // Handle description change
+  const handleDescriptionChange = (skillName: string, description: string) => {
+    setSkillsList(prevSkills => 
+      prevSkills.map(skill => 
+        skill.name === skillName ? { ...skill, notes: description } : skill
+      )
+    );
+  };
     setSkillsList(prev => 
       prev.map(skill => 
         skill.name === skillName 
@@ -612,122 +609,13 @@ export default function AddSkillsPage() {
     );
   };
   
-  // Handle adding an additional certification
-  const handleAddCertification = (skillName: string) => {
-    setSkillsList(prev => 
-      prev.map(skill => {
-        if (skill.name === skillName) {
-          return {
-            ...skill,
-            additionalCertifications: [
-              ...(skill.additionalCertifications || []),
-              { name: "", link: "" }
-            ]
-          };
-        }
-        return skill;
-      })
-    );
-  };
-  
-  // Handle removing an additional certification
-  const handleRemoveCertification = (skillName: string, index: number) => {
-    setSkillsList(prev => 
-      prev.map(skill => {
-        if (skill.name === skillName && skill.additionalCertifications) {
-          return {
-            ...skill,
-            additionalCertifications: skill.additionalCertifications.filter((_, i) => i !== index)
-          };
-        }
-        return skill;
-      })
-    );
-  };
-  
-  // Handle updating additional certification fields
-  const handleCertificationFieldChange = (skillName: string, index: number, field: 'name' | 'link', value: string) => {
-    setSkillsList(prev => 
-      prev.map(skill => {
-        if (skill.name === skillName && skill.additionalCertifications) {
-          const updatedCerts = [...skill.additionalCertifications];
-          updatedCerts[index] = { 
-            ...updatedCerts[index], 
-            [field]: value 
-          };
-          return {
-            ...skill,
-            additionalCertifications: updatedCerts
-          };
-        }
-        return skill;
-      })
-    );
-  };
-  
-  // Add an additional certification to a skill
-  const handleAddAdditionalCertification = (skillName: string) => {
+  // Handle change in skill description
+  const handleDescriptionChange = (skillName: string, description: string) => {
     setSkillsList(prev => 
       prev.map(skill => 
         skill.name === skillName 
-          ? { 
-              ...skill, 
-              additionalCertifications: [
-                ...(skill.additionalCertifications || []),
-                { name: "", link: "" }
-              ]
-            } 
+          ? { ...skill, notes: description } 
           : skill
-      )
-    );
-  };
-  
-  // Remove an additional certification from a skill
-  const handleRemoveAdditionalCertification = (skillName: string, index: number) => {
-    setSkillsList(prev => 
-      prev.map(skill => 
-        skill.name === skillName
-          ? { 
-              ...skill, 
-              additionalCertifications: (skill.additionalCertifications || []).filter((_, i) => i !== index)
-            } 
-          : skill
-      )
-    );
-  };
-  
-  // Update an additional certification's name or link
-  const handleAdditionalCertificationChange = (
-    skillName: string, 
-    index: number, 
-    field: 'name' | 'link', 
-    value: string
-  ) => {
-    setSkillsList(prev => 
-      prev.map(skill => {
-        if (skill.name !== skillName) return skill;
-        
-        const additionalCerts = [...(skill.additionalCertifications || [])];
-        if (additionalCerts[index]) {
-          additionalCerts[index] = {
-            ...additionalCerts[index],
-            [field]: value
-          };
-        }
-        
-        return {
-          ...skill,
-          additionalCertifications: additionalCerts
-        };
-      })
-    );
-  };
-
-  // Handle description change
-  const handleDescriptionChange = (skillName: string, description: string) => {
-    setSkillsList(prevSkills => 
-      prevSkills.map(skill => 
-        skill.name === skillName ? { ...skill, notes: description } : skill
       )
     );
   };
