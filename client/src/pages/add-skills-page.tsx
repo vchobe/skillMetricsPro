@@ -64,11 +64,19 @@ import {
   PieChart
 } from "lucide-react";
 
+// Define a certification object schema
+const certificationSchema = z.object({
+  name: z.string().optional().default(""),
+  link: z.string().optional().default(""),
+  id: z.string().default(() => crypto.randomUUID())
+});
+
+type Certification = z.infer<typeof certificationSchema>;
+
 // We're extending the existing insertSkillSchema to include additional fields
 const skillSubmitSchema = insertSkillSchema.extend({
   changeNote: z.string().optional().default(""),
-  certification: z.string().optional().default(""),
-  credlyLink: z.string().optional().default(""),
+  certifications: z.array(certificationSchema).default([{ name: "", link: "", id: crypto.randomUUID() }]),
   notes: z.string().optional().default(""),
   level: z.enum(["beginner", "intermediate", "expert"]).default("beginner"),
   selected: z.boolean().default(false),
