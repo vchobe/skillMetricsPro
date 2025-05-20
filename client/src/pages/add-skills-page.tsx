@@ -613,6 +613,59 @@ export default function AddSkillsPage() {
     );
   };
   
+  // Handle adding an additional certification
+  const handleAddCertification = (skillName: string) => {
+    setSkillsList(prev => 
+      prev.map(skill => {
+        if (skill.name === skillName) {
+          return {
+            ...skill,
+            additionalCertifications: [
+              ...(skill.additionalCertifications || []),
+              { name: "", link: "" }
+            ]
+          };
+        }
+        return skill;
+      })
+    );
+  };
+  
+  // Handle removing an additional certification
+  const handleRemoveCertification = (skillName: string, index: number) => {
+    setSkillsList(prev => 
+      prev.map(skill => {
+        if (skill.name === skillName && skill.additionalCertifications) {
+          return {
+            ...skill,
+            additionalCertifications: skill.additionalCertifications.filter((_, i) => i !== index)
+          };
+        }
+        return skill;
+      })
+    );
+  };
+  
+  // Handle updating additional certification fields
+  const handleCertificationFieldChange = (skillName: string, index: number, field: 'name' | 'link', value: string) => {
+    setSkillsList(prev => 
+      prev.map(skill => {
+        if (skill.name === skillName && skill.additionalCertifications) {
+          const updatedCerts = [...skill.additionalCertifications];
+          updatedCerts[index] = { 
+            ...updatedCerts[index], 
+            [field]: value 
+          };
+          return {
+            ...skill,
+            additionalCertifications: updatedCerts
+          };
+        }
+        return skill;
+      })
+    );
+  };
+  
   // Add an additional certification to a skill
   const handleAddAdditionalCertification = (skillName: string) => {
     setSkillsList(prev => 
