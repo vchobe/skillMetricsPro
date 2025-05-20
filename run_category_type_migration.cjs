@@ -1,15 +1,21 @@
 /**
- * Add category_type column to the database
- * This script is integrated with the application to ensure proper connections
+ * Script to add category_type column to skill_categories table
+ * This uses CommonJS format to avoid ES module issues
  */
+const { Pool } = require('pg');
+const fs = require('fs');
+require('dotenv').config();
 
-// Import the database pool directly from server
-import { pool } from './server/db.js';
+// Setup DB connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? 
+    { rejectUnauthorized: false } : 
+    undefined
+});
 
-/**
- * Execute the SQL migration for category types
- */
-async function executeSQL() {
+// Main migration function
+async function runMigration() {
   console.log('Starting category_type migration...');
   
   let client;
@@ -97,47 +103,29 @@ async function executeSQL() {
         console.log(`- ${cat.name}: ${cat.category_type}`);
       });
       
-      return {
-        success: true,
-        message: 'Migration completed successfully'
-      };
+      console.log('Migration completed successfully!');
     } catch (error) {
       // Rollback on error
       await client.query('ROLLBACK');
       console.error('Error during transaction, rolling back:', error);
-      return {
-        success: false,
-        error: error.message,
-        details: error
-      };
     }
   } catch (error) {
     console.error('Failed to execute SQL migration:', error);
-    return {
-      success: false,
-      error: error.message,
-      details: error
-    };
   } finally {
     // Release the client back to the pool
     if (client) client.release();
+    // Close the pool
+    await pool.end();
   }
 }
 
 // Execute the migration
-executeSQL()
-  .then(result => {
-    console.log('Migration result:', result);
-    if (result.success) {
-      console.log('Category type column added successfully!');
-    } else {
-      console.error('Failed to add category type column:', result.error);
-    }
-    // We don't exit the process since we might be running this from the server
+runMigration()
+  .then(() => {
+    console.log('Migration script execution complete');
+    process.exit(0);
   })
   .catch(err => {
     console.error('Fatal error in migration:', err);
+    process.exit(1);
   });
-
-// Export the function for use in the server
-export default executeSQL;
