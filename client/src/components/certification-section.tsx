@@ -1,38 +1,46 @@
-import React from 'react';
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { X, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export type AdditionalCertification = {
   name: string;
   link: string;
 };
 
-type CertificationSectionProps = {
-  skillName: string;
-  certification: string;
-  certificationLink: string;
+export type CertificationData = {
+  mainCertification: {
+    name: string;
+    link: string;
+  };
   additionalCertifications: AdditionalCertification[];
-  onCertificationChange: (skillName: string, value: string) => void;
-  onCertificationLinkChange: (skillName: string, value: string) => void;
-  onAddAdditionalCertification: (skillName: string) => void;
-  onRemoveAdditionalCertification: (skillName: string, index: number) => void;
-  onAdditionalCertificationChange: (skillName: string, index: number, field: 'name' | 'link', value: string) => void;
-  disabled: boolean;
 };
 
-const CertificationSection: React.FC<CertificationSectionProps> = ({
+interface CertificationSectionProps {
+  skillName: string;
+  certification: string;
+  credlyLink: string;
+  additionalCertifications: AdditionalCertification[];
+  onMainCertificationChange: (skillName: string, value: string) => void;
+  onMainCertificationLinkChange: (skillName: string, value: string) => void;
+  onAddCertification: (skillName: string) => void;
+  onRemoveCertification: (skillName: string, index: number) => void;
+  onCertificationFieldChange: (skillName: string, index: number, field: 'name' | 'link', value: string) => void;
+  disabled: boolean;
+}
+
+export default function CertificationSection({
   skillName,
   certification,
-  certificationLink,
+  credlyLink,
   additionalCertifications,
-  onCertificationChange,
-  onCertificationLinkChange,
-  onAddAdditionalCertification,
-  onRemoveAdditionalCertification,
-  onAdditionalCertificationChange,
+  onMainCertificationChange,
+  onMainCertificationLinkChange,
+  onAddCertification,
+  onRemoveCertification,
+  onCertificationFieldChange,
   disabled
-}) => {
+}: CertificationSectionProps) {
   return (
     <div className="space-y-3">
       {/* Primary certification */}
@@ -40,14 +48,14 @@ const CertificationSection: React.FC<CertificationSectionProps> = ({
         <Input
           placeholder="Certification name"
           value={certification}
-          onChange={(e) => onCertificationChange(skillName, e.target.value)}
+          onChange={(e) => onMainCertificationChange(skillName, e.target.value)}
           disabled={disabled}
           className="w-full max-w-xs text-xs"
         />
         <Input
           placeholder="Certification link"
-          value={certificationLink}
-          onChange={(e) => onCertificationLinkChange(skillName, e.target.value)}
+          value={credlyLink}
+          onChange={(e) => onMainCertificationLinkChange(skillName, e.target.value)}
           disabled={disabled}
           className="w-full max-w-xs text-xs mt-1"
         />
@@ -62,7 +70,7 @@ const CertificationSection: React.FC<CertificationSectionProps> = ({
               type="button"
               variant="ghost"
               size="icon"
-              onClick={() => onRemoveAdditionalCertification(skillName, index)}
+              onClick={() => onRemoveCertification(skillName, index)}
               disabled={disabled}
               className="h-6 w-6"
             >
@@ -72,14 +80,14 @@ const CertificationSection: React.FC<CertificationSectionProps> = ({
           <Input
             placeholder="Certification name"
             value={cert.name}
-            onChange={(e) => onAdditionalCertificationChange(skillName, index, 'name', e.target.value)}
+            onChange={(e) => onCertificationFieldChange(skillName, index, 'name', e.target.value)}
             disabled={disabled}
             className="w-full max-w-xs text-xs"
           />
           <Input
             placeholder="Certification link"
             value={cert.link}
-            onChange={(e) => onAdditionalCertificationChange(skillName, index, 'link', e.target.value)}
+            onChange={(e) => onCertificationFieldChange(skillName, index, 'link', e.target.value)}
             disabled={disabled}
             className="w-full max-w-xs text-xs mt-1"
           />
@@ -91,7 +99,7 @@ const CertificationSection: React.FC<CertificationSectionProps> = ({
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => onAddAdditionalCertification(skillName)}
+        onClick={() => onAddCertification(skillName)}
         disabled={disabled}
         className="text-xs mt-1"
       >
@@ -99,6 +107,4 @@ const CertificationSection: React.FC<CertificationSectionProps> = ({
       </Button>
     </div>
   );
-};
-
-export default CertificationSection;
+}

@@ -46,7 +46,7 @@ import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
-import { CertificationSection } from "@/components/certification-section";
+
 import { 
   Plus, 
   Code, 
@@ -86,7 +86,6 @@ const skillSubmitSchema = insertSkillSchema.extend({
   changeNote: z.string().optional().default(""),
   certification: z.string().optional().default(""),
   credlyLink: z.string().optional().default(""),
-  certifications: z.array(certificationSchema).default([{ name: "", link: "", id: crypto.randomUUID() }]),
   notes: z.string().optional().default(""),
   level: z.enum(["beginner", "intermediate", "expert"]).default("beginner"),
   selected: z.boolean().default(false),
