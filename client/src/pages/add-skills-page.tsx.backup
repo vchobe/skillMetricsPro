@@ -75,8 +75,11 @@ const certificationSchema = z.object({
 
 type Certification = z.infer<typeof certificationSchema>;
 
-// Import the certification component
-import CertificationSection, { AdditionalCertification } from "../components/certification-section";
+// Define additional certification type for multiple certifications
+type AdditionalCertification = {
+  name: string;
+  link: string;
+};
 
 // We're extending the existing insertSkillSchema to include additional fields
 const skillSubmitSchema = insertSkillSchema.extend({

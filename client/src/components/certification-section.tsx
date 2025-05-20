@@ -1,58 +1,54 @@
-import React from "react";
-import { Input } from "@/components/ui/input";
+import React from 'react';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Plus, X } from "lucide-react";
 
-// Define AdditionalCertification type
-type AdditionalCertification = {
+export type AdditionalCertification = {
   name: string;
   link: string;
 };
 
-// Define props for the CertificationSection component
-interface CertificationSectionProps {
+type CertificationSectionProps = {
   skillName: string;
   certification: string;
-  credlyLink: string;
-  additionalCertifications?: AdditionalCertification[];
-  isDisabled: boolean;
-  onCertificationChange: (skillName: string, certification: string) => void;
-  onCertificationLinkChange: (skillName: string, credlyLink: string) => void;
+  certificationLink: string;
+  additionalCertifications: AdditionalCertification[];
+  onCertificationChange: (skillName: string, value: string) => void;
+  onCertificationLinkChange: (skillName: string, value: string) => void;
   onAddAdditionalCertification: (skillName: string) => void;
   onRemoveAdditionalCertification: (skillName: string, index: number) => void;
   onAdditionalCertificationChange: (skillName: string, index: number, field: 'name' | 'link', value: string) => void;
-}
+  disabled: boolean;
+};
 
-// Component for managing certifications in the add skills page
-export function CertificationSection({
+const CertificationSection: React.FC<CertificationSectionProps> = ({
   skillName,
   certification,
-  credlyLink,
-  additionalCertifications = [],
-  isDisabled,
+  certificationLink,
+  additionalCertifications,
   onCertificationChange,
   onCertificationLinkChange,
   onAddAdditionalCertification,
   onRemoveAdditionalCertification,
-  onAdditionalCertificationChange
-}: CertificationSectionProps) {
+  onAdditionalCertificationChange,
+  disabled
+}) => {
   return (
     <div className="space-y-3">
       {/* Primary certification */}
       <div className="space-y-1">
-        <div className="text-xs text-muted-foreground">Primary Certification</div>
         <Input
           placeholder="Certification name"
           value={certification}
           onChange={(e) => onCertificationChange(skillName, e.target.value)}
-          disabled={isDisabled}
+          disabled={disabled}
           className="w-full max-w-xs text-xs"
         />
         <Input
           placeholder="Certification link"
-          value={credlyLink}
+          value={certificationLink}
           onChange={(e) => onCertificationLinkChange(skillName, e.target.value)}
-          disabled={isDisabled}
+          disabled={disabled}
           className="w-full max-w-xs text-xs mt-1"
         />
       </div>
@@ -67,7 +63,7 @@ export function CertificationSection({
               variant="ghost"
               size="icon"
               onClick={() => onRemoveAdditionalCertification(skillName, index)}
-              disabled={isDisabled}
+              disabled={disabled}
               className="h-6 w-6"
             >
               <X className="h-3 w-3" />
@@ -77,14 +73,14 @@ export function CertificationSection({
             placeholder="Certification name"
             value={cert.name}
             onChange={(e) => onAdditionalCertificationChange(skillName, index, 'name', e.target.value)}
-            disabled={isDisabled}
+            disabled={disabled}
             className="w-full max-w-xs text-xs"
           />
           <Input
             placeholder="Certification link"
             value={cert.link}
             onChange={(e) => onAdditionalCertificationChange(skillName, index, 'link', e.target.value)}
-            disabled={isDisabled}
+            disabled={disabled}
             className="w-full max-w-xs text-xs mt-1"
           />
         </div>
@@ -96,11 +92,13 @@ export function CertificationSection({
         variant="outline"
         size="sm"
         onClick={() => onAddAdditionalCertification(skillName)}
-        disabled={isDisabled}
+        disabled={disabled}
         className="text-xs mt-1"
       >
         <Plus className="h-3 w-3 mr-1" /> Add Certification
       </Button>
     </div>
   );
-}
+};
+
+export default CertificationSection;
