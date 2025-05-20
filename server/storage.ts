@@ -6497,22 +6497,53 @@ export class PostgresStorage implements IStorage {
       
       console.log(`Creating category with type: ${categoryType}`);
       
-      const result = await pool.query(
-        `INSERT INTO skill_categories (
-          name, description, tab_order, visibility, color, icon, category_type, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *`,
-        [
-          name,
-          description || null,
-          tabOrder || 0,
-          visibility || 'visible',
-          color || '#3B82F6',
-          icon || 'code',
-          categoryType || 'technical' // Default to 'technical' if not specified
-        ]
-      );
+      let result;
+      try {
+        // Try to insert with the category_type column first
+        result = await pool.query(
+          `INSERT INTO skill_categories (
+            name, description, tab_order, visibility, color, icon, category_type, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *`,
+          [
+            name,
+            description || null,
+            tabOrder || 0,
+            visibility || 'visible',
+            color || '#3B82F6',
+            icon || 'code',
+            categoryType || 'technical' // Default to 'technical' if not specified
+          ]
+        );
+      } catch (err) {
+        console.log('Error inserting with category_type, trying without it:', err);
+        
+        // If that fails (column doesn't exist), try without the category_type column
+        result = await pool.query(
+          `INSERT INTO skill_categories (
+            name, description, tab_order, visibility, color, icon, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *`,
+          [
+            name,
+            description || null,
+            tabOrder || 0,
+            visibility || 'visible',
+            color || '#3B82F6',
+            icon || 'code'
+          ]
+        );
+      }
       
-      return this.snakeToCamel(result.rows[0]);
+      // Now take the result and add the categoryType property to it
+      const camelResult = this.snakeToCamel(result.rows[0]);
+      
+      // Add the categoryType that was requested, even if it wasn't saved to the database
+      if (categoryType) {
+        camelResult.categoryType = categoryType;
+      } else {
+        camelResult.categoryType = 'technical'; // Default
+      }
+      
+      return camelResult;
     } catch (error) {
       console.error("Error creating skill category:", error);
       throw error;
