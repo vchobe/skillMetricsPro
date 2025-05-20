@@ -61,7 +61,8 @@ import {
   Users,
   MessageSquare,
   Paintbrush,
-  PieChart
+  PieChart,
+  X
 } from "lucide-react";
 
 // Define a certification object schema
