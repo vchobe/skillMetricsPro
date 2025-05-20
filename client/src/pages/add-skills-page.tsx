@@ -629,8 +629,8 @@ export default function AddSkillsPage() {
       )
     );
   };
-
-  // Remove an additional certification
+  
+  // Remove an additional certification from a skill
   const handleRemoveAdditionalCertification = (skillName: string, index: number) => {
     setSkillsList(prev => 
       prev.map(skill => 
@@ -644,7 +644,7 @@ export default function AddSkillsPage() {
     );
   };
   
-  // Update an additional certification's values
+  // Update an additional certification's name or link
   const handleAdditionalCertificationChange = (
     skillName: string, 
     index: number, 
