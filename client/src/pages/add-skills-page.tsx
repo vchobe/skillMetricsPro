@@ -76,6 +76,8 @@ type Certification = z.infer<typeof certificationSchema>;
 // We're extending the existing insertSkillSchema to include additional fields
 const skillSubmitSchema = insertSkillSchema.extend({
   changeNote: z.string().optional().default(""),
+  certification: z.string().optional().default(""),
+  credlyLink: z.string().optional().default(""),
   certifications: z.array(certificationSchema).default([{ name: "", link: "", id: crypto.randomUUID() }]),
   notes: z.string().optional().default(""),
   level: z.enum(["beginner", "intermediate", "expert"]).default("beginner"),
@@ -580,42 +582,73 @@ export default function AddSkillsPage() {
   };
 
   // Handle change in certification name
-  const handleCertificationChange = (skillName: string, certification: string) => {
+  const handleCertificationChange = (skillName: string, certId: string, name: string) => {
     setSkillsList(prev => 
       prev.map(skill => 
         skill.name === skillName 
-          ? { ...skill, certification } 
+          ? { 
+              ...skill, 
+              certifications: skill.certifications.map(cert => 
+                cert.id === certId ? { ...cert, name } : cert
+              ) 
+            } 
           : skill
       )
     );
   };
 
   // Handle change in certification link
-  const handleCertificationLinkChange = (skillName: string, credlyLink: string) => {
+  const handleCertificationLinkChange = (skillName: string, certId: string, link: string) => {
+    setSkillsList(prev => 
+      prev.map(skill => 
+        skill.name === skillName 
+          ? { 
+              ...skill, 
+              certifications: skill.certifications.map(cert => 
+                cert.id === certId ? { ...cert, link } : cert
+              )
+            } 
+          : skill
+      )
+    );
+  };
+
+  // Add new certification for a skill
+  const handleAddCertification = (skillName: string) => {
+    setSkillsList(prev => 
+      prev.map(skill => 
+        skill.name === skillName 
+          ? { 
+              ...skill, 
+              certifications: [
+                ...skill.certifications, 
+                { name: "", link: "", id: crypto.randomUUID() }
+              ]
+            } 
+          : skill
+      )
+    );
+  };
+
+  // Remove a certification from a skill
+  const handleRemoveCertification = (skillName: string, certId: string) => {
+    setSkillsList(prev => 
+      prev.map(skill => 
+        skill.name === skillName && skill.certifications.length > 1
+          ? { 
+              ...skill, 
+              certifications: skill.certifications.filter(cert => cert.id !== certId)
+            } 
+          : skill
+      )
+    );
+  };
+
   // Handle description change
   const handleDescriptionChange = (skillName: string, description: string) => {
     setSkillsList(prevSkills => 
       prevSkills.map(skill => 
         skill.name === skillName ? { ...skill, notes: description } : skill
-      )
-    );
-  };
-    setSkillsList(prev => 
-      prev.map(skill => 
-        skill.name === skillName 
-          ? { ...skill, credlyLink } 
-          : skill
-      )
-    );
-  };
-  
-  // Handle change in skill description
-  const handleDescriptionChange = (skillName: string, description: string) => {
-    setSkillsList(prev => 
-      prev.map(skill => 
-        skill.name === skillName 
-          ? { ...skill, notes: description } 
-          : skill
       )
     );
   };

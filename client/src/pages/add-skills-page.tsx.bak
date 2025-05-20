@@ -64,11 +64,21 @@ import {
   PieChart
 } from "lucide-react";
 
+// Define a certification object schema
+const certificationSchema = z.object({
+  name: z.string().optional().default(""),
+  link: z.string().optional().default(""),
+  id: z.string().default(() => crypto.randomUUID())
+});
+
+type Certification = z.infer<typeof certificationSchema>;
+
 // We're extending the existing insertSkillSchema to include additional fields
 const skillSubmitSchema = insertSkillSchema.extend({
   changeNote: z.string().optional().default(""),
   certification: z.string().optional().default(""),
   credlyLink: z.string().optional().default(""),
+  certifications: z.array(certificationSchema).default([{ name: "", link: "", id: crypto.randomUUID() }]),
   notes: z.string().optional().default(""),
   level: z.enum(["beginner", "intermediate", "expert"]).default("beginner"),
   selected: z.boolean().default(false),
@@ -91,9 +101,10 @@ export default function AddSkillsPage() {
   const [activeFunctionalCategory, setActiveFunctionalCategory] = useState<string>("Design");
   const [skillsList, setSkillsList] = useState<SkillEntry[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<Record<string, boolean>>({});
-  const [skillDescriptions, setSkillDescriptions] = useState<Record<string, string>>({});
-  const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
-  const [currentSkill, setCurrentSkill] = useState<string>("");
+  // We don't need these states anymore as descriptions are now part of the table
+  // const [skillDescriptions, setSkillDescriptions] = useState<Record<string, string>>({});
+  // const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
+  // const [currentSkill, setCurrentSkill] = useState<string>("");
   
   // Tab visit tracking
   const [visitedTabs, setVisitedTabs] = useState({
@@ -571,51 +582,78 @@ export default function AddSkillsPage() {
   };
 
   // Handle change in certification name
-  const handleCertificationChange = (skillName: string, certification: string) => {
+  const handleCertificationChange = (skillName: string, certId: string, name: string) => {
     setSkillsList(prev => 
       prev.map(skill => 
         skill.name === skillName 
-          ? { ...skill, certification } 
+          ? { 
+              ...skill, 
+              certifications: skill.certifications.map(cert => 
+                cert.id === certId ? { ...cert, name } : cert
+              ) 
+            } 
           : skill
       )
     );
   };
 
   // Handle change in certification link
-  const handleCertificationLinkChange = (skillName: string, credlyLink: string) => {
+  const handleCertificationLinkChange = (skillName: string, certId: string, link: string) => {
     setSkillsList(prev => 
       prev.map(skill => 
         skill.name === skillName 
-          ? { ...skill, credlyLink } 
+          ? { 
+              ...skill, 
+              certifications: skill.certifications.map(cert => 
+                cert.id === certId ? { ...cert, link } : cert
+              )
+            } 
           : skill
       )
     );
   };
-  
-  // Handle opening the description modal
-  const handleOpenDescriptionModal = (skillName: string) => {
-    setCurrentSkill(skillName);
-    setDescriptionModalOpen(true);
-  };
-  
-  // Handle saving the description
-  const handleSaveDescription = (description: string) => {
-    setSkillDescriptions(prev => ({
-      ...prev,
-      [currentSkill]: description
-    }));
-    
-    // Also update the notes field in the skill list
+
+  // Add new certification for a skill
+  const handleAddCertification = (skillName: string) => {
     setSkillsList(prev => 
       prev.map(skill => 
-        skill.name === currentSkill 
-          ? { ...skill, notes: description } 
+        skill.name === skillName 
+          ? { 
+              ...skill, 
+              certifications: [
+                ...skill.certifications, 
+                { name: "", link: "", id: crypto.randomUUID() }
+              ]
+            } 
           : skill
       )
     );
-    
-    setDescriptionModalOpen(false);
   };
+
+  // Remove a certification from a skill
+  const handleRemoveCertification = (skillName: string, certId: string) => {
+    setSkillsList(prev => 
+      prev.map(skill => 
+        skill.name === skillName && skill.certifications.length > 1
+          ? { 
+              ...skill, 
+              certifications: skill.certifications.filter(cert => cert.id !== certId)
+            } 
+          : skill
+      )
+    );
+  };
+
+  // Handle description change
+  const handleDescriptionChange = (skillName: string, description: string) => {
+    setSkillsList(prevSkills => 
+      prevSkills.map(skill => 
+        skill.name === skillName ? { ...skill, notes: description } : skill
+      )
+    );
+  };
+  
+  // Description is now handled directly in the table, so these modal-related functions are no longer needed
   
   // Function to track tab visits
   const markTabVisited = (tab: string) => {
@@ -687,44 +725,11 @@ export default function AddSkillsPage() {
 
   const filteredSkills = getFilteredSkills();
 
-  // Description Modal Component
-  const DescriptionModal = () => {
-    const [description, setDescription] = useState(skillDescriptions[currentSkill] || "");
-    
-    return (
-      <Dialog open={descriptionModalOpen} onOpenChange={setDescriptionModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Description for {currentSkill}</DialogTitle>
-            <DialogDescription>
-              Provide details about your experience and proficiency with this skill.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Textarea 
-              value={description} 
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your experience with this skill..."
-              className="min-h-[150px]"
-            />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDescriptionModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={() => handleSaveDescription(description)}>
-              Save Description
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  };
+  // No longer need description modal since description is now part of the table
 
   return (
     <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} currentPath="/skills/add" />
-      <DescriptionModal />
       
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <Header 
@@ -843,8 +848,8 @@ export default function AddSkillsPage() {
                                       <TableHead className="w-12">Select</TableHead>
                                       <TableHead>Skill Name</TableHead>
                                       <TableHead>Level</TableHead>
+                                      <TableHead>Description</TableHead>
                                       <TableHead>Certification</TableHead>
-                                      <TableHead>Certification Link</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -941,22 +946,31 @@ export default function AddSkillsPage() {
                                                     </Select>
                                                   </TableCell>
                                                   <TableCell>
-                                                    <Input
-                                                      placeholder="Certification name"
-                                                      value={skillsList.find(s => s.name === skill.name)?.certification || ""}
-                                                      onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                                    <Textarea
+                                                      placeholder="Add skill description..."
+                                                      value={skillsList.find(s => s.name === skill.name)?.notes || ""}
+                                                      onChange={(e) => handleDescriptionChange(skill.name, e.target.value)}
                                                       disabled={isDisabled || !selectedSkills[skill.name]}
-                                                      className="w-full max-w-xs"
+                                                      className="w-full max-w-xs h-16 text-xs"
                                                     />
                                                   </TableCell>
                                                   <TableCell>
-                                                    <Input
-                                                      placeholder="Certification link"
-                                                      value={skillsList.find(s => s.name === skill.name)?.credlyLink || ""}
-                                                      onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                                      disabled={isDisabled || !selectedSkills[skill.name]}
-                                                      className="w-full max-w-xs"
-                                                    />
+                                                    <div className="space-y-1">
+                                                      <Input
+                                                        placeholder="Certification name"
+                                                        value={skillsList.find(s => s.name === skill.name)?.certification || ""}
+                                                        onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                                        disabled={isDisabled || !selectedSkills[skill.name]}
+                                                        className="w-full max-w-xs text-xs"
+                                                      />
+                                                      <Input
+                                                        placeholder="Certification link"
+                                                        value={skillsList.find(s => s.name === skill.name)?.credlyLink || ""}
+                                                        onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
+                                                        disabled={isDisabled || !selectedSkills[skill.name]}
+                                                        className="w-full max-w-xs text-xs mt-1"
+                                                      />
+                                                    </div>
                                                   </TableCell>
                                                 </TableRow>
                                               );
@@ -1046,8 +1060,8 @@ export default function AddSkillsPage() {
                                       <TableHead className="w-12">Select</TableHead>
                                       <TableHead>Skill Name</TableHead>
                                       <TableHead>Level</TableHead>
+                                      <TableHead>Description</TableHead>
                                       <TableHead>Certification</TableHead>
-                                      <TableHead>Certification Link</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -1144,22 +1158,31 @@ export default function AddSkillsPage() {
                                                     </Select>
                                                   </TableCell>
                                                   <TableCell>
-                                                    <Input
-                                                      placeholder="Certification name"
-                                                      value={skillsList.find(s => s.name === skill.name)?.certification || ""}
-                                                      onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                                    <Textarea
+                                                      placeholder="Add skill description..."
+                                                      value={skillsList.find(s => s.name === skill.name)?.notes || ""}
+                                                      onChange={(e) => handleDescriptionChange(skill.name, e.target.value)}
                                                       disabled={isDisabled || !selectedSkills[skill.name]}
-                                                      className="w-full max-w-xs"
+                                                      className="w-full max-w-xs h-16 text-xs"
                                                     />
                                                   </TableCell>
                                                   <TableCell>
-                                                    <Input
-                                                      placeholder="Certification link"
-                                                      value={skillsList.find(s => s.name === skill.name)?.credlyLink || ""}
-                                                      onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
-                                                      disabled={isDisabled || !selectedSkills[skill.name]}
-                                                      className="w-full max-w-xs"
-                                                    />
+                                                    <div className="space-y-1">
+                                                      <Input
+                                                        placeholder="Certification name"
+                                                        value={skillsList.find(s => s.name === skill.name)?.certification || ""}
+                                                        onChange={(e) => handleCertificationChange(skill.name, e.target.value)}
+                                                        disabled={isDisabled || !selectedSkills[skill.name]}
+                                                        className="w-full max-w-xs text-xs"
+                                                      />
+                                                      <Input
+                                                        placeholder="Certification link"
+                                                        value={skillsList.find(s => s.name === skill.name)?.credlyLink || ""}
+                                                        onChange={(e) => handleCertificationLinkChange(skill.name, e.target.value)}
+                                                        disabled={isDisabled || !selectedSkills[skill.name]}
+                                                        className="w-full max-w-xs text-xs mt-1"
+                                                      />
+                                                    </div>
                                                   </TableCell>
                                                 </TableRow>
                                               );
@@ -1429,43 +1452,7 @@ export default function AddSkillsPage() {
           
 
 
-          {/* Selected Skills with Description */}
-          {Object.keys(selectedSkills).filter(name => selectedSkills[name]).length > 0 && (
-            <div className="mb-6">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle>Selected Skills</CardTitle>
-                  <CardDescription>
-                    Add descriptions to your selected skills before submitting
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {Object.keys(selectedSkills)
-                      .filter(name => selectedSkills[name])
-                      .map(skillName => (
-                        <div key={skillName} className="flex flex-row justify-between items-center p-2 border rounded">
-                          <div className="flex flex-col">
-                            <span className="font-medium">{skillName}</span>
-                            <span className="text-sm text-muted-foreground">
-                              {skillsList.find(s => s.name === skillName)?.level || "beginner"}
-                            </span>
-                          </div>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="text-blue-500 hover:text-blue-700"
-                            onClick={() => handleOpenDescriptionModal(skillName)}
-                          >
-                            {skillDescriptions[skillName] ? "Edit Description" : "Add Description"}
-                          </Button>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          {/* Submit button section */}
 
           <div className="flex justify-between mt-6">
             <Button
