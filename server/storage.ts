@@ -6493,19 +6493,22 @@ export class PostgresStorage implements IStorage {
   
   async createSkillCategory(category: InsertSkillCategory): Promise<SkillCategory> {
     try {
-      const { name, description, tabOrder, visibility, color, icon } = category;
+      const { name, description, tabOrder, visibility, color, icon, categoryType } = category;
+      
+      console.log(`Creating category with type: ${categoryType}`);
       
       const result = await pool.query(
         `INSERT INTO skill_categories (
-          name, description, tab_order, visibility, color, icon, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *`,
+          name, description, tab_order, visibility, color, icon, category_type, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *`,
         [
           name,
           description || null,
           tabOrder || 0,
           visibility || 'visible',
           color || '#3B82F6',
-          icon || 'code'
+          icon || 'code',
+          categoryType || 'technical' // Default to 'technical' if not specified
         ]
       );
       
@@ -6522,12 +6525,8 @@ export class PostgresStorage implements IStorage {
       const params: any[] = [];
       let paramIndex = 1;
       
-      // Create a modified copy of the data without categoryType field
+      // Include the categoryType field (properly handle snake case conversion)
       const validData = { ...data };
-      if ('categoryType' in validData) {
-        console.log("Warning: categoryType field was provided but is not supported in the database schema");
-        delete validData.categoryType;
-      }
       
       // Build SET clause and parameters
       for (const [key, value] of Object.entries(validData)) {
