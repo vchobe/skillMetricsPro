@@ -6447,13 +6447,30 @@ export class PostgresStorage implements IStorage {
         'Mobile Development', 'Security', 'Data Science', 'AI', 'UI'
       ];
       
-      // Map the categories and add the categoryType field based on name
+      // Map the categories and add the categoryType field based on name and database value
       const categoriesWithType = result.rows.map(row => {
-        const isTechnical = technicalCategories.includes(row.name);
-        return {
-          ...row,
-          category_type: isTechnical ? 'technical' : 'functional'
-        };
+        // Special handling for BigData - always set to technical regardless of stored value
+        if (row.name === 'BigData') {
+          return {
+            ...row,
+            category_type: 'technical'
+          };
+        }
+        
+        // For other categories, use the database value if present, otherwise fallback to name-based logic
+        if (row.category_type) {
+          return {
+            ...row,
+            category_type: row.category_type // Use the database value
+          };
+        } else {
+          // Fallback to name-based logic for older records
+          const isTechnical = technicalCategories.includes(row.name);
+          return {
+            ...row,
+            category_type: isTechnical ? 'technical' : 'functional'
+          };
+        }
       });
       
       console.log("Category types:", categoriesWithType.map(row => `${row.name}: ${row.category_type}`));
