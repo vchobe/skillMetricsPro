@@ -6557,12 +6557,7 @@ export class PostgresStorage implements IStorage {
       
       // Only include fields that exist in the database
       for (const [key, value] of Object.entries(data)) {
-        // Skip categoryType field as it doesn't exist in the database yet
-        if (key === 'categoryType') {
-          console.log(`Skipping categoryType (${value}) as this column is not yet in the database`);
-          continue;
-        }
-        
+        // Include all fields, including categoryType which is now in the database
         validData[key] = value;
       }
       
@@ -6597,14 +6592,14 @@ export class PostgresStorage implements IStorage {
         throw new Error("Skill category not found");
       }
       
-      // Add back the categoryType to the returned result
-      // Even though we can't save it to the database, we'll return the value that was requested
-      // This ensures the UI shows the correct value until the column is added to the database
+      // Return the updated record with all fields
       const resultWithType = this.snakeToCamel(result.rows[0]);
       
-      if (data.categoryType) {
+      // The categoryType is now stored in the database, so it should be part of the result
+      // If not present in the result for some reason, use the requested value as fallback
+      if (!resultWithType.categoryType && data.categoryType) {
         resultWithType.categoryType = data.categoryType;
-        console.log(`Returning category ${resultWithType.name} with requested categoryType: ${data.categoryType}`);
+        console.log(`Using fallback categoryType for ${resultWithType.name}: ${data.categoryType}`);
       }
       
       return resultWithType;
