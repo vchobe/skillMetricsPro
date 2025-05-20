@@ -46,6 +46,7 @@ import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
+import { CertificationSection } from "@/components/certification-section";
 import { 
   Plus, 
   Code, 
