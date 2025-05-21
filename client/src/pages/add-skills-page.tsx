@@ -771,7 +771,12 @@ export default function AddSkillsPage() {
                           ) : (
                             // Use categories from the database if available
                             skillCategories
-                              .filter(category => category.categoryType === "technical")
+                              .filter(category => {
+                                // Handle both categoryType and category_type properties
+                                // Also normalize case and trim whitespace for more robust comparison
+                                const type = (category.categoryType || category.category_type || "").toString().trim().toLowerCase();
+                                return type === "technical";
+                              })
                               .map(category => {
                                 // Use the global getTabKey function for consistent tab IDs
                                 const tabId = getTabKey(category.name);
@@ -1020,7 +1025,12 @@ export default function AddSkillsPage() {
                         
                         {/* Dynamically generated Functional category tabs */}
                         {skillCategories
-                          .filter(category => category.categoryType === "functional")
+                          .filter(category => {
+                            // Handle both categoryType and category_type properties
+                            // Also normalize case and trim whitespace for more robust comparison
+                            const type = (category.categoryType || category.category_type || "").toString().trim().toLowerCase();
+                            return type === "functional";
+                          })
                           .map(category => (
                             <TabsContent key={category.id} value={category.name}>
                               <div className="rounded-md border">
