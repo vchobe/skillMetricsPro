@@ -772,9 +772,14 @@ export default function AddSkillsPage() {
                             // Use categories from the database if available
                             skillCategories
                               .filter(category => {
-                                // Handle both categoryType and category_type properties
-                                // Also normalize case and trim whitespace for more robust comparison
-                                const type = (category.categoryType || category.category_type || "").toString().trim().toLowerCase();
+                                // Special case for specific categories that should always be technical
+                                if (category.name === "Messaging & Streaming" || category.name === "BigData") {
+                                  console.log(`Showing ${category.name} in Technical tab`);
+                                  return true;
+                                }
+                                
+                                // Handle category type with proper normalization
+                                const type = (category.categoryType || "").toString().trim().toLowerCase();
                                 return type === "technical";
                               })
                               .map(category => {
@@ -1026,9 +1031,13 @@ export default function AddSkillsPage() {
                         {/* Dynamically generated Functional category tabs */}
                         {skillCategories
                           .filter(category => {
-                            // Handle both categoryType and category_type properties
-                            // Also normalize case and trim whitespace for more robust comparison
-                            const type = (category.categoryType || category.category_type || "").toString().trim().toLowerCase();
+                            // Skip specific categories that are always shown in technical tab
+                            if (category.name === "Messaging & Streaming" || category.name === "BigData") {
+                              return false;
+                            }
+                            
+                            // Handle category type with proper normalization
+                            const type = (category.categoryType || "").toString().trim().toLowerCase();
                             return type === "functional";
                           })
                           .map(category => (
