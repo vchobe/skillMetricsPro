@@ -488,13 +488,35 @@ export default function AddSkillsPage() {
     }));
   };
 
-  // Create derived category lists based on the database values
+  // Create derived category lists based on the database values with special handling
   const technicalCategoryNames = skillCategories
-    .filter(cat => cat.categoryType === "technical")
+    .filter(cat => {
+      // Special handling for categories that should always be technical
+      const normalizedName = cat.name.trim().toLowerCase();
+      if (normalizedName === "bigdata" || normalizedName === "big data" || 
+          normalizedName === "messaging & streaming" || normalizedName === "messaging and streaming") {
+        return true;
+      }
+      
+      // Normal handling based on category_type
+      const categoryType = (cat.categoryType || "").toString().trim().toLowerCase();
+      return categoryType === "technical";
+    })
     .map(cat => cat.name);
   
   const functionalCategoryNames = skillCategories
-    .filter(cat => cat.categoryType === "functional")
+    .filter(cat => {
+      // Exclude special technical categories
+      const normalizedName = cat.name.trim().toLowerCase();
+      if (normalizedName === "bigdata" || normalizedName === "big data" || 
+          normalizedName === "messaging & streaming" || normalizedName === "messaging and streaming") {
+        return false;
+      }
+      
+      // Normal handling based on category_type
+      const categoryType = (cat.categoryType || "").toString().trim().toLowerCase();
+      return categoryType === "functional";
+    })
     .map(cat => cat.name);
   
   // Log the derived category names for debugging

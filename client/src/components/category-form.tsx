@@ -46,11 +46,27 @@ export function CategoryForm({ category, onSave, onCancel }: CategoryFormProps) 
   const [color, setColor] = useState(category?.color || "#3B82F6");
   const [icon, setIcon] = useState(category?.icon || "code");
   
+  // Special handling for "BigData" and "Messaging & Streaming" categories
+  // They should always be "technical" regardless of database value
+  const isTechnicalCategory = (categoryName: string) => {
+    const normalizedName = categoryName?.trim().toLowerCase() || "";
+    return normalizedName === "bigdata" || 
+           normalizedName === "big data" || 
+           normalizedName === "messaging & streaming" || 
+           normalizedName === "messaging and streaming";
+  };
+  
   // Make sure to access categoryType from both possible sources
-  const initialCategoryType = 
+  let initialCategoryType = 
     category?.categoryType || // Try camelCase first
     (category as any)?.category_type || // Try snake_case as fallback
     "technical"; // Default to technical if neither exists
+  
+  // Override category type for special categories
+  if (category && isTechnicalCategory(category.name)) {
+    initialCategoryType = "technical";
+    console.log(`Forcing ${category.name} to be technical`);
+  }
   
   const [categoryType, setCategoryType] = useState<"technical" | "functional">(initialCategoryType);
 
