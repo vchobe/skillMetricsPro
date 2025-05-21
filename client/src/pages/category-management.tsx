@@ -553,12 +553,12 @@ export default function CategoryManagementPage() {
       // Force a complete invalidation of all cached data to ensure all components get fresh data
       queryClient.invalidateQueries();
       
-      // Specifically target important category-related endpoints with refetchActive:true to force an immediate refresh
-      queryClient.invalidateQueries({ queryKey: ['/api/skill-categories'], refetchActive: true });
-      queryClient.invalidateQueries({ queryKey: ['/api/skill-subcategories'], refetchActive: true });
-      queryClient.invalidateQueries({ queryKey: ['/api/skill-templates'], refetchActive: true });
-      queryClient.invalidateQueries({ queryKey: ['/api/skills'], refetchActive: true });
-      queryClient.invalidateQueries({ queryKey: ['/api/all-skills'], refetchActive: true });
+      // Specifically target important category-related endpoints and refetch them immediately
+      queryClient.refetchQueries({ queryKey: ['/api/skill-categories'] });
+      queryClient.refetchQueries({ queryKey: ['/api/skill-subcategories'] });
+      queryClient.refetchQueries({ queryKey: ['/api/skill-templates'] });
+      queryClient.refetchQueries({ queryKey: ['/api/skills'] });
+      queryClient.refetchQueries({ queryKey: ['/api/all-skills'] });
       
       setEditingCategory(null);
       toast({
