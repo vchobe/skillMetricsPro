@@ -36,13 +36,23 @@ interface CategoryFormProps {
 }
 
 export function CategoryForm({ category, onSave, onCancel }: CategoryFormProps) {
+  // Log the incoming category data to debug
+  console.log('Category in form:', category);
+  
   const [name, setName] = useState(category?.name || "");
   const [description, setDescription] = useState(category?.description || "");
   const [tabOrder, setTabOrder] = useState(category?.tabOrder?.toString() || "0");
   const [visibility, setVisibility] = useState<"visible" | "hidden">(category?.visibility || "visible");
   const [color, setColor] = useState(category?.color || "#3B82F6");
   const [icon, setIcon] = useState(category?.icon || "code");
-  const [categoryType, setCategoryType] = useState<"technical" | "functional">(category?.categoryType || "technical");
+  
+  // Make sure to access categoryType from both possible sources
+  const initialCategoryType = 
+    category?.categoryType || // Try camelCase first
+    (category as any)?.category_type || // Try snake_case as fallback
+    "technical"; // Default to technical if neither exists
+  
+  const [categoryType, setCategoryType] = useState<"technical" | "functional">(initialCategoryType);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
