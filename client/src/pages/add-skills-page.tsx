@@ -494,7 +494,9 @@ export default function AddSkillsPage() {
       // Special handling for categories that should always be technical
       const normalizedName = cat.name.trim().toLowerCase();
       if (normalizedName === "bigdata" || normalizedName === "big data" || 
-          normalizedName === "messaging & streaming" || normalizedName === "messaging and streaming") {
+          normalizedName === "messaging & streaming" || normalizedName === "messaging and streaming" ||
+          normalizedName === "testing" || 
+          normalizedName === "log aggregation and search" || normalizedName === "logs aggregation and search") {
         return true;
       }
       
@@ -509,7 +511,9 @@ export default function AddSkillsPage() {
       // Exclude special technical categories
       const normalizedName = cat.name.trim().toLowerCase();
       if (normalizedName === "bigdata" || normalizedName === "big data" || 
-          normalizedName === "messaging & streaming" || normalizedName === "messaging and streaming") {
+          normalizedName === "messaging & streaming" || normalizedName === "messaging and streaming" ||
+          normalizedName === "testing" || 
+          normalizedName === "log aggregation and search" || normalizedName === "logs aggregation and search") {
         return false;
       }
       
@@ -843,7 +847,13 @@ export default function AddSkillsPage() {
                             skillCategories
                               .filter(category => {
                                 // Special case for specific categories that should always be technical
-                                if (category.name === "Messaging & Streaming" || category.name === "BigData") {
+                                const normalizedName = category.name.trim().toLowerCase();
+                                if (normalizedName === "messaging & streaming" || 
+                                    normalizedName === "bigdata" || 
+                                    normalizedName === "big data" ||
+                                    normalizedName === "testing" || 
+                                    normalizedName === "log aggregation and search" || 
+                                    normalizedName === "logs aggregation and search") {
                                   console.log(`Showing ${category.name} in Technical tab`);
                                   return true;
                                 }
@@ -1102,7 +1112,13 @@ export default function AddSkillsPage() {
                         {skillCategories
                           .filter(category => {
                             // Skip specific categories that are always shown in technical tab
-                            if (category.name === "Messaging & Streaming" || category.name === "BigData") {
+                            const normalizedName = category.name.trim().toLowerCase();
+                            if (normalizedName === "messaging & streaming" || 
+                                normalizedName === "bigdata" || 
+                                normalizedName === "big data" ||
+                                normalizedName === "testing" || 
+                                normalizedName === "log aggregation and search" || 
+                                normalizedName === "logs aggregation and search") {
                               return false;
                             }
                             
