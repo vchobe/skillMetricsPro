@@ -574,6 +574,25 @@ export default function AddSkillsPage() {
     console.log(`Found ${skillsWithSubcategory.length} skills for subcategory ${subcategoryId} (fallback)`);
     return skillsWithSubcategory;
   };
+  
+  // Get all skills for a category (including those not in a subcategory)
+  const getSkillsForCategory = (categoryId: number) => {
+    // Get skills with direct category ID match (no subcategory)
+    const directCategorySkills = skillTemplates.filter(
+      template => template.categoryId === categoryId && !template.subcategoryId
+    );
+    
+    // Get skills from all subcategories in this category
+    const subcategoriesForCategory = getSubcategoriesForCategory(categoryId);
+    const subcategorySkills = subcategoriesForCategory.flatMap(
+      subcategory => getSkillsForSubcategory(subcategory.id)
+    );
+    
+    // Combine both sets of skills
+    const allCategorySkills = [...directCategorySkills, ...subcategorySkills];
+    console.log(`Found ${allCategorySkills.length} total skills for category ${categoryId}`);
+    return allCategorySkills;
+  };
 
   // Check if all required tabs have been visited
   const allTabsVisited = () => {
@@ -1140,7 +1159,7 @@ export default function AddSkillsPage() {
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {filteredSkills.filter(skill => skill.category === category.name).length === 0 ? (
+                                    {getSkillsForCategory(category.id).length === 0 ? (
                                       <TableRow>
                                         <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                                           No skills found in this category.
