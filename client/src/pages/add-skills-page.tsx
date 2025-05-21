@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -97,6 +97,10 @@ export default function AddSkillsPage() {
   const [activeTab, setActiveTab] = useState("technical");
   const [activeTechnicalCategory, setActiveTechnicalCategory] = useState<string>("Programming");
   const [activeFunctionalCategory, setActiveFunctionalCategory] = useState<string>("Design");
+  
+  // Track category types for better dynamic handling
+  const [technicalCategories, setTechnicalCategories] = useState<string[]>([]);
+  const [functionalCategories, setFunctionalCategories] = useState<string[]>([]);
   const [skillsList, setSkillsList] = useState<SkillEntry[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<Record<string, boolean>>({});
   // We don't need these states anymore as descriptions are now part of the table
@@ -155,6 +159,50 @@ export default function AddSkillsPage() {
     refetchOnMount: "always", // Refetch every time component mounts
     refetchOnWindowFocus: true, // Refetch when window regains focus
   });
+  
+  // Process categories by type when data loads
+  useEffect(() => {
+    if (skillCategories.length > 0) {
+      // Log all categories with their types for debugging
+      console.log("Category types:", skillCategories.map(cat => 
+        `${cat.name}: ${(cat.categoryType || "").toString().trim().toLowerCase()}`
+      ));
+      
+      // Get list of technical category names
+      const technical = skillCategories
+        .filter(cat => {
+          // Special cases for categories that should always be technical
+          if (cat.name === "BigData" || cat.name === "Messaging & Streaming") {
+            return true;
+          }
+          
+          // Normal category type check
+          const type = (cat.categoryType || "").toString().trim().toLowerCase();
+          return type === "technical";
+        })
+        .map(cat => cat.name);
+        
+      // Get list of functional category names
+      const functional = skillCategories
+        .filter(cat => {
+          // Skip categories that should always be technical
+          if (cat.name === "BigData" || cat.name === "Messaging & Streaming") {
+            return false;
+          }
+          
+          // Normal category type check
+          const type = (cat.categoryType || "").toString().trim().toLowerCase();
+          return type === "functional";
+        })
+        .map(cat => cat.name);
+      
+      console.log("Technical categories from database:", technical);
+      console.log("Functional categories from database:", functional);
+      
+      setTechnicalCategories(technical);
+      setFunctionalCategories(functional);
+    }
+  }, [skillCategories]);
   
   // Get subcategories to organize skills hierarchically
   const { data: skillSubcategories = [], isLoading: isLoadingSubcategories } = useQuery<SkillSubcategory[]>({
