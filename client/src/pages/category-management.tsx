@@ -548,18 +548,17 @@ export default function CategoryManagementPage() {
       apiRequest('PATCH', `/api/skill-categories/${id}`, data)
         .then(r => r.json()),
     onSuccess: () => {
-      // Invalidate all queries that display category data
-      queryClient.invalidateQueries({ queryKey: ['/api/skill-categories'] });
+      console.log("Category updated, invalidating all category-related queries");
       
-      // Also invalidate subcategories since they show category info
-      queryClient.invalidateQueries({ queryKey: ['/api/skill-subcategories'] });
+      // Force a complete invalidation of all cached data to ensure all components get fresh data
+      queryClient.invalidateQueries();
       
-      // Invalidate skill templates as they include category information
-      queryClient.invalidateQueries({ queryKey: ['/api/skill-templates'] });
-      
-      // Invalidate skills data which depends on category information
-      queryClient.invalidateQueries({ queryKey: ['/api/skills'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/all-skills'] });
+      // Specifically target important category-related endpoints with refetchActive:true to force an immediate refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/skill-categories'], refetchActive: true });
+      queryClient.invalidateQueries({ queryKey: ['/api/skill-subcategories'], refetchActive: true });
+      queryClient.invalidateQueries({ queryKey: ['/api/skill-templates'], refetchActive: true });
+      queryClient.invalidateQueries({ queryKey: ['/api/skills'], refetchActive: true });
+      queryClient.invalidateQueries({ queryKey: ['/api/all-skills'], refetchActive: true });
       
       setEditingCategory(null);
       toast({

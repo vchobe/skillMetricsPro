@@ -148,9 +148,12 @@ export default function AddSkillsPage() {
     queryKey: ["/api/skills"],
   });
   
-  // Get categories to dynamically generate tabs
+  // Get categories to dynamically generate tabs with stale time set to 0 to always fetch fresh data
   const { data: skillCategories = [], isLoading: isLoadingCategories } = useQuery<SkillCategory[]>({
     queryKey: ["/api/skill-categories"],
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: "always", // Refetch every time component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
   
   // Get subcategories to organize skills hierarchically
