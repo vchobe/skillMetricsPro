@@ -1003,7 +1003,7 @@ export default function AddSkillsPage() {
                                                 </TableRow>
                                               );
                                             })}
-                                          </Fragment>
+                                          </React.Fragment>
                                         );
                                       })
                                     )}
@@ -1224,7 +1224,7 @@ export default function AddSkillsPage() {
                                                 </TableRow>
                                               );
                                             })}
-                                          </Fragment>
+                                          </React.Fragment>
                                         );
                                       })
                                     )}
