@@ -95,6 +95,66 @@ router.get('/oauth2callback', async (req, res) => {
   }
 });
 
+// Direct token setup route (admin only)
+router.post('/gmail/setup-token', async (req, res) => {
+  // In production, this should check if user is admin
+  try {
+    // Import the auth token utility
+    const { createTokenFromCode, saveTokenFromJson } = await import('./auth-token.js');
+    
+    const { authCode, tokenJson } = req.body;
+    
+    if (authCode) {
+      // Create token from OAuth authorization code
+      const result = await createTokenFromCode(authCode);
+      
+      if (result.success) {
+        res.json({
+          status: 'success',
+          message: 'Gmail API token created successfully using authorization code',
+          authenticated: true
+        });
+      } else {
+        res.status(400).json({
+          status: 'error',
+          message: `Failed to create token: ${result.error}`,
+          authenticated: false
+        });
+      }
+    } else if (tokenJson) {
+      // Save token directly from JSON
+      const success = saveTokenFromJson(tokenJson);
+      
+      if (success) {
+        res.json({
+          status: 'success',
+          message: 'Gmail API token saved successfully',
+          authenticated: true
+        });
+      } else {
+        res.status(400).json({
+          status: 'error',
+          message: 'Failed to save token JSON',
+          authenticated: false
+        });
+      }
+    } else {
+      res.status(400).json({
+        status: 'error',
+        message: 'Missing required parameter: either authCode or tokenJson must be provided',
+        authenticated: false
+      });
+    }
+  } catch (error) {
+    console.error('Error in setup-token route:', error);
+    res.status(500).json({
+      status: 'error',
+      message: `Server error: ${error.message}`,
+      authenticated: false
+    });
+  }
+});
+
 // Route to check authentication status
 router.get('/gmail/status', (req, res) => {
   try {
