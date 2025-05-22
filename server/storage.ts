@@ -27,7 +27,9 @@ import { Store } from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db"; // Import the pool from db.ts
-import { sendSkillApprovedEmail, sendSkillRejectedEmail } from "./email"; // Import email functions
+// Import both traditional email functions and new Gmail-based functions
+import { sendSkillApprovedEmail as sendMailjetSkillApprovedEmail, sendSkillRejectedEmail as sendMailjetSkillRejectedEmail } from "./email";
+import { sendSkillApprovedEmail, sendSkillRejectedEmail } from "./skill-notification-service.js"; // New Gmail API-based email functions
 
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
@@ -3805,12 +3807,25 @@ export class PostgresStorage implements IStorage {
         // Send approval email asynchronously (don't await)
         // Making sure skillName exists before sending
         const skillName = pendingUpdate.skillName || 'skill';
+        const reviewerName = 'Admin'; // Get reviewer name if available
+        
+        // Try the new Gmail API-based email first
         sendSkillApprovedEmail(
           userEmail,
           firstName,
-          skillName
+          skillName,
+          reviewerName
         ).catch(error => {
-          console.error('Failed to send skill approval email:', error);
+          console.error('Failed to send skill approval email via Gmail API:', error);
+          
+          // Fall back to the traditional email method if Gmail fails
+          sendMailjetSkillApprovedEmail(
+            userEmail,
+            firstName,
+            skillName
+          ).catch(fallbackError => {
+            console.error('Failed to send fallback skill approval email:', fallbackError);
+          });
         });
         
         console.log(`Triggered skill approval email to ${userEmail} for skill "${skillName}"`);
@@ -3931,12 +3946,27 @@ export class PostgresStorage implements IStorage {
         // Send rejection email asynchronously (don't await)
         // Making sure skillName exists before sending
         const skillName = pendingUpdate.skillName || 'skill';
+        const reviewerName = 'Admin'; // Get reviewer name if available
+        const comments = pendingUpdate.reviewerComments || ''; // Get rejection reason if available
+        
+        // Try the new Gmail API-based email first
         sendSkillRejectedEmail(
           userEmail,
           firstName,
-          skillName
+          skillName,
+          reviewerName,
+          comments
         ).catch(error => {
-          console.error('Failed to send skill rejection email:', error);
+          console.error('Failed to send skill rejection email via Gmail API:', error);
+          
+          // Fall back to the traditional email method if Gmail fails
+          sendMailjetSkillRejectedEmail(
+            userEmail,
+            firstName,
+            skillName
+          ).catch(fallbackError => {
+            console.error('Failed to send fallback skill rejection email:', fallbackError);
+          });
         });
         
         console.log(`Triggered skill rejection email to ${userEmail} for skill "${skillName}"`);
