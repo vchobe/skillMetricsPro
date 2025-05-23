@@ -5,8 +5,6 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import { log } from "./utils";
-import gmailRoutes from "./gmail-routes.js";
-import * as gmailService from "./gmail-service.js";
 
 const app = express();
 app.use(express.json());
@@ -202,20 +200,6 @@ const isJavaBackendRunning = async (): Promise<boolean> => {
 };
 
 (async () => {
-  // Register Gmail API routes
-  app.use('/api', gmailRoutes);
-  
-  // Initialize Gmail API authentication
-  try {
-    const authStatus = gmailService.initializeGmailAuth();
-    console.log('Gmail API Status:', authStatus.authenticated ? 'Authenticated' : 'Authentication required');
-    if (!authStatus.authenticated) {
-      console.log('Gmail Authentication URL:', authStatus.authUrl);
-    }
-  } catch (error) {
-    console.error('Failed to initialize Gmail API:', error);
-  }
-  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

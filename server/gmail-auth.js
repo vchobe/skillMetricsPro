@@ -12,7 +12,7 @@ import path from 'path';
 // Load OAuth2 credentials from file
 const loadCredentials = () => {
   try {
-    const credentialsPath = path.join(process.cwd(), 'client_secret_59463544587-ti8416hmpruv5f7avjfnuqksluv6lq46.apps.googleusercontent.com.json');
+    const credentialsPath = path.join(process.cwd(), 'client_secret_59463544587-echtadanm4lifuuj47gujio6gkg6f309.apps.googleusercontent.com.json');
     const content = fs.readFileSync(credentialsPath);
     return JSON.parse(content);
   } catch (error) {
