@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "qcd4FqVdUeLgKrsCZI3u7"
+uri = "file://RECREATE_PROMPT.md"
+type = "text"
+title = "Skill Metrics — Full Application Recreation Prompt"
