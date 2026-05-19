@@ -10,12 +10,14 @@ set -e
 
 REMOTE_URL="https://github.com/vchobe/skillMetricsPro.git"  # fallback if no remote exists
 
-# All four files to purge from history
+# All files to purge from history (root-level AND attached_assets/ copies)
 FILES_TO_PURGE=(
   "client_secret_59463544587-echtadanm4lifuuj47gujio6gkg6f309.apps.googleusercontent.com.json"
   "client_secret_59463544587-ti8416hmpruv5f7avjfnuqksluv6lq46.apps.googleusercontent.com.json"
   "service-account-key.json"
   "gmail-token.json"
+  "attached_assets/client_secret_59463544587-echtadanm4lifuuj47gujio6gkg6f309.apps.googleusercontent.com.json"
+  "attached_assets/client_secret_59463544587-ti8416hmpruv5f7avjfnuqksluv6lq46.apps.googleusercontent.com.json"
 )
 
 BACKUP_DIR="/tmp/credential-backup-$$"

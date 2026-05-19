@@ -1,0 +1,88 @@
+~/workspace$ bash clean-git-history.sh
+==> Backing up existing credential files to /tmp/credential-backup-4799 ...
+   Backed up: client_secret_59463544587-echtadanm4lifuuj47gujio6gkg6f309.apps.googleusercontent.com.json
+   Backed up: service-account-key.json
+==> Checking git-filter-repo...
+   Found: ae71fad1d03f
+==> Rewriting git history to remove credential files...
+Parsed 3082 commits
+New history written in 0.56 seconds; now repacking/cleaning...
+Repacking your repo and cleaning out old unneeded objects
+HEAD is now at 2033f89 Improve script to securely remove credentials from Git history
+Enumerating objects: 10328, done.
+Counting objects: 100% (10328/10328), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (3727/3727), done.
+Writing objects: 100% (10328/10328), done.
+Total 10328 (delta 6424), reused 10328 (delta 6424), pack-reused 0 (from 0)
+Completely finished after 0.83 seconds.
+   History rewrite complete.
+==> Restoring credential files to disk as untracked files...
+   Restored: client_secret_59463544587-echtadanm4lifuuj47gujio6gkg6f309.apps.googleusercontent.com.json
+   Restored: service-account-key.json
+==> Configuring GitHub remote...
+   Remote 'origin' already present: https://github.com/vchobe/skillMetricsPro.git
+==> Verifying all credential files are removed from history...
+   Confirmed clean: client_secret_59463544587-echtadanm4lifuuj47gujio6gkg6f309.apps.googleusercontent.com.json
+   Confirmed clean: client_secret_59463544587-ti8416hmpruv5f7avjfnuqksluv6lq46.apps.googleusercontent.com.json
+   Confirmed clean: service-account-key.json
+   Confirmed clean: gmail-token.json
+==> Force pushing cleaned history to GitHub...
+Enumerating objects: 5563, done.
+Counting objects: 100% (5563/5563), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (2018/2018), done.
+Writing objects: 100% (5507/5507), 2.51 MiB | 5.92 MiB/s, done.
+Total 5507 (delta 3444), reused 5405 (delta 3347), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3444/3444), completed with 30 local objects.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— Google OAuth Client ID ————————————————————————————
+remote:        locations:
+remote:          - commit: 2ecd073d741ff782a69fe9cbff3f2ea4ade52812
+remote:            path: attached_assets/client_secret_59463544587-ti8416hmpruv5f7avjfnuqksluv6lq46.apps.googleusercontent.com.json:1
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/vchobe/skillMetricsPro/security/secret-scanning/unblock-secret/3Dvmrl6YkohYkxahfuqBIGtfwwA
+remote:     
+remote:     
+remote:       —— Google OAuth Client ID ————————————————————————————
+remote:        locations:
+remote:          - commit: 82ac91d8adb5d987f1af124eb169f52d6c6317a2
+remote:            path: attached_assets/client_secret_59463544587-echtadanm4lifuuj47gujio6gkg6f309.apps.googleusercontent.com.json:1
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/vchobe/skillMetricsPro/security/secret-scanning/unblock-secret/3DvmrkVcXM1YOBFSh7yswUiGtHV
+remote:     
+remote:     
+remote:       —— Google OAuth Client Secret ————————————————————————
+remote:        locations:
+remote:          - commit: 2ecd073d741ff782a69fe9cbff3f2ea4ade52812
+remote:            path: attached_assets/client_secret_59463544587-ti8416hmpruv5f7avjfnuqksluv6lq46.apps.googleusercontent.com.json:1
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/vchobe/skillMetricsPro/security/secret-scanning/unblock-secret/3Dvmrp5a6MWPNB5ujcj6NbM2910
+remote:     
+remote:     
+remote:       —— Google OAuth Client Secret ————————————————————————
+remote:        locations:
+remote:          - commit: 82ac91d8adb5d987f1af124eb169f52d6c6317a2
+remote:            path: attached_assets/client_secret_59463544587-echtadanm4lifuuj47gujio6gkg6f309.apps.googleusercontent.com.json:1
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/vchobe/skillMetricsPro/security/secret-scanning/unblock-secret/3DvmrkeYcZGxRRw74kLecKwsXAY
+remote:     
+remote: 
+remote: 
+To https://github.com/vchobe/skillMetricsPro.git

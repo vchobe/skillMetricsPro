@@ -10,3 +10,4 @@ client_secret*.json
 service-account-key.json
 gmail-token.json
 *credentials*.json
+attached_assets/client_secret*.json
