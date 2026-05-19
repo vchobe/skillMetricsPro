@@ -8,7 +8,7 @@
 
 set -e
 
-REMOTE_URL="https://github.com/vchobe/skillMetricsPro.git"
+REMOTE_URL="https://github.com/vchobe/skillMetricsPro.git"  # fallback if no remote exists
 
 # All four files to purge from history
 FILES_TO_PURGE=(
@@ -59,21 +59,20 @@ for f in "${FILES_TO_PURGE[@]}"; do
 done
 rm -rf "$BACKUP_DIR"
 
-# ── Step 5: Re-add or update the GitHub remote (filter-repo removes it) ─────
+# ── Step 5: Re-add the GitHub remote only if filter-repo removed it ──────────
 echo "==> Configuring GitHub remote..."
 if git remote get-url origin &>/dev/null; then
-  git remote set-url origin "$REMOTE_URL"
-  echo "   Updated existing remote: $REMOTE_URL"
+  echo "   Remote 'origin' already present: $(git remote get-url origin)"
 else
   git remote add origin "$REMOTE_URL"
-  echo "   Added remote: $REMOTE_URL"
+  echo "   Remote was missing — added: $REMOTE_URL"
 fi
 
 # ── Step 6: Verify ALL four files are gone from history ─────────────────────
 echo "==> Verifying all credential files are removed from history..."
 FOUND_ANY=0
 for f in "${FILES_TO_PURGE[@]}"; do
-  COUNT=$(git log --all --oneline --follow -- "$f" 2>/dev/null | wc -l)
+  COUNT=$(git log --all --full-history --oneline -- "$f" 2>/dev/null | wc -l)
   if [ "$COUNT" -gt 0 ]; then
     echo "   WARNING: '$f' still appears in $COUNT commit(s)!"
     FOUND_ANY=1
