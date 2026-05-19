@@ -4,3 +4,9 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Google OAuth & service account credentials — NEVER commit these
+client_secret*.json
+service-account-key.json
+gmail-token.json
+*credentials*.json
